@@ -1,7 +1,10 @@
 ---
 name: service-scheduler
 description: "Appointment booking, technician scheduling, and job dispatch for local service companies. Handles intake, triage, scheduling, confirmations, and day-of dispatch."
-metadata: {"openclaw": {"emoji": "📅"}}
+metadata:
+  version: 1.0.0
+  openclaw:
+    emoji: "📅"
 ---
 
 # Service Scheduler Skill
@@ -999,3 +1002,14 @@ When a tech is unavailable for the day:
 | Generate schedule board | `workspace/schedule-board.html` | WRITE (canvas page) |
 
 **Always read before writing.** Never overwrite the entire file — read, parse, modify the specific entry, write back.
+
+---
+
+## Related Skills
+
+- **estimate-tracker**: Convert estimates to scheduled jobs
+- **customer-comms**: Appointment confirmations, on-the-way texts, reminders
+- **customer-followup**: Post-service follow-up pipeline after job completion
+- **business-briefing**: Schedule data feeds into capacity and utilization metrics
+- **sales-scripts**: In-home sales after scheduled estimate visits
+- **maintenance-programs**: Recurring maintenance visits for scheduling

@@ -123,6 +123,7 @@ Verify your robots.txt allows AI crawlers. Each AI platform has its own bot, and
 - **ClaudeBot** and **anthropic-ai** — Anthropic (Claude)
 - **Google-Extended** — Google Gemini and AI Overviews
 - **Bingbot** — Microsoft Copilot (via Bing)
+- **Applebot-Extended** — Apple AI (Siri, Apple Intelligence)
 
 Check your robots.txt for `Disallow` rules targeting any of these. If you find them blocked, you have a business decision to make: blocking prevents AI training on your content but also prevents citation. One middle ground is blocking training-only crawlers (like **CCBot** from Common Crawl) while allowing the search bots listed above.
 
@@ -281,12 +282,16 @@ Not all content is equally citable. Prioritize these formats:
 
 ### AI Visibility Monitoring Tools
 
-| Tool | Coverage | Best For |
-|------|----------|----------|
-| **Otterly AI** | ChatGPT, Perplexity, Google AI Overviews | Share of AI voice tracking |
-| **Peec AI** | ChatGPT, Gemini, Perplexity, Claude, Copilot+ | Multi-platform monitoring at scale |
-| **ZipTie** | Google AI Overviews, ChatGPT, Perplexity | Brand mention + sentiment tracking |
-| **LLMrefs** | ChatGPT, Perplexity, AI Overviews, Gemini | SEO keyword → AI visibility mapping |
+| Tool | Coverage | Best For | Pricing |
+|------|----------|----------|---------|
+| **Profound** | ChatGPT, Perplexity, Claude, Gemini | Enterprise-grade citation tracking | $499/mo+ |
+| **Otterly AI** | ChatGPT, Perplexity, Google AI Overviews | Share of AI voice tracking | Free trial |
+| **Peec AI** | ChatGPT, Gemini, Perplexity, Claude, Copilot+ | Sentiment + visibility analysis | Mid-tier |
+| **ZipTie** | Google AI Overviews, ChatGPT, Perplexity | Brand mention + sentiment tracking | Varies |
+| **LLMrefs** | ChatGPT, Perplexity, AI Overviews, Gemini | SEO keyword to AI visibility mapping | Varies |
+| **SE Ranking AI Toolkit** | AI Overviews, ChatGPT | AI visibility included with SEO suite | Included |
+| **Semrush AI Visibility** | Google AIO, ChatGPT | AI visibility included with SEO suite | Included |
+| **Scrunch AI** | Multiple AI platforms | Brand tracking and citation monitoring | Varies |
 
 ### DIY Monitoring (No Tools)
 

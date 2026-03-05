@@ -1,7 +1,10 @@
 ---
 name: customer-followup
 description: "Post-service customer follow-up pipeline — satisfaction checks, review requests, referral offers, maintenance plan pitches. Automated lifecycle for local service companies."
-metadata: {"openclaw": {"emoji": "🔄"}}
+metadata:
+  version: 1.0.0
+  openclaw:
+    emoji: "🔄"
 ---
 
 # Customer Follow-Up Pipeline

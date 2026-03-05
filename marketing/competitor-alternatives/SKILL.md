@@ -1,6 +1,6 @@
 ---
 name: competitor-alternatives
-description: "When the user wants to create competitor comparison or alternative pages for SEO and sales enablement. Also use when the user mentions 'alternative page,' 'vs page,' 'competitor comparison,' 'comparison page,' '[Product] vs [Product],' '[Product] alternative,' 'competitive landing pages,' 'how do we compare to X,' 'battle card,' or 'competitor teardown.' Use this for any content that positions your product against competitors. Covers four formats: singular alternative, plural alternatives, you vs competitor, and competitor vs competitor. For sales-specific competitor docs, see sales-enablement."
+description: "When the user wants to create competitor comparison or alternative pages for SEO and sales enablement. Also use when the user mentions 'alternative page,' 'vs page,' 'competitor comparison,' 'comparison page,' '[Product] vs [Product],' '[Product] alternative,' 'competitive landing pages,' 'how do we compare to X,' 'battle card,' or 'competitor teardown.' Use this for any content that positions your product against competitors. Covers four formats: singular alternative, plural alternatives, you vs competitor, and competitor vs competitor. For sales-specific competitor docs, see sales-scripts."
 metadata:
   version: 1.1.0
 ---
@@ -253,4 +253,4 @@ Recommended pages to create with priority order based on search volume.
 - **copywriting**: For writing compelling comparison copy
 - **seo-audit**: For optimizing competitor pages
 - **schema-markup**: For FAQ and comparison schema
-- **sales-enablement**: For internal sales collateral, decks, and objection docs
+- **sales-scripts**: For internal sales collateral, decks, and objection docs

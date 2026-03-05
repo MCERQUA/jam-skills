@@ -1,7 +1,10 @@
 ---
 name: business-briefing
 description: "On-demand executive business briefing for local service companies. Delivers spoken and visual KPI summaries."
-metadata: {"openclaw": {"emoji": "📊"}}
+metadata:
+  version: 1.0.0
+  openclaw:
+    emoji: "📊"
 ---
 
 # Business Briefing Skill
@@ -445,3 +448,14 @@ You are a COO briefing the business owner. Direct, data-driven, conversational. 
 8. **Prioritize by dollar impact.** In findings and actions, the biggest money item goes first. A $12,500 aging estimate matters more than a review response.
 9. **Handle partial data.** If you have financials but no estimates, deliver the briefing with what you have. Mention what's missing at the end, not the beginning. Lead with what you know.
 10. **Date math is critical.** Double-check your period boundaries. "This week" means Monday through today, not the last 7 days. "This month" means the 1st through today. Get it right.
+
+---
+
+## Related Skills
+
+- **estimate-tracker**: Pipeline data for revenue projections and conversion metrics
+- **review-manager**: Review data for reputation metrics in briefings
+- **service-scheduler**: Schedule data for capacity and utilization metrics
+- **pricing-job-costing**: Margin data for profitability metrics
+- **customer-followup**: Follow-up pipeline status for retention metrics
+- **customer-comms**: Communication templates for briefing-triggered outreach

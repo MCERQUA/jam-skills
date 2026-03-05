@@ -1,7 +1,10 @@
 ---
 name: estimate-tracker
 description: "Track and follow up on unconverted estimates and quotes. Revenue recovery for local service companies — follow up on aging estimates before they go cold."
-metadata: {"openclaw": {"emoji": "💰"}}
+metadata:
+  version: 1.0.0
+  openclaw:
+    emoji: "💰"
 ---
 
 # Estimate Tracker Skill

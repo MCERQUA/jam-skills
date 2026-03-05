@@ -402,6 +402,37 @@ Same format as above
 
 ---
 
+## Scripts
+
+These Python scripts provide executable SEO analysis tools. All scripts use Python stdlib only (no pip install required).
+
+### Free (No API Key)
+
+| Script | Usage | What It Does |
+|--------|-------|-------------|
+| `seo_audit.py` | `python3 scripts/seo_audit.py <url>` | Technical SEO audit -- meta tags, schema count, robots.txt AI bot check, sitemap, load time |
+
+### DataForSEO API (Pay-Per-Use)
+
+Requires `DATAFORSEO_LOGIN` and `DATAFORSEO_PASSWORD` environment variables. Sign up at https://dataforseo.com (pay-per-use, much cheaper than Ahrefs/Semrush subscriptions).
+
+| Script | Usage | What It Does |
+|--------|-------|-------------|
+| `keyword_research.py` | `python3 scripts/keyword_research.py "<keyword>" [--location 2840] [--limit 20]` | Keyword ideas with search volume and difficulty |
+| `related_keywords.py` | `python3 scripts/related_keywords.py "<keyword>" [--depth 1-3] [--limit 50]` | Google "searches related to" -- up to 4,680 ideas at depth 3 |
+| `autocomplete_ideas.py` | `python3 scripts/autocomplete_ideas.py "<keyword>"` | Real Google autocomplete suggestions |
+| `serp_analysis.py` | `python3 scripts/serp_analysis.py "<keyword>" [--depth 20]` | Top organic SERP results (position, title, domain) |
+| `backlinks.py` | `python3 scripts/backlinks.py <domain> [--limit 20]` | Domain backlink profile with rank and dofollow status |
+| `domain_overview.py` | `python3 scripts/domain_overview.py <domain>` | Organic keywords, traffic estimate, top-3 positions |
+| `competitor_gap.py` | `python3 scripts/competitor_gap.py <my-domain> <competitor-domain> [--limit 50]` | Keywords where competitor ranks and you don't |
+
+### Shared Modules
+
+- `credential.py` -- Reads DataForSEO credentials from environment variables
+- `dataforseo_api.py` -- Shared API wrapper (authentication, request handling, output formatting)
+
+---
+
 ## Related Skills
 
 - **ai-seo**: For optimizing content for AI search engines (AEO, GEO, LLMO)

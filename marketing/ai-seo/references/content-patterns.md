@@ -265,6 +265,46 @@ Different content domains benefit from different authority signals.
 
 ---
 
+## GEO Effectiveness Metrics
+
+The Princeton GEO study introduces three metrics for measuring how well your content performs in generative engine responses:
+
+### Position-Adjusted Word Count
+
+Measures how much of your content appears in AI responses, weighted by position. Content appearing earlier in the response scores higher than content cited at the end. This rewards being the primary source, not just a supporting reference.
+
+### Subjective Impression Score
+
+Human evaluation of how prominently your content is featured in AI responses. Captures qualitative aspects like whether the AI response clearly attributes the information to your source or paraphrases without clear citation.
+
+### Word Count Share
+
+Percentage of the AI response that comes from your content vs. competitors. If an AI response is 500 words and 150 words came from your content, your Word Count Share is 30%.
+
+### Perplexity.ai Validation Results
+
+The researchers validated GEO methods on Perplexity.ai, a commercial generative engine, confirming these results translate to real-world AI search:
+
+| Method | Visibility Increase (Perplexity validation) |
+|--------|---------------------------------------------|
+| **Cite Sources** | Up to +37% |
+| **Statistics** | Up to +35% |
+| **Quotations** | Up to +28% |
+| **Combined methods** | Up to +40% |
+
+These Perplexity validation numbers are slightly lower than the lab benchmarks but confirm that the same optimization methods work on production AI search engines.
+
+### Best Combinations (Research-Validated)
+
+| Combination | Effectiveness |
+|-------------|--------------|
+| **Fluency + Statistics** | Highest overall boost |
+| **Citations + Authoritative Tone** | Best for professional content |
+| **Easy Language + Statistics** | Best for consumer content |
+| **Technical Terms + Citations** | Best for academic/scientific |
+
+---
+
 ## Voice Search Optimization
 
 Voice queries are conversational and question-based. Optimize for these patterns:

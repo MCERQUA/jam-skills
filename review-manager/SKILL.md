@@ -1,8 +1,13 @@
 ---
 name: review-manager
 description: "Online reputation management — monitor reviews across Google, Yelp, Facebook, and BBB. Alert on new reviews, draft responses, track rating trends. Critical for local service companies."
-metadata: {"openclaw": {"emoji": "⭐"}}
+metadata:
+  version: 1.0.0
+  openclaw:
+    emoji: "⭐"
 ---
+
+> **Note:** For review solicitation strategy, multi-channel ask systems, and compliance guidelines, see the marketing **review-management** skill. This skill focuses on operational review monitoring, data management, and canvas dashboards.
 
 # Review Manager Skill
 

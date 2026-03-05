@@ -1,3 +1,10 @@
+---
+name: remotion-video
+description: "Create videos programmatically using Remotion and React. Use when the user wants to generate, render, or edit videos with code, create animated content, or build video templates."
+metadata:
+  version: 1.0.0
+---
+
 # Remotion Video Creation — End-to-End Workflow
 
 This skill provides everything needed to create a video from scratch using Remotion inside the openclaw container.

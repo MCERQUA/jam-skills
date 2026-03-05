@@ -24,6 +24,16 @@ Google AI Overviews pull from Google's own index and lean heavily on E-E-A-T sig
 
 **What makes Google AI Overviews different:** They already have your traditional SEO signals — backlinks, page authority, topical relevance. The additional AI layer adds a preference for content with cited sources and structured data. Research shows that including authoritative citations in your content correlates with a 132% visibility boost, and writing with an authoritative (not salesy) tone adds another 89%.
 
+**Google AI Overview source selection uses a 5-stage pipeline:**
+
+1. **Retrieval** — Identify candidate sources from the index
+2. **Semantic Ranking** — Evaluate topical relevance
+3. **LLM Re-ranking** — Assess contextual fit (using Gemini)
+4. **E-E-A-T Evaluation** — Filter for expertise, authority, trust
+5. **Data Fusion** — Synthesize from multiple sources with citations
+
+**Key stats:** Traditional ranking factors still account for 62% of source selection, with novel AI-specific signals at 38%. Sites fully optimized for AI Overviews see up to a 340% visibility boost.
+
 **Importantly, AI Overviews don't just recycle the traditional Top 10.** Only about 15% of AI Overview sources overlap with conventional organic results. Pages that wouldn't crack page 1 in traditional search can still get cited if they have strong structured data and clear, extractable answers.
 
 **What to focus on:**
@@ -45,6 +55,16 @@ ChatGPT's web search draws from a Bing-based index. It combines this with its tr
 **Freshness is a major differentiator.** Content updated within the last 30 days gets cited about 3.2x more often than older content. ChatGPT clearly favors recent information.
 
 **The most important signal is content-answer fit** — a ZipTie analysis of 400,000 pages found that how well your content's style and structure matches ChatGPT's own response format accounts for about 55% of citation likelihood. This is far more important than domain authority (12%) or on-page structure (14%) alone. Write the way ChatGPT would answer the question, and you're more likely to be the source it cites.
+
+**ChatGPT citation factor breakdown (400K page study):**
+
+| Factor | Weight | Details |
+|--------|--------|---------|
+| **Content-Answer Fit** | 55% | Match ChatGPT's response style — the dominant factor |
+| **On-Page Structure** | 14% | Clear headings, formatting |
+| **Domain Authority** | 12% | Helps retrieval, not citation directly |
+| **Query Relevance** | 12% | Match user intent |
+| **Content Consensus** | 7% | Agreement among multiple sources |
 
 **Where ChatGPT looks beyond your site:** Wikipedia accounts for 7.8% of all ChatGPT citations, Reddit for 1.8%, and Forbes for 1.1%. Brand official sites are cited frequently but third-party mentions carry significant weight.
 
@@ -68,6 +88,9 @@ Perplexity always cites its sources with clickable links, making it the most tra
 - **PDF documents** — Publicly accessible PDFs (whitepapers, research reports) are prioritized. If you have authoritative PDF content gated behind a form, consider making a version public.
 - **Publishing velocity** — How frequently you publish matters more than keyword targeting
 - **Self-contained paragraphs** — Perplexity prefers atomic, semantically complete paragraphs it can extract cleanly
+- **YouTube sync** — YouTube titles matching trending queries get a visibility boost
+- **User engagement** — Click rates and weekly performance metrics feed back into ranking
+- **New post performance** — Early clicks on new content significantly boost visibility, creating a window of opportunity right after publishing
 
 **What to focus on:**
 - Allow PerplexityBot in robots.txt
@@ -99,7 +122,7 @@ Copilot is embedded across Microsoft's ecosystem — Edge, Windows, Microsoft 36
 
 Claude uses Brave Search as its search backend when web search is enabled — not Google, not Bing. This is a completely different index, which means your Brave Search visibility directly determines whether Claude can find and cite you.
 
-**What makes Claude different:** Claude is extremely selective about what it cites. While it processes enormous amounts of content, its citation rate is very low — it's looking for the most factually accurate, well-sourced content on a given topic. Data-rich content with specific numbers and clear attribution performs significantly better than general-purpose content.
+**What makes Claude different:** Claude is extremely selective about what it cites. Its crawl-to-refer ratio is **38,065:1** — meaning it consumes massive amounts of content but cites very rarely. It's looking for the most factually accurate, well-sourced content on a given topic. Data-rich content with specific numbers and clear attribution performs significantly better than general-purpose content.
 
 **What to focus on:**
 - Verify your content appears in Brave Search results (search for your brand and key terms at search.brave.com)
@@ -116,14 +139,37 @@ Claude uses Brave Search as its search backend when web search is enabled — no
 If your robots.txt blocks an AI bot, that platform can't cite your content. Here are the user agents to allow:
 
 ```
-User-agent: GPTBot           # OpenAI — powers ChatGPT search
-User-agent: ChatGPT-User     # ChatGPT browsing mode
-User-agent: PerplexityBot    # Perplexity AI search
-User-agent: ClaudeBot        # Anthropic Claude
-User-agent: anthropic-ai     # Anthropic Claude (alternate)
-User-agent: Google-Extended   # Google Gemini and AI Overviews
-User-agent: Bingbot          # Microsoft Copilot (via Bing)
+# Search Engines
+User-agent: Googlebot
 Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# AI Bots
+User-agent: GPTBot           # OpenAI — powers ChatGPT search
+Allow: /
+
+User-agent: ChatGPT-User     # ChatGPT browsing mode
+Allow: /
+
+User-agent: PerplexityBot    # Perplexity AI search
+Allow: /
+
+User-agent: ClaudeBot        # Anthropic Claude
+Allow: /
+
+User-agent: anthropic-ai     # Anthropic Claude (alternate)
+Allow: /
+
+User-agent: Google-Extended   # Google Gemini and AI Overviews
+Allow: /
+
+User-agent: Applebot-Extended # Apple AI (Siri, Apple Intelligence)
+Allow: /
+
+# Sitemap
+Sitemap: https://example.com/sitemap.xml
 ```
 
 **Training vs. search:** Some AI bots are used for both model training and search citation. If you want to be cited but don't want your content used for training, your options are limited — GPTBot handles both for OpenAI. However, you can safely block **CCBot** (Common Crawl) without affecting any AI search citations, since it's only used for training dataset collection.
@@ -150,3 +196,16 @@ If you're optimizing for AI search for the first time, focus your effort where y
 5. Use clear heading structure (H1 > H2 > H3)
 6. Keep page load time under 2 seconds
 7. Add author bios with credentials
+
+---
+
+## Cross-Platform Quick Reference
+
+| Platform | Primary Index | Key Factor | Unique Requirement | Crawl Selectivity |
+|----------|--------------|------------|-------------------|-------------------|
+| **ChatGPT** | Web (Bing-based) | Domain Authority (40%) | Content-Answer Fit (55% of citation) | Moderate |
+| **Perplexity** | Own + Google | Semantic Relevance | FAQ Schema, PDF resources | Moderate |
+| **Google AI Overviews** | Google | E-E-A-T | Knowledge Graph presence | Low (broad) |
+| **Copilot** | Bing | Bing Index | Microsoft Ecosystem (LinkedIn, GitHub) | Moderate |
+| **Claude** | Brave Search | Factual Density | Brave indexing, 38,065:1 crawl-to-refer | Very High |
+| **Google (traditional)** | Google | Backlinks | Core Web Vitals | Low (broad) |

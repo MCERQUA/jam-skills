@@ -1,3 +1,10 @@
+---
+name: stitch
+description: "Google Stitch AI-powered UI design generation. Use when the user mentions stitch, UI design generation, design-to-code, screen generation, or wants to create/edit UI mockups programmatically."
+metadata:
+  version: 1.0.0
+---
+
 # Google Stitch — AI UI Design Generation
 
 Generate production-ready UI designs from text prompts. Outputs HTML with Tailwind CSS.

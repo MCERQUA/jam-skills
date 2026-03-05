@@ -62,6 +62,7 @@ Before implementing schema, understand:
 | BreadcrumbList | Any page with breadcrumbs | itemListElement |
 | LocalBusiness | Local business pages | name, address |
 | Event | Events, webinars | name, startDate, location |
+| SpeakableSpecification | Voice search, AI extraction | cssSelector or xpath |
 
 **For complete JSON-LD examples**: See [references/schema-examples.md](references/schema-examples.md)
 

@@ -34,6 +34,12 @@ AI agent skills for local service businesses — built for [OpenClaw](https://gi
 | Strategy | product-marketing-context, marketing-ideas, marketing-psychology |
 | Industry | insurance-marketing, review-management |
 
+### Research & Intelligence
+
+| Skill | What It Does |
+|-------|-------------|
+| `social-research` | Reddit social listening — search posts, comments, subreddits for customer sentiment, complaints, competitor mentions. Zero cost, no API key. |
+
 ### Platform Skills
 
 Document generation (`docx`, `pdf`, `pptx`, `xlsx`), web design (`premium-web-design`, `canvas-design`), music (`suno-music`), video (`remotion-best-practices`, `remotion-video`), search (`serper-search`), AI/LLM (`llms-txt-writer`, `openclaw-expert`, `ai-seo`), design (`stitch`, `ui-ux-pro-max`, `theme-factory`), data (`csv-data-summarizer`), email (`agentmail`).

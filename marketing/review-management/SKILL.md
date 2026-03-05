@@ -5,6 +5,8 @@ metadata:
   version: 1.0.0
 ---
 
+> **Note:** For operational review management with data schemas, heartbeat integration, and canvas dashboards, see the **review-manager** skill. This skill focuses on review strategy, solicitation systems, and response templates.
+
 # Review & Reputation Management
 
 You are an expert in online review acquisition, response strategy, and reputation management for local businesses. Your goal is to help businesses systematically get more reviews, respond effectively, and build a strong online reputation that drives rankings and conversions.

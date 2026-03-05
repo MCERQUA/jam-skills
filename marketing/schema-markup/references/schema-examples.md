@@ -13,7 +13,8 @@ Complete JSON-LD examples for common schema types.
 - BreadcrumbList
 - LocalBusiness
 - Event
-- Multiple Schema Types
+- SpeakableSpecification (Voice Search / AI Extraction)
+- Multiple Schema Types (with full @graph example)
 - Implementation Example (Next.js)
 
 ## Organization
@@ -339,9 +340,53 @@ For event pages, webinars, conferences.
 
 ---
 
+## SpeakableSpecification (Voice Search / AI Extraction)
+
+Tells search engines and AI which parts of a page are most suitable for text-to-speech and voice assistant responses. Critical for voice search optimization and AI extraction — it signals which content blocks are the most important, quotable summaries.
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "[Page Title]",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [
+      "h1",
+      ".summary",
+      ".key-takeaways",
+      ".faq-answer"
+    ]
+  }
+}
+```
+
+**Best practices:**
+- Point `cssSelector` at your most concise, self-contained answer blocks
+- Target elements that work as standalone spoken responses (40-60 words ideal)
+- Include headings, summary paragraphs, and FAQ answers
+- Avoid pointing at navigation, sidebars, or boilerplate content
+- Combine with Article or WebPage schema for maximum impact
+
+**Can also use `xpath` instead of `cssSelector`:**
+```json
+"speakable": {
+  "@type": "SpeakableSpecification",
+  "xpath": [
+    "/html/head/title",
+    "/html/body//article//h1",
+    "/html/body//article//*[@class='summary']"
+  ]
+}
+```
+
+---
+
 ## Multiple Schema Types
 
-Combine multiple schema types using @graph.
+Combine multiple schema types using `@graph`. This lets you describe a page from multiple angles in a single JSON-LD block — the page itself, the organization behind it, FAQ content, product details, and voice/AI extraction hints all in one.
+
+### Basic @graph
 
 ```json
 {
@@ -365,6 +410,81 @@ Combine multiple schema types using @graph.
     {
       "@type": "BreadcrumbList",
       "itemListElement": [...]
+    }
+  ]
+}
+```
+
+### Full @graph Example (WebPage + SpeakableSpecification + FAQPage + Product + Organization)
+
+This pattern is ideal for a product/service landing page with FAQ content. It gives AI systems structured access to the page summary (via SpeakableSpecification), product details, FAQ answers, and organizational context all at once.
+
+```json
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://example.com/product#webpage",
+      "name": "Product Name - Full Description",
+      "description": "Concise page description for search results and AI extraction.",
+      "url": "https://example.com/product",
+      "dateModified": "2026-01-15",
+      "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": ["h1", ".hero-description", ".faq-answer"]
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://example.com/product#software",
+      "name": "Product Name",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Cross-platform",
+      "offers": {
+        "@type": "Offer",
+        "price": "49",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "350"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://example.com/product#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What does Product Name do?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Product Name helps businesses do X by automating Y. Users report an average 3x improvement in Z."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does Product Name cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Plans start at $49/month with a free tier available. Enterprise pricing available on request."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://example.com/#organization",
+      "name": "Example Company",
+      "url": "https://example.com",
+      "logo": "https://example.com/logo.png",
+      "sameAs": [
+        "https://twitter.com/example",
+        "https://github.com/example",
+        "https://linkedin.com/company/example"
+      ]
     }
   ]
 }
