@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "generated": "2026-02-22T20:00:00.000000",
+  "openclaw_version": "2026.2.10",
+  "topics": {
+    "suno-api-overview": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "API Status",
+        "Base URLs",
+        "Configuration",
+        "Model Versions"
+      ]
+    },
+    "endpoints": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Generate Music from Description",
+        "Generate Custom Song",
+        "Extend Audio",
+        "Upload and Cover Audio",
+        "Generate Lyrics Only",
+        "Separate Vocals",
+        "Get Music List",
+        "Get Account Credits",
+        "Get Task Status",
+        "Create Music Video",
+        "Get Timestamped Lyrics"
+      ]
+    },
+    "usage": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Usage Examples",
+        "Agent Implementation Guide",
+        "Download Workflow"
+      ]
+    },
+    "reference": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Style Tags Reference",
+        "Model Versions",
+        "Limitations",
+        "Troubleshooting",
+        "Self-Hosted Setup"
+      ]
+    }
+  },
+  "files": {
+    "SKILL.md": {
+      "file": "SKILL.md",
+      "lines": 350,
+      "headings": [
+        "Overview",
+        "Important: Suno API Status",
+        "API Base URLs",
+        "Configuration",
+        "Output Directory",
+        "Generate Music from Description (Prompt Mode)",
+        "Generate Custom Song (Custom Mode)",
+        "Extend Audio",
+        "Upload and Cover Audio",
+        "Generate Lyrics Only",
+        "Separate Vocals from Music",
+        "Get Music List / Details",
+        "Get Account Credits",
+        "Get Task Status / Fetch Results",
+        "Create Music Video",
+        "Get Timestamped Lyrics",
+        "Model Versions",
+        "Style Tags Reference",
+        "Usage Examples",
+        "Agent Implementation Guide",
+        "Download Workflow",
+        "Limitations",
+        "Troubleshooting",
+        "Self-Hosted Setup (gcui-art)"
+      ],
+      "summary": "Suno Music Generation - Generate AI music using Suno API endpoints"
+    }
+  }
+}

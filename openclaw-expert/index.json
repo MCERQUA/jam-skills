@@ -1,0 +1,1035 @@
+{
+  "version": 2,
+  "generated": "2026-03-04T22:00:00.000000",
+  "openclaw_version": "2026.2.24",
+  "topics": {
+    "agent-runtime": {
+      "file": "references/agent-runtime.md",
+      "subtopics": [
+        "Agent Lifecycle (ordered)",
+        "Workspace Layout",
+        "Bootstrap Injection",
+        "System Prompt Structure",
+        "Built-in Tools",
+        "Steering While Streaming (Queue Modes)",
+        "Session Management",
+        "Context Window & Compaction",
+        "Model Selection",
+        "Block Streaming",
+        "Multi-Agent Routing",
+        "Hook Points",
+        "Memory System",
+        "Gateway / Workspace CLI",
+        "Minimal Config (`~/.openclaw/openclaw.json`)"
+      ]
+    },
+    "architecture-overview": {
+      "file": "references/architecture-overview.md",
+      "subtopics": [
+        "What OpenClaw Is",
+        "Component Diagram",
+        "Key Components",
+        "Message Flow (End-to-End)",
+        "Wire Protocol",
+        "Pairing & Trust",
+        "Key Directories",
+        "Node Architecture",
+        "Session Model",
+        "Gateway CLI Commands",
+        "Port Reference",
+        "Hot Reload Modes",
+        "Common Failure Signatures",
+        "Supervision (Production)",
+        "Remote Access"
+      ]
+    },
+    "automation": {
+      "file": "references/automation.md",
+      "subtopics": [
+        "CRON JOBS",
+        "HEARTBEAT vs CRON",
+        "WEBHOOKS",
+        "LIFECYCLE HOOKS",
+        "GMAIL PUB/SUB INTEGRATION",
+        "AUTH MONITORING",
+        "AUTOMATION TROUBLESHOOTING",
+        "POLLS"
+      ]
+    },
+    "canvas-and-nodes": {
+      "file": "references/canvas-and-nodes.md",
+      "subtopics": [
+        "Canvas System (macOS)",
+        "A2UI (Canvas)",
+        "Node Connection Protocol",
+        "Node Commands Reference",
+        "Foreground Requirements",
+        "Permissions Matrix",
+        "Exec Approvals",
+        "Headless Node Host",
+        "macOS App",
+        "Linux Gateway \u2014 systemd",
+        "Voice Wake \u2014 Global Wake Words",
+        "Node Troubleshooting"
+      ]
+    },
+    "channels-detail": {
+      "file": "references/channels-detail.md",
+      "subtopics": [
+        "WhatsApp",
+        "Telegram",
+        "Discord",
+        "Slack",
+        "Signal",
+        "iMessage (legacy: imsg)",
+        "BlueBubbles",
+        "Google Chat",
+        "Microsoft Teams",
+        "Matrix",
+        "IRC",
+        "LINE",
+        "Zalo (Official Bot API)",
+        "Zalo Personal (zalouser \u2014 unofficial)",
+        "Twitch"
+      ]
+    },
+    "channels-overview": {
+      "file": "references/channels-overview.md",
+      "subtopics": [
+        "Supported Channels",
+        "DM Policies",
+        "Group Policies",
+        "Mention Gating",
+        "Channel Routing to Agents",
+        "Session Keys",
+        "Message Flow",
+        "Text Chunking and Streaming",
+        "Typing Indicators",
+        "Reply Tags",
+        "Media Handling",
+        "Group/Channel Tool Restrictions",
+        "Node Device Pairing",
+        "Troubleshooting",
+        "Quick Reference: Config Key Locations"
+      ]
+    },
+    "cli-reference": {
+      "file": "references/cli-reference.md",
+      "subtopics": [
+        "Global Flags",
+        "Setup & First-Run",
+        "Config Management",
+        "Diagnostics",
+        "Gateway",
+        "Messaging",
+        "Agent",
+        "Sessions & Memory",
+        "Channels",
+        "Models",
+        "Skills & Plugins",
+        "Pairing",
+        "Update",
+        "Logs",
+        "Nodes"
+      ]
+    },
+    "gateway-configuration": {
+      "file": "references/gateway-configuration.md",
+      "subtopics": [
+        "Config File & Editing",
+        "Hot Reload",
+        "Minimal Configs",
+        "`agents`",
+        "`channels`",
+        "`session`",
+        "`tools`",
+        "`skills`",
+        "`cron`",
+        "`hooks`",
+        "`gateway`",
+        "`models` (Custom Providers)",
+        "`messages`",
+        "`env` & Substitution",
+        "`logging`"
+      ]
+    },
+    "gateway-protocol": {
+      "file": "references/gateway-protocol.md",
+      "subtopics": [
+        "Network Model",
+        "Wire Protocol",
+        "Handshake Sequence (3-step)",
+        "Roles",
+        "RPC Method Categories",
+        "Event Types",
+        "Authentication",
+        "Node Pairing Flow",
+        "Discovery",
+        "Gateway Config Reference (`~/.openclaw/openclaw.json`)",
+        "Gateway CLI Commands",
+        "Troubleshooting",
+        "Legacy Bridge Protocol (Historical \u2014 Removed)"
+      ]
+    },
+    "gateway-advanced": {
+      "file": "references/gateway-advanced.md",
+      "subtopics": [
+        "Heartbeat",
+        "Local Models",
+        "Multiple Gateways",
+        "Tailscale Integration",
+        "Sandbox vs Tool Policy vs Elevated",
+        "OpenAI-Compatible Chat Completions API",
+        "Trusted Proxy Auth",
+        "Configuration Examples"
+      ]
+    },
+    "install-hetzner": {
+      "file": "references/install-hetzner.md",
+      "subtopics": [
+        "Core Setup",
+        "Persistence Pattern",
+        "Access Pattern (SSH Tunnel)",
+        "Security",
+        "Terraform (IaC)",
+        "Useful Commands"
+      ]
+    },
+    "glossary": {
+      "file": "references/glossary.md",
+      "subtopics": []
+    },
+    "memory-system": {
+      "file": "references/memory-system.md",
+      "subtopics": [
+        "Memory Files (Markdown on disk)",
+        "When to Write Memory",
+        "Automatic Pre-Compaction Memory Flush",
+        "Compaction vs Pruning",
+        "Session Pruning (contextPruning)",
+        "Vector Memory Search",
+        "Hybrid Search (BM25 + Vector)",
+        "Extra Memory Paths",
+        "Embedding Cache",
+        "Batch Indexing (OpenAI / Gemini / Voyage)",
+        "Session Memory (Experimental)",
+        "QMD Backend (Experimental)",
+        "SQLite Vector Acceleration (sqlite-vec)",
+        "Session Store Schema (sessions.json)",
+        "Disable Memory Plugins"
+      ]
+    },
+    "models-and-providers": {
+      "file": "references/models-and-providers.md",
+      "subtopics": [
+        "Model Selection Order",
+        "Core Config Keys",
+        "CLI Commands",
+        "Auth Failover & Cooldowns",
+        "Providers \u2014 Quick Reference",
+        "Provider Details",
+        "OAuth vs API Key",
+        "Fallback Config Examples",
+        "Notes"
+      ]
+    },
+    "multi-agent": {
+      "file": "references/multi-agent.md",
+      "subtopics": [
+        "What Is an Agent?",
+        "Paths Quick Map",
+        "CLI Commands",
+        "`agents.list` Config Fields",
+        "Full Config Example: Two WhatsApps \u2192 Two Agents",
+        "Channel Routing Rules (Deterministic, Most-Specific Wins)",
+        "Binding Examples",
+        "Broadcast Groups (Multiple Agents, Same Peer)",
+        "Session Key Shapes",
+        "Session Isolation (`dmScope`)",
+        "Per-Agent Sandbox & Tools",
+        "Sub-Agents",
+        "Session Tools (`sessions_*`)",
+        "Skills: Shared vs Per-Agent",
+        "Troubleshooting"
+      ]
+    },
+    "security": {
+      "file": "references/security.md",
+      "subtopics": [
+        "Threat Model Overview",
+        "Top Risks (MITRE ATLAS)",
+        "`openclaw security audit`",
+        "DM Pairing (Default Access Control)",
+        "Exec Sandboxing (Docker Containers)",
+        "Tool Policy",
+        "Network Security",
+        "Secrets Management",
+        "Prompt Injection",
+        "Security Rules",
+        "Incident Response",
+        "Formal Verification (TLA+/TLC)",
+        "Browser Control Risks",
+        "Key Security Source Files",
+        "ClawHub Moderation Patterns (current)"
+      ]
+    },
+    "sessions-and-context": {
+      "file": "references/sessions-and-context.md",
+      "subtopics": [
+        "SESSION MANAGEMENT",
+        "CONTEXT WINDOW",
+        "TOKEN ACCOUNTING",
+        "COMPACTION",
+        "CONTEXT PRUNING",
+        "COMPACTION vs PRUNING (Quick Reference)",
+        "SESSION PERSISTENCE (JSONL Files)",
+        "INSPECT: /status & /context",
+        "MULTI-SESSION PATTERNS",
+        "MEMORY SYSTEM (Context Persistence)",
+        "FULL CONTEXT LIFECYCLE (Summary)"
+      ]
+    },
+    "skills-system": {
+      "file": "references/skills-system.md",
+      "subtopics": [
+        "SKILL.md Format",
+        "Three Locations + Precedence",
+        "Gating (`metadata.openclaw`)",
+        "Installer Specs (`metadata.openclaw.install`)",
+        "Config Overrides (`~/.openclaw/openclaw.json`)",
+        "`{baseDir}` Placeholder",
+        "User-Invocable vs Model-Invocable",
+        "Environment Injection (Per Agent Run)",
+        "Session Snapshot + Hot Reload",
+        "Token Impact",
+        "Creating a Custom Skill (Step-by-Step)",
+        "CLI Commands",
+        "ClawHub (Public Registry)",
+        "Full SKILL.md Example with Gating + Installer"
+      ]
+    },
+    "system-prompt": {
+      "file": "references/system-prompt.md",
+      "subtopics": [
+        "Overview",
+        "Prompt Modes",
+        "Section Assembly Order (`full` mode)",
+        "Section Details",
+        "Safety",
+        "OpenClaw CLI Quick Reference",
+        "User Identity",
+        "Current Date & Time",
+        "Sandbox",
+        "Heartbeats",
+        "Bootstrap File Injection (Project Context)",
+        "Token Cost Awareness",
+        "Inspecting the System Prompt",
+        "Core Tool List (system-prompt.ts `toolOrder`)",
+        "Documentation Section Links"
+      ]
+    },
+    "teaching-presentations": {
+      "file": "references/teaching-presentations.md",
+      "subtopics": [
+        "HOW TO USE THIS SYSTEM",
+        "HTML TEMPLATE",
+        "MODULE 1 \u2014 \"What is OpenClaw?\" (5 slides)",
+        "MODULE 2 \u2014 \"The Gateway Deep Dive\" (8 slides)",
+        "MODULE 3 \u2014 \"Building Skills\" (6 slides)",
+        "MODULE 4 \u2014 \"Channel Integration\" (7 slides)",
+        "MODULE 5 \u2014 \"Agent Internals\" (8 slides)",
+        "MODULE 6 \u2014 \"Security & Operations\" (5 slides)"
+      ]
+    },
+    "tools-and-exec": {
+      "file": "references/tools-and-exec.md",
+      "subtopics": [
+        "Built-In Tools",
+        "Tool Groups",
+        "Tool Profiles",
+        "Provider-Specific Tool Policy (byProvider)",
+        "Tool alsoAllow",
+        "Loop Detection",
+        "Exec Tool",
+        "Process Tool",
+        "Exec Approvals",
+        "Elevated Mode",
+        "Browser Tool",
+        "Image Tool",
+        "PDF Tool",
+        "Message Tool",
+        "Cron Tool",
+        "Gateway Tool",
+        "Nodes Tool",
+        "Canvas Tool",
+        "Agents List Tool",
+        "Slash Commands",
+        "Sub-Agents",
+        "Thread-Bound Sessions",
+        "Nested Sub-Agents",
+        "Sub-Agent Attachments",
+        "Tool Policy & Gating",
+        "Lobster Workflow Runtime",
+        "LLM Task Plugin",
+        "Thinking Levels",
+        "Reactions"
+      ]
+    },
+    "acp-agents": {
+      "file": "references/acp-agents.md",
+      "subtopics": [
+        "ACP vs Sub-Agents",
+        "Spawning ACP Sessions",
+        "Thread-Bound ACP Sessions",
+        "ACP Command Reference",
+        "acpx Harness Aliases",
+        "ACP Required Config",
+        "acpx Plugin Setup",
+        "Permission Configuration",
+        "Sandbox Compatibility",
+        "ACP Troubleshooting"
+      ]
+    },
+    "web-tools": {
+      "file": "references/web-tools.md",
+      "subtopics": [
+        "Search Providers (Perplexity, Brave, Gemini, Grok, Kimi)",
+        "Auto-Detection Order",
+        "web_search Config and Parameters",
+        "web_fetch Config and Parameters",
+        "Firecrawl Fallback"
+      ]
+    },
+    "plugins-system": {
+      "file": "references/plugins-system.md",
+      "subtopics": [
+        "Official Plugins",
+        "Plugin Capabilities",
+        "Discovery and Precedence",
+        "Plugin Config",
+        "Plugin Slots",
+        "Plugin SDK Import Paths",
+        "Authoring Agent Tools",
+        "Authoring Auto-Reply Commands",
+        "Authoring Channel Plugins",
+        "Authoring Provider Auth",
+        "Authoring Gateway RPC",
+        "Authoring CLI Commands",
+        "Authoring Hooks",
+        "Authoring Background Services",
+        "Runtime Helpers (TTS, STT)",
+        "Package Packs",
+        "Distribution (npm)",
+        "External Channel Catalogs"
+      ]
+    },
+    "http-apis": {
+      "file": "references/http-apis.md",
+      "subtopics": [
+        "OpenResponses API (/v1/responses)",
+        "OpenResponses Authentication",
+        "OpenResponses Agent Selection",
+        "OpenResponses Request Shape",
+        "OpenResponses Items (message, function_call_output, input_image, input_file)",
+        "OpenResponses Client Tools",
+        "OpenResponses Streaming (SSE)",
+        "OpenResponses File/Image Limits Config",
+        "Tools Invoke API (/tools/invoke)",
+        "Tools Invoke Policy and Routing",
+        "Chat Completions API (/v1/chat/completions)"
+      ]
+    },
+    "troubleshooting": {
+      "file": "references/troubleshooting.md",
+      "subtopics": [
+        "1. FIRST STEP: `openclaw doctor`",
+        "2. Triage Ladder (First 60 Seconds)",
+        "3. Reading Logs",
+        "4. Health Checks",
+        "5. Issue Categories",
+        "6. Per-Channel Quick Reference",
+        "7. Config Validation / Legacy Key Migrations",
+        "8. Node Tool Failures",
+        "9. Automation (Cron / Heartbeat)",
+        "10. Browser Tool Failures",
+        "11. State / Permissions / Service",
+        "12. Quick Reference \u2014 All Diagnostic Commands"
+      ]
+    }
+  },
+  "files": {
+    "agent-runtime": {
+      "file": "references/agent-runtime.md",
+      "lines": 499,
+      "headings": [
+        "Agent Lifecycle (ordered)",
+        "Workspace Layout",
+        "Bootstrap Injection",
+        "System Prompt Structure",
+        "Built-in Tools",
+        "Steering While Streaming (Queue Modes)",
+        "Session Management",
+        "Context Window & Compaction",
+        "Model Selection",
+        "Block Streaming",
+        "Multi-Agent Routing",
+        "Hook Points",
+        "Memory System",
+        "Gateway / Workspace CLI",
+        "Minimal Config (`~/.openclaw/openclaw.json`)"
+      ],
+      "summary": "# OpenClaw Agent Runtime Reference"
+    },
+    "architecture-overview": {
+      "file": "references/architecture-overview.md",
+      "lines": 336,
+      "headings": [
+        "What OpenClaw Is",
+        "Component Diagram",
+        "Key Components",
+        "Message Flow (End-to-End)",
+        "Wire Protocol",
+        "Pairing & Trust",
+        "Key Directories",
+        "Node Architecture",
+        "Session Model",
+        "Gateway CLI Commands",
+        "Port Reference",
+        "Hot Reload Modes",
+        "Common Failure Signatures",
+        "Supervision (Production)",
+        "Remote Access",
+        "Minimal Config (`~/.openclaw/openclaw.json`)",
+        "Security Defaults"
+      ],
+      "summary": "# OpenClaw Architecture Reference"
+    },
+    "automation": {
+      "file": "references/automation.md",
+      "lines": 500,
+      "headings": [
+        "CRON JOBS",
+        "HEARTBEAT vs CRON",
+        "WEBHOOKS",
+        "LIFECYCLE HOOKS",
+        "GMAIL PUB/SUB INTEGRATION",
+        "AUTH MONITORING",
+        "AUTOMATION TROUBLESHOOTING",
+        "POLLS"
+      ],
+      "summary": "# OpenClaw Automation Reference"
+    },
+    "canvas-and-nodes": {
+      "file": "references/canvas-and-nodes.md",
+      "lines": 394,
+      "headings": [
+        "Canvas System (macOS)",
+        "A2UI (Canvas)",
+        "Node Connection Protocol",
+        "Node Commands Reference",
+        "Foreground Requirements",
+        "Permissions Matrix",
+        "Exec Approvals",
+        "Headless Node Host",
+        "macOS App",
+        "Linux Gateway \u2014 systemd",
+        "Voice Wake \u2014 Global Wake Words",
+        "Node Troubleshooting"
+      ],
+      "summary": "# Canvas & Nodes Reference"
+    },
+    "channels-detail": {
+      "file": "references/channels-detail.md",
+      "lines": 559,
+      "headings": [
+        "WhatsApp",
+        "Telegram",
+        "Discord",
+        "Slack",
+        "Signal",
+        "iMessage (legacy: imsg)",
+        "BlueBubbles",
+        "Google Chat",
+        "Microsoft Teams",
+        "Matrix",
+        "IRC",
+        "LINE",
+        "Zalo (Official Bot API)",
+        "Zalo Personal (zalouser \u2014 unofficial)",
+        "Twitch",
+        "Mattermost",
+        "Nextcloud Talk",
+        "Feishu / Lark",
+        "Nostr",
+        "Tlon (Urbit)"
+      ],
+      "summary": "# OpenClaw Channels \u2014 Per-Channel Quick Reference"
+    },
+    "channels-overview": {
+      "file": "references/channels-overview.md",
+      "lines": 493,
+      "headings": [
+        "Supported Channels",
+        "DM Policies",
+        "Group Policies",
+        "Mention Gating",
+        "Channel Routing to Agents",
+        "Session Keys",
+        "Message Flow",
+        "Text Chunking and Streaming",
+        "Typing Indicators",
+        "Reply Tags",
+        "Media Handling",
+        "Group/Channel Tool Restrictions",
+        "Node Device Pairing",
+        "Troubleshooting",
+        "Quick Reference: Config Key Locations"
+      ],
+      "summary": "# OpenClaw Channels \u2014 Reference"
+    },
+    "cli-reference": {
+      "file": "references/cli-reference.md",
+      "lines": 768,
+      "headings": [
+        "Global Flags",
+        "Setup & First-Run",
+        "Config Management",
+        "Diagnostics",
+        "Gateway",
+        "Messaging",
+        "Agent",
+        "Sessions & Memory",
+        "Channels",
+        "Models",
+        "Skills & Plugins",
+        "Pairing",
+        "Update",
+        "Logs",
+        "Nodes",
+        "Cron",
+        "System",
+        "TUI & Dashboard",
+        "Security & Reset",
+        "Browser Control"
+      ],
+      "summary": "# OpenClaw CLI Reference"
+    },
+    "gateway-configuration": {
+      "file": "references/gateway-configuration.md",
+      "lines": 493,
+      "headings": [
+        "Config File & Editing",
+        "Hot Reload",
+        "Minimal Configs",
+        "`agents`",
+        "`channels`",
+        "`session`",
+        "`tools`",
+        "`skills`",
+        "`cron`",
+        "`hooks`",
+        "`gateway`",
+        "`models` (Custom Providers)",
+        "`messages`",
+        "`env` & Substitution",
+        "`logging`",
+        "Multi-Agent Routing",
+        "Config Includes \u00b7 Config RPC",
+        "Key CLI Commands"
+      ],
+      "summary": "# OpenClaw Gateway Configuration Reference"
+    },
+    "gateway-protocol": {
+      "file": "references/gateway-protocol.md",
+      "lines": 499,
+      "headings": [
+        "Network Model",
+        "Wire Protocol",
+        "Handshake Sequence (3-step)",
+        "Roles",
+        "RPC Method Categories",
+        "Event Types",
+        "Authentication",
+        "Node Pairing Flow",
+        "Discovery",
+        "Gateway Config Reference (`~/.openclaw/openclaw.json`)",
+        "Gateway CLI Commands",
+        "Troubleshooting",
+        "Legacy Bridge Protocol (Historical \u2014 Removed)"
+      ],
+      "summary": "# OpenClaw Gateway Protocol Reference"
+    },
+    "gateway-advanced": {
+      "file": "references/gateway-advanced.md",
+      "lines": 220,
+      "headings": [
+        "Heartbeat",
+        "Local Models",
+        "Multiple Gateways",
+        "Tailscale Integration",
+        "Sandbox vs Tool Policy vs Elevated",
+        "OpenAI-Compatible Chat Completions API",
+        "Trusted Proxy Auth",
+        "Configuration Examples"
+      ],
+      "summary": "# OpenClaw Gateway — Advanced Reference"
+    },
+    "install-hetzner": {
+      "file": "references/install-hetzner.md",
+      "lines": 80,
+      "headings": [
+        "Core Setup",
+        "Critical: Persistence Pattern",
+        "Access Pattern",
+        "Security",
+        "Terraform (IaC)",
+        "Useful Commands"
+      ],
+      "summary": "# OpenClaw on Hetzner — Install Reference"
+    },
+    "glossary": {
+      "file": "references/glossary.md",
+      "lines": 77,
+      "headings": [],
+      "summary": "# OpenClaw Glossary"
+    },
+    "memory-system": {
+      "file": "references/memory-system.md",
+      "lines": 451,
+      "headings": [
+        "Memory Files (Markdown on disk)",
+        "When to Write Memory",
+        "Automatic Pre-Compaction Memory Flush",
+        "Compaction vs Pruning",
+        "Session Pruning (contextPruning)",
+        "Vector Memory Search",
+        "Hybrid Search (BM25 + Vector)",
+        "Extra Memory Paths",
+        "Embedding Cache",
+        "Batch Indexing (OpenAI / Gemini / Voyage)",
+        "Session Memory (Experimental)",
+        "QMD Backend (Experimental)",
+        "SQLite Vector Acceleration (sqlite-vec)",
+        "Session Store Schema (sessions.json)",
+        "Disable Memory Plugins",
+        "Inspection Commands",
+        "Troubleshooting"
+      ],
+      "summary": "# OpenClaw Memory System Reference"
+    },
+    "models-and-providers": {
+      "file": "references/models-and-providers.md",
+      "lines": 500,
+      "headings": [
+        "Model Selection Order",
+        "Core Config Keys",
+        "CLI Commands",
+        "Auth Failover & Cooldowns",
+        "Providers \u2014 Quick Reference",
+        "Provider Details",
+        "OAuth vs API Key",
+        "Fallback Config Examples",
+        "Notes"
+      ],
+      "summary": "# OpenClaw \u2014 Models & Providers Reference"
+    },
+    "multi-agent": {
+      "file": "references/multi-agent.md",
+      "lines": 527,
+      "headings": [
+        "What Is an Agent?",
+        "Paths Quick Map",
+        "CLI Commands",
+        "`agents.list` Config Fields",
+        "Full Config Example: Two WhatsApps \u2192 Two Agents",
+        "Channel Routing Rules (Deterministic, Most-Specific Wins)",
+        "Binding Examples",
+        "Broadcast Groups (Multiple Agents, Same Peer)",
+        "Session Key Shapes",
+        "Session Isolation (`dmScope`)",
+        "Per-Agent Sandbox & Tools",
+        "Sub-Agents",
+        "Session Tools (`sessions_*`)",
+        "Skills: Shared vs Per-Agent",
+        "Troubleshooting",
+        "`agents.defaults` (Global Defaults for All Agents)"
+      ],
+      "summary": "# OpenClaw Multi-Agent Reference"
+    },
+    "security": {
+      "file": "references/security.md",
+      "lines": 499,
+      "headings": [
+        "Threat Model Overview",
+        "Top Risks (MITRE ATLAS)",
+        "`openclaw security audit`",
+        "DM Pairing (Default Access Control)",
+        "Exec Sandboxing (Docker Containers)",
+        "Tool Policy",
+        "Network Security",
+        "Secrets Management",
+        "Prompt Injection",
+        "Security Rules",
+        "Incident Response",
+        "Formal Verification (TLA+/TLC)",
+        "Browser Control Risks",
+        "Key Security Source Files",
+        "ClawHub Moderation Patterns (current)"
+      ],
+      "summary": "# OpenClaw Security Reference"
+    },
+    "sessions-and-context": {
+      "file": "references/sessions-and-context.md",
+      "lines": 385,
+      "headings": [
+        "SESSION MANAGEMENT",
+        "CONTEXT WINDOW",
+        "TOKEN ACCOUNTING",
+        "COMPACTION",
+        "CONTEXT PRUNING",
+        "COMPACTION vs PRUNING (Quick Reference)",
+        "SESSION PERSISTENCE (JSONL Files)",
+        "INSPECT: /status & /context",
+        "MULTI-SESSION PATTERNS",
+        "MEMORY SYSTEM (Context Persistence)",
+        "FULL CONTEXT LIFECYCLE (Summary)"
+      ],
+      "summary": "# OpenClaw: Sessions & Context Reference"
+    },
+    "skills-system": {
+      "file": "references/skills-system.md",
+      "lines": 377,
+      "headings": [
+        "SKILL.md Format",
+        "Three Locations + Precedence",
+        "Gating (`metadata.openclaw`)",
+        "Installer Specs (`metadata.openclaw.install`)",
+        "Config Overrides (`~/.openclaw/openclaw.json`)",
+        "`{baseDir}` Placeholder",
+        "User-Invocable vs Model-Invocable",
+        "Environment Injection (Per Agent Run)",
+        "Session Snapshot + Hot Reload",
+        "Token Impact",
+        "Creating a Custom Skill (Step-by-Step)",
+        "CLI Commands",
+        "ClawHub (Public Registry)",
+        "Full SKILL.md Example with Gating + Installer"
+      ],
+      "summary": "# OpenClaw Skills System \u2014 Condensed Reference"
+    },
+    "system-prompt": {
+      "file": "references/system-prompt.md",
+      "lines": 299,
+      "headings": [
+        "Overview",
+        "Prompt Modes",
+        "Section Assembly Order (`full` mode)",
+        "Section Details",
+        "Safety",
+        "OpenClaw CLI Quick Reference",
+        "User Identity",
+        "Current Date & Time",
+        "Sandbox",
+        "Heartbeats",
+        "Bootstrap File Injection (Project Context)",
+        "Token Cost Awareness",
+        "Inspecting the System Prompt",
+        "Core Tool List (system-prompt.ts `toolOrder`)",
+        "Documentation Section Links",
+        "Key Config Fields"
+      ],
+      "summary": "# OpenClaw System Prompt Reference"
+    },
+    "teaching-presentations": {
+      "file": "references/teaching-presentations.md",
+      "lines": 1346,
+      "headings": [
+        "HOW TO USE THIS SYSTEM",
+        "HTML TEMPLATE",
+        "MODULE 1 \u2014 \"What is OpenClaw?\" (5 slides)",
+        "MODULE 2 \u2014 \"The Gateway Deep Dive\" (8 slides)",
+        "MODULE 3 \u2014 \"Building Skills\" (6 slides)",
+        "MODULE 4 \u2014 \"Channel Integration\" (7 slides)",
+        "MODULE 5 \u2014 \"Agent Internals\" (8 slides)",
+        "MODULE 6 \u2014 \"Security & Operations\" (5 slides)"
+      ],
+      "summary": "# OpenClaw Teaching Presentations \u2014 Template & Module Guide"
+    },
+    "tools-and-exec": {
+      "file": "references/tools-and-exec.md",
+      "lines": 750,
+      "headings": [
+        "Built-In Tools",
+        "Tool Groups",
+        "Tool Profiles",
+        "Provider-Specific Tool Policy",
+        "Loop Detection",
+        "Additional Tool Quick Reference",
+        "Exec Tool",
+        "Process Tool",
+        "Exec Approvals",
+        "Elevated Mode",
+        "Browser Tool",
+        "Slash Commands",
+        "Sub-Agents",
+        "Thread-Bound Sessions",
+        "Nested Sub-Agents",
+        "Tool Policy & Gating",
+        "Lobster",
+        "LLM Task Plugin",
+        "Thinking Levels",
+        "Reactions"
+      ],
+      "summary": "# OpenClaw Tools & Exec Reference"
+    },
+    "acp-agents": {
+      "file": "references/acp-agents.md",
+      "lines": 200,
+      "headings": [
+        "ACP vs Sub-Agents",
+        "Spawning ACP Sessions",
+        "Thread-Bound Sessions",
+        "ACP Command Reference",
+        "acpx Harness Aliases",
+        "Required Config",
+        "Plugin Setup",
+        "Permission Configuration",
+        "Sandbox Compatibility",
+        "Troubleshooting"
+      ],
+      "summary": "# OpenClaw ACP Agents Reference"
+    },
+    "web-tools": {
+      "file": "references/web-tools.md",
+      "lines": 140,
+      "headings": [
+        "Search Providers",
+        "Auto-Detection Order",
+        "web_search Config",
+        "web_search Parameters",
+        "web_fetch Config",
+        "web_fetch Parameters",
+        "Tool Policy"
+      ],
+      "summary": "# OpenClaw Web Tools Reference"
+    },
+    "plugins-system": {
+      "file": "references/plugins-system.md",
+      "lines": 320,
+      "headings": [
+        "Official Plugins",
+        "Plugin Capabilities",
+        "Discovery & Precedence",
+        "Config",
+        "Plugin Slots",
+        "CLI Commands",
+        "Plugin SDK Import Paths",
+        "Authoring: Agent Tools",
+        "Authoring: Auto-Reply Commands",
+        "Authoring: Channel Plugins",
+        "Authoring: Provider Auth",
+        "Authoring: Gateway RPC",
+        "Authoring: CLI Commands",
+        "Authoring: Hooks",
+        "Authoring: Background Services",
+        "Runtime Helpers",
+        "Package Packs",
+        "Distribution"
+      ],
+      "summary": "# OpenClaw Plugins (Extensions) Reference"
+    },
+    "http-apis": {
+      "file": "references/http-apis.md",
+      "lines": 200,
+      "headings": [
+        "OpenResponses API",
+        "Authentication",
+        "Agent Selection",
+        "Session Behavior",
+        "Request Shape",
+        "Item Types",
+        "Client Tools",
+        "Streaming (SSE)",
+        "File/Image Limits Config",
+        "Tools Invoke API",
+        "Policy + Routing",
+        "Chat Completions API"
+      ],
+      "summary": "# OpenClaw HTTP APIs Reference"
+    },
+    "troubleshooting": {
+      "file": "references/troubleshooting.md",
+      "lines": 481,
+      "headings": [
+        "1. FIRST STEP: `openclaw doctor`",
+        "2. Triage Ladder (First 60 Seconds)",
+        "3. Reading Logs",
+        "4. Health Checks",
+        "5. Issue Categories",
+        "6. Per-Channel Quick Reference",
+        "7. Config Validation / Legacy Key Migrations",
+        "8. Node Tool Failures",
+        "9. Automation (Cron / Heartbeat)",
+        "10. Browser Tool Failures",
+        "11. State / Permissions / Service",
+        "12. Quick Reference \u2014 All Diagnostic Commands"
+      ],
+      "summary": "# OpenClaw Troubleshooting Reference"
+    }
+  },
+  "teaching_modules": [
+    {
+      "id": "intro",
+      "title": "What is OpenClaw?",
+      "topics": [
+        "architecture"
+      ],
+      "slides": 5
+    },
+    {
+      "id": "gateway",
+      "title": "The Gateway Deep Dive",
+      "topics": [
+        "gateway-protocol",
+        "gateway-configuration"
+      ],
+      "slides": 8
+    },
+    {
+      "id": "skills",
+      "title": "Building Skills",
+      "topics": [
+        "skills-system"
+      ],
+      "slides": 6
+    },
+    {
+      "id": "channels",
+      "title": "Channel Integration",
+      "topics": [
+        "channels-overview",
+        "channels-detail"
+      ],
+      "slides": 7
+    },
+    {
+      "id": "agent",
+      "title": "Agent Internals",
+      "topics": [
+        "agent-runtime",
+        "sessions-and-context",
+        "memory-system"
+      ],
+      "slides": 8
+    },
+    {
+      "id": "security",
+      "title": "Security & Operations",
+      "topics": [
+        "security",
+        "automation"
+      ],
+      "slides": 5
+    }
+  ]
+}
