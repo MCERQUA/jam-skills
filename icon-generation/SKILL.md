@@ -1,0 +1,116 @@
+# Icon Generation Skill
+
+Generate custom icons for canvas pages, tools, categories, and anything the user needs. You have access to 1,700+ pre-built icons AND AI-powered custom icon generation via Gemini.
+
+## When to Use
+
+- **Creating a new canvas page** → ALWAYS generate a custom icon for it
+- **User asks for an icon** → generate or find one
+- **Building a tool/dashboard** → create icons for each section
+- **Customizing the desktop** → generate themed icons
+
+## CRITICAL: Be Creative with Icons
+
+**DO NOT** make generic document/folder icons. Every icon should be UNIQUE and SPECIFIC to what it represents.
+
+**Think about:**
+- What does this page/tool actually DO? (not just "it's a document")
+- What would a user RECOGNIZE at 48px? (distinctive shape, color, metaphor)
+- What EMOTION or CATEGORY does it belong to? (playful, professional, technical, creative)
+
+**Examples of GOOD icon prompts:**
+- "A golden trophy with sparkles for a leaderboard page"
+- "A magnifying glass over a bar chart for an analytics dashboard"
+- "A paintbrush crossing a camera for a creative media tool"
+- "A wrench inside a gear for a settings/configuration panel"
+- "A rocket launching from a laptop for a deployment tool"
+- "A shield with a checkmark for a security audit page"
+- "A calendar with a clock overlay for a scheduling tool"
+
+**Examples of BAD icon prompts (TOO GENERIC):**
+- "A document icon" ← boring, tells user nothing
+- "A page icon" ← useless
+- "A blue square" ← zero information
+
+## API Reference
+
+### 1. Search Pre-Built Icons (Lucide Library — 1,700+ icons)
+
+```
+GET /api/icons/library/search?q=folder&limit=10
+```
+
+Response:
+```json
+{"query": "folder", "count": 8, "icons": ["folder", "folder-check", "folder-open", ...]}
+```
+
+Use the icon: `/api/icons/library/folder.svg`
+
+### 2. Generate Custom Icon (Gemini AI)
+
+```
+POST /api/icons/generate
+Content-Type: application/json
+
+{
+  "prompt": "A golden trophy with sparkles for a leaderboard",
+  "name": "leaderboard-trophy"
+}
+```
+
+Response:
+```json
+{
+  "url": "/api/icons/generated/leaderboard-trophy.png",
+  "name": "leaderboard-trophy",
+  "filename": "leaderboard-trophy.png",
+  "prompt": "A golden trophy with sparkles for a leaderboard",
+  "size": 45231
+}
+```
+
+**Optional fields:**
+- `name` — filename slug (auto-derived from prompt if omitted)
+- `style` — override default style (default: "Windows XP style icon, clean vector art, vibrant colors, slight 3D shading")
+
+### 3. List Generated Icons
+
+```
+GET /api/icons/generated
+```
+
+Returns all previously generated icons with metadata.
+
+### 4. Browse Full Icon Library
+
+```
+GET /api/icons/library
+```
+
+Returns all 1,700+ icon names.
+
+## Auto-Icon on Page Creation
+
+When creating a new canvas page, ALWAYS:
+
+1. **Think** about what makes this page unique — its purpose, its content, its vibe
+2. **Generate** a custom icon that captures that uniqueness:
+   ```
+   POST /api/icons/generate
+   {"prompt": "<descriptive, visual prompt>", "name": "<page-slug>-icon"}
+   ```
+3. **Use** the returned URL as the page icon
+
+## Style Guidelines
+
+The default style produces Windows XP-era icons — vibrant, slightly 3D, recognizable at small sizes. You can override with:
+
+- `"style": "flat minimalist, single color, modern"` — for clean/modern UIs
+- `"style": "pixel art, 16-bit retro game style"` — for game-related pages
+- `"style": "professional corporate, muted colors, clean lines"` — for business tools
+- `"style": "playful cartoon, bright colors, rounded shapes"` — for fun/entertainment
+
+## User's Generated Icons
+
+Users can find all their generated icons in **File Explorer → Icons → generated/**. Each icon has a `.meta.json` sidecar with the original prompt, so they can regenerate or iterate.
