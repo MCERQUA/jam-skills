@@ -1,16 +1,16 @@
 import { writeFileSync, mkdirSync, existsSync } from "fs";
+import { execSync } from "child_process";
 
 // ============================================================
-// Groq TTS Voiceover Generator
+// Groq Orpheus TTS Voiceover Generator
 // ============================================================
 // Usage: GROQ_API_KEY=$GROQ_API_KEY node --strip-types generate-voiceover.ts
 //
-// Available voices: Fritz-PlayAI, Arista-PlayAI, Atlas-PlayAI,
-//   Basil-PlayAI, Briggs-PlayAI, Calista-PlayAI, Celeste-PlayAI,
-//   Cheyenne-PlayAI, Chip-PlayAI, Cillian-PlayAI, Deedee-PlayAI,
-//   Eleanor-PlayAI, Gail-PlayAI, Indira-PlayAI, Jennifer-PlayAI,
-//   Mamaw-PlayAI, Mason-PlayAI, Mikail-PlayAI, Mitch-PlayAI,
-//   Nia-PlayAI, Quinn-PlayAI, Ruby-PlayAI, Thunder-PlayAI
+// Voices: troy (male), austin (male), daniel (male),
+//   autumn (female), diana (female), hannah (female)
+//
+// Vocal directions: [cheerful], [professionally], [whisper],
+//   [excited], [dramatic], [warm], [confidently], [sarcastic]
 // ============================================================
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -20,18 +20,20 @@ if (!GROQ_API_KEY) {
 }
 
 // ── Edit these ──────────────────────────────────────────────
-const VOICE = "Fritz-PlayAI";
+const VOICE = "troy";
 const OUTPUT_DIR = "public/voiceover";
 
 const scenes: Array<{ id: string; text: string }> = [
-  { id: "scene-01", text: "Welcome to our video." },
+  { id: "scene-01", text: "[professionally] Welcome to our video." },
   { id: "scene-02", text: "Here is the main content." },
-  { id: "scene-03", text: "Thanks for watching!" },
+  { id: "scene-03", text: "[warm] Thanks for watching!" },
 ];
 // ────────────────────────────────────────────────────────────
 
 async function generateAudio(text: string, outputPath: string): Promise<void> {
+  const wavPath = outputPath.replace(/\.mp3$/, ".wav");
   console.log(`Generating: ${outputPath}`);
+
   const response = await fetch("https://api.groq.com/openai/v1/audio/speech", {
     method: "POST",
     headers: {
@@ -39,10 +41,10 @@ async function generateAudio(text: string, outputPath: string): Promise<void> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "playai-tts",
+      model: "canopylabs/orpheus-v1-english",
       voice: VOICE,
       input: text,
-      response_format: "mp3",
+      response_format: "wav",
     }),
   });
 
@@ -52,8 +54,17 @@ async function generateAudio(text: string, outputPath: string): Promise<void> {
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
-  writeFileSync(outputPath, buffer);
-  console.log(`  ✓ ${outputPath} (${(buffer.length / 1024).toFixed(1)} KB)`);
+  writeFileSync(wavPath, buffer);
+
+  // Convert wav → mp3 (Orpheus only outputs wav)
+  execSync(`ffmpeg -y -i "${wavPath}" -codec:a libmp3lame -q:a 2 "${outputPath}" 2>/dev/null`);
+  // Clean up wav
+  execSync(`rm -f "${wavPath}"`);
+
+  const mp3Size = existsSync(outputPath)
+    ? (require("fs").statSync(outputPath).size / 1024).toFixed(1)
+    : "?";
+  console.log(`  ✓ ${outputPath} (${mp3Size} KB)`);
 }
 
 async function main(): Promise<void> {
@@ -63,6 +74,23 @@ async function main(): Promise<void> {
 
   for (const scene of scenes) {
     await generateAudio(scene.text, `${OUTPUT_DIR}/${scene.id}.mp3`);
+  }
+
+  // Print durations for frame calculation
+  console.log("\nDurations (for frame calculation at 30fps):");
+  for (const scene of scenes) {
+    const mp3 = `${OUTPUT_DIR}/${scene.id}.mp3`;
+    try {
+      const dur = execSync(
+        `ffprobe -v error -show_entries format=duration -of csv=p=0 "${mp3}"`,
+      )
+        .toString()
+        .trim();
+      const frames = Math.ceil(parseFloat(dur) * 30) + 30;
+      console.log(`  ${scene.id}: ${dur}s → ${frames} frames (incl. 30 transition overlap)`);
+    } catch {
+      console.log(`  ${scene.id}: could not read duration`);
+    }
   }
 
   console.log(`\nDone! ${scenes.length} audio files generated in ${OUTPUT_DIR}/`);
