@@ -100,7 +100,22 @@ When creating a new canvas page, ALWAYS:
    POST /api/icons/generate
    {"prompt": "<descriptive, visual prompt>", "name": "<page-slug>-icon"}
    ```
-3. **Use** the returned URL as the page icon
+3. **Attach** the icon to the page using PATCH:
+   ```
+   PATCH /api/canvas/manifest/page/<page-id>
+   Content-Type: application/json
+   {"icon": "<url from step 2>"}
+   ```
+   Example:
+   ```
+   PATCH /api/canvas/manifest/page/insurance-forms-interactive
+   {"icon": "/api/icons/generated/insurance-forms-icon.png"}
+   ```
+   The field is `"icon"` — NOT `"iconUrl"`, NOT `"icon_url"`. The URL must be the exact value from the generate response.
+
+4. The desktop will display the icon automatically on next refresh (within 30 seconds).
+
+**NEVER** copy the icon file manually. **NEVER** guess field names. Use the PATCH call above exactly.
 
 ## Style Guidelines
 
