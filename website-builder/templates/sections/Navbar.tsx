@@ -5,8 +5,23 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
-// UPDATE: Replace navItems with client's pages
-const navItems = [
+interface NavItem {
+  label: string;
+  href: string;
+}
+
+interface NavCTA {
+  label: string;
+  href: string;
+}
+
+interface NavbarProps {
+  logo?: string;
+  navItems?: NavItem[];
+  cta?: NavCTA;
+}
+
+const DEFAULT_NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/" },
   { label: "About", href: "/about" },
   { label: "Services", href: "/services" },
@@ -14,12 +29,19 @@ const navItems = [
   { label: "Contact", href: "/contact" },
 ];
 
-// UPDATE: Replace with client's CTA
-const ctaButton = { label: "Get a Quote", href: "/contact" };
+const DEFAULT_CTA: NavCTA = { label: "Get a Quote", href: "/contact" };
 
-export function Navbar() {
+const DEFAULTS = {
+  logo: "Logo",
+};
+
+export function Navbar(props: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const logo = props.logo ?? DEFAULTS.logo;
+  const navItems = props.navItems ?? DEFAULT_NAV_ITEMS;
+  const cta = props.cta ?? DEFAULT_CTA;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -39,8 +61,7 @@ export function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="text-xl font-heading font-bold">
-          {/* UPDATE: Replace with client logo or business name */}
-          Logo
+          {logo}
         </Link>
 
         {/* Desktop Navigation */}
@@ -55,10 +76,10 @@ export function Navbar() {
             </Link>
           ))}
           <Link
-            href={ctaButton.href}
+            href={cta.href}
             className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
           >
-            {ctaButton.label}
+            {cta.label}
           </Link>
         </div>
 
@@ -93,11 +114,11 @@ export function Navbar() {
                 </Link>
               ))}
               <Link
-                href={ctaButton.href}
+                href={cta.href}
                 onClick={() => setIsMobileOpen(false)}
                 className="block w-full text-center px-5 py-3 bg-primary text-primary-foreground font-medium rounded-lg"
               >
-                {ctaButton.label}
+                {cta.label}
               </Link>
             </div>
           </motion.div>

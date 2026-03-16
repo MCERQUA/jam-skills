@@ -1,5 +1,6 @@
 "use client";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion, useInView } from "motion/react";
+import { useRef, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 interface FadeInProps {
@@ -33,14 +34,19 @@ export function FadeIn({
 }: FadeInProps) {
   const prefersReduced = useReducedMotion();
   const d = directionMap[direction];
+  // SSR-safe: render visible by default, only set initial hidden state after hydration
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Before hydration: render children visible (no opacity:0 in SSR HTML)
+  // After hydration: use motion animation
+  if (!mounted || prefersReduced) {
+    return <div className={cn(className)}>{children}</div>;
+  }
 
   return (
     <motion.div
-      initial={
-        prefersReduced
-          ? false
-          : { opacity: 0, x: d.x * distance, y: d.y * distance }
-      }
+      initial={{ opacity: 0, x: d.x * distance, y: d.y * distance }}
       whileInView={{ opacity: 1, x: 0, y: 0 }}
       viewport={{ once, margin: "-80px" }}
       transition={{

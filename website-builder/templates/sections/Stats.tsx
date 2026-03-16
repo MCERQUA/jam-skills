@@ -2,15 +2,26 @@
 import { FadeIn } from "@/components/animations/FadeIn";
 import { Counter } from "@/components/animations/Counter";
 
-// UPDATE: Replace with client's real numbers
-const stats = [
+interface StatItem {
+  value: number;
+  suffix?: string;
+  label: string;
+}
+
+interface StatsProps {
+  stats?: StatItem[];
+}
+
+const DEFAULT_STATS: StatItem[] = [
   { value: 500, suffix: "+", label: "Happy Clients" },
   { value: 15, suffix: "+", label: "Years Experience" },
   { value: 98, suffix: "%", label: "Satisfaction Rate" },
   { value: 24, suffix: "/7", label: "Support Available" },
 ];
 
-export function Stats() {
+export function Stats(props: StatsProps) {
+  const stats = props.stats ?? DEFAULT_STATS;
+
   return (
     <section className="py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4 md:px-6">

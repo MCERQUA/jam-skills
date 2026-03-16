@@ -1,4 +1,6 @@
 // Blog Page Composition Template
+//
+// All section components accept optional props for customization.
 
 import type { Metadata } from "next";
 import { Navbar } from "@/components/sections/Navbar";
@@ -15,7 +17,10 @@ export const metadata: Metadata = {
 export default function BlogPage() {
   return (
     <main>
-      <Navbar />
+      <Navbar
+        logo="Acme Co"
+        cta={{ label: "Get a Quote", href: "/contact" }}
+      />
 
       {/* Blog Hero */}
       <section className="pt-32 pb-12 md:pt-40 md:pb-16">
@@ -35,10 +40,52 @@ export default function BlogPage() {
       </section>
 
       {/* Blog List */}
-      <BlogList />
+      <BlogList
+        posts={[
+          {
+            slug: "getting-started",
+            title: "How to Get Started with Our Services",
+            excerpt: "A comprehensive guide to making the most of what we offer.",
+            image: "/images/blog/post-1.webp",
+            date: "March 15, 2026",
+            category: "Guide",
+            readTime: "5 min read",
+          },
+          {
+            slug: "industry-trends",
+            title: "Top Industry Trends to Watch in 2026",
+            excerpt: "Stay ahead with our analysis of the biggest changes this year.",
+            image: "/images/blog/post-2.webp",
+            date: "March 10, 2026",
+            category: "Industry",
+            readTime: "8 min read",
+          },
+          {
+            slug: "success-story",
+            title: "How We Helped XYZ Company Grow 300%",
+            excerpt: "A deep dive into the strategy that drove exceptional results.",
+            image: "/images/blog/post-3.webp",
+            date: "March 5, 2026",
+            category: "Case Study",
+            readTime: "6 min read",
+          },
+        ]}
+      />
 
-      <CTA />
-      <Footer />
+      <CTA
+        title="Have a Question?"
+        description="Reach out and we'll get back to you within 24 hours."
+        primaryCTA="Contact Us"
+        primaryHref="/contact"
+        phone="(555) 000-0000"
+      />
+
+      <Footer
+        businessName="Acme Co"
+        phone="(555) 000-0000"
+        email="hello@example.com"
+        address="123 Main Street, City, ST 00000"
+      />
     </main>
   );
 }

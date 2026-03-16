@@ -4,10 +4,52 @@ import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-// UPDATE: Replace all content with client's brand intake answers
+interface HeroSplitStat {
+  value: string;
+  label: string;
+}
 
-export function HeroSplit() {
+interface HeroSplitProps {
+  title?: string;
+  titleAccent?: string;
+  subtitle?: string;
+  badge?: string;
+  primaryCTA?: string;
+  primaryHref?: string;
+  secondaryCTA?: string;
+  secondaryHref?: string;
+  image?: string;
+  imageAlt?: string;
+  stats?: HeroSplitStat[];
+}
+
+const DEFAULTS = {
+  title: "Professional Service",
+  titleAccent: " You Can Trust",
+  subtitle:
+    "A benefit-focused description that explains what you do and the value you deliver. Two lines max.",
+  badge: "Trusted by 500+ clients",
+  primaryCTA: "Get Started",
+  primaryHref: "/contact",
+  secondaryCTA: "Learn More",
+  secondaryHref: "/about",
+  image: "/images/hero.webp",
+  imageAlt: "Description of hero image",
+};
+
+export function HeroSplit(props: HeroSplitProps) {
   const prefersReduced = useReducedMotion();
+
+  const title = props.title ?? DEFAULTS.title;
+  const titleAccent = props.titleAccent ?? DEFAULTS.titleAccent;
+  const subtitle = props.subtitle ?? DEFAULTS.subtitle;
+  const badge = props.badge ?? DEFAULTS.badge;
+  const primaryCTA = props.primaryCTA ?? DEFAULTS.primaryCTA;
+  const primaryHref = props.primaryHref ?? DEFAULTS.primaryHref;
+  const secondaryCTA = props.secondaryCTA ?? DEFAULTS.secondaryCTA;
+  const secondaryHref = props.secondaryHref ?? DEFAULTS.secondaryHref;
+  const image = props.image ?? DEFAULTS.image;
+  const imageAlt = props.imageAlt ?? DEFAULTS.imageAlt;
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
@@ -23,7 +65,7 @@ export function HeroSplit() {
             className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border border-border bg-card/50 text-sm text-muted-foreground"
           >
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            Trusted by 500+ clients
+            {badge}
           </motion.div>
 
           <motion.h1
@@ -32,10 +74,9 @@ export function HeroSplit() {
             transition={{ delay: 0.2, type: "spring", damping: 25, stiffness: 120 }}
             className="text-4xl sm:text-5xl md:text-6xl font-heading font-bold leading-tight"
           >
-            {/* UPDATE: Client headline */}
-            Professional Service
+            {title}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {" "}You Can Trust
+              {titleAccent}
             </span>
           </motion.h1>
 
@@ -45,9 +86,7 @@ export function HeroSplit() {
             transition={{ delay: 0.35, type: "spring", damping: 25, stiffness: 120 }}
             className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-lg"
           >
-            {/* UPDATE: Client description */}
-            A benefit-focused description that explains what you do and the
-            value you deliver. Two lines max.
+            {subtitle}
           </motion.p>
 
           <motion.div
@@ -57,17 +96,17 @@ export function HeroSplit() {
             className="mt-8 flex flex-wrap gap-4"
           >
             <Link
-              href="/contact"
+              href={primaryHref}
               className="group flex items-center gap-2 px-7 py-3.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 cursor-pointer"
             >
-              Get Started
+              {primaryCTA}
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
-              href="/about"
+              href={secondaryHref}
               className="px-7 py-3.5 border border-border text-foreground font-semibold rounded-xl hover:bg-card transition-colors cursor-pointer"
             >
-              Learn More
+              {secondaryCTA}
             </Link>
           </motion.div>
         </div>
@@ -79,10 +118,9 @@ export function HeroSplit() {
           transition={{ delay: 0.3, type: "spring", damping: 25, stiffness: 100 }}
           className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-border shadow-2xl"
         >
-          {/* UPDATE: Replace with client's hero image */}
           <Image
-            src="/images/hero.webp"
-            alt="Description of hero image"
+            src={image}
+            alt={imageAlt}
             fill
             className="object-cover"
             priority

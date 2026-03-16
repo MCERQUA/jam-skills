@@ -1,3 +1,8 @@
+---
+name: icon-generation
+description: "Generate custom icons for canvas pages, tools, and categories. Use when the user needs icons, favicons, or visual assets. Has 1700+ pre-built Lucide icons and AI generation via Gemini."
+---
+
 # Icon Generation Skill
 
 Generate custom icons for canvas pages, tools, categories, and anything the user needs. You have access to 1,700+ pre-built icons AND AI-powered custom icon generation via Gemini.

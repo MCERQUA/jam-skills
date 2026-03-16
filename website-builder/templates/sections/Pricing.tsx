@@ -5,8 +5,25 @@ import { motion, useReducedMotion } from "motion/react";
 import { FadeIn } from "@/components/animations/FadeIn";
 import { cn } from "@/lib/utils";
 
-// UPDATE: Replace with client's actual pricing tiers
-const tiers = [
+interface PricingTier {
+  name: string;
+  price: number | { monthly: number; annual: number };
+  period?: string;
+  description: string;
+  features: string[];
+  popular?: boolean;
+  cta: string;
+}
+
+interface PricingProps {
+  title?: string;
+  titleAccent?: string;
+  label?: string;
+  subtitle?: string;
+  tiers?: PricingTier[];
+}
+
+const DEFAULT_TIERS: PricingTier[] = [
   {
     name: "Basic",
     price: { monthly: 49, annual: 39 },
@@ -17,7 +34,7 @@ const tiers = [
       "Feature three",
     ],
     cta: "Get Started",
-    highlighted: false,
+    popular: false,
   },
   {
     name: "Professional",
@@ -31,7 +48,7 @@ const tiers = [
       "Priority support",
     ],
     cta: "Get Started",
-    highlighted: true,
+    popular: true,
   },
   {
     name: "Enterprise",
@@ -45,13 +62,40 @@ const tiers = [
       "Custom integrations",
     ],
     cta: "Contact Sales",
-    highlighted: false,
+    popular: false,
   },
 ];
 
-export function Pricing() {
+const DEFAULTS = {
+  label: "Pricing",
+  title: "Simple, Transparent ",
+  titleAccent: "Pricing",
+  subtitle: "",
+};
+
+export function Pricing(props: PricingProps) {
   const [annual, setAnnual] = useState(false);
   const prefersReduced = useReducedMotion();
+
+  const label = props.label ?? DEFAULTS.label;
+  const title = props.title ?? DEFAULTS.title;
+  const titleAccent = props.titleAccent ?? DEFAULTS.titleAccent;
+  const tiers = props.tiers ?? DEFAULT_TIERS;
+
+  // Determine if any tier uses the toggle (monthly/annual object)
+  const hasToggle = tiers.some(
+    (t) => typeof t.price === "object" && t.price !== null
+  );
+
+  function getDisplayPrice(tier: PricingTier): number {
+    if (typeof tier.price === "number") return tier.price;
+    return annual ? tier.price.annual : tier.price.monthly;
+  }
+
+  function getDisplayPeriod(tier: PricingTier): string {
+    if (tier.period) return tier.period;
+    return "/mo";
+  }
 
   return (
     <section className="py-24 md:py-32">
@@ -59,40 +103,42 @@ export function Pricing() {
         {/* Header */}
         <FadeIn className="text-center max-w-2xl mx-auto mb-12">
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
-            Pricing
+            {label}
           </p>
           <h2 className="text-3xl md:text-5xl font-heading font-bold">
-            Simple, Transparent{" "}
+            {title}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Pricing
+              {titleAccent}
             </span>
           </h2>
         </FadeIn>
 
-        {/* Toggle */}
-        <FadeIn delay={0.1} className="flex items-center justify-center gap-3 mb-16">
-          <span className={cn("text-sm font-medium", !annual ? "text-foreground" : "text-muted-foreground")}>
-            Monthly
-          </span>
-          <button
-            onClick={() => setAnnual(!annual)}
-            className={cn(
-              "relative w-14 h-7 rounded-full transition-colors cursor-pointer",
-              annual ? "bg-primary" : "bg-muted"
-            )}
-            aria-label={`Switch to ${annual ? "monthly" : "annual"} billing`}
-          >
-            <motion.div
-              className="absolute top-1 w-5 h-5 rounded-full bg-white"
-              animate={{ left: annual ? 32 : 4 }}
-              transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            />
-          </button>
-          <span className={cn("text-sm font-medium", annual ? "text-foreground" : "text-muted-foreground")}>
-            Annual
-            <span className="ml-1.5 text-xs text-primary font-semibold">Save 20%</span>
-          </span>
-        </FadeIn>
+        {/* Toggle (only shown if tiers use monthly/annual pricing) */}
+        {hasToggle && (
+          <FadeIn delay={0.1} className="flex items-center justify-center gap-3 mb-16">
+            <span className={cn("text-sm font-medium", !annual ? "text-foreground" : "text-muted-foreground")}>
+              Monthly
+            </span>
+            <button
+              onClick={() => setAnnual(!annual)}
+              className={cn(
+                "relative w-14 h-7 rounded-full transition-colors cursor-pointer",
+                annual ? "bg-primary" : "bg-muted"
+              )}
+              aria-label={`Switch to ${annual ? "monthly" : "annual"} billing`}
+            >
+              <motion.div
+                className="absolute top-1 w-5 h-5 rounded-full bg-white"
+                animate={{ left: annual ? 32 : 4 }}
+                transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              />
+            </button>
+            <span className={cn("text-sm font-medium", annual ? "text-foreground" : "text-muted-foreground")}>
+              Annual
+              <span className="ml-1.5 text-xs text-primary font-semibold">Save 20%</span>
+            </span>
+          </FadeIn>
+        )}
 
         {/* Cards */}
         <motion.div
@@ -118,12 +164,12 @@ export function Pricing() {
               }
               className={cn(
                 "relative p-8 rounded-xl border flex flex-col",
-                tier.highlighted
+                tier.popular
                   ? "bg-card border-primary/50 shadow-lg shadow-primary/10"
                   : "bg-card border-border"
               )}
             >
-              {tier.highlighted && (
+              {tier.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-xs font-semibold rounded-full">
                   Most Popular
                 </div>
@@ -134,9 +180,9 @@ export function Pricing() {
 
               <div className="mt-6 mb-6">
                 <span className="text-4xl font-heading font-bold">
-                  ${annual ? tier.price.annual : tier.price.monthly}
+                  ${getDisplayPrice(tier)}
                 </span>
-                <span className="text-muted-foreground">/mo</span>
+                <span className="text-muted-foreground">{getDisplayPeriod(tier)}</span>
               </div>
 
               <ul className="space-y-3 flex-grow">
@@ -151,7 +197,7 @@ export function Pricing() {
               <button
                 className={cn(
                   "mt-8 w-full py-3 rounded-lg font-semibold transition-colors cursor-pointer",
-                  tier.highlighted
+                  tier.popular
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : "bg-secondary text-foreground hover:bg-secondary/80"
                 )}

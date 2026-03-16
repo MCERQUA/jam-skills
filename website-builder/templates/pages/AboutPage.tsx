@@ -1,4 +1,7 @@
 // About Page Composition Template
+//
+// All section components accept optional props for customization.
+// Inline sections (Our Story, Values) use local data — customize directly.
 
 import type { Metadata } from "next";
 import { Navbar } from "@/components/sections/Navbar";
@@ -13,8 +16,6 @@ export const metadata: Metadata = {
   title: "About Us",
   description: "Learn about our story, mission, and the team behind the work.",
 };
-
-// UPDATE: Replace all content with client's actual story, team, and values
 
 const values = [
   { title: "Quality First", description: "We never cut corners. Every project gets our full attention and expertise." },
@@ -32,10 +33,24 @@ const team = [
 export default function AboutPage() {
   return (
     <main>
-      <Navbar />
+      <Navbar
+        logo="Acme Co"
+        cta={{ label: "Get a Quote", href: "/contact" }}
+      />
 
       {/* Hero — use HeroSplit with about-specific content */}
-      <HeroSplit />
+      <HeroSplit
+        title="Our Story"
+        titleAccent=" & Mission"
+        subtitle="Learn about who we are, why we do what we do, and what drives us forward every day."
+        badge="About Us"
+        primaryCTA="Meet the Team"
+        primaryHref="#team"
+        secondaryCTA="Our Services"
+        secondaryHref="/services"
+        image="/images/about-hero.webp"
+        imageAlt="Our team at work"
+      />
 
       {/* Our Story */}
       <section className="py-24 md:py-32">
@@ -49,14 +64,12 @@ export default function AboutPage() {
             </h2>
             <div className="space-y-4 text-lg text-muted-foreground leading-relaxed">
               <p>
-                {/* UPDATE: Client's origin story — paragraph 1 */}
                 Founded in [year], we started with a simple mission: to provide
                 the highest quality service in [industry] while treating every
                 customer like family.
               </p>
               <p>
-                {/* UPDATE: Growth story — paragraph 2 */}
-                Over the years, we've grown from a small operation to a trusted
+                Over the years, we&apos;ve grown from a small operation to a trusted
                 name in the community, but our commitment to quality and personal
                 service has never changed.
               </p>
@@ -66,7 +79,14 @@ export default function AboutPage() {
       </section>
 
       {/* Stats */}
-      <Stats />
+      <Stats
+        stats={[
+          { value: 500, suffix: "+", label: "Happy Clients" },
+          { value: 15, suffix: "+", label: "Years Experience" },
+          { value: 98, suffix: "%", label: "Satisfaction Rate" },
+          { value: 24, suffix: "/7", label: "Support Available" },
+        ]}
+      />
 
       {/* Values */}
       <section className="py-24 md:py-32 bg-card/30">
@@ -115,8 +135,21 @@ export default function AboutPage() {
         </div>
       </section> */}
 
-      <CTA />
-      <Footer />
+      <CTA
+        title="Want to Work With Us?"
+        description="We'd love to hear about your project. Reach out for a free consultation."
+        primaryCTA="Get in Touch"
+        primaryHref="/contact"
+        phone="(555) 000-0000"
+      />
+
+      <Footer
+        businessName="Acme Co"
+        description="Quality service since [year]."
+        phone="(555) 000-0000"
+        email="hello@example.com"
+        address="123 Main Street, City, ST 00000"
+      />
     </main>
   );
 }

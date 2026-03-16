@@ -1,4 +1,7 @@
 // Services Page Composition Template
+//
+// Inline sections (hero, service cards, process) use local data — customize directly.
+// Shared sections (Navbar, CTA, Footer) accept props.
 
 import type { Metadata } from "next";
 import { Navbar } from "@/components/sections/Navbar";
@@ -14,7 +17,6 @@ export const metadata: Metadata = {
   description: "Explore our range of professional services designed to meet your needs.",
 };
 
-// UPDATE: Replace with client's actual services
 const services = [
   {
     title: "Service One",
@@ -36,7 +38,6 @@ const services = [
   },
 ];
 
-// UPDATE: Replace with client's actual process
 const process = [
   { step: "01", title: "Consultation", description: "We discuss your needs and create a plan." },
   { step: "02", title: "Execution", description: "Our team gets to work with precision and care." },
@@ -47,7 +48,10 @@ const process = [
 export default function ServicesPage() {
   return (
     <main>
-      <Navbar />
+      <Navbar
+        logo="Acme Co"
+        cta={{ label: "Get a Quote", href: "/contact" }}
+      />
 
       {/* Hero */}
       <section className="pt-32 pb-20 md:pt-40 md:pb-28">
@@ -146,8 +150,20 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      <CTA />
-      <Footer />
+      <CTA
+        title="Ready to Get Started?"
+        description="Contact us today for a free consultation and custom quote."
+        primaryCTA="Request a Quote"
+        primaryHref="/contact"
+        phone="(555) 000-0000"
+      />
+
+      <Footer
+        businessName="Acme Co"
+        phone="(555) 000-0000"
+        email="hello@example.com"
+        address="123 Main Street, City, ST 00000"
+      />
     </main>
   );
 }

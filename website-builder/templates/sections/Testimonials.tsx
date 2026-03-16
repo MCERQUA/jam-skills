@@ -3,8 +3,21 @@ import { Star } from "lucide-react";
 import { FadeIn } from "@/components/animations/FadeIn";
 import { StaggerChildren, StaggerItem } from "@/components/animations/StaggerChildren";
 
-// UPDATE: Replace with client's real testimonials
-const testimonials = [
+interface TestimonialItem {
+  name: string;
+  role: string;
+  text: string;
+  rating?: number;
+}
+
+interface TestimonialsProps {
+  title?: string;
+  titleAccent?: string;
+  label?: string;
+  testimonials?: TestimonialItem[];
+}
+
+const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
   {
     name: "Sarah Johnson",
     role: "Homeowner",
@@ -25,19 +38,30 @@ const testimonials = [
   },
 ];
 
-export function Testimonials() {
+const DEFAULTS = {
+  label: "Testimonials",
+  title: "What Our ",
+  titleAccent: "Clients Say",
+};
+
+export function Testimonials(props: TestimonialsProps) {
+  const label = props.label ?? DEFAULTS.label;
+  const title = props.title ?? DEFAULTS.title;
+  const titleAccent = props.titleAccent ?? DEFAULTS.titleAccent;
+  const testimonials = props.testimonials ?? DEFAULT_TESTIMONIALS;
+
   return (
     <section className="py-24 md:py-32 bg-card/30">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         {/* Section Header */}
         <FadeIn className="text-center max-w-2xl mx-auto mb-16">
           <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
-            Testimonials
+            {label}
           </p>
           <h2 className="text-3xl md:text-5xl font-heading font-bold">
-            What Our{" "}
+            {title}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Clients Say
+              {titleAccent}
             </span>
           </h2>
         </FadeIn>
@@ -49,7 +73,7 @@ export function Testimonials() {
               <div className="p-8 rounded-xl bg-card border border-border h-full flex flex-col">
                 {/* Stars */}
                 <div className="flex gap-1 mb-4">
-                  {Array.from({ length: testimonial.rating }).map((_, j) => (
+                  {Array.from({ length: testimonial.rating ?? 5 }).map((_, j) => (
                     <Star key={j} className="w-4 h-4 fill-primary text-primary" />
                   ))}
                 </div>

@@ -1,8 +1,11 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ===== DESIGN TOKENS ===== */
 /* Replace these values with client brand colors */
 
+@layer base {
 :root {
   --background: 240 10% 4%;          /* #0a0a0f */
   --foreground: 214 32% 91%;          /* #e2e8f0 */
@@ -32,29 +35,19 @@
   --radius: 0.75rem;
 }
 
-/* ===== BASE STYLES ===== */
-
 * {
-  border-color: hsl(var(--border));
+  @apply border-border;
 }
 
 body {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  @apply bg-background text-foreground antialiased;
   font-family: var(--font-body), system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
-
-/* Smooth scroll via Lenis — do NOT add scroll-behavior: smooth */
-/* Lenis handles this in JS for better performance */
-
-/* ===== TYPOGRAPHY ===== */
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading), system-ui, sans-serif;
-  color: hsl(var(--foreground));
 }
+} /* close @layer base */
 
 /* ===== ANIMATIONS ===== */
 

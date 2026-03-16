@@ -1,26 +1,80 @@
 "use client";
 import { useState } from "react";
-import { Send, CheckCircle } from "lucide-react";
+import { Send, CheckCircle, Phone, Mail, MapPin } from "lucide-react";
 import { FadeIn } from "@/components/animations/FadeIn";
 
-// UPDATE: Wire up the form submission to a server action or API route
+interface ContactField {
+  name: string;
+  label: string;
+  type: string;
+  required?: boolean;
+  placeholder?: string;
+}
 
-export function ContactForm() {
+interface ContactFormProps {
+  title?: string;
+  titleAccent?: string;
+  subtitle?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  fields?: ContactField[];
+}
+
+const DEFAULT_FIELDS: ContactField[] = [
+  { name: "name", label: "Name", type: "text", required: true, placeholder: "Your name" },
+  { name: "email", label: "Email", type: "email", required: true, placeholder: "you@example.com" },
+  { name: "phone", label: "Phone (optional)", type: "tel", required: false, placeholder: "(555) 000-0000" },
+  { name: "message", label: "Message", type: "textarea", required: true, placeholder: "Tell us about your project..." },
+];
+
+const DEFAULTS = {
+  title: "Let\u2019s Talk About",
+  titleAccent: " Your Project",
+  subtitle:
+    "Fill out the form and we\u2019ll get back to you within 24 hours. Or reach out directly \u2014 we\u2019re always happy to chat.",
+  email: "hello@example.com",
+  phone: "(555) 000-0000",
+  address: "123 Main Street, City, ST 00000",
+};
+
+export function ContactForm(props: ContactFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const title = props.title ?? DEFAULTS.title;
+  const titleAccent = props.titleAccent ?? DEFAULTS.titleAccent;
+  const subtitle = props.subtitle ?? DEFAULTS.subtitle;
+  const email = props.email ?? DEFAULTS.email;
+  const phone = props.phone ?? DEFAULTS.phone;
+  const address = props.address ?? DEFAULTS.address;
+  const fields = props.fields ?? DEFAULT_FIELDS;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
-    // TODO: Replace with server action or API call
-    // const formData = new FormData(e.currentTarget);
-    // await fetch("/api/contact", { method: "POST", body: formData });
+    const formData = new FormData(e.currentTarget);
 
-    // Simulate submission
-    await new Promise((r) => setTimeout(r, 1000));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(formData)),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to send message. Please try again.");
+      }
+
+      setIsSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   if (isSubmitted) {
@@ -49,27 +103,41 @@ export function ContactForm() {
               Contact Us
             </p>
             <h2 className="text-3xl md:text-5xl font-heading font-bold">
-              {/* UPDATE: Contact heading */}
-              Let&apos;s Talk About
+              {title}
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                {" "}Your Project
+                {titleAccent}
               </span>
             </h2>
             <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
-              {/* UPDATE: Contact description */}
-              Fill out the form and we&apos;ll get back to you within 24 hours.
-              Or reach out directly — we&apos;re always happy to chat.
+              {subtitle}
             </p>
 
             <div className="mt-8 space-y-4">
-              {/* UPDATE: Add client's contact methods */}
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Send className="w-5 h-5 text-primary" />
+                  <Mail className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-medium">Email</p>
-                  <p className="text-sm text-muted-foreground">hello@example.com</p>
+                  <p className="text-sm text-muted-foreground">{email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Phone className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Phone</p>
+                  <p className="text-sm text-muted-foreground">{phone}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Address</p>
+                  <p className="text-sm text-muted-foreground">{address}</p>
                 </div>
               </div>
             </div>
@@ -78,61 +146,11 @@ export function ContactForm() {
           {/* Form Column */}
           <FadeIn direction="right" delay={0.15}>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium mb-2">
-                    Name
-                  </label>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                    placeholder="Your name"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-2">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                    placeholder="you@example.com"
-                  />
-                </div>
-              </div>
+              {renderFields(fields)}
 
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium mb-2">
-                  Phone (optional)
-                </label>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                  placeholder="(555) 000-0000"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium mb-2">
-                  Message
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  required
-                  rows={5}
-                  className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors resize-none"
-                  placeholder="Tell us about your project..."
-                />
-              </div>
+              {error && (
+                <p className="text-sm text-red-500">{error}</p>
+              )}
 
               <button
                 type="submit"
@@ -156,5 +174,55 @@ export function ContactForm() {
         </div>
       </div>
     </section>
+  );
+}
+
+function renderFields(fields: ContactField[]) {
+  // Group non-textarea fields into pairs for the 2-column layout
+  const textareaFields = fields.filter((f) => f.type === "textarea");
+  const inlineFields = fields.filter((f) => f.type !== "textarea");
+
+  const rows: ContactField[][] = [];
+  for (let i = 0; i < inlineFields.length; i += 2) {
+    rows.push(inlineFields.slice(i, i + 2));
+  }
+
+  return (
+    <>
+      {rows.map((row, ri) => (
+        <div key={ri} className={row.length > 1 ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : ""}>
+          {row.map((field) => (
+            <div key={field.name}>
+              <label htmlFor={field.name} className="block text-sm font-medium mb-2">
+                {field.label}
+              </label>
+              <input
+                id={field.name}
+                name={field.name}
+                type={field.type}
+                required={field.required}
+                className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                placeholder={field.placeholder}
+              />
+            </div>
+          ))}
+        </div>
+      ))}
+      {textareaFields.map((field) => (
+        <div key={field.name}>
+          <label htmlFor={field.name} className="block text-sm font-medium mb-2">
+            {field.label}
+          </label>
+          <textarea
+            id={field.name}
+            name={field.name}
+            required={field.required}
+            rows={5}
+            className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors resize-none"
+            placeholder={field.placeholder}
+          />
+        </div>
+      ))}
+    </>
   );
 }
