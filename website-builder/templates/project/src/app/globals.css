@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* ===== DESIGN TOKENS ===== */
+/* Replace these values with client brand colors */
+
+:root {
+  --background: 240 10% 4%;          /* #0a0a0f */
+  --foreground: 214 32% 91%;          /* #e2e8f0 */
+
+  --card: 222 47% 7%;                 /* #0d1117 */
+  --card-foreground: 214 32% 91%;     /* #e2e8f0 */
+
+  --primary: 217 91% 60%;             /* #3b82f6 — replace with brand */
+  --primary-foreground: 0 0% 100%;    /* #ffffff */
+
+  --secondary: 215 20% 15%;           /* #1e293b */
+  --secondary-foreground: 214 32% 91%;
+
+  --accent: 190 95% 39%;              /* #06b6d4 — replace with brand */
+  --accent-foreground: 0 0% 100%;
+
+  --muted: 215 20% 15%;               /* #1e293b */
+  --muted-foreground: 215 16% 62%;    /* #94a3b8 */
+
+  --destructive: 0 84% 60%;           /* #ef4444 */
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 215 20% 15%;              /* #1e293b */
+  --input: 215 20% 15%;
+  --ring: 217 91% 60%;                /* same as primary */
+
+  --radius: 0.75rem;
+}
+
+/* ===== BASE STYLES ===== */
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scroll via Lenis — do NOT add scroll-behavior: smooth */
+/* Lenis handles this in JS for better performance */
+
+/* ===== TYPOGRAPHY ===== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), system-ui, sans-serif;
+  color: hsl(var(--foreground));
+}
+
+/* ===== ANIMATIONS ===== */
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== SELECTION ===== */
+
+::selection {
+  background: hsl(var(--primary) / 0.3);
+  color: hsl(var(--foreground));
+}
+
+/* ===== SCROLLBAR (optional, dark mode) ===== */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
