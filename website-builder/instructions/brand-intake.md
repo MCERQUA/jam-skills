@@ -68,6 +68,30 @@ Use for: deciding whether to write real copy or mark sections for content replac
 
 Use for: hero CTA button, repeated CTA sections, navigation emphasis.
 
+### 11. SEO & Search Goals
+> "What do you want people to find you for on Google? What would your ideal customer type into a search engine?"
+
+Use for: keyword research in Phase 2, headline writing, meta descriptions.
+
+### 12. Competitors
+> "Who are your top 2-3 competitors? Share their website URLs if you know them."
+
+Use for: competitor analysis in Phase 2, identifying gaps and opportunities.
+
+### 13. Geographic Scope
+> "Do you serve a specific area (city/state/region) or are you nationwide/online?"
+
+Use for: local SEO keywords, service area pages, structured data.
+
+### 14. Site Type
+> "What's the main purpose of your site?"
+> - **SEO Leadgen** — rank on Google and capture form submissions (insurance, professional services)
+> - **Local Service** — get phone calls and appointment bookings (plumber, HVAC, contractor)
+> - **Portfolio** — showcase your work and build authority (designer, photographer, agency)
+> - **SaaS / Product** — get signups and sales (software, online product)
+
+Use for: section selection, copy style, page structure decisions. This choice drives the entire build.
+
 ---
 
 ## After Intake

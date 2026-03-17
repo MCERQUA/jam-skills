@@ -12,11 +12,12 @@ interface StatsProps {
   stats?: StatItem[];
 }
 
+// REPLACE: Pass real stats via props. Use real numbers from the business.
 const DEFAULT_STATS: StatItem[] = [
-  { value: 500, suffix: "+", label: "Happy Clients" },
-  { value: 15, suffix: "+", label: "Years Experience" },
-  { value: 98, suffix: "%", label: "Satisfaction Rate" },
-  { value: 24, suffix: "/7", label: "Support Available" },
+  { value: 0, suffix: "+", label: "REPLACE: Stat Label" },
+  { value: 0, suffix: "+", label: "REPLACE: Stat Label" },
+  { value: 0, suffix: "%", label: "REPLACE: Stat Label" },
+  { value: 0, suffix: "", label: "REPLACE: Stat Label" },
 ];
 
 export function Stats(props: StatsProps) {

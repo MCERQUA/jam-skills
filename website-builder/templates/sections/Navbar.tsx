@@ -31,8 +31,9 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
 
 const DEFAULT_CTA: NavCTA = { label: "Get a Quote", href: "/contact" };
 
+// REPLACE: Pass real business name via the logo prop.
 const DEFAULTS = {
-  logo: "Logo",
+  logo: "REPLACE: Logo",
 };
 
 export function Navbar(props: NavbarProps) {

@@ -14,9 +14,10 @@ interface HeroProps {
   secondaryHref?: string;
 }
 
+// REPLACE: Pass real content via props. These defaults are flagged by the quality gate.
 const DEFAULTS = {
-  title: "Your Headline That",
-  titleAccent: " Communicates Value",
+  title: "REPLACE: Your Headline That",
+  titleAccent: " REPLACE: Communicates Value",
   subtitle:
     "A clear, benefit-focused description that tells visitors exactly what you do and why they should care. Keep it under two lines.",
   badge: "Now accepting new clients",

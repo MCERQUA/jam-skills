@@ -26,36 +26,37 @@ interface FeaturesProps {
   features?: FeatureItem[];
 }
 
+// REPLACE: Pass real features via props. These defaults are flagged by the quality gate.
 const DEFAULT_FEATURES: FeatureItem[] = [
   {
     icon: "shield",
-    title: "Reliable Service",
-    description: "Consistent quality you can count on, backed by our satisfaction guarantee.",
+    title: "REPLACE: Feature Title",
+    description: "REPLACE: Specific description of this feature/service for this business.",
   },
   {
     icon: "zap",
-    title: "Fast Response",
-    description: "Quick turnaround times so you're never left waiting.",
+    title: "REPLACE: Feature Title",
+    description: "REPLACE: Specific description with industry-relevant details.",
   },
   {
     icon: "heart",
-    title: "Customer First",
-    description: "Every decision we make starts with what's best for you.",
+    title: "REPLACE: Feature Title",
+    description: "REPLACE: Benefit-focused description. What does the customer get?",
   },
   {
     icon: "clock",
-    title: "Available 24/7",
-    description: "Round-the-clock support whenever you need us.",
+    title: "REPLACE: Feature Title",
+    description: "REPLACE: Include specific numbers or timeframes if applicable.",
   },
   {
     icon: "award",
-    title: "Industry Experts",
-    description: "Years of experience delivering top-tier results.",
+    title: "REPLACE: Feature Title",
+    description: "REPLACE: Describe concrete expertise or qualifications.",
   },
   {
     icon: "users",
-    title: "Trusted Team",
-    description: "Vetted professionals who treat your project like their own.",
+    title: "REPLACE: Feature Title",
+    description: "REPLACE: What makes this team/service different? Be specific.",
   },
 ];
 

@@ -33,9 +33,9 @@ const DEFAULT_LINKS: FooterLinkGroup[] = [
   {
     title: "Services",
     items: [
-      { label: "Service One", href: "/services#one" },
-      { label: "Service Two", href: "/services#two" },
-      { label: "Service Three", href: "/services#three" },
+      { label: "REPLACE: Service One", href: "/services#one" },
+      { label: "REPLACE: Service Two", href: "/services#two" },
+      { label: "REPLACE: Service Three", href: "/services#three" },
     ],
   },
   {
@@ -47,13 +47,14 @@ const DEFAULT_LINKS: FooterLinkGroup[] = [
   },
 ];
 
+// REPLACE: These defaults MUST be overridden via props. The quality gate grep catches them.
 const DEFAULTS = {
-  businessName: "Business Name",
+  businessName: "REPLACE: Business Name",
   description:
-    "A short description of the business and what makes it special. One to two sentences.",
-  phone: "(555) 000-0000",
-  email: "hello@example.com",
-  address: "123 Main Street, City, ST 00000",
+    "REPLACE: A short description of the business and what makes it special.",
+  phone: "REPLACE: (555) 000-0000",
+  email: "REPLACE: hello@example.com",
+  address: "REPLACE: 123 Main Street, City, ST 00000",
 };
 
 export function Footer(props: FooterProps) {

@@ -1,11 +1,11 @@
 ---
 name: website-builder
-description: "Build production-ready Next.js 15 websites from scratch. Use when the user asks to build a new website, create a site for their business, or start a new web project. Full 10-phase workflow: brand intake, SEO research, scaffold, design system, content planning, page building, images, forms, quality gate, deployment."
+description: "Build production-ready Next.js 15 websites from scratch. Research-first workflow: discovery → folder setup → deep research (keywords, competitors, content strategy, topical map, conversion patterns) → design planning (visual audit, style direction, component plan, wireframes) → scaffold → build → deploy. Use when the user asks to build a new website, create a site for their business, or start a new web project."
 ---
 
 # Website Builder — Complete Next.js Website Skill
 
-> Build production-ready, modern Next.js websites from scratch with consistent quality.
+> Research-driven, design-intentional website building. Every decision backed by data, every section justified by research.
 
 ## When to Use This Skill
 
@@ -24,18 +24,19 @@ description: "Build production-ready Next.js 15 websites from scratch. Use when 
 
 ## NON-NEGOTIABLE RULES
 
-1. **NEVER deliver a page with template defaults.** If you see "Logo", "(555) 000-0000", "hello@example.com", "A short description", "Service One", "Sarah Johnson, Homeowner" — you FAILED. Every character of text must be real content for this specific business.
-2. **NEVER write copy without keyword research first.** Phase 2 (Research) must complete before Phase 5 (Content & Pages). Every headline must target specific keywords.
-3. **NEVER skip images.** A text-only site is not a deliverable. Generate or source images during page building.
-4. **NEVER use scare tactics or fear-based headlines** for service/insurance/professional businesses. Write benefit-focused, SEO-targeted copy. "Comprehensive Insurance for Epoxy Contractors" beats "One Job Goes Wrong And You're Out of Business".
-5. **ALWAYS run the placeholder sweep grep** before presenting any site. Zero tolerance.
-6. **ALWAYS customize every section.** If a section renders its built-in defaults, you forgot to pass props.
+1. **NEVER write code before completing research and design planning.** Phases 1-4 produce zero code. That's correct.
+2. **NEVER deliver a page with template defaults.** If you see "Logo", "(555) 000-0000", "hello@example.com", "Service One" — you FAILED.
+3. **NEVER write copy without keyword research.** Every headline targets a specific keyword from Phase 3.
+4. **NEVER skip the design plan.** Every section, color, and animation must have a documented REASON.
+5. **NEVER use scare tactics or fear-based headlines.** Write benefit-focused, SEO-targeted copy.
+6. **ALWAYS run the placeholder sweep** before presenting any site. Zero tolerance.
+7. **ALWAYS customize every section.** If a section renders built-in defaults, you forgot to pass props.
 
 ---
 
 ## Site Types
 
-Identify the site type during intake — it changes everything:
+Identify during intake — it changes everything:
 
 | Type | Goal | Key Sections | Copy Style |
 |------|------|-------------|------------|
@@ -53,7 +54,7 @@ Identify the site type during intake — it changes everything:
 | **Next.js 15** | `next` | App Router, server components, server actions |
 | **React 19** | `react` | UI framework |
 | **TypeScript** | `typescript` | Type safety |
-| **Tailwind CSS v3** | `tailwindcss` | Utility-first styling (v3 — NOT v4, v4 has PostCSS issues with Next.js) |
+| **Tailwind CSS v3** | `tailwindcss` | Utility-first styling (v3 — NOT v4, v4 has PostCSS issues) |
 | **shadcn/ui** | `shadcn` (CLI) | Component library (Radix + Tailwind) |
 | **Motion** | `motion` | Animations (spring physics, scroll, layout) |
 | **Lenis** | `lenis` | Smooth scroll (< 4kb, accessible) |
@@ -69,54 +70,72 @@ Identify the site type during intake — it changes everything:
 
 ---
 
-## 10-Phase Workflow
+## 13-Phase Workflow
 
-Follow these phases IN ORDER. Do not skip phases.
+Follow these phases IN ORDER. Do not skip phases. Phases 1-4 produce ZERO code — they produce research and a plan. That's the point.
 
 ### Phase 1: DISCOVER
 **Read:** `instructions/brand-intake.md`
 
-Ask the client the brand intake questions BEFORE writing any code. Includes:
+Ask the client the brand intake questions BEFORE anything else:
 - Business identity, industry, target customer
 - Brand colors, tone, personality
-- **SEO goals: what they want to rank for, who competitors are, what customers search for**
+- SEO goals, competitors, what customers search for
 - Pages needed, special features, primary CTA
 - Site type (SEO leadgen, local service, portfolio, SaaS)
 
-**Deliverable:** Completed intake answers saved to `.claude/CLAUDE.md`
+**Deliverable:** Completed intake answers
 
-### Phase 2: RESEARCH & PLAN
+### Phase 2: SETUP
+**Read:** `instructions/folder-setup.md`
+
+Create the `ai/` folder structure inside the project directory:
+1. Create all research directories (01-07)
+2. Create design, content, and blog-research directories
+3. Initialize `research-status.json`
+4. Populate `01-business-profile/profile.md` from intake answers
+
+**Deliverable:** Complete `ai/` folder structure with business profile filled in
+
+### Phase 3: RESEARCH (the foundation — DO NOT RUSH)
 **Read:** `instructions/research-plan.md`
 
-**This phase is MANDATORY. Do not skip it.**
+Six research tasks that inform EVERYTHING that follows:
 
-1. **Keyword research** — Identify 10-20 target keywords
-   - Primary (high-volume, core services): 3-5
-   - Secondary (specific services, locations): 5-10
-   - Long-tail (questions, how-to): 5-10
-   - Use web search to verify relevance
+1. **Keyword research** — Find 50-100+ keywords across primary, secondary, long-tail, location categories. Document in `ai/research/02-keyword-research/`. Search Google, capture PAA questions, build keyword clusters.
 
-2. **Competitor scan** — Look at top 3-5 competing sites
-   - What pages do they have? What keywords in their titles?
-   - What sections work well? What's missing?
+2. **Competitor deep analysis** — Review 5-10 competitor sites in detail. For each one: document their homepage sections, hero layout, CTAs, visual design, typography, animations, content quality, strengths, weaknesses. Create per-competitor review files in `ai/research/03-competitor-analysis/site-reviews/`. Then synthesize into `pattern-analysis.md` (common patterns across niche) and `gaps-opportunities.md` (what we exploit).
 
-3. **Content plan** — Map keywords to pages:
-   | Page | H1 (with keyword) | Sections | Target Keywords |
-   |------|----|----|----|
-   | Home | ... | Hero, TrustBar, Stats, ... | primary + secondary |
-   | Services | ... | Hero, CoverageGrid, ... | service keywords |
-   | About | ... | Hero, Story, Values, ... | brand + trust keywords |
-   | Contact | ... | Hero, Form, Info | quote/contact keywords |
-   | Blog | ... | Hero, BlogGrid | informational keywords |
+3. **Content strategy** — Map every page: URL, keywords, sections, H1, meta tags. Create per-page content briefs in `ai/research/04-content-strategy/content-briefs/`. Research FAQ questions from PAA, Reddit, forums.
 
-4. **Write every H1 BEFORE building any page.** Every H1 must:
-   - Contain the primary keyword for that page
-   - Be benefit-focused (not fear-based)
-   - Be specific to this business (not generic)
+4. **Topical map** — Build topic cluster architecture: pillar pages, cluster content, internal linking strategy. Document in `ai/research/05-topical-map/`.
 
-**Deliverable:** Content plan document with keywords, page map, all H1s drafted
+5. **Local SEO** (if applicable) — Target service areas, local competitors, city-specific keywords. Document in `ai/research/06-local-seo/`.
 
-### Phase 3: SCAFFOLD
+6. **Conversion patterns** — Analyze competitor CTAs, trust signals, social proof patterns. Map the conversion funnel. Document in `ai/research/07-conversion-patterns/`.
+
+**Deliverable:** 20-40 research files across 7 directories. Update `research-status.json`.
+
+### Phase 4: DESIGN PLAN (the thinking phase — every decision intentional)
+**Read:** `instructions/design-plan.md`
+
+This is where a site goes from "another template" to something that WORKS. Six design documents:
+
+1. **Competitor visual audit** (`ai/design/competitor-visual-audit.md`) — Review all competitor sites for visual patterns: hero types, section ordering, color schemes, typography, animations, photography style. Rank them by visual quality. Identify what to beat.
+
+2. **Style direction** (`ai/design/style-direction.md`) — Choose aesthetic with reasoning. Colors, fonts, dark/light mode, spacing — every choice traced to brand intake + competitor analysis + industry context.
+
+3. **Component plan** (`ai/design/component-plan.md`) — Every component needed, in order, with its purpose. Why this hero layout? Why this trust bar style? Why these sections in this order? Map to the conversion funnel.
+
+4. **Animation plan** (`ai/design/animation-plan.md`) — What moves, why, how. Entrance animations, hover states, scroll effects. Intentional motion, not random decoration.
+
+5. **Page wireframes** (`ai/design/page-wireframes.md`) — Section-by-section layout for every page. ASCII wireframes showing structure.
+
+6. **Design brief** (`ai/design/design-brief.md`) — Master document. Summarizes all design decisions, lists what makes this site "pop" vs competitors, connects every choice to research.
+
+**Deliverable:** 6 design documents. The design brief is the reference for the entire build.
+
+### Phase 5: SCAFFOLD
 **Read:** `instructions/architecture.md`
 **Use:** `templates/project/` directory
 
@@ -129,36 +148,40 @@ Ask the client the brand intake questions BEFORE writing any code. Includes:
 7. Create private GitHub repo, push, create `web-dev` branch
 8. Fill in `.claude/CLAUDE.md` using `templates/config/claude-project.md`
 
-### Phase 4: DESIGN SYSTEM
+### Phase 6: DESIGN SYSTEM
 **Read:** `instructions/design-system.md`
 **Use:** `templates/config/design-tokens.css`
 
-1. Select color palette based on brand intake answers
-   - Use: `python3 /mnt/shared-skills/ui-ux-pro-max/scripts/search.py "<industry> <tone>" --domain color --design-system`
-2. Select font pairing
-   - Use: `python3 /mnt/shared-skills/ui-ux-pro-max/scripts/search.py "<tone> <industry>" --domain typography`
-3. Set CSS variables in `globals.css`
+Apply the style direction from Phase 4:
+1. Set color palette (chosen in design plan, not random)
+2. Set font pairing (chosen in design plan, not random)
+3. Configure CSS variables in `globals.css`
 4. Configure `tailwind.config.ts` with brand colors
-5. If client has no brand preferences, use `theme-factory` skill for a pre-set theme
+5. Cross-reference: `python3 /mnt/shared-skills/ui-ux-pro-max/scripts/search.py`
 
-### Phase 5: CONTENT & PAGES (the bulk of the work)
-**Read:** `instructions/content-writing.md`, `instructions/animations.md`, `instructions/scroll-effects.md`
+### Phase 7: CONTENT WRITING
+**Read:** `instructions/content-writing.md`
+
+Write ALL copy BEFORE building pages. Save to `ai/content/` — one file per page:
+1. Reference content briefs from Phase 3
+2. Write every headline, paragraph, bullet, CTA, testimonial, FAQ answer
+3. Every headline targets a keyword from Phase 3
+4. Every paragraph is benefit-focused and industry-specific
+5. No generic filler — real numbers, real scenarios, real language
+6. Review against competitor gaps — our content must be MORE specific
+
+**Deliverable:** Complete copy files in `ai/content/` for every page
+
+### Phase 8: BUILD PAGES
+**Read:** `instructions/animations.md`, `instructions/scroll-effects.md`
 **Use:** `templates/sections/`, `templates/animations/`, `templates/pages/`
 
-**For EACH page, follow this exact sequence:**
-
-1. **Review the content plan** from Phase 2 — keywords, sections, H1
-2. **Write ALL the copy first** — headlines, paragraphs, bullets, CTAs, testimonials, FAQ answers
-   - Every headline targets a keyword from Phase 2
-   - Every paragraph is benefit-focused and industry-specific
-   - No generic "we deliver quality" filler — use real numbers, real scenarios, real language
-   - See `instructions/content-writing.md` for guidelines by site type
-3. **Select section templates** from `templates/sections/`
-4. **Pass ALL content via props** — do NOT leave any template defaults in place
-5. **Generate/source images** as you build each page (not later!)
-   - Read `instructions/images.md`
-   - Every page needs at least one real image
-6. **Apply animations** — entrance animations, hover effects, scroll reveals
+Now — and ONLY now — you write code. For each page:
+1. Follow the wireframe from Phase 4
+2. Select section templates from `templates/sections/`
+3. Pass ALL content from Phase 7 via props — NO template defaults
+4. Apply animations from the animation plan (Phase 4)
+5. Generate/source images as you build (read `instructions/images.md`)
 
 **Section selection by site type:**
 
@@ -169,68 +192,59 @@ Ask the client the brand intake questions BEFORE writing any code. Includes:
 | Portfolio | Navbar + Hero + ProjectGrid + About + Process + CTA + Footer |
 | SaaS | Navbar + Hero + Features + Pricing + Testimonials + FAQ + CTA + Footer |
 
-**Prop rules:**
-- ALL data through props — never edit component internals for content
-- Template defaults are obviously wrong (e.g., "REPLACE: Your Headline") — they MUST be replaced
-- `icon` prop accepts Lucide strings: `"shield"`, `"zap"`, `"heart"`, `"clock"`, `"award"`, `"users"`, `"truck"`, etc.
-- ContactForm accepts `fields` array for industry-specific forms
-- Footer accepts navigation/contact props — always customize
-
-### Phase 5b: COMPILE CHECK (required)
-
+### Phase 8b: COMPILE CHECK (required)
 ```bash
 cd <project-dir> && pnpm build
 ```
 Fix all errors before moving on.
 
-### Phase 6: FORMS & BACKEND
+### Phase 9: FORMS & BACKEND
 **Read:** `instructions/forms-backend.md`
 
 1. Build industry-specific form fields (NOT generic name/email/message)
 2. Create `/api/contact` route (file-based JSON storage)
 3. Test form submission end-to-end
-4. Add newsletter signup to footer if needed
 
-### Phase 7: BLOG (if needed)
+### Phase 10: BLOG (if needed)
 **Read:** `instructions/blog-setup.md`
 
 1. Install MDX dependencies
 2. Create blog index and `[slug]` dynamic route
-3. Write 2-3 starter posts targeting long-tail keywords from Phase 2
+3. Write 2-3 starter posts targeting long-tail keywords from Phase 3
 4. Add to sitemap
 
-### Phase 8: SEO FINALIZATION
+### Phase 11: SEO FINALIZATION
 **Read:** `instructions/seo.md`, `instructions/performance.md`
 
-1. Metadata in `layout.tsx` — use keywords from Phase 2
+1. Metadata in `layout.tsx` — use keywords from Phase 3
 2. Per-page metadata with page-specific keywords
 3. `sitemap.ts` and `robots.ts`
 4. Structured data (JSON-LD) for business type
 5. Error/404 pages
 6. Image optimization
 
-### Phase 9: QUALITY GATE (MANDATORY)
+### Phase 12: QUALITY GATE (MANDATORY)
 **Read:** `instructions/quality-checklist.md`
 
-**Placeholder sweep — MUST RUN, zero tolerance:**
+**Placeholder sweep — zero tolerance:**
 ```bash
 grep -rn "example\.com\|placeholder\|TODO\|FIXME\|Lorem\|project-name\|REPLACE:\|UPDATE:\|000-0000\|hello@\|Service One\|Service Two\|Service Three\|A short description\|Your Headline\|Business Name\.\|Sarah Johnson\|Mike Chen\|Lisa Rodriguez" src/ --include="*.tsx" --include="*.ts"
 ```
-**Every match = failure. Fix before proceeding.**
+**Every match = failure.**
 
-Also manually verify:
-- [ ] Navbar logo = real business name (NOT "Logo")
-- [ ] Footer = real contact info (NOT placeholder phone/email/address)
-- [ ] Every section heading = specific to this business (NOT generic defaults)
-- [ ] Every testimonial = realistic, industry-specific (NOT generic names/quotes)
-- [ ] `package.json` name matches the project
-- [ ] All images point to files that actually exist
-- [ ] Every page has at least one real image (not just icons)
-- [ ] Phone `tel:` links match displayed text
+Also verify:
+- [ ] Navbar logo = real business name
+- [ ] Footer = real contact info
+- [ ] Every section heading specific to this business
+- [ ] Every testimonial realistic and industry-specific
+- [ ] All images point to existing files
+- [ ] Every page has at least one real image
 - [ ] CTA buttons link to correct destinations
-- [ ] No page uses 100% default section props
+- [ ] No page uses default section props
+- [ ] Design matches the design brief from Phase 4
+- [ ] Animation plan from Phase 4 fully implemented
 
-### Phase 10: DEPLOYMENT
+### Phase 13: DEPLOYMENT
 **Read:** `instructions/deployment.md`
 
 1. `pnpm build` — fix any errors
@@ -239,37 +253,6 @@ Also manually verify:
 **JamBot:** `cd Websites/<name> && pnpm install && pnpm build`, then canvas URL.
 **No container:** Tell user admin needs `jambot-add-website.sh`.
 **External:** Vercel/Netlify/Docker per `instructions/deployment.md`.
-
----
-
-## Copy Guidelines (Quick Reference)
-
-### Headlines — DO vs DON'T
-| DO (keyword + benefit) | DON'T (scare tactic / generic) |
-|---|---|
-| "Comprehensive Insurance for Epoxy Flooring Contractors" | "One Job Goes Wrong And You're Out of Business" |
-| "Licensed Plumber Serving Phoenix Since 2005" | "Your Pipes Could Burst Any Minute" |
-| "Professional Garage Floor Coatings in Tampa Bay" | "Transform Your Space Today" |
-| "Fast, Reliable HVAC Repair — Same-Day Service" | "Don't Suffer Another Hot Night" |
-
-### Body Copy Rules
-- Use industry-specific language the customer would search for
-- Mention specific services by name, not vague categories
-- Include real numbers: "20+ years", "1,000+ customers", "50 states", "same-day"
-- Every paragraph advances toward the CTA — no filler
-- Write for humans first, keywords second (but keywords must be present)
-
-### Testimonials
-- Realistic names + company name + location ("Marcus Thompson, Elite Epoxy Solutions, FL")
-- Reference specific services or outcomes
-- Vary focus: one about price, one about quality, one about speed
-- Never use generic "Great service, highly recommend!" quotes
-
-### FAQ (critical for SEO leadgen)
-- Every question = a long-tail keyword people actually search
-- Answers: 3-5 sentences minimum with industry-specific details
-- Include cost ranges, timeframes, requirements — specific helpful info
-- Link to relevant pages within answers
 
 ---
 
@@ -330,9 +313,11 @@ curl -s https://tailwindcss.com/docs/llms.txt | head -200  # Tailwind
 
 ```
 instructions/
-  brand-intake.md        — Discovery questions (includes SEO + competitor questions)
-  research-plan.md       — Keyword research, competitor analysis, content planning (NEW)
-  content-writing.md     — Copy guidelines by site type, tone, and industry (NEW)
+  brand-intake.md        — Discovery questions (SEO + competitor questions included)
+  folder-setup.md        — /ai/ directory structure initialization
+  research-plan.md       — Deep foundational research: keywords, competitors, content, topical map, conversion
+  design-plan.md         — Design thinking: visual audit, style direction, component plan, wireframes
+  content-writing.md     — Copy guidelines by site type, tone, and industry
   design-system.md       — Color, typography, theme setup
   architecture.md        — Next.js project structure and conventions
   animations.md          — 15 animation patterns with Motion.dev/GSAP/CSS code
@@ -348,7 +333,7 @@ instructions/
 
 templates/
   project/               — Full Next.js 15 starter (copy to scaffold)
-  sections/              — 18 section components (Navbar, Hero, Features, FAQ, HowItWorks, TrustBar, etc.)
+  sections/              — 18 section components (Navbar, Hero, Features, FAQ, etc.)
   animations/            — 9 reusable wrappers (FadeIn, Stagger, Parallax, etc.)
   pages/                 — 5 full page compositions (Home, About, Services, Contact, Blog)
   config/                — Project CLAUDE.md template, CSS design tokens

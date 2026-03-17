@@ -108,9 +108,27 @@ Run EVERY check before presenting the site to the client. Fix all failures.
 5. Click every link — verify navigation works
 6. Submit every form — verify validation and submission
 
-### Code scan:
-1. Search for `Lorem` or `ipsum` — should find zero results
-2. Search for `href="#"` — should find zero results
-3. Search for `console.log` — should find zero results
-4. Check every `<img>` and `<Image>` has `alt`
+### Code scan (MANDATORY — run every grep, fix every match):
+
+```bash
+# 1. Placeholder sweep — MUST return zero results
+grep -rn "REPLACE:\|example\.com\|placeholder\|TODO\|FIXME\|Lorem\|project-name\|UPDATE:\|000-0000\|hello@\|Service One\|Service Two\|Service Three\|A short description\|Your Headline\|Business Name\.\|Sarah Johnson\|Mike Chen\|Lisa Rodriguez" src/ --include="*.tsx" --include="*.ts"
+
+# 2. Broken links
+grep -rn 'href="#"' src/ --include="*.tsx" --include="*.ts"
+
+# 3. Debug code
+grep -rn "console\.log" src/ --include="*.tsx" --include="*.ts"
+```
+
+Every match from grep #1 is a FAILURE. Fix before presenting.
+
+4. Check every `<img>` and `<Image>` has descriptive `alt`
 5. Check every `<input>` has a `<label>`
+6. Verify navbar shows real business name (not "Logo" or "REPLACE:")
+7. Verify footer has real phone, email, address — not placeholder values
+8. Verify every testimonial has full name + company + location (not generic names)
+9. Verify every page has at least one real image (not just Lucide icons)
+10. Verify phone `tel:` links match the displayed phone number text
+11. Verify all CTA buttons say something specific (not "Submit" or "Learn More")
+12. Verify no page renders 100% default section props (About, Services especially)

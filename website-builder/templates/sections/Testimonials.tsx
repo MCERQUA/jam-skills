@@ -17,23 +17,24 @@ interface TestimonialsProps {
   testimonials?: TestimonialItem[];
 }
 
+// REPLACE: Pass real testimonials via props. These defaults are intentionally flagged.
 const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
   {
-    name: "Sarah Johnson",
-    role: "Homeowner",
-    text: "Absolutely outstanding service. They went above and beyond to make sure everything was perfect. Highly recommend to anyone looking for quality work.",
+    name: "REPLACE: Full Name",
+    role: "REPLACE: Role, Company Name, Location",
+    text: "REPLACE: Specific testimonial referencing a real service or outcome. Not generic praise. Include details about what they liked and what the result was.",
     rating: 5,
   },
   {
-    name: "Mike Chen",
-    role: "Business Owner",
-    text: "Professional, punctual, and reasonably priced. They've been our go-to for over three years now. Wouldn't trust anyone else.",
+    name: "REPLACE: Full Name",
+    role: "REPLACE: Role, Company Name, Location",
+    text: "REPLACE: Another testimonial with different focus (price, speed, quality). Reference specific services by name.",
     rating: 5,
   },
   {
-    name: "Lisa Rodriguez",
-    role: "Property Manager",
-    text: "Fast response times and excellent communication throughout the entire process. The team really knows what they're doing.",
+    name: "REPLACE: Full Name",
+    role: "REPLACE: Role, Company Name, Location",
+    text: "REPLACE: Third testimonial with unique angle. Include a specific result or number if possible.",
     rating: 5,
   },
 ];

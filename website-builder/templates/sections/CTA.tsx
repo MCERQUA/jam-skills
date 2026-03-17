@@ -12,11 +12,12 @@ interface CTAProps {
   phone?: string;
 }
 
+// REPLACE: Pass real CTA content via props.
 const DEFAULTS = {
-  title: "Ready to Get Started?",
+  title: "REPLACE: Your CTA Headline Here",
   description:
-    "Contact us today for a free consultation. No obligation, no pressure \u2014 just honest advice from experts who care.",
-  primaryCTA: "Get Your Free Quote",
+    "REPLACE: Compelling reason to take action. Include a specific benefit or offer.",
+  primaryCTA: "REPLACE: Action Text",
   primaryHref: "/contact",
   phone: "(555) 000-0000",
 };
