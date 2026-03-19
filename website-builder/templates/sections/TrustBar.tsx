@@ -1,9 +1,22 @@
 "use client";
 import { FadeIn } from "@/components/animations/FadeIn";
-import { Shield, Award, Clock, Star, BadgeCheck, Headphones, type LucideIcon } from "lucide-react";
+import { Shield, Award, Clock, Star, BadgeCheck, Headphones, Users, FileCheck, ClipboardList, FileText, type LucideIcon } from "lucide-react";
+
+const iconMap: Record<string, LucideIcon> = {
+  shield: Shield,
+  award: Award,
+  clock: Clock,
+  star: Star,
+  badgecheck: BadgeCheck,
+  headphones: Headphones,
+  users: Users,
+  filecheck: FileCheck,
+  clipboardlist: ClipboardList,
+  filetext: FileText,
+};
 
 export interface TrustItem {
-  icon?: LucideIcon;
+  icon?: string;
   label: string;
 }
 
@@ -11,14 +24,13 @@ export interface TrustBarProps {
   items?: TrustItem[];
 }
 
-// REPLACE: Pass real trust signals via the items prop.
 const defaultItems: TrustItem[] = [
-  { icon: Shield, label: "REPLACE: Trust Signal 1" },
-  { icon: Award, label: "REPLACE: Trust Signal 2" },
-  { icon: Clock, label: "REPLACE: Trust Signal 3" },
-  { icon: Star, label: "REPLACE: Trust Signal 4" },
-  { icon: BadgeCheck, label: "REPLACE: Trust Signal 5" },
-  { icon: Headphones, label: "REPLACE: Trust Signal 6" },
+  { icon: "shield", label: "Licensed Insurance Agency" },
+  { icon: "award", label: "25+ Years Experience" },
+  { icon: "clock", label: "24/7 Certificate Access" },
+  { icon: "star", label: "Trusted by Contractors Nationwide" },
+  { icon: "badgecheck", label: "Manufacturer Compliance" },
+  { icon: "headphones", label: "Expert Support" },
 ];
 
 export function TrustBar({ items = defaultItems }: TrustBarProps) {
@@ -28,7 +40,7 @@ export function TrustBar({ items = defaultItems }: TrustBarProps) {
         <FadeIn>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
             {items.map((item, i) => {
-              const Icon = item.icon || Shield;
+              const Icon = iconMap[item.icon?.toLowerCase() ?? ""] || Shield;
               return (
                 <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Icon className="w-4 h-4 text-primary" />

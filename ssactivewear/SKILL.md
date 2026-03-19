@@ -2,6 +2,7 @@
 name: ssactivewear
 description: "S&S Activewear wholesale apparel API — search products, check inventory, place orders, track shipments, manage returns. Use when asked to look up blank apparel, check stock, order wholesale clothing, or track a shipment from S&S Activewear."
 metadata: {"openclaw": {"emoji": "👕", "requires": {"env": ["SS_ACCOUNT", "SS_API_KEY"], "anyBins": ["curl"]}}}
+disable-model-invocation: true
 ---
 
 # S&S Activewear Skill

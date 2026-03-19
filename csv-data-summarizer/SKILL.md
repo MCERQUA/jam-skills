@@ -2,6 +2,7 @@
 name: csv-data-summarizer
 description: Analyzes CSV files, generates summary stats, and plots quick visualizations using Python and pandas.
 metadata: {"openclaw": {"requires": {"anyBins": ["python3", "python"]}}}
+disable-model-invocation: true
 ---
 
 # CSV Data Summarizer
