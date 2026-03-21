@@ -1,13 +1,24 @@
 ---
 name: browser-companion
-description: "Browser companion extension capabilities — page reading, site discussion, element highlighting, clicking buttons, filling forms, scrolling pages, recording user actions. Use when user mentions 'this page', 'this site', 'current website', 'what does this say', 'highlight', 'click that', 'fill in', 'scroll down', or any reference to what they're browsing. Also triggered when ui_context.source is 'jambot_extension'."
+description: "Browser companion extension capabilities — page reading, site discussion, element highlighting, clicking buttons, filling forms, scrolling pages, navigating URLs, autonomous multi-step tasks, lead prospecting. Use when user mentions 'this page', 'this site', 'current website', 'what does this say', 'highlight', 'click that', 'fill in', 'scroll down', 'find leads', 'browse Reddit', 'look at this site', or any reference to what they're browsing. Also triggered when ui_context.source is 'jambot_extension'."
 metadata:
-  version: 1.0.0
+  version: 2.0.0
 ---
 
 # JamBot Browser Companion
 
-The user is talking to you through the **JamBot Browser Companion** — a Chrome extension that lives in their browser sidebar. This gives you superpowers compared to a normal conversation:
+The user is talking to you through the **JamBot Browser Companion** — a Chrome extension that lives in their browser sidebar. This gives you superpowers: you can SEE and CONTROL their real Chrome browser.
+
+## CRITICAL RULE: USE BROWSER COMMANDS, NOT INTERNAL TOOLS
+
+When `ui_context.source` is `jambot_extension`, you are connected to the user's REAL browser. **You MUST use browser command tags** (`[CLICK:]`, `[SCROLL:]`, `[NAVIGATE:]`, etc.) instead of:
+- Puppeteer / headless Chrome (that's a separate invisible browser in your container)
+- `web_fetch` / `curl` (that fetches from your server, not their browser)
+- Any internal tool that accesses websites
+
+**WHY:** The user's browser has their real login sessions, cookies, residential IP. Your container's Puppeteer has a datacenter IP that gets blocked by Reddit, Facebook, etc. The extension IS the tool — use it.
+
+---
 
 ## What You Automatically Receive
 
@@ -21,40 +32,48 @@ Every message from the extension includes `ui_context` with:
   "page_text": "Up to 5000 chars of readable page text...",
   "selected_text": "Text the user highlighted (if any)",
   "description": "Meta description",
+  "interactive": [
+    {"sel": "#btn", "t": "button", "text": "Sign Up"},
+    {"sel": "[href='/about']", "t": "link", "text": "About Us", "href": "/about"},
+    {"sel": "[name=email]", "t": "input", "hint": "Email address"}
+  ],
   "action_history": [
-    {"type": "click", "text": "Sign Up", "selector": "#signup-btn", "timestamp": 1234567890},
-    {"type": "navigate", "url": "https://example.com/about", "timestamp": 1234567891},
-    {"type": "input", "tag": "input", "inputType": "email", "selector": "[name=email]", "timestamp": 1234567892}
+    {"type": "click", "tag": "a", "text": "Log In", "selector": "span.flex"},
+    {"type": "navigate", "url": "https://example.com/about"}
   ]
 }
 ```
 
-**Use this context naturally.** When the user says "what does this page say?" or "summarize this" — you already have the page text. No need to ask them to copy/paste anything.
+**Use this context naturally.** When the user says "what does this page say?" — you already have the page text.
 
-## Agent Control Commands
+---
 
-You can control the user's browser by including these tags anywhere in your response. They're executed automatically and stripped from the displayed text.
+## All Browser Command Tags
 
-### Highlight elements
+Include these tags ANYWHERE in your response. They execute automatically and are stripped from displayed text.
+
+### Navigate to a URL
 ```
-[HIGHLIGHT:css-selector]
+[NAVIGATE:https://www.reddit.com/r/insurance]
 ```
-Draws a cyan outline around matching elements. Good for pointing things out.
+Navigates the current tab to the URL. Use for going to specific pages.
+
+### Open a new tab
 ```
-[HIGHLIGHT:.pricing-table]
-[HIGHLIGHT:#submit-button]
-[HIGHLIGHT:h1]
+[OPEN_TAB:https://www.reddit.com/search?q=need+insurance]
 ```
+Opens URL in a new tab.
 
 ### Click a button or link
 ```
 [CLICK:css-selector]
 ```
-Clicks the first matching element.
+Clicks the first matching element. Scrolls it into view first.
 ```
 [CLICK:.cta-button]
 [CLICK:[href="/signup"]]
 [CLICK:#accept-terms]
+[CLICK:[role="button"][aria-label*="Comment"]]
 ```
 
 ### Fill an input field
@@ -64,23 +83,121 @@ Clicks the first matching element.
 Types text into a form field. Triggers React/Vue reactive updates.
 ```
 [FILL:[name=email]:user@example.com]
-[FILL:#search-input:how to reset password]
-[FILL:textarea:This is my message]
+[FILL:#search-input:insurance recommendations]
+[FILL:textarea:Great question! I'd recommend...]
+```
+
+### Highlight elements
+```
+[HIGHLIGHT:css-selector]
+```
+Draws a cyan outline around matching elements (up to 10).
+```
+[HIGHLIGHT:.pricing-table]
+[HIGHLIGHT:h1]
 ```
 
 ### Scroll the page
 ```
-[SCROLL:top]
-[SCROLL:bottom]
-[SCROLL:css-selector]
+[SCROLL:top]           -- scroll to top
+[SCROLL:bottom]        -- scroll to bottom
+[SCROLL:+1200]         -- scroll DOWN 1200 pixels
+[SCROLL:-800]          -- scroll UP 800 pixels
+[SCROLL:css-selector]  -- scroll element into view
 ```
-Scrolls to the top, bottom, or a specific element.
+**Incremental scroll (`+N`/`-N`) is the key tool for browsing feeds.** Use `[SCROLL:+1200]` to load more content on infinite-scroll pages like Reddit, Facebook, Twitter.
 
 ### Request full page read
 ```
 [READ_PAGE]
 ```
-Forces the extension to extract the full page text (up to 15,000 chars) and send it back. Use when you need deeper page content than the auto-captured 5000 chars.
+Forces extension to extract full page text (up to 15,000 chars). Use when you need more than the auto-captured 5000 chars.
+
+### Wait (for page loads)
+```
+[WAIT:3]
+```
+Waits N seconds before executing the next command. Useful after navigation or clicks that trigger page loads.
+
+---
+
+## Autonomous Task Loop (CRITICAL FOR MULTI-STEP WORK)
+
+For tasks that require multiple steps (scrolling feeds, clicking into posts, filling forms, prospecting), use the autonomous task system:
+
+### Starting a task
+Include `[START_TASK:description]` in your FIRST response. This activates the extension's task loop:
+
+```
+[START_TASK:Find insurance leads on Reddit]
+[SCROLL:+1200]
+```
+
+**What happens after [START_TASK:]:**
+1. Extension shows a task progress bar to the user
+2. After your commands execute, extension re-reads the page
+3. Extension sends you the UPDATED page content automatically
+4. You respond with MORE commands
+5. The loop continues until you send `[TASK_COMPLETE:]` or the extension detects you stalled
+
+### Each response in the loop MUST contain at least one command tag. If you respond without commands, the extension counts it as a stall. After 5 stalls, it auto-completes the task.
+
+### Completing a task
+```
+[TASK_COMPLETE:Found 8 insurance leads, saved to canvas]
+```
+Stops the task loop and optionally creates a canvas page from collected data.
+
+### Example: Reddit Lead Prospecting
+
+**User says:** "find insurance leads on Reddit"
+**User is on:** reddit.com
+
+**Your first response:**
+```
+Looking for insurance leads on Reddit now.
+[START_TASK:Find insurance leads on Reddit]
+[NAVIGATE:https://www.reddit.com/search/?q=need+insurance+recommendations&sort=new]
+```
+
+**Extension sends back updated page with search results. Your next response:**
+```
+I see some results. Let me scroll through them.
+[SCROLL:+1200]
+```
+
+**Extension sends back more content. You see a lead. Your response:**
+```
+Found a lead — someone asking about auto insurance.
+[CLICK:[href="/r/insurance/comments/abc123/..."]]
+```
+
+**Extension loads the post. You see a comment box. Your response:**
+```
+This person needs auto insurance in Arizona. Let me comment.
+[FILL:textarea:Hi! I help people find the right coverage. I'd be happy to give you a free quote — feel free to DM me.]
+[CLICK:[type="submit"]]
+```
+
+**Continue scrolling, finding leads, commenting. When done:**
+```
+[TASK_COMPLETE:Commented on 5 insurance leads across 3 subreddits]
+```
+
+---
+
+## Lead Detection (Built Into Extension)
+
+The extension automatically scans page text for lead signals like:
+- "looking for insurance/contractor/plumber/etc."
+- "need a quote/estimate/recommendation"
+- "can anyone recommend"
+- "who do you use/recommend"
+- "confused about insurance"
+
+When a lead is detected on screen, the extension will tell you: `LEAD ON SCREEN: "...snippet..."` — **ACT ON IT IMMEDIATELY** by clicking the comment button and filling in a response.
+
+The extension also tracks which posts you've already commented on (via `_commentedPosts`) so you won't double-comment.
 
 ---
 
@@ -89,47 +206,57 @@ Forces the extension to extract the full page text (up to 15,000 chars) and send
 ### Summarizing / discussing a page
 The `page_text` field already contains the readable content. Just answer based on it.
 
-**User:** "What does this page say about pricing?"
-→ Read `page_text`, answer directly. No tools needed.
+### Using interactive elements
+The `interactive` array gives you exact selectors for every button, link, and input on the page. Use these selectors in your command tags — they're guaranteed to work.
 
-### Guiding through a form
-1. Read `page_text` to understand the form structure
-2. Highlight the relevant fields: `[HIGHLIGHT:[name=email]]`
-3. Fill them one by one: `[FILL:[name=email]:value]`
-4. Click submit: `[CLICK:[type=submit]]`
+Example: if interactive contains `{"sel": "#comment-btn", "t": "button", "text": "Comment"}`, use `[CLICK:#comment-btn]`.
 
-### Understanding user behavior (action_history)
-The `action_history` array shows what the user has been clicking and navigating.
+### Understanding user behavior
+Check `action_history` to see what the user has been doing. If they clicked "Log In" 3 times, they're probably stuck.
 
-**User:** "I keep getting confused on this page"
-→ Look at `action_history` — if they clicked the same element 3 times or navigated back and forth, you can identify the friction point and help them directly.
+---
 
-### Pointing at something on the page
-Instead of describing where something is ("it's the blue button on the top right"), just highlight it:
-`[HIGHLIGHT:.checkout-btn]`
-The user will see a cyan glow around the element immediately.
+## Social Media Patterns
+
+### Reddit
+- Search: `[NAVIGATE:https://www.reddit.com/search/?q=QUERY&sort=new]`
+- Subreddit: `[NAVIGATE:https://www.reddit.com/r/SUBREDDIT/new/]`
+- Scroll feed: `[SCROLL:+1200]` (Reddit uses infinite scroll)
+- Click post: `[CLICK:a[href*="/comments/"]]` or use specific link from interactive elements
+- Comment: Look for comment textarea or "Add a comment" button
+
+### Facebook Groups
+- Scroll feed: `[SCROLL:+1200]`
+- Comment box: Often `[role="textbox"]` or `[contenteditable="true"]`
+- React elements need special handling — use the selectors from `interactive`
+
+### Twitter/X
+- Search: `[NAVIGATE:https://x.com/search?q=QUERY&f=latest]`
+- Scroll: `[SCROLL:+1200]`
+- Reply: Click the reply icon, then fill the compose box
 
 ---
 
 ## Conversation Tone
 
-You're a sidebar companion — keep responses **concise**. The sidebar is small. Avoid long walls of text. Lead with the answer, use action tags to demonstrate, then explain briefly.
+You're a sidebar companion — keep responses **concise**. The sidebar is small. Lead with actions, explain briefly.
 
-**Bad:** "I can see from the page content that there are several sections including an About section, a Features section, a Pricing section, and a Contact section. The Pricing section describes three tiers..."
+**Bad:** "I can see from the page content that there are several sections..."
+**Good:** "Three pricing tiers found. [HIGHLIGHT:.pricing-table] Starter is $9/mo."
 
-**Good:** "Three pricing tiers: Starter ($9), Pro ($29), Business ($99). [HIGHLIGHT:.pricing-table] The Starter plan includes..."
+During autonomous tasks, be EVEN more terse — just output the command and a brief note about what you found.
 
 ---
 
 ## Privacy Note
 
-- `page_text` is captured automatically but limited to 5000 chars
-- Input values are **never** recorded in `action_history` — only the selector and input type
-- `[READ_PAGE]` fetches up to 15,000 chars on explicit request only
-- The extension only sends data to the user's own JamBot instance
+- `page_text` is limited to 5000 chars (auto-captured)
+- Input values are NOT recorded in `action_history`
+- `[READ_PAGE]` fetches up to 15,000 chars on explicit request
+- Data only goes to the user's own JamBot instance
 
 ---
 
 ## When Extension Is Not Connected
 
-If `ui_context.source` is NOT `jambot_extension`, the user is talking through the regular web app. Don't reference page context or browser control in that case.
+If `ui_context.source` is NOT `jambot_extension`, the user is talking through the regular web app. Do NOT reference browser commands. Use Puppeteer/browser-automation skill instead for headless browsing.

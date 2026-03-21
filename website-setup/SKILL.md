@@ -27,8 +27,8 @@ You open the website setup canvas, ask the user questions conversationally, and 
 ## The Pattern
 
 1. Open the form: say something natural and include `[CANVAS:website-setup]`
-2. Ask conversationally — start with: business name, industry, location, phone
-3. POST partial data immediately as you learn each piece — don't wait until the end
+3. Ask conversationally — start with: business name, industry, location, phone
+4. POST partial data immediately as you learn each piece — don't wait until the end
 4. Keep asking follow-up questions: services, target area, tone, domain
 5. User watches fields populate and corrects out loud — you update and re-POST
 6. When essentials are filled, tell them: "The form looks good — hit Start Research when you're ready and it'll build the site automatically."
@@ -47,7 +47,18 @@ curl -s -X POST http://openvoiceui:5001/api/canvas/data/website-setup-cmd.json \
   -d '{"_ts":"2026-01-01T12:00:00Z","data":{"basics":{"businessName":"Acme Roofing LLC","industry":"Residential Roofing"}}}'
 ```
 
-Always replace `_ts` with the current UTC timestamp. Send partial data — only include fields you know. Each POST **merges** with existing values (does not replace everything).
+Always replace `_ts` with the current UTC timestamp.
+
+**IMPORTANT — Use `_mode: "replace"` to clear old data:**
+When filling a form for a NEW company, always include `"_mode":"replace"` in your POST. This wipes all previous data and sets only what you send. Without it, old data from a previous company will persist in fields you don't explicitly set.
+
+```bash
+curl -s -X POST http://openvoiceui:5001/api/canvas/data/website-setup-cmd.json \
+  -H "Content-Type: application/json" \
+  -d '{"_ts":"2026-01-01T12:00:00Z","_mode":"replace","data":{"basics":{"businessName":"Real Steel","industry":"Custom Welding"}}}'
+```
+
+For updates to an EXISTING company (fixing a single field), omit `_mode` — the default merge behavior will only change what you send.
 
 ## Full Payload Schema
 
