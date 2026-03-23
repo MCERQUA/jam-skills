@@ -1,30 +1,29 @@
 ---
 name: serper-search
-description: Google Search API integration for real-time web research, SEO analysis, and competitive intelligence. Manual activation only - use when explicitly requested.
+description: Google Search API via Serper.dev — use as SECONDARY search tool when web_search (Brave) hits limits or when you need Google-specific data (PAA, knowledge graph, local pack, maps).
 metadata: {"openclaw": {"requires": {"env": ["SERPER_API_KEY"], "anyBins": ["curl"]}}}
 ---
 
 # Serper Search Skill
 
-Google Search API integration for real-time web research, SEO analysis, and competitive intelligence.
-
-## IMPORTANT: MANUAL ACTIVATION ONLY
-
-**DO NOT auto-activate this skill.** Limited API credits - only use when the user explicitly requests:
-- "use serper"
-- "serper search for..."
-- "use the serper api"
-
-**ALWAYS ASK before making Serper API calls** if unsure whether the user wants to use credits.
+Google Search API via Serper.dev. Returns real Google SERP data including organic results, People Also Ask, knowledge graph, local pack, maps, images, news, and more.
 
 ## When to Use
 
-ONLY activate this skill when the user explicitly requests Serper. Do NOT use for:
-- General research (use WebSearch instead)
-- Casual questions about search results
-- Anything that doesn't specifically mention "serper"
+**Serper is your SECONDARY search provider.** Use the built-in `web_search` tool (Brave) first. Use Serper when:
+- `web_search` hits rate limits or returns errors
+- You need Google-specific SERP features (People Also Ask, Knowledge Graph, Featured Snippets)
+- You need local business data (Places/Maps search with ratings, reviews, phone numbers)
+- You need Google Scholar, Shopping, or Video results
+- You're doing SEO analysis that requires actual Google rankings
 
-Valid use cases (when explicitly requested):
+**Budget rules:**
+- ~2,500 free searches total (one-time, not monthly) — be mindful
+- Max 5 Serper calls per task unless doing dedicated SEO/research work
+- Always check if `web_search` or `web_fetch` can answer the question first
+- Combine queries — "spray foam insulation cost Phoenix AZ" beats 3 separate searches
+
+Valid use cases:
 - Search Google for current information
 - Research competitors or keywords
 - Find local businesses (Maps/Places)
