@@ -2,64 +2,87 @@
 name: stitch
 description: "Google Stitch AI-powered UI design generation. Use when the user mentions stitch, UI design generation, design-to-code, screen generation, or wants to create/edit UI mockups programmatically."
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Google Stitch — AI UI Design Generation
 
 Generate production-ready UI designs from text prompts. Outputs HTML with Tailwind CSS.
 
+## ⚠️ CRITICAL RULES — READ FIRST
+
+1. **Call stitch-mcp.sh DIRECTLY via `exec`.** NEVER spawn a z-code/maxcode sub-agent to use Stitch. The API calls are simple HTTP requests — a sub-agent adds unnecessary polling layers and will hit the 300s timeout. Just `exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh ...")`.
+
+2. **Use DESKTOP for website mockups.** Set `"deviceType": "DESKTOP"` when creating projects for website designs. MOBILE is for app mockups only.
+
+3. **Generation is ASYNC — verify before claiming success.** After `generate_screen_from_text`, the response may say "success" before the screen is fully ready. You MUST verify with `list_screens` — if the list is empty, wait 30 seconds and check again (up to 3 retries). NEVER tell the user "generated successfully" until `list_screens` returns actual screen data.
+
+4. **One screen at a time.** Generate one screen, verify it exists, THEN generate the next. Don't batch.
+
 ## How To Use
 
-Run the helper script with `exec`:
+Run the helper script with `exec` (ALWAYS exec, never sub-agents):
 
 ```bash
-bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh <tool_name> '<json_arguments>'
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh <tool_name> '<json_arguments>'")
 ```
 
-### Quick Examples
+### Quick Start — Website Mockup
+
+Follow this exact sequence for website design mockups:
+
+```bash
+# Step 1: Create project (DESKTOP for websites)
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh create_project '{\"title\": \"My Website\", \"deviceType\": \"DESKTOP\"}'")
+# → Save the project ID from the response
+
+# Step 2: (Optional) Create design system for consistency
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh create_design_system '{\"projectId\": \"PID\", \"colorMode\": \"DARK\", \"font\": \"INTER\", \"roundness\": \"ROUND_EIGHT\", \"customColor\": \"#3b82f6\"}'")
+
+# Step 3: Generate a screen with a DETAILED prompt
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_screen_from_text '{\"projectId\": \"PID\", \"prompt\": \"Homepage for a tech e-commerce store. Full-width hero with gradient background and bold headline. Navigation bar with logo left, links center, cart icon right. Featured products grid below hero with 4 cards showing product image, name, price, and Add to Cart button. Dark theme, modern typography.\", \"modelId\": \"GEMINI_3_PRO\"}'")
+
+# Step 4: WAIT then verify — generation takes 1-3 minutes
+# Wait 60 seconds, then check:
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh list_screens '{\"projectId\": \"PID\"}'")
+# If empty, wait 30s more and retry (up to 3 times)
+
+# Step 5: Get screen HTML + screenshot
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh get_screen '{\"name\": \"projects/PID/screens/SID\", \"projectId\": \"PID\", \"screenId\": \"SID\"}'")
+
+# Step 6: Download the HTML and save as canvas page
+exec("curl -L 'DOWNLOAD_URL' -o /app/runtime/canvas-pages/mockup-homepage.html")
+```
+
+### More Examples
 
 ```bash
 # List all projects
-bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh list_projects '{}'
-
-# Create a new project
-bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh create_project '{"title": "My App"}'
-
-# List screens in a project
-bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh list_screens '{"projectId": "PROJECT_ID"}'
-
-# Generate a screen from a text prompt
-bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_screen_from_text '{"projectId": "PROJECT_ID", "prompt": "A modern login page with dark theme and gradient background", "modelId": "GEMINI_3_PRO"}'
-
-# Get screen details (HTML + screenshot URLs)
-bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh get_screen '{"name": "projects/PID/screens/SID", "projectId": "PID", "screenId": "SID"}'
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh list_projects '{}'")
 
 # Edit an existing screen
-bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh edit_screens '{"projectId": "PID", "selectedScreenIds": ["SID"], "prompt": "Change the button color to blue"}'
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh edit_screens '{\"projectId\": \"PID\", \"selectedScreenIds\": [\"SID\"], \"prompt\": \"Change the button color to blue\"}'")
 
 # Generate design variants
-bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_variants '{"projectId": "PID", "selectedScreenIds": ["SID"], "prompt": "Explore different layouts", "variantOptions": {"variantCount": 3, "creativeRange": "EXPLORE"}}'
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_variants '{\"projectId\": \"PID\", \"selectedScreenIds\": [\"SID\"], \"prompt\": \"Explore different layouts\", \"variantOptions\": {\"variantCount\": 3, \"creativeRange\": \"EXPLORE\"}}'")
 ```
 
-## Available Tools
+## Available Tools (verified against live API)
 
 | Tool | Description |
 |------|-------------|
 | `list_projects` | List all projects. Optional: `{"filter": "view=owned"}` or `"view=shared"` |
 | `get_project` | Get project details. `{"name": "projects/{id}"}` |
 | `create_project` | Create project. `{"title": "Name"}` |
-| `delete_project` | Delete project (PERMANENT — confirm with user first). `{"name": "projects/{id}"}` |
 | `list_screens` | List screens. `{"projectId": "ID"}` |
 | `get_screen` | Get screen HTML/image. `{"name": "projects/P/screens/S", "projectId": "P", "screenId": "S"}` |
-| `generate_screen_from_text` | Generate from prompt. `{"projectId": "ID", "prompt": "...", "modelId": "GEMINI_3_PRO"}` |
-| `upload_screens_from_images` | Upload images as screens. `{"projectId": "ID", "images": [{"fileContentBase64": "...", "mimeType": "image/png"}]}` |
+| `generate_screen_from_text` | Generate from prompt. `{"projectId": "ID", "prompt": "...", "modelId": "GEMINI_3_PRO", "deviceType": "DESKTOP"}` |
 | `edit_screens` | Edit screens with prompt. `{"projectId": "ID", "selectedScreenIds": ["SID"], "prompt": "..."}` |
 | `generate_variants` | Create variants. `{"projectId": "ID", "selectedScreenIds": ["SID"], "prompt": "...", "variantOptions": {...}}` |
-| `create_design_system` | Create design system. See theme options below |
-| `update_design_system` | Update design system by name |
-| `list_design_systems` | List design systems. Optional `{"projectId": "ID"}` |
-| `apply_design_system` | Apply to screens. `{"projectId": "ID", "selectedScreenIds": ["SID"], "assetId": "AID"}` |
+
+**⚠️ These tools do NOT exist in the API (removed):** `delete_project`, `upload_screens_from_images`, `create_design_system`, `update_design_system`, `list_design_systems`, `apply_design_system`. The design system is created automatically when generating screens — pass brand colors/style info in the prompt instead.
+
+**⚠️ `deviceType` goes on `generate_screen_from_text`**, NOT on `create_project`. Use `"DESKTOP"` for website mockups, `"MOBILE"` for app mockups.
 
 ## Writing Effective Prompts
 
@@ -94,17 +117,25 @@ For consistency: "8-pt grid, border-radius 12, font Inter, sizes sm/md/lg, prima
 ## Generation Notes
 - **GEMINI_3_PRO** = higher quality, **GEMINI_3_FLASH** = faster
 - Generation takes 1-3 minutes — do NOT retry on connection errors
-- If you get a timeout, wait and check with `get_screen`
+- If you get a timeout, wait and check with `list_screens` then `get_screen`
 - If response has `output_components` with suggestions, present them to the user
 - Create a design system FIRST for consistent multi-screen projects
+- **After calling `generate_screen_from_text`:** Wait 60 seconds, then call `list_screens`. If empty, wait 30s and retry up to 3 times. The API may return before the screen is indexed.
+- **NEVER say "generated successfully" until you have confirmed the screen exists in `list_screens`**
+- If after 3 retries the screen list is still empty, tell the user the generation may have failed and offer to retry with a different prompt
 
-## Design System Theme Options
-- **colorMode:** LIGHT, DARK
-- **font:** INTER, ROBOTO, DM_SANS, GEIST, SORA, MANROPE, SPACE_GROTESK, MONTSERRAT, and 21 more
-- **roundness:** ROUND_FOUR, ROUND_EIGHT, ROUND_TWELVE, ROUND_FULL
+## Device Types & Variant Options
+- **deviceType** (on `generate_screen_from_text`)**: MOBILE, DESKTOP, TABLET, AGNOSTIC
+- **modelId:** GEMINI_3_PRO (quality) or GEMINI_3_FLASH (speed)
 - **creativeRange (variants):** REFINE (subtle), EXPLORE (balanced), REIMAGINE (radical)
 - **aspects (variants):** LAYOUT, COLOR_SCHEME, IMAGES, TEXT_FONT, TEXT_CONTENT
-- **deviceType:** MOBILE, DESKTOP, TABLET, AGNOSTIC
+
+### Design System via Prompts
+There is no `create_design_system` API tool. Instead, specify design tokens directly in your generation prompts:
+- Colors: "primary green #22c55e, secondary amber #f59e0b, background #0a0a0a"
+- Typography: "Use Space Grotesk for headlines, Inter for body"
+- Corners: "border-radius 8px rounded corners"
+- Spacing: "8-pt grid spacing system"
 
 ## Downloading Screen Assets
 The `get_screen` response includes download URLs:
