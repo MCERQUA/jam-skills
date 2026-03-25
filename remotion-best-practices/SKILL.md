@@ -7,7 +7,7 @@ metadata:
 
 ## What is Remotion
 
-Remotion is a framework for creating videos programmatically using React. You write React components that are rendered frame-by-frame into MP4/WebM/GIF videos. Remotion, React, and all rendering dependencies are installed globally — use `remotion` commands directly (NOT `pnpm exec` or `npx`). Create video projects in your workspace directory.
+Remotion is a framework for creating videos programmatically using React. You write React components that are rendered frame-by-frame into MP4/WebM/GIF videos. Remotion is pre-installed at `~/remotion-project/`. Always use `npx remotion` from within that project directory (NOT global `remotion`). Use `pnpm` (not `npm`) for any package management.
 
 ## IMPORTANT: Loading Detailed Rules
 
@@ -74,15 +74,15 @@ export const MyVideo = () => {
 
 ### Render a Video
 ```bash
-remotion render src/index.ts MyVideo output.mp4
+cd ~/remotion-project && npx remotion render src/index.ts MyVideo output.mp4
 ```
 
 ### Render a Still Image
 ```bash
-remotion still src/index.ts MyThumbnail output.png
+cd ~/remotion-project && npx remotion still src/index.ts MyThumbnail output.png
 ```
 
-**IMPORTANT:** Remotion is installed globally. Always use `remotion` directly — NEVER use `pnpm exec remotion`, `npx remotion`, or `npm exec`. Those will fail.
+**IMPORTANT:** Always use `npx remotion` from within `~/remotion-project/` — NEVER use global `remotion` directly. The global install has React 19 which conflicts with the project's React 18. Using `npx` runs the project-local CLI with the correct React version.
 
 ## ⚠️ CRITICAL: Working Directory & Rendering
 
@@ -90,19 +90,19 @@ remotion still src/index.ts MyThumbnail output.png
 
 **You MUST set `workdir` to the project directory** when calling `remotion render` or `remotion still`. Remotion resolves the entry point (`src/index.ts`) relative to the current directory. If you run from the workspace root, Remotion will fail with "No entry point specified".
 
-**WRONG** (fails — src/index.ts not found from workspace root):
+**WRONG** (fails — src/index.ts not found from workspace root, and global `remotion` has React 19 conflict):
 ```json
 {"tool": "exec", "command": "remotion render src/index.ts MyVideo output.mp4"}
 ```
 
-**CORRECT** (workdir set to project folder):
+**CORRECT** (workdir set to ~/remotion-project, using npx):
 ```json
-{"tool": "exec", "command": "remotion render src/index.ts MyVideo output.mp4", "workdir": "/home/node/.openclaw/workspace/my-video-project"}
+{"tool": "exec", "command": "npx remotion render src/index.ts MyVideo output.mp4", "workdir": "/home/node/.openclaw/workspace/remotion-project"}
 ```
 
 You can also `cd` into the project directory first:
 ```json
-{"tool": "exec", "command": "cd /home/node/.openclaw/workspace/my-video-project && remotion render src/index.ts MyVideo output.mp4"}
+{"tool": "exec", "command": "cd ~/remotion-project && npx remotion render src/index.ts MyVideo output.mp4"}
 ```
 
 ### Rendering is a Long-Running Process
@@ -113,7 +113,7 @@ You can also `cd` into the project directory first:
 
 **Step 1 — Start render with `background: true` and correct `workdir`:**
 ```json
-{"tool": "exec", "command": "remotion render src/index.ts MyVideo output.mp4", "workdir": "/home/node/.openclaw/workspace/my-video-project", "background": true}
+{"tool": "exec", "command": "npx remotion render src/index.ts MyVideo output.mp4", "workdir": "/home/node/.openclaw/workspace/remotion-project", "background": true}
 ```
 This returns immediately with a `sessionId`. Save it.
 
@@ -150,7 +150,7 @@ Raw Remotion output is NOT web-ready. It lacks faststart metadata, has oversized
 
 After the render completes, run this ffmpeg command:
 ```json
-{"tool": "exec", "command": "ffmpeg -y -i out.mp4 -vf scale=1280:720 -c:v libx264 -crf 18 -preset medium -pix_fmt yuv420p -profile:v main -level 4.0 -g 60 -keyint_min 30 -tune animation -c:a aac -b:a 128k -movflags +faststart -f mp4 out-web.mp4", "workdir": "/home/node/.openclaw/workspace/my-video-project"}
+{"tool": "exec", "command": "ffmpeg -y -i out.mp4 -vf scale=1280:720 -c:v libx264 -crf 18 -preset medium -pix_fmt yuv420p -profile:v main -level 4.0 -g 60 -keyint_min 30 -tune animation -c:a aac -b:a 128k -movflags +faststart -f mp4 out-web.mp4", "workdir": "/home/node/.openclaw/workspace/remotion-project"}
 ```
 
 What this does:
@@ -175,7 +175,7 @@ To display a rendered video on a canvas page:
 
 2. **Copy the optimized file to the canvas-pages directory** (inside a `video/` subdirectory):
    ```json
-   {"tool": "exec", "command": "mkdir -p /app/runtime/canvas-pages/video && cp out-web.mp4 /app/runtime/canvas-pages/video/my-video.mp4", "workdir": "/home/node/.openclaw/workspace/my-video-project"}
+   {"tool": "exec", "command": "mkdir -p /app/runtime/canvas-pages/video && cp out-web.mp4 /app/runtime/canvas-pages/video/my-video.mp4", "workdir": "/home/node/.openclaw/workspace/remotion-project"}
    ```
 
 3. **Use the `/pages/` URL prefix** in the HTML video tag. All canvas content is served from `/pages/`:

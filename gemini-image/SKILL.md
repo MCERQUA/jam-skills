@@ -82,6 +82,14 @@ curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flas
 
 Then create an HTML canvas page that references the image, or tell the user the image is ready.
 
+## Path Mapping (CRITICAL)
+
+Files saved to `/app/runtime/canvas-pages/foo.png` are served at `/pages/foo.png` in the browser.
+
+- In HTML: `<img src="/pages/foo.png">` — NEVER use `/app/runtime/` or `/canvas-pages/` in src attributes
+- In CSS: `background-image: url('/pages/foo.png')`
+- The filename in your curl command MUST match the filename in your HTML
+
 ## Tips
 
 - **responseModalities MUST include "IMAGE"** — without it, Gemini returns text only

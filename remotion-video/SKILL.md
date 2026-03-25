@@ -507,7 +507,108 @@ Create a canvas page with `<video controls autoplay>`, open with `[CANVAS:video-
 3. **Low bitrate** — always use `--crf 18`, never default CRF
 4. **Choppy in browser** — always run `ffmpeg -movflags +faststart`
 5. **Blank frames** — use Remotion `<Img>` not HTML `<img>` (Img waits for load)
-6. **Purple/emoji defaults** — BANNED. Use professional blue/cyan/white palette
-7. **System fonts** — BANNED. Always `import { loadFont } from "@remotion/google-fonts/FontName"`
-8. **Motion blur outside** — `useCurrentFrame()` must be INSIDE `<Trail>` or `<CameraMotionBlur>` children
-9. **Framer Motion** — DO NOT use `motion.dev` or `framer-motion`. Incompatible with Remotion's frame system. Use `spring()` and `interpolate()` instead.
+6. **HTML `<video>` tag** — use Remotion `<Video>` from `remotion` (`import { Video } from "remotion"`). HTML video tags do NOT render in Remotion.
+7. **Purple/emoji defaults** — BANNED. Use professional blue/cyan/white palette
+8. **System fonts** — BANNED. Always `import { loadFont } from "@remotion/google-fonts/FontName"`
+9. **Motion blur outside** — `useCurrentFrame()` must be INSIDE `<Trail>` or `<CameraMotionBlur>` children
+10. **Framer Motion** — DO NOT use `motion.dev` or `framer-motion`. Incompatible with Remotion's frame system. Use `spring()` and `interpolate()` instead.
+11. **Duplicate `<Audio>`** — place `<Audio>` in ONE scene only (usually the root composition), NOT in every scene. Multiple `<Audio>` tags = overlapping playback.
+
+---
+
+## Downloading Media from Slack
+
+When the user shares files (images, videos, logos) in Slack, download them using the bot token:
+
+```bash
+# List recent files shared in a channel:
+curl -s -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  "https://slack.com/api/files.list?channel=$SLACK_CHANNEL_COMPANY&count=20" \
+  | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for f in data.get('files', []):
+    print(f'{f[\"name\"]}|{f[\"mimetype\"]}|{f[\"url_private_download\"]}')
+"
+
+# Download a file:
+curl -s -o ~/remotion-project/public/FILENAME \
+  -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  "FILE_URL_FROM_ABOVE"
+```
+
+**Rules:**
+- Download directly to `~/remotion-project/public/` so Remotion can access via `staticFile()`
+- Convert HEIC to JPG: `convert input.heic -quality 90 -auto-orient output.jpg`
+- Check video specs: `ffprobe -v quiet -print_format json -show_streams INPUT.mp4`
+- Match video dimensions in your Remotion composition (common: 1920x1080 or 720x720)
+
+---
+
+## End-to-End Video Workflow (Slack → Render → Deliver → Post)
+
+When a user asks you to make a video from Slack content, follow these steps IN ORDER:
+
+### Step 1: Gather assets
+- Download all images/videos/logos from Slack (see above)
+- Save to `~/remotion-project/public/` with descriptive names
+- Check dimensions: `identify image.png` or `ffprobe video.mp4`
+
+### Step 2: Generate voiceover
+```bash
+mkdir -p ~/remotion-project/public/voiceover
+curl -s https://api.groq.com/openai/v1/audio/speech \
+  -H "Authorization: Bearer $GROQ_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"canopylabs/orpheus-v1-english","voice":"troy","input":"[professionally] Your narration text","response_format":"wav"}' \
+  -o /tmp/narration.wav
+ffmpeg -y -i /tmp/narration.wav -codec:a libmp3lame -q:a 2 ~/remotion-project/public/voiceover/narration.mp3
+# Measure duration for frame calculations:
+ffprobe -v error -show_entries format=duration -of csv=p=0 ~/remotion-project/public/voiceover/narration.mp3
+```
+
+### Step 3: Write composition
+- Create `~/remotion-project/src/MyVideo.tsx` with your scenes
+- Update `~/remotion-project/src/Root.tsx` to register it (keep HelloWorld as fallback)
+- Use `<Img>` for images, `<Video>` for video, `<Audio>` for audio (all from `remotion`)
+- Use TransitionSeries for scene transitions
+- Calculate total frames: sum of scene frames minus transition frames
+
+### Step 4: Render (BACKGROUND — takes 2-5 minutes)
+```bash
+cd ~/remotion-project && npx remotion render src/index.ts MyVideo out/video.mp4 --codec h264 --crf 18
+```
+Run with `background: true`. Tell the user "Video is rendering, I'll let you know when it's done." Wait for the `notifyOnExit` notification.
+
+### Step 5: Post-process + deliver
+```bash
+cd ~/remotion-project
+# Web optimize:
+ffmpeg -y -i out/video.mp4 -c:v libx264 -crf 18 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 128k out/video-web.mp4
+# Copy to canvas:
+mkdir -p /app/runtime/canvas-pages/video
+cp out/video-web.mp4 /app/runtime/canvas-pages/video/my-video.mp4
+```
+
+### Step 6: Show on canvas page
+Write an HTML page to `/app/runtime/canvas-pages/video-player.html`:
+```html
+<video controls autoplay playsinline preload="auto" style="width:100%;max-height:80vh;">
+  <source src="/pages/video/my-video.mp4" type="video/mp4">
+</video>
+<a href="/pages/video/my-video.mp4" download style="...">Download Video</a>
+```
+Open with `[CANVAS:video-player]`. ALSO copy to uploads for a shareable URL:
+```bash
+curl -s -X POST http://openvoiceui:5001/api/upload -F "file=@/home/node/remotion-project/out/video-web.mp4"
+```
+The upload API returns a `/uploads/<uuid>.mp4` URL that works outside the canvas.
+
+### Step 7: Post to Slack (if requested)
+```bash
+curl -s -X POST https://slack.com/api/chat.postMessage \
+  -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"channel\": \"$SLACK_CHANNEL_COMPANY\", \"text\": \"Here's the video: https://DOMAIN/uploads/UUID.mp4\"}"
+```
+Use the domain from your `$DOMAIN` environment variable and the upload URL from Step 6.
