@@ -7,6 +7,18 @@ description: "Generate custom icons for canvas pages, tools, and categories. Use
 
 Generate custom icons for canvas pages, tools, categories, and anything the user needs. You have access to 1,700+ pre-built icons AND AI-powered custom icon generation via Gemini.
 
+## CRITICAL: Base URL
+
+**ALL API calls MUST use `http://openvoiceui:5001` as the base URL.**
+
+```
+# CORRECT:
+curl -s http://openvoiceui:5001/api/icons/library/search?q=heart
+
+# WRONG (will fail — openvoiceui is NOT on localhost inside openclaw):
+curl -s http://localhost:5001/api/icons/library/search?q=heart
+```
+
 ## When to Use
 
 - **Creating a new canvas page** → ALWAYS generate a custom icon for it
@@ -41,8 +53,8 @@ Generate custom icons for canvas pages, tools, categories, and anything the user
 
 ### 1. Search Pre-Built Icons (Lucide Library — 1,700+ icons)
 
-```
-GET /api/icons/library/search?q=folder&limit=10
+```bash
+curl -s "http://openvoiceui:5001/api/icons/library/search?q=folder&limit=10"
 ```
 
 Response:
@@ -50,18 +62,14 @@ Response:
 {"query": "folder", "count": 8, "icons": ["folder", "folder-check", "folder-open", ...]}
 ```
 
-Use the icon: `/api/icons/library/folder.svg`
+Use the icon URL: `/api/icons/library/folder.svg`
 
 ### 2. Generate Custom Icon (Gemini AI)
 
-```
-POST /api/icons/generate
-Content-Type: application/json
-
-{
-  "prompt": "A golden trophy with sparkles for a leaderboard",
-  "name": "leaderboard-trophy"
-}
+```bash
+curl -s -X POST http://openvoiceui:5001/api/icons/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "A golden trophy with sparkles for a leaderboard", "name": "leaderboard-trophy"}'
 ```
 
 Response:
@@ -81,16 +89,16 @@ Response:
 
 ### 3. List Generated Icons
 
-```
-GET /api/icons/generated
+```bash
+curl -s http://openvoiceui:5001/api/icons/generated
 ```
 
 Returns all previously generated icons with metadata.
 
 ### 4. Browse Full Icon Library
 
-```
-GET /api/icons/library
+```bash
+curl -s http://openvoiceui:5001/api/icons/library
 ```
 
 Returns all 1,700+ icon names.
@@ -101,20 +109,22 @@ When creating a new canvas page, ALWAYS:
 
 1. **Think** about what makes this page unique — its purpose, its content, its vibe
 2. **Generate** a custom icon that captures that uniqueness:
-   ```
-   POST /api/icons/generate
-   {"prompt": "<descriptive, visual prompt>", "name": "<page-slug>-icon"}
+   ```bash
+   curl -s -X POST http://openvoiceui:5001/api/icons/generate \
+     -H "Content-Type: application/json" \
+     -d '{"prompt": "<descriptive, visual prompt>", "name": "<page-slug>-icon"}'
    ```
 3. **Attach** the icon to the page using PATCH:
-   ```
-   PATCH /api/canvas/manifest/page/<page-id>
-   Content-Type: application/json
-   {"icon": "<url from step 2>"}
+   ```bash
+   curl -s -X PATCH http://openvoiceui:5001/api/canvas/manifest/page/<page-id> \
+     -H "Content-Type: application/json" \
+     -d '{"icon": "<url from step 2>"}'
    ```
    Example:
-   ```
-   PATCH /api/canvas/manifest/page/insurance-forms-interactive
-   {"icon": "/api/icons/generated/insurance-forms-icon.png"}
+   ```bash
+   curl -s -X PATCH http://openvoiceui:5001/api/canvas/manifest/page/insurance-forms-interactive \
+     -H "Content-Type: application/json" \
+     -d '{"icon": "/api/icons/generated/insurance-forms-icon.png"}'
    ```
    The field is `"icon"` — NOT `"iconUrl"`, NOT `"icon_url"`. The URL must be the exact value from the generate response.
 
