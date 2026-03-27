@@ -227,8 +227,10 @@ The canvas page polls `.build-status.json` every 5 seconds to show progress. You
     "scaffold":      { "status": "not_started", "message": null },
     "design-system": { "status": "not_started", "message": null },
     "build-pages":   { "status": "not_started", "message": null },
+    "assets":        { "status": "not_started", "message": null },
     "quality-gate":  { "status": "not_started", "message": null },
-    "deploy":        { "status": "not_started", "message": null }
+    "deploy":        { "status": "not_started", "message": null },
+    "verification":  { "status": "not_started", "message": null }
   },
   "devUrl": "https://dev-test-dev.jam-bot.com"
 }
@@ -439,9 +441,12 @@ READ THESE FILES FIRST — IN THIS ORDER:
 3. ~/Websites/<PROJECT>/ai/research/keywords.md (SEO keywords to target in headings)
 4. ~/Websites/<PROJECT>/ai/research/competitors.md (what to differentiate from)
 5. /mnt/shared-skills/website-builder/instructions/animations.md (animation patterns)
+6. /mnt/shared-skills/website-builder/instructions/images.md (image strategy — required images per page, sizing, alt text rules)
 
 SECTION TEMPLATES are already at: ~/Websites/<PROJECT>/src/components/sections/
 ANIMATION WRAPPERS are at: ~/Websites/<PROJECT>/src/components/animations/
+
+IMAGE PREP: Phase 5 (Assets) will generate images AFTER you finish. When building Hero components, include the heroImage prop pointing to '/images/hero.png' — the file will be created in Phase 5. For service pages, use '/images/<service-slug>.png'. These paths will be populated with real AI-generated images.
 
 THE BUSINESS_TYPE in CLAUDE.md controls EVERYTHING about visual design.
 Read it. Follow it. Do not deviate.
@@ -656,9 +661,15 @@ SAAS additional pages: `/pricing` (if applicable), `/docs` or `/getting-started`
      images: [{ url: '/og/default.png', width: 1200, height: 630 }],
    }
    ```
-   Then create a simple OG image at `public/og/default.png` — copy the banner/logo image from intake heroImage if available, or create a Next.js `opengraph-image.tsx` using ImageResponse with the business name and tagline on a branded background.
+   (Phase 5 Assets will generate the actual OG image file — just set the metadata reference here.)
 
-4. Add favicon: copy a relevant logo/icon from intake assets to `public/favicon.ico` (convert if needed) and `public/apple-touch-icon.png`. If no logo is available, create a minimal `src/app/icon.tsx` using Next.js ImageResponse.
+4. Add favicon metadata (Phase 5 Assets will generate the actual favicon file):
+   ```typescript
+   icons: {
+     icon: '/favicon.ico',
+     apple: '/apple-touch-icon.png',
+   }
+   ```
 
 ## sitemap.xml and robots.txt
 After all pages are built, create:
@@ -719,13 +730,234 @@ End with: OUTPUT_SAVED: src/app/page.tsx",
 
 ---
 
-## Phase 5: QUALITY GATE (inline, ~2-3 minutes)
+## Phase 5: ASSETS (inline, ~2-3 minutes)
+
+**Update status:** `currentPhase: "assets"`, `phases.assets.status: "in_progress"`, `phases.assets.message: "Generating brand images..."`
+
+**Read:** `/mnt/shared-skills/website-builder/instructions/images.md`
+
+This phase generates real images for the website using the Gemini image API, replacing placeholder graphics with brand-specific visuals. Every image is saved to `public/images/` or `public/og/` in the project — never held in memory or skipped.
+
+### Prerequisites
+- `GEMINI_API_KEY` must be set in the environment (injected via `.platform-keys.env`)
+- Phase 4 (Build Pages) must be complete — we need to know which pages exist
+
+### Step 1: Read intake for brand context
+```bash
+cat ~/Websites/<project>/.intake.json
+cat ~/Websites/<project>/.claude/CLAUDE.md
+```
+Extract: business name, industry, niche, brand colors (primary, secondary, accent), tone, business type, and description. These drive every prompt.
+
+### Step 2: Create image directories
+```bash
+mkdir -p ~/Websites/<project>/public/images
+mkdir -p ~/Websites/<project>/public/og
+```
+
+### Step 3: Generate Hero Image
+
+**For SERVICE_LOCAL** — a realistic industry photo:
+```bash
+curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=$GEMINI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [{"parts": [{"text": "Professional photograph of <INDUSTRY> work in progress, <DESCRIPTION>, clean modern composition, natural lighting, warm tones with <PRIMARY_COLOR> accent elements, high quality, photorealistic, 16:9 aspect ratio, no text or watermarks"}]}],
+    "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]}
+  }' | python3 -c "
+import sys, json, base64
+d = json.load(sys.stdin)
+for p in d['candidates'][0]['content']['parts']:
+    if 'inlineData' in p:
+        with open('$HOME/Websites/<project>/public/images/hero.png', 'wb') as f:
+            f.write(base64.b64decode(p['inlineData']['data']))
+        print('Hero image saved')
+    elif 'text' in p:
+        print(p['text'])
+"
+```
+
+**For SAAS_PRODUCT** — abstract tech visualization:
+```
+Professional abstract technology visualization, dark background with <PRIMARY_COLOR> and <ACCENT_COLOR> glowing elements, modern SaaS product aesthetic, clean geometric shapes, subtle grid pattern, high quality, 16:9 aspect ratio, no text or watermarks
+```
+
+**For PROFESSIONAL_SERVICES** — clean corporate:
+```
+Professional corporate photography, modern office environment, <INDUSTRY> consulting aesthetic, clean composition, neutral tones with <PRIMARY_COLOR> accents, high quality, photorealistic, 16:9 aspect ratio, no text or watermarks
+```
+
+**Update status message:** `phases.assets.message: "Hero image generated, creating OG image..."`
+
+### Step 4: Generate OG Image (Social Sharing Card)
+
+Generate a 1200x630 social card with the business name:
+```bash
+curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=$GEMINI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [{"parts": [{"text": "Social media sharing card, 1200x630 pixels, dark <PRIMARY_COLOR> gradient background, the text \"<BUSINESS_NAME>\" in large bold white font centered, \"<TAGLINE_OR_DESCRIPTION>\" in smaller text below, clean modern professional design, no stock photos, graphic design only"}]}],
+    "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]}
+  }' | python3 -c "
+import sys, json, base64
+d = json.load(sys.stdin)
+for p in d['candidates'][0]['content']['parts']:
+    if 'inlineData' in p:
+        with open('$HOME/Websites/<project>/public/og/default.png', 'wb') as f:
+            f.write(base64.b64decode(p['inlineData']['data']))
+        print('OG image saved')
+"
+```
+
+### Step 5: Generate Favicon / App Icon
+
+Generate a simple monogram or icon:
+```bash
+curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=$GEMINI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [{"parts": [{"text": "Simple minimal app icon, the letter \"<FIRST_LETTER>\" on a <PRIMARY_COLOR> background, bold modern sans-serif font, square format, flat design, suitable for favicon, no gradients, no 3D effects, clean edges"}]}],
+    "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]}
+  }' | python3 -c "
+import sys, json, base64
+d = json.load(sys.stdin)
+for p in d['candidates'][0]['content']['parts']:
+    if 'inlineData' in p:
+        with open('$HOME/Websites/<project>/public/images/icon.png', 'wb') as f:
+            f.write(base64.b64decode(p['inlineData']['data']))
+        print('Icon saved')
+"
+```
+
+Then convert to favicon formats:
+```bash
+cd ~/Websites/<project>/public
+# Create favicon.ico (32x32) and apple-touch-icon (180x180) from the generated icon
+python3 -c "
+from PIL import Image
+import io
+img = Image.open('images/icon.png')
+# Favicon
+ico = img.resize((32, 32), Image.LANCZOS)
+ico.save('favicon.ico', format='ICO', sizes=[(32, 32)])
+# Apple touch icon
+apple = img.resize((180, 180), Image.LANCZOS)
+apple.save('apple-touch-icon.png', format='PNG')
+print('Favicon and apple-touch-icon created')
+" 2>/dev/null || echo "PIL not available — keeping icon.png as fallback, Next.js icon.tsx handles favicon"
+```
+
+If PIL is not available, create a Next.js `src/app/icon.tsx` that uses ImageResponse to render the monogram programmatically (see `images.md` Favicon Generation section).
+
+**Update status message:** `phases.assets.message: "Favicon created, generating service images..."`
+
+### Step 6: Generate Service/Section Images (SERVICE_LOCAL and PROFESSIONAL_SERVICES only)
+
+For each major service listed in the intake, generate one image:
+```bash
+# Repeat for each service — max 4 images to stay within rate limits
+curl -s "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=$GEMINI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [{"parts": [{"text": "Professional photograph of <SERVICE_NAME> work, <INDUSTRY> business, clean modern composition, natural lighting, warm professional tones, high quality, photorealistic, 4:3 aspect ratio, no text or watermarks"}]}],
+    "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]}
+  }' | python3 -c "
+import sys, json, base64
+d = json.load(sys.stdin)
+for p in d['candidates'][0]['content']['parts']:
+    if 'inlineData' in p:
+        with open('$HOME/Websites/<project>/public/images/<service-slug>.png', 'wb') as f:
+            f.write(base64.b64decode(p['inlineData']['data']))
+        print('<SERVICE_NAME> image saved')
+"
+```
+
+**Rate limit awareness:** Gemini free tier allows ~15 requests/minute. If generating 4+ service images, add a 5-second sleep between calls:
+```bash
+sleep 5
+```
+
+If any Gemini call returns 429 (rate limited), wait 60 seconds and retry once. If it fails again, skip that image and note it in the status message.
+
+### Step 7: Wire images into components
+
+After all images are generated, update the page components to use them:
+
+**Hero component** — update the hero on the home page:
+```tsx
+// In src/app/page.tsx, update the Hero component props:
+heroImage="/images/hero.png"
+```
+
+**OG metadata** — should already point to `/og/default.png` from Phase 4. Verify:
+```bash
+grep 'og/default.png' ~/Websites/<project>/src/app/layout.tsx || echo "⚠️ OG image not referenced in layout.tsx — add it"
+```
+
+**Service pages** — for each service page that has a generated image:
+```tsx
+// Add to the service page's hero or header section:
+<Image src="/images/<service-slug>.png" alt="<Service Name>" width={800} height={600} className="rounded-lg" />
+```
+
+**Favicon** — verify layout.tsx references it:
+```bash
+grep 'favicon' ~/Websites/<project>/src/app/layout.tsx || echo "⚠️ Favicon not referenced — add icons metadata"
+```
+
+### Step 8: Verify and commit
+
+```bash
+cd ~/Websites/<project>
+echo "=== Generated images ==="
+ls -lh public/images/ public/og/ 2>/dev/null
+echo "=== Image references in code ==="
+grep -rn 'images/hero\|images/icon\|og/default\|favicon' src/ --include='*.tsx' --include='*.ts' | head -20
+```
+
+Verify at least these exist:
+- `public/images/hero.png` — hero background/photo
+- `public/og/default.png` — social sharing card
+- `public/favicon.ico` OR `src/app/icon.tsx` — favicon
+
+```bash
+cd ~/Websites/<project> && git add -A && git commit -m "feat: generate brand images — hero, OG card, favicon, service photos"
+```
+
+**Update status:** `phases.assets.status: "complete"`, `phases.assets.message: "X images generated and wired into pages"`
+
+### Error Handling
+
+- **Gemini 429 (rate limit):** Wait 60s, retry once. If still 429, skip that image and continue. Note skipped images in the status message.
+- **Gemini 400 (bad prompt):** Simplify the prompt — remove specific color references and retry with a more generic description.
+- **No GEMINI_API_KEY:** Skip image generation entirely. Create a Next.js `opengraph-image.tsx` and `icon.tsx` using ImageResponse as fallback (these don't need an API key). Update status message: "Image generation skipped — no API key. Using programmatic OG image and favicon."
+- **PIL not available for favicon conversion:** Create `src/app/icon.tsx` with Next.js ImageResponse instead. This is equally valid.
+
+### Images NOT to generate
+
+- **Testimonial avatars** — never generate fake person photos. Use initials or Lucide icons.
+- **Client logos** — the client provides their own logo. If `hasLogo` is "no" in intake, generate a text-based logo using the monogram from Step 5.
+- **Stock photography of people** — AI-generated people look uncanny. Use abstract/environmental photos instead.
+
+---
+
+## Phase 6: QUALITY GATE (inline, ~2-3 minutes)
 
 **Update status:** `currentPhase: "quality-gate"`, `phases.quality-gate.status: "in_progress"`, `phases.quality-gate.message: "Running quality checks..."`
 
 **Read:** `/mnt/shared-skills/website-builder/instructions/quality-checklist.md`
 
 **Read the BUSINESS_TYPE** from `.claude/CLAUDE.md` before running type-specific checks.
+
+### 0. Image asset check (run FIRST):
+```bash
+echo "=== Image assets ===" && \
+[ -f ~/Websites/<project>/public/images/hero.png ] && echo "✓ Hero image" || echo "✗ Hero image MISSING — run Phase 5 asset generation" && \
+[ -f ~/Websites/<project>/public/og/default.png ] && echo "✓ OG image" || echo "✗ OG image MISSING" && \
+([ -f ~/Websites/<project>/public/favicon.ico ] || [ -f ~/Websites/<project>/src/app/icon.tsx ]) && echo "✓ Favicon" || echo "✗ Favicon MISSING" && \
+grep -rn 'heroImage\|images/hero' ~/Websites/<project>/src/app/page.tsx > /dev/null 2>&1 && echo "✓ Hero image wired into page" || echo "✗ Hero image NOT referenced in home page"
+```
+If hero image exists but is not wired into the Hero component, add `heroImage="/images/hero.png"` to the Hero props in `src/app/page.tsx`.
 
 ### 1. Placeholder / Template sweep:
 ```bash
@@ -838,7 +1070,7 @@ cd ~/Websites/<project> && git add -A && git commit -m "fix: quality gate cleanu
 
 ---
 
-## Phase 6: DEPLOY (exec, ~30 seconds)
+## Phase 7: DEPLOY (exec, ~30 seconds)
 
 **Update status:** `currentPhase: "deploy"`, `phases.deploy.status: "in_progress"`, `phases.deploy.message: "Deploying to dev server..."`
 
@@ -890,8 +1122,112 @@ Read the current status file, then write:
 - [ ] Verify all stats and numbers match reality
 - [ ] Set up contact email and test the contact form
 - [ ] Review Privacy Policy and Terms of Service for accuracy
-- [ ] Add real photos (replace any placeholder images in the hero graphic panel and team section)
+- [ ] Replace AI-generated images with real business photos when available (hero, team, services)
 - [ ] Verify phone number and business hours in header, hero, CTA, and footer"
+
+---
+
+## Phase 8: VERIFICATION AGENT (sub-agent, ~5-10 minutes)
+
+**This is the gatekeeper. Nothing is "done" until this agent confirms it.**
+
+**Update status:** `currentPhase: "verification"`, add `"verification": { "status": "in_progress", "message": "Verification agent checking every page..." }` to `phases`.
+
+**Spawn a sub-agent** with fresh context and the following instructions:
+
+```
+You are the VERIFICATION AGENT for website project: <project-name>.
+Your job is to verify that EVERY aspect of this website is complete, working, and high quality.
+You are the last gate — if you pass this, it ships. If anything is broken, YOU fix it before reporting done.
+
+The project is at: ~/Websites/<project-name>/
+The intake is at: ~/Websites/<project-name>/.intake.json
+
+Read the intake file first for business details.
+
+## VERIFICATION CHECKLIST — Do ALL of these:
+
+### 1. COMPILATION CHECK
+Run: pnpm tsc --noEmit 2>&1
+If there are ANY TypeScript errors, fix them ALL. Do not proceed until this is clean.
+
+### 2. EVERY PAGE LOADS
+Check every page.tsx file in src/app/. For EACH page:
+- Read the file
+- Verify it has real content (not template defaults, not "REPLACE:", not "Lorem ipsum")
+- Verify it has a metadata export with a real title and description
+- Verify it imports and uses Navbar and Footer
+- Verify all Lucide icon imports are valid (no typos, no non-existent icons)
+- If it's a "use client" page, verify it doesn't pass React components as props from server context
+
+### 3. POSTCSS / TAILWIND CONFIG
+- postcss.config.mjs must use 'tailwindcss' and 'autoprefixer' (NOT '@tailwindcss/postcss' which is v4-only)
+- tailwind.config.ts must reference the correct content paths
+- globals.css must have @tailwind base/components/utilities directives
+
+### 4. IMAGES EXIST AND ARE WIRED IN
+Check public/images/ and public/og/:
+- Hero image exists (hero.webp or hero.png) — if missing, generate it using Gemini API
+- OG image exists at public/og/default.png — if missing, generate it
+- Favicon exists — if missing, generate icon.png
+- Hero component in page.tsx has heroImage="/images/hero.webp" prop — if missing, add it
+- layout.tsx openGraph.images points to existing file
+
+### 5. NAVIGATION WORKS
+- Read the Navbar component — verify desktop nav items render (hidden md:flex pattern)
+- Verify every href in navItems has a corresponding page in src/app/
+- Verify the mobile menu works (hamburger toggle pattern)
+- Check for any broken internal links across ALL pages
+
+### 6. FAQ QUALITY
+- Home page FAQ section must have at least 15 FAQ items
+- Dedicated /faq page must have at least 30 FAQ items
+- All FAQ content must be specific to this business (not generic)
+- FAQ answers must be detailed (minimum 2-3 sentences each)
+
+### 7. SEO COMPLETE
+- layout.tsx has metadataBase pointing to the real domain (from intake)
+- Every page exports metadata with unique title and description
+- sitemap.ts exists and lists all pages
+- robots.txt exists
+- Structured data (JSON-LD) in layout.tsx for the business
+
+### 8. CONTACT & BUSINESS INFO
+- Contact page has a working form (API route at /api/contact/route.ts exists)
+- Phone number appears in: Navbar, Hero, CTA section, Footer
+- Email and address appear in Footer
+- Business name is correct everywhere (matches intake)
+
+### 9. CONTENT QUALITY
+- Zero placeholder text anywhere (grep for TODO, FIXME, Lorem, REPLACE, example.com, 000-0000)
+- Zero fake testimonial names (grep for Alex Chen, Sarah Martinez, John Smith, Jane Doe, etc.)
+- All service descriptions are specific and detailed (not one-liners)
+- About page has real company narrative
+- Privacy and Terms pages exist with real content
+
+### 10. VISUAL/CODE QUALITY
+- No unused imports in any file
+- No console.log statements left in production code
+- All components use consistent styling (same border radius, spacing patterns)
+- SERVICE_LOCAL: white/light backgrounds, no floating orbs, phone prominent
+
+## FIX EVERYTHING YOU FIND
+
+Do NOT just report issues — FIX them. Generate missing images. Write missing FAQ items. Fix broken imports. Add missing metadata. Create missing pages. Wire in missing props.
+
+After fixing everything, run pnpm tsc --noEmit one final time to confirm zero errors.
+
+Then commit: git add -A && git commit -m "fix: verification agent — all checks passed"
+
+Report what you checked, what you fixed, and confirm the site is ready.
+```
+
+**After the sub-agent completes:**
+1. Read its report
+2. Update status: `phases.verification.status: "complete"`, `phases.verification.message: "<summary of checks passed and fixes applied>"`
+3. If the sub-agent reported it couldn't fix something critical, set status to `"failed"` instead
+
+**Update the time estimate table:**
 
 ---
 
@@ -921,6 +1257,8 @@ If the user says "resume the build" or "retry", or you see a `.build-status.json
 | Scaffold | 1-2 min | Exec (pnpm install is the bottleneck) |
 | Design System | ~1 min | Inline file edits |
 | Build Pages | 5-10 min | Sub-agent |
+| Assets | 2-3 min | Inline (Gemini API calls) |
 | Quality Gate | ~2-3 min | Inline checks + fixes |
 | Deploy | ~30 sec | Exec |
-| **Total** | **~15-20 min** | |
+| Verification | 5-10 min | Sub-agent (fresh context, checks + fixes everything) |
+| **Total** | **~22-33 min** | |

@@ -2,6 +2,8 @@
 
 Every section needs real images. Never deliver a site with broken image paths or placeholder URLs.
 
+**Phase 5 (Assets) in WEBSITE-BUILD.md handles automated image generation.** This file documents the image strategy, sizing requirements, and per-page image needs that Phase 5 follows. Phase 4 (Build Pages) should reference images at `/images/hero.png`, `/images/<service-slug>.png`, etc. — Phase 5 generates those files.
+
 ---
 
 ## Image Sources (in priority order)
