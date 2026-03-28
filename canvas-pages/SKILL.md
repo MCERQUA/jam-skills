@@ -126,6 +126,22 @@ Returns: `{"url": "/uploads/<uuid>.png", "original_name": "file.png"}`
 
 NEVER use `/app/runtime/` or `/canvas-pages/` in HTML `src` attributes. Always use the browser URL paths.
 
+## Text Measurement with Pretext
+
+For advanced text layout — virtualized lists, chat bubbles, auto-sizing containers, canvas text rendering — use `@chenglou/pretext`. It measures text height/width ~500x faster than DOM reads, with zero layout reflow. Load via jsdelivr (whitelisted):
+
+```html
+<script type="module">
+import { prepare, layout, prepareWithSegments, walkLineRanges }
+  from 'https://cdn.jsdelivr.net/npm/@chenglou/pretext/+esm';
+
+const prepared = prepare('Your text here', '16px Inter');
+const { height, lineCount } = layout(prepared, containerWidth, 22);
+</script>
+```
+
+Read `/mnt/shared-skills/pretext/SKILL.md` for the full API, patterns (shrink-to-fit bubbles, masonry, variable-width columns), and canvas rendering examples.
+
 ## Delegate Heavy Pages
 
 For polished user-facing pages (500+ lines), delegate to a sub-agent or use maxcode/z-code. Read the `coding-delegation` skill for patterns.

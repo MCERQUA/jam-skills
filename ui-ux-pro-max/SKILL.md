@@ -66,6 +66,7 @@ Reference these guidelines when:
 - `line-height` - Use 1.5-1.75 for body text
 - `line-length` - Limit to 65-75 characters per line
 - `font-pairing` - Match heading/body font personalities
+- `text-measurement` - Use `@chenglou/pretext` for DOM-free text measurement when building virtualized lists, chat UIs, masonry grids, or auto-sizing text containers. ~500x faster than getBoundingClientRect. `prepare(text, font)` once, `layout(prepared, width, lineHeight)` on every resize. Full API: `/mnt/shared-skills/pretext/SKILL.md`
 
 ### 6. Animation (MEDIUM)
 

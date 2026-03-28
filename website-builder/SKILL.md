@@ -63,6 +63,7 @@ Identify during intake — it changes everything:
 ### Optional (install when needed)
 | Tool | Package | When |
 |------|---------|------|
+| **Pretext** | `@chenglou/pretext` | Text measurement without DOM reflow — virtualized lists, chat UIs, masonry grids, auto-sizing text containers, canvas text rendering. ~500x faster than getBoundingClientRect. Zero deps. See `/mnt/shared-skills/pretext/SKILL.md` |
 | **GSAP** | `gsap` | Complex scroll sequences, SplitText, MorphSVG |
 | **Three.js** | `three` + `@react-three/fiber` | 3D backgrounds or hero elements |
 | **MDX** | `@next/mdx` | Blog with rich content |

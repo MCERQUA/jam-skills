@@ -757,6 +757,26 @@ Before calling a design "done", verify:
 
 ---
 
+## Text Measurement — Pretext
+
+For layouts that need precise text measurement — virtualized lists, chat interfaces, auto-sizing cards, masonry grids, responsive multi-column text — use `@chenglou/pretext` instead of DOM reads.
+
+```bash
+pnpm add @chenglou/pretext
+```
+
+```tsx
+import { prepare, layout } from '@chenglou/pretext'
+
+// Measure text height without triggering layout reflow (~500x faster than getBoundingClientRect)
+const prepared = prepare(cardText, '16px Inter')
+const { height, lineCount } = layout(prepared, containerWidth, 24)
+```
+
+Use cases: variable-height list virtualization, shrink-to-fit chat bubbles (`walkLineRanges`), text-around-image flow (`layoutNextLine`), canvas/SVG text rendering (`layoutWithLines`). Full API: `/mnt/shared-skills/pretext/SKILL.md`
+
+---
+
 ## Common Mistakes to Avoid
 
 ### ❌ Mistake 1: Flat, Static Cards

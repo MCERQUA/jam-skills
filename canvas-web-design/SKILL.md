@@ -429,12 +429,38 @@ FILE_WRITTEN: /app/runtime/canvas-pages/[filename].html
 
 ---
 
+## TEXT MEASUREMENT — Pretext
+
+For any canvas page that needs precise text layout — virtualized lists, chat interfaces, auto-sizing cards, masonry grids, or canvas/SVG text rendering — use `@chenglou/pretext`. It's ~500x faster than DOM measurements (no layout reflow) and handles CJK, RTL, emoji, and mixed scripts.
+
+```html
+<script type="module">
+import { prepare, layout, prepareWithSegments, walkLineRanges }
+  from 'https://cdn.jsdelivr.net/npm/@chenglou/pretext/+esm';
+
+// Measure text height without DOM
+const prepared = prepare(text, '16px Inter');
+const { height } = layout(prepared, containerWidth, 22);
+
+// Shrink-to-fit (chat bubbles, dynamic cards)
+const seg = prepareWithSegments(text, '15px Inter');
+let maxW = 0;
+walkLineRanges(seg, maxWidth, line => { if (line.width > maxW) maxW = line.width; });
+// maxW = tightest container width that still fits
+</script>
+```
+
+Full API, patterns, and canvas rendering examples: `/mnt/shared-skills/pretext/SKILL.md`
+
+---
+
 ## SKILL REFERENCES
 
 Read these skills for additional design intelligence when building complex pages:
 
 - `/mnt/shared-skills/ui-ux-pro-max/SKILL.md` — color palettes, typography pairs, chart patterns
 - `/mnt/shared-skills/premium-web-design/SKILL.md` — Fortune 500 design principles, hero sections, layered backgrounds
+- `/mnt/shared-skills/pretext/SKILL.md` — DOM-free text measurement for virtualized lists, chat bubbles, masonry grids, canvas text
 
 When using premium-web-design: skip the React/Tailwind sections — they don't apply in iframe context.
 Translate Tailwind utilities to equivalent vanilla CSS (e.g. `backdrop-blur-xl` → `backdrop-filter: blur(24px)`).
