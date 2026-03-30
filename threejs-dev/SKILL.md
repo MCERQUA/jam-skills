@@ -67,7 +67,7 @@ scene.background = new THREE.Color(0x0d1117);
 const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
 camera.position.set(0, 3, 8);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
@@ -123,6 +123,15 @@ window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+});
+
+// Screenshot support: parent app can request a capture of the current frame
+window.addEventListener('message', (e) => {
+  if (e.data?.type === 'canvas-action' && e.data?.action === 'screenshot') {
+    renderer.render(scene, camera);
+    const image = renderer.domElement.toDataURL('image/jpeg', 0.85);
+    window.parent.postMessage({ type: 'canvas-screenshot-result', image }, '*');
+  }
 });
 </script>
 </body>
@@ -749,12 +758,13 @@ ctrl.target.set(0, 1, 0);
 // In animate(): ctrl.update();
 ```
 
-### PointerLockControls (FPS)
+### PointerLockControls (FPS) — DOES NOT WORK IN IFRAMES
+**WARNING:** `requestPointerLock()` is blocked by browsers inside iframes. Since canvas pages run in an iframe, NEVER use PointerLockControls. Use OrbitControls instead:
 ```javascript
-import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-const plc = new PointerLockControls(camera, document.body);
-document.body.addEventListener('click', () => plc.lock());
-// Movement with WASD — see keyboard input below
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+// Click-drag to rotate, scroll to zoom — works in iframes
 ```
 
 ### Keyboard Input
