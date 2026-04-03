@@ -52,8 +52,8 @@ exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/people' \
   -H 'Content-Type: application/json' \
   -d '{
     \"name\": {\"firstName\": \"Jane\", \"lastName\": \"Smith\"},
-    \"email\": {\"primaryEmail\": \"jane@example.com\"},
-    \"phone\": {\"primaryPhoneNumber\": \"+16025551234\"},
+    \"emails\": {\"primaryEmail\": \"jane@example.com\"},
+    \"phones\": {\"primaryPhoneNumber\": \"+16025551234\"},
     \"jobTitle\": \"Owner\",
     \"city\": \"Phoenix\"
   }'")
@@ -73,8 +73,8 @@ exec("curl -sf -X DELETE 'https://crm.jam-bot.com/rest/people/{id}' \
 | Field | Format | Example |
 |-------|--------|---------|
 | name | `{firstName, lastName}` | `{"firstName":"Jane","lastName":"Smith"}` |
-| email | `{primaryEmail}` | `{"primaryEmail":"jane@example.com"}` |
-| phone | `{primaryPhoneNumber}` | `{"primaryPhoneNumber":"+16025551234"}` |
+| emails | `{primaryEmail}` | `{"primaryEmail":"jane@example.com"}` |
+| phones | `{primaryPhoneNumber, primaryPhoneCountryCode}` | `{"primaryPhoneNumber":"+16025551234"}` |
 | jobTitle | string | `"Owner"` |
 | city | string | `"Phoenix"` |
 | companyId | UUID | Links person to a company |
@@ -184,7 +184,7 @@ exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/noteTargets' \
   -H 'Content-Type: application/json' \
   -d '{
     \"noteId\": \"{note-uuid}\",
-    \"personId\": \"{person-uuid}\"
+    \"targetPersonId\": \"{person-uuid}\"
   }'")
 
 # Link a note to a company
@@ -193,7 +193,7 @@ exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/noteTargets' \
   -H 'Content-Type: application/json' \
   -d '{
     \"noteId\": \"{note-uuid}\",
-    \"companyId\": \"{company-uuid}\"
+    \"targetCompanyId\": \"{company-uuid}\"
   }'")
 
 # Link a note to an opportunity
@@ -202,7 +202,7 @@ exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/noteTargets' \
   -H 'Content-Type: application/json' \
   -d '{
     \"noteId\": \"{note-uuid}\",
-    \"opportunityId\": \"{opportunity-uuid}\"
+    \"targetOpportunityId\": \"{opportunity-uuid}\"
   }'")
 ```
 
@@ -246,7 +246,7 @@ exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/taskTargets' \
   -H 'Content-Type: application/json' \
   -d '{
     \"taskId\": \"{task-uuid}\",
-    \"personId\": \"{person-uuid}\"
+    \"targetPersonId\": \"{person-uuid}\"
   }'")
 
 # Link a task to a company
@@ -255,7 +255,7 @@ exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/taskTargets' \
   -H 'Content-Type: application/json' \
   -d '{
     \"taskId\": \"{task-uuid}\",
-    \"companyId\": \"{company-uuid}\"
+    \"targetCompanyId\": \"{company-uuid}\"
   }'")
 ```
 
@@ -351,8 +351,8 @@ PERSON=$(exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/people' \
   -H 'Content-Type: application/json' \
   -d '{
     \"name\": {\"firstName\": \"Maria\", \"lastName\": \"Garcia\"},
-    \"email\": {\"primaryEmail\": \"maria@desertsunhomes.com\"},
-    \"phone\": {\"primaryPhoneNumber\": \"+14805551234\"},
+    \"emails\": {\"primaryEmail\": \"maria@desertsunhomes.com\"},
+    \"phones\": {\"primaryPhoneNumber\": \"+14805551234\"},
     \"jobTitle\": \"Property Manager\",
     \"city\": \"Scottsdale\",
     \"companyId\": \"{company-uuid-from-step-1}\"
@@ -390,7 +390,7 @@ exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/noteTargets' \
   -H 'Content-Type: application/json' \
   -d '{
     \"noteId\": \"{note-uuid}\",
-    \"personId\": \"{person-uuid}\"
+    \"targetPersonId\": \"{person-uuid}\"
   }'")
 ```
 
@@ -446,7 +446,7 @@ exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/taskTargets' \
   -H 'Content-Type: application/json' \
   -d '{
     \"taskId\": \"{task-uuid}\",
-    \"personId\": \"{person-uuid}\"
+    \"targetPersonId\": \"{person-uuid}\"
   }'")
 ```
 
@@ -477,6 +477,43 @@ Always check for errors in API responses. Common issues:
 
 ---
 
+## CRM Navigation — Deep-Link to Specific Views
+
+Open the CRM UI directly to a specific page using `[CANVAS_URL:...]`. The base URL is `https://<user>.crm.jam-bot.com`.
+
+**Object list pages:**
+| View | URL Path |
+|------|----------|
+| All contacts | `/objects/people` |
+| All companies | `/objects/companies` |
+| All deals/pipeline | `/objects/opportunities` |
+| All notes | `/objects/notes` |
+| All tasks | `/objects/tasks` |
+| Single record | `/object/<type>/<uuid>` (e.g. `/object/person/abc-123`) |
+
+**Examples:**
+
+```
+# "Show me my deals"
+[CANVAS_URL:https://src.crm.jam-bot.com/objects/opportunities]
+
+# "Open the contact list"
+[CANVAS_URL:https://src.crm.jam-bot.com/objects/people]
+
+# "Show me Jowynna's record"
+[CANVAS_URL:https://src.crm.jam-bot.com/object/person/{person-uuid}]
+
+# "Open the CRM homepage"
+[CANVAS_URL:https://src.crm.jam-bot.com]
+```
+
+**When the user says "open my CRM" or "show my pipeline" or "go to contacts":**
+1. Map their request to the correct URL path
+2. Use `[CANVAS_URL:...]` with the full URL
+3. Include a brief spoken intro: "Here's your pipeline." `[CANVAS_URL:https://src.crm.jam-bot.com/objects/opportunities]`
+
+---
+
 ## Best Practices
 
 1. **Log everything.** When the client mentions a call, meeting, or conversation with a lead, create a note immediately. Context is perishable.
@@ -486,3 +523,4 @@ Always check for errors in API responses. Common issues:
 5. **Use `depth=1` when displaying.** Include relations so you can show company names alongside contacts, not just UUIDs.
 6. **Keep data clean.** Before creating a new company or person, search first to avoid duplicates. Use `ilike` filter on name.
 7. **Report pipeline status.** When the client asks "how's my pipeline," query opportunities grouped by stage and summarize totals.
+8. **Navigate the CRM UI.** When the client asks to "see" or "open" something in the CRM, use `[CANVAS_URL:...]` to deep-link directly to the right page. Don't just describe the data — show them the actual CRM view.
