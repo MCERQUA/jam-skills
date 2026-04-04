@@ -514,13 +514,149 @@ Open the CRM UI directly to a specific page using `[CANVAS_URL:...]`. The base U
 
 ---
 
+## Pipeline Stages — Mapping Reference
+
+| Stage | Meaning | Trigger |
+|-------|---------|---------|
+| `INCOMING` | New lead, no contact yet | Lead form submitted, referral received |
+| `MEETING` | Meeting/call scheduled or completed | "We have a meeting Tuesday" |
+| `PROPOSAL` | Estimate/proposal sent | "I sent the quote" or estimate created |
+| `CLOSED_WON` | Deal won, job completed or in progress | "They signed" / "Invoice paid" |
+| `CLOSED_LOST` | Deal lost or abandoned | "They went with someone else" / no response |
+
+**Proactive stage advancement:** When you hear the client mention scheduling a meeting, sending an estimate, closing a deal, or losing one — update the opportunity stage immediately without being asked. This is YOUR CRM to manage.
+
+---
+
+## Duplicate Detection (ALWAYS DO THIS)
+
+**Before creating ANY new person or company, ALWAYS search first:**
+
+```bash
+# Search by email (most reliable)
+exec("curl -sf -G 'https://crm.jam-bot.com/rest/people' \
+  --data-urlencode 'filter={\"emails\":{\"ilike\":\"%jane@example.com%\"}}' \
+  --data-urlencode 'limit=3' --data-urlencode 'depth=1' \
+  -H 'Authorization: Bearer $TWENTY_CRM_API_KEY'")
+
+# Search by phone (strip to last 10 digits)
+exec("curl -sf -G 'https://crm.jam-bot.com/rest/people' \
+  --data-urlencode 'filter={\"phones\":{\"ilike\":\"%5551234567%\"}}' \
+  --data-urlencode 'limit=3' --data-urlencode 'depth=1' \
+  -H 'Authorization: Bearer $TWENTY_CRM_API_KEY'")
+
+# Search company by name
+exec("curl -sf -G 'https://crm.jam-bot.com/rest/companies' \
+  --data-urlencode 'filter={\"name\":{\"ilike\":\"%acme%\"}}' \
+  --data-urlencode 'limit=3' \
+  -H 'Authorization: Bearer $TWENTY_CRM_API_KEY'")
+```
+
+**If a match is found:** Do NOT create a duplicate. Instead:
+1. Update the existing record if needed (new phone, updated job title)
+2. Add a note about the new interaction
+3. Link the existing person to any new opportunity
+
+**If no match found:** Create the new record normally.
+
+---
+
+## Proactive Stage Advancement
+
+Listen for these cues in conversation and auto-advance deals:
+
+| Client says... | Action |
+|----------------|--------|
+| "We have a meeting with [name]" | Find opportunity → stage = `MEETING` |
+| "I sent the estimate/quote/proposal" | Find opportunity → stage = `PROPOSAL`, set amount if mentioned |
+| "They signed" / "We got the job" / "They said yes" | Find opportunity → stage = `CLOSED_WON` |
+| "They went with someone else" / "Dead lead" | Find opportunity → stage = `CLOSED_LOST` |
+| "Invoice paid" / "Check cleared" | Find opportunity → stage = `CLOSED_WON`, update final amount |
+
+**How to find the right opportunity:**
+
+```bash
+# Search by company name in opportunity name
+exec("curl -sf -G 'https://crm.jam-bot.com/rest/opportunities' \
+  --data-urlencode 'filter={\"name\":{\"ilike\":\"%acme%\"}}' \
+  --data-urlencode 'depth=1' \
+  -H 'Authorization: Bearer $TWENTY_CRM_API_KEY'")
+```
+
+After advancing a stage, always create a note documenting why:
+
+```bash
+# Example: advance to MEETING and log it
+exec("curl -sf -X PATCH 'https://crm.jam-bot.com/rest/opportunities/{opp-id}' \
+  -H 'Authorization: Bearer $TWENTY_CRM_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{\"stage\": \"MEETING\"}'")
+
+exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/notes' \
+  -H 'Authorization: Bearer $TWENTY_CRM_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{\"title\": \"Stage → MEETING\", \"body\": \"Client confirmed meeting scheduled for Thursday.\"}'")
+# Then link the note to the opportunity via noteTargets
+```
+
+---
+
+## Estimate → CRM Sync
+
+When you create an estimate for a client:
+
+1. **Find or create the opportunity** for this job
+2. **Set the amount** to the estimate total
+3. **Advance stage to PROPOSAL**
+4. **Create a note** with estimate details
+
+```bash
+# Update opportunity with estimate
+exec("curl -sf -X PATCH 'https://crm.jam-bot.com/rest/opportunities/{opp-id}' \
+  -H 'Authorization: Bearer $TWENTY_CRM_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{\"stage\": \"PROPOSAL\", \"amount\": 18500}'")
+```
+
+---
+
+## Invoice → Close Loop
+
+When a client confirms payment or an invoice is marked paid:
+
+1. **Find the opportunity** for this job
+2. **Update amount** to final invoice amount (may differ from estimate)
+3. **Set stage to CLOSED_WON**
+4. **Create a note** documenting the close
+
+A post-sale review task will be automatically created by the system 3-7 days after close.
+
+---
+
+## Lead Source Tagging
+
+When creating records from leads, include the source in the intake note:
+
+- Website form → note includes "Source: {site-name}"
+- Referral → note includes "Source: referral from {name}"
+- Phone call → note includes "Source: inbound call"
+- Slack → note includes "Source: slack #leads"
+- Email → note includes "Source: email inquiry"
+- Trade show → note includes "Source: {event-name}"
+
+This is tracked in notes rather than a custom field because Twenty's standard schema doesn't have a source field. The intake note is always the first note on a lead chain.
+
+---
+
 ## Best Practices
 
 1. **Log everything.** When the client mentions a call, meeting, or conversation with a lead, create a note immediately. Context is perishable.
-2. **Move deals through stages.** When the client reports progress (scheduled a meeting, sent a proposal, closed a deal), update the opportunity stage right away.
+2. **Move deals through stages proactively.** Don't wait to be asked — when the client reports progress, update the stage right away.
 3. **Create tasks for follow-ups.** If the client says "I need to call them back Thursday," create a task with a due date.
 4. **Link records.** Always link notes and tasks to the relevant person, company, or opportunity. Unlinked records are hard to find later.
 5. **Use `depth=1` when displaying.** Include relations so you can show company names alongside contacts, not just UUIDs.
-6. **Keep data clean.** Before creating a new company or person, search first to avoid duplicates. Use `ilike` filter on name.
+6. **ALWAYS search before creating.** Duplicates make the CRM useless. Check email, phone, and company name before creating anything new.
 7. **Report pipeline status.** When the client asks "how's my pipeline," query opportunities grouped by stage and summarize totals.
 8. **Navigate the CRM UI.** When the client asks to "see" or "open" something in the CRM, use `[CANVAS_URL:...]` to deep-link directly to the right page. Don't just describe the data — show them the actual CRM view.
+9. **Set amounts on every opportunity.** Even estimated ranges are better than $0. Update amounts as estimates/invoices come in.
+10. **Watch for stale deals.** If you notice a deal hasn't moved in >7 days, proactively mention it to the client: "Hey, the Acme Roofing deal has been in PROPOSAL for 10 days — should we follow up?"

@@ -283,16 +283,61 @@ Every response:
   "cost": 0.002,
   "tasks": [{
     "status_code": 20100,
-    "result": [{ /* data */ }]
+    "result": [{ "items": [...] }]
   }]
 }
 ```
-Check `tasks[0].status_code` — 20100 = success. Check `tasks[0].result` for data.
+Check `tasks[0].status_code` — 20100 = success. Data at `tasks[0].result[0].items`.
+
+**Labs endpoints return FLAT item structure** (NOT nested under `keyword_data`):
+```json
+{
+  "keyword": "contractor insurance",
+  "keyword_info": { "search_volume": 8100, "cpc": 83.85, "competition": 0.19, "competition_level": "LOW" },
+  "keyword_properties": { "keyword_difficulty": 42 },
+  "search_intent_info": { "main_intent": "commercial" }
+}
+```
+Access fields directly: `item.keyword`, `item.keyword_info.search_volume`, `item.keyword_properties.keyword_difficulty`.
+Do NOT use `item.keyword_data.keyword` — that field does not exist.
+
+---
+
+## SEO Data Persistence
+
+**All queries are automatically saved** to a persistent database via the social dashboard API. Every dollar spent produces permanently stored data that contributes to the client's ongoing SEO campaign.
+
+### Saved Data Endpoints (via social dashboard)
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/social-api/api/seo/dashboard?tenant=X` | GET | Aggregated campaign stats, tool breakdown, recent queries |
+| `/social-api/api/seo/history?tenant=X&tool=Y` | GET | Query history with filters |
+| `/social-api/api/seo/history/:id?tenant=X` | GET | Full saved result with all items |
+| `/social-api/api/seo/keyword-tracker?tenant=X` | GET | Deduplicated keyword database across all queries |
+
+### Canvas Pages
+
+- **SEO Tools** (`seo-tools`) — run new queries (all auto-save)
+- **SEO Campaign** (`seo-dashboard`) — persistent dashboard showing accumulated data
+
+When the client asks "show me my SEO data" or "what keywords are we tracking":
+```
+[CANVAS_URL:https://<user>.jam-bot.com/pages/seo-dashboard.html]
+```
+
+When the client wants to run a new query:
+```
+[CANVAS_URL:https://<user>.jam-bot.com/pages/seo-tools.html]
+```
+
+---
 
 ## Rules
 - **Always tell the client the cost** before running expensive queries
 - **Batch keywords** — never send 50 individual search volume requests when you can send 1 with 50 keywords
 - **Use Labs endpoints** for research — they're 60-70% cheaper than live SERP
-- **Cache results mentally** — if you already queried something this session, don't query it again
+- **Don't re-query data you already have** — check the keyword tracker first via `/social-api/api/seo/keyword-tracker`
 - **Present data clearly** — tables, sorted by relevance/opportunity, with actionable insights
 - **Combine with other skills** — feed keyword data into the marketing skill, use GMB data with customer-comms
+- **DataForSEO does NOT autocorrect typos** — if a keyword returns null results, check spelling
