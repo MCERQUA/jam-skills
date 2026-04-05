@@ -9,6 +9,9 @@ metadata:
 
 # Customer Follow-Up Pipeline
 
+## DOUBLE CONFIRMATION REQUIRED — READ TOOLS.md FIRST
+**Before sending ANY email or message, you MUST follow the double-confirmation procedure in TOOLS.md.** No email or SMS leaves without TWO explicit "yes" responses from the user. "Automated" means auto-DRAFT, not auto-SEND.
+
 Automated post-service follow-up system for local service companies. Runs a 4-stage quality-gated pipeline after every completed job: satisfaction check, review request, referral offer, and maintenance plan pitch.
 
 ## When to Use

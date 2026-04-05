@@ -7,6 +7,9 @@ metadata:
 
 # Customer Communication Templates
 
+## DOUBLE CONFIRMATION REQUIRED — READ TOOLS.md FIRST
+**Before sending ANY email or message to a customer, you MUST follow the double-confirmation procedure in TOOLS.md.** These templates are for DRAFTING only — sending requires two explicit "yes" responses from the user.
+
 Comprehensive communication templates for local service businesses including HVAC, plumbing, roofing, electrical, pest control, and landscaping. Every template is designed for real-world use with placeholder fields ready for personalization.
 
 ---

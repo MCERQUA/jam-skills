@@ -6,6 +6,10 @@ metadata: {"openclaw": {"emoji": "📧", "requires": {"env": ["AGENTMAIL_API_KEY
 
 # AgentMail Skill
 
+## DOUBLE CONFIRMATION REQUIRED — READ TOOLS.md FIRST
+
+**Before sending ANY email, you MUST follow the double-confirmation procedure in TOOLS.md.** No email leaves without TWO explicit "yes" responses from the user. No exceptions. No batch sends. No automatic sends. Drafting is fine — sending requires two keys turned.
+
 Email inbox API for AI agents. Create inboxes, send/receive emails, manage threads and conversations programmatically.
 
 **Base URL:** `https://api.agentmail.to/v0`
