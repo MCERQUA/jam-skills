@@ -15,6 +15,7 @@ You are building canvas pages that run inside an iframe in the JamBot voice assi
 - **Google Fonts `@import` in `<style>` is OK** — always falls back to `sans-serif`
 - **All CSS inline** in a `<style>` tag in `<head>`
 - **All JS inline** in a `<script>` tag at body end
+- **Desktop icon (REQUIRED):** `<meta name="page-icon" content="TYPE">` in `<head>`. Types: `dashboard`, `game`, `music`, `tools`, `book`, `upload`, `image-creator`, `crm`, `website`, `settings`, `document`, etc.
 - **Interactivity only via postMessage** — `nav(page)` and `speak(text)` functions (always include these)
 - **Always start from** `/app/runtime/canvas-template.html` — copy the FULL `<style>` block first
 
@@ -398,6 +399,7 @@ TASK: [exact description from user — purpose, data to show, actions, desired f
 OUTPUT FILE: /app/runtime/canvas-pages/[filename].html
 
 REQUIRED — every page must have ALL of these:
+- <meta name="page-icon" content="TYPE"> in <head> — sets the desktop icon. Use: dashboard, game, music, tools, book, upload, image-creator, crm, website, settings, document
 - Full <style> block copied from canvas-template.html (do not rewrite it, do not trim it)
 - At least one entrance animation (anim-slide-up, anim-fade, or anim-scale) on major sections
 - Staggered delays (delay-1 through delay-5) on sequential elements
@@ -472,6 +474,7 @@ Translate Tailwind utilities to equivalent vanilla CSS (e.g. `backdrop-blur-xl` 
 Before declaring a canvas page complete, verify every item:
 
 **Every page:**
+- [ ] `<meta name="page-icon" content="...">` in `<head>` (desktop icon type)
 - [ ] Full canvas-template.html `<style>` block is present (not trimmed or rewritten)
 - [ ] Page header with title and back button (`onclick="nav('office-hub')"`)
 - [ ] Entrance animations on header and at least 2 more sections

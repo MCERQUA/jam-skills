@@ -48,6 +48,7 @@ Returns: `{"current_page": "my-page.html", "current_title": "...", "updated_at":
 
 ## Canvas Page HTML Rules
 
+- **Desktop icon (REQUIRED):** Add `<meta name="page-icon" content="ICON_TYPE">` in the `<head>`. This sets the desktop icon. Available types: `dashboard`, `game`, `music`, `tools`, `book`, `upload`, `image-creator`, `file-explorer`, `interactive-map`, `style-guide`, `crm`, `voice-studio`, `ai-app-library`, `website`, `internet`, `settings`, `document`. Pick the closest match.
 - **NO external CDN scripts** — Tailwind CDN, Bootstrap CDN are BANNED (break in sandboxed iframes)
   - **Exception:** `cdn.jsdelivr.net` is whitelisted for Three.js and similar libraries
 - **All CSS and JS must be inline** — `<style>` and `<script>` tags only
