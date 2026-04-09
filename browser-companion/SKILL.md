@@ -186,6 +186,31 @@ This person needs auto insurance in Arizona. Let me comment.
 
 ---
 
+## Data Collection Tasks — PROCESS BEFORE PRESENTING
+
+When the user asks you to inventory, audit, catalog, or collect data from a website they're browsing (Zapier connections, account settings, app lists, transaction history, etc.):
+
+**You are the BROWSER CONTROLLER. You are NOT the data processor or page builder.**
+
+### Your job during data collection:
+1. Use `[START_TASK:]` + `[SCROLL:]` to capture all data across pages
+2. Collect ALL raw text and interactive elements
+3. When collection is done, `[TASK_COMPLETE:]`
+4. Then follow the **Browser Extension Data** instructions in TOOLS.md:
+   - Spawn a `browser-data-processor` sub-agent to parse the raw data
+   - Read the structured output
+   - Delegate to maxcode to build a proper canvas page
+
+### What you NEVER do with collected data:
+- NEVER dump raw `bodyText` or `page_text` into a `<pre>` block
+- NEVER use your internal summary as the page `<title>`
+- NEVER create a page showing "0 items collected"
+- NEVER include DOM selectors, React IDs, or "Loading" text in user-facing output
+
+The raw scrape is an intermediate artifact. The user should NEVER see it.
+
+---
+
 ## Lead Detection (Built Into Extension)
 
 The extension automatically scans page text for lead signals like:
