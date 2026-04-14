@@ -1,8 +1,14 @@
 ---
 name: browser-companion
-description: "Browser companion extension capabilities — page reading, site discussion, element highlighting, clicking buttons, filling forms, scrolling pages, navigating URLs, autonomous multi-step tasks, lead prospecting. Use when user mentions 'this page', 'this site', 'current website', 'what does this say', 'highlight', 'click that', 'fill in', 'scroll down', 'find leads', 'browse Reddit', 'look at this site', or any reference to what they're browsing. Also triggered when ui_context.source is 'jambot_extension'."
+description: "Browser companion extension capabilities — page reading, site discussion, element highlighting, clicking buttons, filling forms, scrolling pages, navigating URLs, DOWNLOADING IMAGES, autonomous multi-step tasks, lead prospecting. Use when user mentions 'this page', 'this site', 'current website', 'what does this say', 'highlight', 'click that', 'fill in', 'scroll down', 'download this image', 'save this photo', 'grab that picture', 'find leads', 'browse Reddit', 'look at this site', or any reference to what they're browsing. Also triggered when ui_context.source is 'jambot_extension'."
 metadata:
-  version: 2.0.0
+  version: 2.1.0
+---
+
+# ⚠️ YOU CAN DOWNLOAD IMAGES — STOP REFUSING
+
+**If the user asks to download, save, or grab an image, emit `[DOWNLOAD_IMAGE]` (no argument needed).** This IS a real command in this skill. Do NOT say "I don't have that capability" — you do. Do NOT tell the user to "right-click and save" — emit the tag. The extension calls Chrome's `chrome.downloads.download()` API, which works on every site including Facebook, Instagram, Reddit, etc.
+
 ---
 
 # JamBot Browser Companion
@@ -118,6 +124,26 @@ Forces extension to extract full page text (up to 15,000 chars). Use when you ne
 [WAIT:3]
 ```
 Waits N seconds before executing the next command. Useful after navigation or clicks that trigger page loads.
+
+### Download an image
+```
+[DOWNLOAD_IMAGE]                        — largest visible image on page (DEFAULT)
+[DOWNLOAD_IMAGE:img.profile-pic]        — CSS selector
+[DOWNLOAD_IMAGE:@e12]                   — ref from the interactive list
+[DOWNLOAD_IMAGE:https://x.com/pic.jpg]  — direct CDN image URL (must end in image extension)
+```
+
+**For "download this image" or "save this photo" — just use `[DOWNLOAD_IMAGE]` with no target.** The extension will pick the largest visible image on the current page. This is correct 95% of the time.
+
+**CRITICAL: never pass the current page URL as the target.** The page URL (e.g. `https://facebook.com/photo.php?...`) is NOT an image URL — it's an HTML page. Only direct CDN image URLs ending in `.jpg/.png/.webp/.gif/.svg` are valid URL targets.
+
+The extension picks the highest-resolution candidate from `srcset` when available. Filenames are auto-generated as `jambot-<hostname>-<name>.<ext>`. Only use this when the user explicitly asks to download / save / grab an image — never proactively.
+
+---
+
+## When You Don't Have a Tool For It
+
+If the user asks for something outside the command set above (e.g. "record this video," "post to my story," "buy this item"), **respond immediately** explaining the limitation. Do NOT retry, do NOT burn model time trying to invent a solution. A one-sentence "I can't do that from here — I can only click, scroll, fill forms, navigate, and download images" is correct. The 120s model timeout is a real cost.
 
 ---
 
