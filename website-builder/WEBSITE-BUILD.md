@@ -226,6 +226,7 @@ The canvas page polls `.build-status.json` every 5 seconds to show progress. You
     "research":      { "status": "not_started", "message": null },
     "scaffold":      { "status": "not_started", "message": null },
     "design-system": { "status": "not_started", "message": null },
+    "stitch-pages":  { "status": "not_started", "message": null },
     "build-pages":   { "status": "not_started", "message": null },
     "assets":        { "status": "not_started", "message": null },
     "quality-gate":  { "status": "not_started", "message": null },
@@ -424,6 +425,157 @@ cd ~/Websites/<project> && git add -A && git commit -m "style: apply brand desig
 
 ---
 
+## Phase 3.5: STITCH PAGES (inline, ~2-4 minutes per page)
+
+Generate detailed HTML mockups for each site page using Google Stitch. The build-pages sub-agent in Phase 4 will read these as design references — they ARE NOT copied verbatim, they GUIDE the layout, sectioning, and visual hierarchy decisions.
+
+**Update status:** `currentPhase: "stitch-pages"`, `phases.stitch-pages.status: "in_progress"`, `phases.stitch-pages.message: "Generating page layouts with Stitch..."`
+
+### Step 1 — Check for a selected design template
+
+Read `~/Websites/<project>/.intake.json` and look at `intake.designTemplate`. Two cases:
+
+**Case A — `designTemplate` is null or missing:**
+The user did not pick a template from the Design Template Gallery. You will still run Stitch, but use only the brand colors/fonts/style from the intake (no DESIGN.md to embed).
+
+**Case B — `designTemplate.designMd` is a non-empty string:**
+The user picked a template. You will compact the DESIGN.md into a ~600-character token block and embed it in every page prompt.
+
+### Step 2 — Compact the DESIGN.md (only in Case B)
+
+Stitch prompts must stay under ~3500 characters or components get dropped. The DESIGN.md is too long to embed verbatim (often 4000-8000 chars). You must extract the key tokens:
+
+Read `intake.designTemplate.designMd` and produce a `compactDesignMd` string of this exact shape:
+
+```
+DESIGN: {creative-north-star or first ## heading}
+COLORS: primary {hex}, surface {hex}, accent {hex}, text {hex}
+TYPOGRAPHY: headlines {font-name}, body {font-name}, scale {if mentioned}
+SHAPE: {roundness rule}
+KEY RULES:
+- {rule 1 — most distinctive 'do' or 'don't'}
+- {rule 2}
+- {rule 3}
+SIGNATURE: {one-line description of the signature element if present}
+```
+
+Aim for under 700 characters. Keep only what would change a layout decision.
+
+### Step 3 — Create the Stitch project (once)
+
+```bash
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh create_project '{\"title\": \"<businessName> — <project>\"}'")
+```
+
+Save the returned project ID into a variable. You'll use it for every page generation.
+
+If the response contains an error, mark `phases.stitch-pages.status: "failed"` with the error message AND continue to Phase 4 anyway — the build-pages sub-agent can still build pages from scratch. Stitch is enhancement, not a hard dependency.
+
+### Step 4 — Generate one screen per page
+
+Read `intake.pages` (a string array like `["home","about","services","contact","faq"]`).
+
+For EACH page name, build a prompt with this structure (keep under 3500 chars total):
+
+```
+{Page} page for {businessName}, a {industry} business {city/region from address}.
+
+What the business does: {description}
+Target audience: {idealCustomer}, geographic scope: {geographicScope}
+Services: {first 5 services from intake.services, comma separated}
+Primary SEO keywords: {first 3 from intake.primaryKeywords}
+Brand tone: {tone}
+Brand colors: primary {colors.primary}, secondary {colors.secondary}, accent {colors.accent}, background {colors.background}
+
+Required sections for this {page} page:
+{infer sections from page name — see SECTION INFERENCE below}
+
+{compactDesignMd if Case B, otherwise omit this block}
+
+Mobile-first, production-ready, accessible. No placeholder copy — write real headlines using the SEO keywords above.
+```
+
+**SECTION INFERENCE — required sections by page name:**
+
+| Page name | Required sections |
+|-----------|-------------------|
+| `home` | hero with H1 + CTA, trust strip, services preview (4 cards), why-choose-us (3 cols), recent work / gallery, testimonials, service area or map, FAQ teaser, footer CTA |
+| `about` | hero, story / origin, team grid, values (3 cols), credentials/licenses, CTA |
+| `services` | hero, full services grid (one card per service from intake.services), process (3-5 steps), pricing or quote CTA, FAQ |
+| `service` (singular) | hero, what it includes, process, pricing tiers or quote, gallery, FAQ, related services |
+| `contact` | hero, contact form, contact info block (phone/email/address/hours), service area map placeholder, FAQ |
+| `faq` | hero, accordion of 8-12 questions targeting SEO keywords, contact CTA |
+| `gallery` / `projects` | hero, filterable grid, individual project preview, CTA |
+| `blog` | hero, featured post, recent posts grid, categories sidebar, newsletter CTA |
+| `pricing` | hero, comparison table, FAQ, contact CTA |
+| `testimonials` / `reviews` | hero, reviews grid, rating summary, CTA to leave a review |
+
+For any page name not in the table, infer required sections from the page name and the site type (`intake.siteType`).
+
+**Run the generation:**
+
+```bash
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_screen_from_text '{\"projectId\": \"<PID>\", \"deviceType\": \"DESKTOP\", \"modelId\": \"GEMINI_3_PRO\", \"prompt\": \"<escaped-prompt>\"}'")
+```
+
+Critical JSON-escape rules: replace `"` with `\"` and newlines with `\\n` inside the prompt before embedding.
+
+### Step 5 — Poll for the screen, then download HTML
+
+After `generate_screen_from_text` returns (it may return success before the screen is indexed):
+
+1. Wait 60 seconds.
+2. Call `list_screens`:
+   ```bash
+   exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh list_screens '{\"projectId\": \"<PID>\"}'")
+   ```
+3. Find the new screen (compare against the screen IDs you've already processed for this project — the new one is whichever wasn't there before).
+4. If the screen list is still empty or unchanged, wait 30 more seconds and retry. Up to 3 retries.
+5. Once you have the new screen ID, call `get_screen`:
+   ```bash
+   exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh get_screen '{\"name\": \"projects/<PID>/screens/<SID>\", \"projectId\": \"<PID>\", \"screenId\": \"<SID>\"}'")
+   ```
+6. The response includes `htmlCode.downloadUrl` — download it:
+   ```bash
+   mkdir -p ~/Websites/<project>/.stitch-pages
+   curl -L -s -o ~/Websites/<project>/.stitch-pages/<page>.html '<htmlCode.downloadUrl>'
+   ```
+7. Save the screenshot too if you want it for debugging:
+   ```bash
+   curl -L -s -o ~/Websites/<project>/.stitch-pages/<page>.png '<screenshot.downloadUrl>'
+   ```
+
+### Step 6 — Failure handling per page
+
+If a page fails after 3 retries OR `generate_screen_from_text` returns an error:
+- Append the page name to a `failed` list
+- Continue to the next page — do NOT abort the whole phase
+- After all pages: update `phases.stitch-pages.message` to `"<N> pages generated, <M> skipped: <names>"`
+
+### Step 7 — Mark phase complete
+
+After all pages have been attempted:
+
+- `phases.stitch-pages.status: "complete"` (even if some pages failed — partial success is success)
+- `phases.stitch-pages.message: "<N> page layouts generated"`
+- Write a manifest at `~/Websites/<project>/.stitch-pages/manifest.json`:
+  ```json
+  {
+    "projectId": "<stitch-project-id>",
+    "generatedAt": "<iso>",
+    "compactDesignMd": "<the compacted block, or empty>",
+    "pages": [
+      {"name": "home", "screenId": "<SID>", "htmlPath": ".stitch-pages/home.html", "status": "complete"},
+      {"name": "about", "screenId": "<SID>", "htmlPath": ".stitch-pages/about.html", "status": "complete"}
+    ],
+    "failed": []
+  }
+  ```
+
+If the WHOLE phase failed (e.g. create_project failed) — mark `phases.stitch-pages.status: "failed"` but DO NOT abort the build. Phase 4 will detect missing `.stitch-pages/` and build from scratch.
+
+---
+
 ## Phase 4: BUILD PAGES (sub-agent, ~5-10 minutes)
 
 **Update status:** `currentPhase: "build-pages"`, `phases.build-pages.status: "in_progress"`, `phases.build-pages.message: "Building pages with real content..."`
@@ -442,6 +594,17 @@ READ THESE FILES FIRST — IN THIS ORDER:
 4. ~/Websites/<PROJECT>/ai/research/competitors.md (what to differentiate from)
 5. /mnt/shared-skills/website-builder/instructions/animations.md (animation patterns)
 6. /mnt/shared-skills/website-builder/instructions/images.md (image strategy — required images per page, sizing, alt text rules)
+7. ~/Websites/<PROJECT>/.stitch-pages/manifest.json IF IT EXISTS — lists per-page Stitch HTML mockups generated in Phase 3.5
+
+STITCH MOCKUPS — IF .stitch-pages/manifest.json EXISTS:
+  For every page you build, FIRST read ~/Websites/<PROJECT>/.stitch-pages/<page>.html as a DESIGN REFERENCE.
+  - The Stitch HTML shows the intended layout, section order, hierarchy, and visual treatment for that page
+  - Use it to decide: WHICH sections to include, in WHAT order, with WHAT visual emphasis
+  - DO NOT copy the Stitch HTML verbatim. It is Tailwind/HTML, not Next.js. You build with the section components in src/components/sections/, and use the Stitch HTML as a layout blueprint
+  - DO match the section count, section order, and visual hierarchy of the Stitch mockup
+  - DO match the headline tone and CTA wording style (but use real keywords from research)
+  - If a Stitch HTML for a specific page is missing from .stitch-pages/, build that page from scratch using the standard section templates
+  - The compactDesignMd in manifest.json contains brand rules — apply them to ALL pages (color treatment, signature elements, do/don't rules)
 
 SECTION TEMPLATES are already at: ~/Websites/<PROJECT>/src/components/sections/
 ANIMATION WRAPPERS are at: ~/Websites/<PROJECT>/src/components/animations/

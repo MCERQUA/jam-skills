@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "updated": "2026-04-14",
+  "description": "Controlled-vocabulary industry tags → authoritative sources + research topics. Agent classification in Phase 1 of intake-research.md assigns tags from this file. Every topic listed has a must-check authoritative source. Additive: new tags are appended, existing ones are refined, nothing is removed.",
+  "general_topics": {
+    "data_privacy": {
+      "label": "General data privacy",
+      "sources": [
+        { "name": "FTC Privacy & Security", "url": "https://www.ftc.gov/business-guidance/privacy-security", "type": "federal" }
+      ]
+    },
+    "state_privacy_laws": {
+      "label": "State comprehensive privacy laws (CCPA/CPRA, CPA, VCDPA, etc.)",
+      "sources": [
+        { "name": "IAPP US State Privacy Legislation Tracker", "url": "https://iapp.org/resources/article/us-state-privacy-legislation-tracker/", "type": "tracker" }
+      ]
+    },
+    "pci_dss": {
+      "label": "Payment Card Industry Data Security Standard",
+      "sources": [
+        { "name": "PCI Security Standards Council", "url": "https://www.pcisecuritystandards.org/", "type": "industry" }
+      ]
+    },
+    "coppa": {
+      "label": "Children's Online Privacy Protection Act",
+      "sources": [
+        { "name": "FTC COPPA", "url": "https://www.ftc.gov/business-guidance/privacy-security/childrens-privacy", "type": "federal" }
+      ]
+    },
+    "gdpr": {
+      "label": "EU General Data Protection Regulation",
+      "sources": [
+        { "name": "European Data Protection Board", "url": "https://www.edpb.europa.eu/", "type": "regional" }
+      ]
+    },
+    "eu_ai_act": {
+      "label": "EU AI Act",
+      "sources": [
+        { "name": "EUR-Lex AI Act", "url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj", "type": "regional" }
+      ]
+    },
+    "labor_law": {
+      "label": "Federal labor law (FLSA, wage/hour)",
+      "sources": [
+        { "name": "DOL Wage and Hour Division", "url": "https://www.dol.gov/agencies/whd", "type": "federal" }
+      ]
+    },
+    "workers_comp": {
+      "label": "Workers compensation (state-level)",
+      "sources": [
+        { "name": "DOL Workers Comp", "url": "https://www.dol.gov/general/topic/workcomp", "type": "federal" }
+      ]
+    },
+    "tax_withholding": {
+      "label": "Federal tax withholding and reporting",
+      "sources": [
+        { "name": "IRS Employer Tax Guide", "url": "https://www.irs.gov/publications/p15", "type": "federal" }
+      ]
+    },
+    "eeoc": {
+      "label": "Equal Employment Opportunity (15+ employees)",
+      "sources": [
+        { "name": "EEOC", "url": "https://www.eeoc.gov/", "type": "federal" }
+      ]
+    }
+  },
+  "tags": {
+    "general_small_business": {
+      "label": "General small business (fallback classification)",
+      "sources": [
+        { "name": "SBA Compliance Resources", "url": "https://www.sba.gov/business-guide/manage-your-business/stay-legally-compliant", "type": "federal" },
+        { "name": "FTC Business Guidance", "url": "https://www.ftc.gov/business-guidance", "type": "federal" }
+      ],
+      "topics": ["data_privacy", "labor_law", "tax_withholding", "state_privacy_laws"]
+    },
+    "insurance_producer": {
+      "label": "Insurance agency or producer",
+      "sources": [
+        { "name": "NAIC Model Laws", "url": "https://content.naic.org/industry/model-laws", "type": "national" },
+        { "name": "NIPR Producer Database", "url": "https://nipr.com/", "type": "national" },
+        { "name": "Federal Insurance Office", "url": "https://home.treasury.gov/policy-issues/financial-markets-financial-institutions-and-fiscal-service/federal-insurance-office", "type": "federal" }
+      ],
+      "topics": ["insurance_licensing", "insurance_ce", "naic_data_security", "anti_rebating", "suitability", "data_privacy", "state_privacy_laws"]
+    },
+    "construction_contractor": {
+      "label": "Construction / general contractor / trades",
+      "sources": [
+        { "name": "OSHA Laws & Regulations", "url": "https://www.osha.gov/laws-regs", "type": "federal" },
+        { "name": "DOL Davis-Bacon Act", "url": "https://www.dol.gov/agencies/whd/government-contracts", "type": "federal" }
+      ],
+      "topics": ["osha_safety", "contractor_licensing", "mechanics_lien", "prevailing_wage", "workers_comp", "labor_law"]
+    },
+    "roofing_contractor": {
+      "label": "Roofing contractor (specialized trade)",
+      "sources": [
+        { "name": "OSHA Fall Protection", "url": "https://www.osha.gov/fall-protection", "type": "federal" },
+        { "name": "NRCA", "url": "https://www.nrca.net/", "type": "industry" }
+      ],
+      "topics": ["osha_fall_protection", "contractor_licensing", "mechanics_lien", "storm_restoration_law", "workers_comp", "labor_law"]
+    },
+    "healthcare_provider": {
+      "label": "Healthcare provider / clinic / practice",
+      "sources": [
+        { "name": "HHS OCR — HIPAA", "url": "https://www.hhs.gov/hipaa/index.html", "type": "federal" },
+        { "name": "CMS", "url": "https://www.cms.gov/", "type": "federal" }
+      ],
+      "topics": ["hipaa_privacy", "hipaa_security", "hipaa_breach", "cms_billing", "state_privacy_laws"]
+    },
+    "food_service": {
+      "label": "Restaurant / food service",
+      "sources": [
+        { "name": "FDA Food Code", "url": "https://www.fda.gov/food/retail-food-protection/fda-food-code", "type": "federal" },
+        { "name": "USDA FSIS", "url": "https://www.fsis.usda.gov/", "type": "federal" }
+      ],
+      "topics": ["food_safety", "labor_law", "tipped_wage", "alcohol_licensing", "workers_comp"]
+    },
+    "ecommerce_retail": {
+      "label": "E-commerce or retail business",
+      "sources": [
+        { "name": "FTC Consumer Protection", "url": "https://www.ftc.gov/business-guidance/advertising-marketing", "type": "federal" }
+      ],
+      "topics": ["sales_tax_nexus", "pci_dss", "ftc_advertising", "state_privacy_laws", "ada_accessibility"]
+    },
+    "professional_services": {
+      "label": "Professional services (consulting, accounting, marketing)",
+      "sources": [
+        { "name": "SBA Professional Services", "url": "https://www.sba.gov/business-guide/manage-your-business", "type": "federal" }
+      ],
+      "topics": ["business_licensing", "data_privacy", "tax_reporting", "1099_reporting"]
+    },
+    "real_estate": {
+      "label": "Real estate brokerage or agency",
+      "sources": [
+        { "name": "HUD Fair Housing", "url": "https://www.hud.gov/program_offices/fair_housing_equal_opp", "type": "federal" },
+        { "name": "CFPB RESPA", "url": "https://www.consumerfinance.gov/compliance/compliance-resources/mortgage-resources/respa/", "type": "federal" }
+      ],
+      "topics": ["real_estate_licensing", "fair_housing", "respa", "data_privacy"]
+    },
+    "financial_services": {
+      "label": "Financial services (non-bank)",
+      "sources": [
+        { "name": "CFPB", "url": "https://www.consumerfinance.gov/", "type": "federal" },
+        { "name": "FinCEN", "url": "https://www.fincen.gov/", "type": "federal" }
+      ],
+      "topics": ["aml_bsa", "glba_privacy", "cfpb_udaap", "state_licensing"]
+    },
+    "saas_software": {
+      "label": "SaaS or software company",
+      "sources": [
+        { "name": "FTC Data Security", "url": "https://www.ftc.gov/business-guidance/privacy-security/data-security", "type": "federal" }
+      ],
+      "topics": ["state_privacy_laws", "gdpr", "pci_dss", "soc2_readiness", "data_breach_notification"]
+    },
+    "ai_platform": {
+      "label": "AI product/platform business",
+      "sources": [
+        { "name": "NIST AI RMF", "url": "https://www.nist.gov/itl/ai-risk-management-framework", "type": "federal" },
+        { "name": "EUR-Lex AI Act", "url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj", "type": "regional" }
+      ],
+      "topics": ["eu_ai_act", "state_ai_laws", "data_privacy", "model_transparency", "ip_training_data"]
+    }
+  }
+}
