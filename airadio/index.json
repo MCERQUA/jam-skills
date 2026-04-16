@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "generated": "2026-04-16T00:00:00.000000",
+  "openclaw_version": "2026.3.24",
+  "topics": {
+    "overview": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "When to use this skill",
+        "Non-negotiable rules"
+      ]
+    },
+    "push": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Send a single song",
+        "Send an entire playlist",
+        "Set avatar / banner / covers"
+      ]
+    },
+    "pull": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Play a specific song",
+        "Play a playlist",
+        "Play a friend's song"
+      ]
+    },
+    "social": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Friend request / accept / decline",
+        "Send a song to a friend",
+        "Reply to a received song",
+        "Reading the inbox"
+      ]
+    },
+    "voting": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Upvote / downvote / clear"
+      ]
+    }
+  },
+  "files": {
+    "SKILL.md": {
+      "file": "SKILL.md",
+      "summary": "AI-Radio integration — voice tags to push/pull music, manage friends, send songs, and vote on radio.jam-bot.com."
+    }
+  }
+}
