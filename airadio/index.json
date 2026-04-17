@@ -26,6 +26,27 @@
         "Play a friend's song"
       ]
     },
+    "catalog": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Search the full public catalog",
+        "Play any song from the catalog by title or id",
+        "Save a song to the user's library",
+        "Create a playlist",
+        "Read a playlist's contents",
+        "Stream URLs are temporary"
+      ]
+    },
+    "queue": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Voice tags: queue/new, trending, top, random, friends, following, me, liked, unheard",
+        "Voice tags: queue/genre/<slug>, queue/mood/<mood>, queue/artist/@<handle>, queue/similar/<songId>",
+        "Natural-language fallback [AIRADIO_QUEUE:<free-form>]",
+        "Reason string must be spoken verbatim",
+        "Stream URLs expire in 15 minutes"
+      ]
+    },
     "social": {
       "file": "SKILL.md",
       "subtopics": [
@@ -45,7 +66,7 @@
   "files": {
     "SKILL.md": {
       "file": "SKILL.md",
-      "summary": "AI-Radio integration — voice tags to push/pull music, manage friends, send songs, and vote on radio.jam-bot.com."
+      "summary": "AI-Radio integration — voice tags to push/pull music, browse the platform-wide catalog, save cross-user songs, manage playlists, manage friends, send songs, vote, and queue voice-shaped radio picks (new / trending / friends / mood / genre / artist / similar / natural-language) on ai-radio.jam-bot.com."
     }
   }
 }
