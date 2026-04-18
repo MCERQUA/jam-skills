@@ -32,10 +32,10 @@ If the user is just asking generic music questions (generate, play local, skip),
 
 ### Send a single song
 
-Look up the song by name in your workspace (`music/` or `generated_music/`). Then emit:
+The tag accepts either the exact filename (without extension) OR the song's title — the bridge fuzzy-matches against both library and generated playlists.
 
 ```
-[AIRADIO_PUSH_SONG:<exact filename without extension>]
+[AIRADIO_PUSH_SONG:<title or filename>]
 ```
 
 Example — user says *"send 'Code Block Cartel' to my AI-Radio"*:
@@ -44,7 +44,19 @@ On it — pushing Code Block Cartel to your AI-Radio now.
 [AIRADIO_PUSH_SONG:Code-Block-Cartel]
 ```
 
-The user will not hear the tag; they'll hear "pushing Code Block Cartel to your AI-Radio now." OVU will call the bridge and confirm via toast when the upload completes.
+The user will not hear the tag; they'll hear the spoken sentence only. OVU calls the bridge and AI-Radio dedupes by (user, sunoId) / (user, sourceHash), so re-pushing the same song is a safe no-op.
+
+### "This song" / "send this" — ALWAYS read the current context
+
+Every user turn includes a context line like `[Music PLAYING: <title>]` or `[Available tracks — Generated (N): <list>]` in the message. When the user says *"this song"*, *"send this"*, *"that one"*, or *"the one playing"*, you MUST use the title from the current `[Music PLAYING: <title>]` marker — NOT a song from an earlier turn.
+
+Example — context shows `[Music PLAYING: AI On The Line]` and user says *"push this to airadio"*:
+```
+Pushing AI On The Line to your AI-Radio now.
+[AIRADIO_PUSH_SONG:AI On The Line]
+```
+
+If no track is currently playing, ASK the user which track they mean — do NOT guess based on conversation history.
 
 ### Send an entire playlist
 
