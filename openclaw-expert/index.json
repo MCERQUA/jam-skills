@@ -975,6 +975,20 @@
         "12. Quick Reference \u2014 All Diagnostic Commands"
       ],
       "summary": "# OpenClaw Troubleshooting Reference"
+    },
+    "session-recovery-and-empty-finals": {
+      "file": "references/session-recovery-and-empty-finals.md",
+      "headings": [
+        "Core failure mode: MiniMax empty-final",
+        "The cascade architecture",
+        "The recovery prime",
+        "Session poisoning pattern",
+        "Related fixes (all in openvoiceui, not openclaw)",
+        "Triage checklist for agent-silent / wrong-context issues",
+        "What NOT to do",
+        "Session-monitor signals to watch"
+      ],
+      "summary": "Playbook for debugging empty LLM responses, session poisoning, and conversation-flow breakdowns. Documents the 13-fix recovery cascade deployed 2026-04-18/19."
     }
   },
   "teaching_modules": [
