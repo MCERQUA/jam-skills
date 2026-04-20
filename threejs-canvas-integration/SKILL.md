@@ -14,6 +14,8 @@ This skill covers how to build Three.js 3D games and experiences as OpenVoiceUI 
 | **Single-file canvas page** | Simple games, demos, visualizations | Write complete HTML to `/app/runtime/canvas-pages/` |
 | **Full project build** | Complex games with many assets, npm deps | Build in `~/Websites/`, copy output to canvas-pages |
 
+> **Related skill:** To paint a **live, interactive** HTML element (canvas page, DOM widget, video, iframe) onto a 3D mesh — forms and buttons still work — load `threejs-html-surfaces`. Chrome-only, experimental, but the way to build 3D spaces with usable UI surfaces.
+
 ## Approach 1: Single-File Canvas Page (Recommended)
 
 ### Import Map + ES Modules
