@@ -46,6 +46,34 @@ On it — pushing Code Block Cartel to your AI-Radio now.
 
 The user will not hear the tag; they'll hear the spoken sentence only. OVU calls the bridge and AI-Radio dedupes by (user, sunoId) / (user, sourceHash), so re-pushing the same song is a safe no-op.
 
+### Check before pushing — dedup against the user's own AI-Radio library
+
+Before emitting `[AIRADIO_PUSH_SONG:...]` for a track that might already be up there, emit a check tag first and look at the system response on the NEXT turn. This avoids telling the user "I pushed it" when it was already on AI-Radio and no upload actually happened.
+
+```
+[AIRADIO_CHECK_IN_LIBRARY:<title>]
+```
+
+The bridge posts back into your transcript one of:
+- `AI-Radio: "<title>" ALREADY in library (exact match) → <titles>` — skip the push, tell the user it's already there.
+- `AI-Radio: "<title>" NOT in library — safe to push` — OK to push.
+
+Example:
+```
+Checking if that's already on your AI-Radio.
+[AIRADIO_CHECK_IN_LIBRARY:AI On The Line]
+```
+Then, after the next turn confirms it's not there:
+```
+It's not up there yet — pushing now.
+[AIRADIO_PUSH_SONG:AI On The Line]
+```
+
+Rules:
+- Only skip the check if the user explicitly says "push it again" / "re-upload" / "force push". Otherwise check first.
+- Never combine a push tag and a check tag in the same reply — they race. Check, wait for the system line, THEN push on the next turn.
+- For playlists, the upstream dedupes each song individually; no separate playlist check tag is needed.
+
 ### "This song" / "send this" — ALWAYS read the current context
 
 Every user turn includes a context line like `[Music PLAYING: <title>]` or `[Available tracks — Generated (N): <list>]` in the message. When the user says *"this song"*, *"send this"*, *"that one"*, or *"the one playing"*, you MUST use the title from the current `[Music PLAYING: <title>]` marker — NOT a song from an earlier turn.
@@ -145,10 +173,13 @@ Rules:
 
 ### Reading the inbox
 
-When the user asks *"what songs did friends send me?"*:
-1. Call the inbox via `GET /api/airadio/inbox` using the `exec` tool (or the social-dashboard bridge if preferred) — OR just invite OVU to surface it through the sidebar badge.
-2. Summarize the top 3 unread by default. Don't dump the full list uninvited — this is private.
-3. Offer to play the top one: *"Nick sent you Bass Quake an hour ago — want to play it?"*
+When the user asks *"what songs did friends send me?"*, emit:
+
+```
+[AIRADIO_INBOX]
+```
+
+The bridge posts back `AI-Radio: inbox: N sends (K unread)`. Use it to size your answer. Don't dump the full list uninvited — this is private. Offer to play the top one: *"Nick sent you Bass Quake an hour ago — want to play it?"*
 
 ---
 
@@ -194,6 +225,14 @@ Rules:
 - Only save when the user explicitly asks
 - Never bulk-save from a search result
 - You can't save a song the user already owns — acknowledge and skip
+
+### Read the user's own library counts
+
+```
+[AIRADIO_LIBRARY]
+```
+
+Bridge posts a summary back: *"library: N songs, M playlists"*. Handy when the user asks how much is up there. Don't dump the actual titles unless they ask.
 
 ### Create a playlist
 
@@ -338,14 +377,29 @@ Rules:
 
 ---
 
+## Open the AI-Radio UI in a canvas page
+
+The workspace has a dedicated iframe canvas page that embeds `https://ai-radio.jam-bot.com` inside OpenVoiceUI — the user gets the full AI-Radio interface (library, friends, player, settings) without leaving OVU.
+
+```
+[CANVAS:airadio]
+```
+
+Use this when the user says *"open AI-Radio"*, *"show me my AI-Radio"*, *"let me see the catalog"*, etc. The canvas page has nav shortcuts for Home / Discover / My Library / Friends / Inbox / Settings / My Profile and an "Open in new tab" button.
+
+Do NOT use `[CANVAS_URL:https://ai-radio.jam-bot.com]` — the dedicated page handles nav and user context correctly. Plain `[CANVAS_URL:...]` would work (ai-radio now allows jam-bot subdomain framing) but loses the header nav.
+
+---
+
 ## Non-negotiable rules
 
 1. Never emit an AI-Radio tag that the user didn't authorize **in this conversational turn**. Especially for votes, friend requests, and song sends.
 2. Never push a file that isn't clearly identifiable in the user's workspace. If in doubt, ask.
-3. Never claim a push/send succeeded until OVU confirms — the initial tag emission is the *request*, not the result.
-4. Never read a friend's inbox contents aloud without being asked.
-5. Never combine AI-Radio actions with heavy monologue — the tags run fast; keep the TTS response short and informative.
-6. The user's own AI-Radio profile is at `https://ai-radio.jam-bot.com/u/<their-username>`. Link to it if they want to review what was sent.
+3. **Check before pushing.** When the user asks to push a song, emit `[AIRADIO_CHECK_IN_LIBRARY:<title>]` FIRST and wait for the system line in the next turn. Only emit `[AIRADIO_PUSH_SONG:...]` if the check reports "NOT in library" — or if the user explicitly said "re-push" / "force". This stops you from telling the user "pushed!" when the song was silently deduped server-side.
+4. Never claim a push/send succeeded until OVU confirms — the initial tag emission is the *request*, not the result. The bridge posts a `AI-Radio: ...` system line into the transcript on completion; speak from THAT, not from the tag emission.
+5. Never read a friend's inbox contents aloud without being asked.
+6. Never combine AI-Radio actions with heavy monologue — the tags run fast; keep the TTS response short and informative.
+7. The user's own AI-Radio profile is at `https://ai-radio.jam-bot.com/u/<their-username>`. Link to it if they want to review what was sent. Or open `[CANVAS:airadio]` and click "My Profile".
 
 ---
 

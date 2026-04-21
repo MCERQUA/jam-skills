@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "generated": "2026-04-16T00:00:00.000000",
+  "version": 2,
+  "generated": "2026-04-20T00:00:00.000000",
   "openclaw_version": "2026.3.24",
   "topics": {
     "overview": {
@@ -14,6 +14,7 @@
       "file": "SKILL.md",
       "subtopics": [
         "Send a single song",
+        "Check before pushing — dedup against the user's own AI-Radio library",
         "Send an entire playlist",
         "Set avatar / banner / covers"
       ]
@@ -32,6 +33,7 @@
         "Search the full public catalog",
         "Play any song from the catalog by title or id",
         "Save a song to the user's library",
+        "Read the user's own library counts",
         "Create a playlist",
         "Read a playlist's contents",
         "Stream URLs are temporary"
@@ -61,12 +63,18 @@
       "subtopics": [
         "Upvote / downvote / clear"
       ]
+    },
+    "ui": {
+      "file": "SKILL.md",
+      "subtopics": [
+        "Open the AI-Radio UI in a canvas page ([CANVAS:airadio])"
+      ]
     }
   },
   "files": {
     "SKILL.md": {
       "file": "SKILL.md",
-      "summary": "AI-Radio integration — voice tags to push/pull music, browse the platform-wide catalog, save cross-user songs, manage playlists, manage friends, send songs, vote, and queue voice-shaped radio picks (new / trending / friends / mood / genre / artist / similar / natural-language) on ai-radio.jam-bot.com."
+      "summary": "AI-Radio integration — voice tags to push/pull music, browse the platform-wide catalog, dedup-check the user's own library before pushing, save cross-user songs, manage playlists, manage friends, send songs, vote, queue voice-shaped radio picks, and open the embedded AI-Radio UI as a canvas page on ai-radio.jam-bot.com."
     }
   }
 }
