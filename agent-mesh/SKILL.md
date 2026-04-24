@@ -133,9 +133,177 @@ Before any destructive action on a peer's container / nginx / port:
 5. Execute the action, then write `KIND: announcement` "rebuild-complete"
    confirming post-return-signals reached.
 
+## Layer 3 — Work Coordination (v2.1.x)
+
+These CLIs build on top of the core mesh transport. They handle structured work:
+tasks, background jobs, pipelines, semaphores, pub/sub events, and residential
+node delegation. All require `AGENT_URI` env var.
+
+### `mesh-task-claim` — distributed task queue
+
+```bash
+# List available tasks across all queues
+mesh-task-claim list [--queue <name>]
+# Claim a task atomically (only one agent wins the race)
+mesh-task-claim claim <filename>
+# Mark a claimed task done
+mesh-task-claim complete <filename>
+# Show task details
+mesh-task-claim show <filename>
+```
+
+Tasks live in `/mesh/QUEUE/<name>/pending/`. Claimed tasks move to
+`claimed/`; completed tasks move to `completed/`. Atomic via `mkdir` sentinel.
+Any agent can claim from any queue — natural work-stealing.
+
+### `mesh-jobs` — background job lifecycle
+
+```bash
+# Submit a background job
+mesh-jobs submit --name "<job-name>" --body "<description>"
+# List active/all jobs
+mesh-jobs list [--all]
+# Update progress (agent doing the work calls this)
+mesh-jobs update <job-id> --progress "50% — step 3 of 6"
+# Complete or fail a job
+mesh-jobs complete <job-id> [--result "<summary>"]
+mesh-jobs fail <job-id> --reason "<why>"
+```
+
+Jobs live in `/mesh/JOBS/active/<id>.md` → `archive/` (done) or `failed/`.
+Job IDs: `bg-<8hex>`.
+
+### `mesh-semaphore` — named mutex / rate-limit gate
+
+```bash
+# Acquire a named lock (fails exit 1 if held by another agent)
+mesh-semaphore acquire <name>
+# Release a lock (validates you are the holder)
+mesh-semaphore release <name>
+# Check who holds a lock
+mesh-semaphore status <name>
+# Force-release a stuck lock (use only when holder is confirmed dead)
+mesh-semaphore force-release <name>
+```
+
+Locks live in `/mesh/SEMAPHORES/<name>.lock`. Atomic via `.claim` sentinel.
+Use for: rate-limit gates, "only one agent may call this API at a time",
+exclusive writes to shared documents.
+
+### `mesh-pipeline` — multi-step workflow routing
+
+```bash
+# Create a pipeline and dispatch step 0 immediately
+mesh-pipeline create "<name>" \
+    --step "step1:agent1@mesh:on_success@mesh:on_fail@mesh" \
+    --step "step2:agent2@mesh:on_success@mesh:on_fail@mesh"
+
+# Check status
+mesh-pipeline status <pipeline-id>
+
+# Mark step done (routes to next step automatically)
+mesh-pipeline step-done <pipeline-id> <step-index> --success
+mesh-pipeline step-done <pipeline-id> <step-index> --fail --reason "<why>"
+
+# List pipelines
+mesh-pipeline list [--active|--completed|--failed|--all]
+```
+
+Pipeline state machine: `created → running → completed/failed/cancelled`.
+Manifests live in `/mesh/PIPELINES/<pl-id>/manifest.json` + `log.md`.
+Step agents receive `KIND: pipeline-step` messages in their inbox.
+
+### `mesh-event` — pub/sub topic events
+
+```bash
+# Subscribe to a topic (idempotent)
+mesh-event subscribe <topic>
+# Publish an event (delivers to all subscribers' inboxes as KIND: announcement)
+echo "body text" | mesh-event publish <topic>
+mesh-event publish <topic> --body "<text>" [--ttl <seconds>]
+# Poll unread events for this agent on a topic
+mesh-event poll <topic>
+# List subscribers
+mesh-event list-subscribers <topic>
+# List all active topics
+mesh-event topics
+# GC expired events
+mesh-event gc [--dry-run]
+```
+
+Events live in `/mesh/EVENTS/<topic-slug>/ev-<id>.md`. Per-agent processed
+sentinels in `.processed/<agent>/`. Use for: broadcast signals, system
+lifecycle events, integration callbacks, cross-agent notifications.
+
+### `mesh-delegate` — dispatch to residential pool
+
+```bash
+# Dispatch a task to an available residential node
+mesh-delegate \
+    --task-type "browser-form" \
+    --intent "Submit listing on yelp.com" \
+    --visibility foreground \
+    [--deadline "2026-04-25T12:00:00Z"] \
+    [--fallback dead-letter|surface-to-user|drop] \
+    [--allow-in-use]
+```
+
+Calls `mesh-pick-residential.sh` internally. On no available node: writes to
+`/mesh/DEAD_LETTER/residential-pool/` with `RETRY_POLICY: on-availability`.
+`--visibility foreground` = blocks on `in_use` nodes. `background` skips them.
+
+### `mesh-residential-schedule` — schedule node availability
+
+```bash
+# Add a scheduled task window to local schedule
+mesh-residential-schedule add \
+    --time "2026-04-25T14:00:00Z" \
+    --task-id "form-submit-batch" \
+    --description "Submit 8 directory listings" \
+    [--visibility foreground] \
+    [--duration 3600]
+
+# List/render schedule
+mesh-residential-schedule list
+mesh-residential-schedule render   # publishes to BLACKBOARD
+```
+
+### `mesh-watch-arm` — multi-source event watcher
+
+Watches inbox, QUEUE pending, JOBS active, and EVENTS for new files.
+First iteration drains all pre-arm queues. Then 5s poll. Emits:
+
+```
+[mesh queued] inbox: <filename>
+[mesh new] inbox: <filename>
+[mesh new] queue: <filename>
+[mesh new] job: <filename>
+[mesh new] event:<topic>: <filename>
+```
+
+Use with `Monitor(persistent=true)` to react to arriving work without polling.
+
+---
+
+## Shared directories (Layer 3)
+
+| Path | Purpose |
+|------|---------|
+| `/mesh/QUEUE/<name>/pending/` | Unclaimed tasks |
+| `/mesh/QUEUE/<name>/claimed/` | In-progress tasks |
+| `/mesh/QUEUE/<name>/completed/` | Done tasks |
+| `/mesh/JOBS/active/` | Running background jobs |
+| `/mesh/JOBS/archive/` | Completed jobs |
+| `/mesh/JOBS/failed/` | Failed jobs |
+| `/mesh/SEMAPHORES/` | Named mutex lock files |
+| `/mesh/PIPELINES/<id>/` | Pipeline manifests + logs |
+| `/mesh/EVENTS/<topic>/` | Pub/sub event files |
+| `/mesh/DEAD_LETTER/` | Undeliverable messages pending replay |
+| `/mesh/BLACKBOARD/` | Shared ephemeral knowledge board |
+
 ## Reference pointers
 
-- Full protocol: `/mesh/PROTOCOL.md` (v2.0.0)
+- Full protocol: `/mesh/PROTOCOL.md` (v2.1.1)
 - Quarantine playbook: `/mesh/QUARANTINE-PLAYBOOK.md`
 - Watchdog log (host): `/var/log/jambot-mesh-inotify.log`
 - Watchdog log (container): `/config/workspace/mesh-events.log`
