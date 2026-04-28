@@ -285,13 +285,36 @@ and select provider in admin panel before installing.
 | `security.yml` | PR + schedule | Trivy security scan |
 | `docs.yml` | Push to main | Deploy docs to GitHub Pages |
 
+## OpenClaw Version Management
+
+Three installer paths pin the same openclaw version. They MUST always match:
+- `docker-compose.yml` (Pinokio default)
+- `deploy/openclaw/Dockerfile` (Docker native build default)
+- `setup-sudo.sh` (native Linux install)
+
+**NEVER edit these files individually.** Always use the bump script:
+```bash
+cd /mnt/system/base/OpenVoiceUI && bash bump-openclaw-version.sh <version>
+```
+
+This updates all three atomically and verifies they match. After running it, commit the three files together:
+```bash
+git add docker-compose.yml deploy/openclaw/Dockerfile setup-sudo.sh
+git commit -m "chore: bump openclaw to <version>"
+```
+
+The openclaw version should always match what JamBot is running (`/mnt/system/base/openclaw/Dockerfile`). When JamBot is validated on a new openclaw version, run the bump script for the public installers at the same time.
+
+**Never use `latest`** — end users can't roll back a broken openclaw release.
+
 ## Common Mistakes to Avoid
 
 - **Releasing without Full Changelog link** — always include it
 - **Inconsistent release note format** — follow the template exactly
 - **Forgetting plugin stubs** — every plugin needs `plugin.json` + `README.md` in main repo
 - **Debug logging in releases** — search and remove before tagging
-- **Using `:latest` for container images** — always pin versions
+- **Using `:latest` for container images** — always pin versions, use bump-openclaw-version.sh for openclaw
+- **Manually editing openclaw version in individual files** — always use `bash bump-openclaw-version.sh <version>`
 - **Committing directly to main** — always go through dev → PR → main
 - **Skipping npm verification** — always check `npm view openvoiceui version` after release
 - **Mismatched versions** — `package.json`, tag, and release title must all agree
