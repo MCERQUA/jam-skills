@@ -1,7 +1,7 @@
 ---
 name: song-tagger
 description: "Analyze an audio file and return structural tags — genre, mood, energy, tempo, vocals — using offline zero-shot classification. Use when the user asks what a song sounds like, what genre/mood it is, or wants to auto-tag a music library. No API cost per song."
-metadata: {"openclaw": {"requires": {"anyBins": ["python3"], "files": ["/mnt/system/base/tools/song-tagger/.venv/bin/python"]}}}
+metadata: {"openclaw": {}}
 ---
 
 # Song Tagger Skill
@@ -17,36 +17,51 @@ Offline tagger that labels an audio file with genre, mood, energy, tempo, and vo
 
 Do **not** use for speech recognition, lyrics extraction, or detailed music critique — that's Audio Flamingo territory.
 
-## ⚠️ Where this tool can run
+## How to invoke from the agent
 
-The tagger lives on the **host** at `/mnt/system/base/tools/song-tagger/`. It is **not mounted inside client openclaw containers today** — you (the agent) cannot invoke it from inside the container with `exec()`.
+The tagger runs on the **host** (torch/librosa native deps). It is exposed as an HTTP service on port 18792, proxied through the OVU Flask server.
 
-**What you CAN do from inside a container:**
-- Reference this skill to explain capabilities to the user
-- Read tag sidecars IF the admin has placed them inside the workspace (`/home/node/.openclaw/workspace/music-tags/` or similar path)
-- Ask the admin (Mike) to run the tagger against a folder
-
-**What must happen on the host (admin-operated):**
-- All `run tag` / `run batch` invocations
-
-### Admin commands (run from `mike@Mike-AI` shell)
+Use the OVU API with the `X-Agent-Key` header (same key used for all internal agent→Flask calls):
 
 ```bash
 # Single file
-/mnt/system/base/tools/song-tagger/run tag "/mnt/clients/<user>/openvoiceui/generated_music/<song>.mp3"
+curl -s http://openvoiceui:5001/api/song-tagger/tag \
+  -H "X-Agent-Key: $AGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"file": "/app/runtime/generated_music/<song>.mp3"}'
 
-# Whole client library
-/mnt/system/base/tools/song-tagger/run batch /mnt/clients/<user>/openvoiceui/generated_music
+# Whole generated library (inline = tags land as *.mp3.tags.json next to each file)
+curl -s http://openvoiceui:5001/api/song-tagger/batch \
+  -H "X-Agent-Key: $AGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"dir": "/app/runtime/generated_music", "inline": true}'
 
-# Everyone
-/mnt/system/base/tools/song-tagger/run batch /mnt/clients
+# Health check
+curl -s http://openvoiceui:5001/api/song-tagger/health \
+  -H "X-Agent-Key: $AGENT_API_KEY"
 ```
 
-Default output location: `/mnt/system/base/tools/song-tagger/tags/<client>/<song>.json`.
+`AGENT_API_KEY` is available in the container environment. The OVU hostname inside the Docker network is `openvoiceui` on port 5001.
 
-To make results agent-visible, admin can either:
-- Use `--inline` so tags land as `*.mp3.tags.json` next to the source files (visible via openvoiceui file APIs), or
-- Rsync the `tags/` tree into each client's workspace: `cp -r tags/<user>/ /mnt/clients/<user>/openclaw/workspace/music-tags/`
+File paths must use OVU container paths:
+- Generated music: `/app/runtime/generated_music/<filename>.mp3`
+- Music library: `/app/runtime/music/<filename>.mp3`
+
+With `"inline": true` the batch run writes `<song>.mp3.tags.json` next to each mp3 in the workspace. Without it, results go to the host-side tagger `tags/` directory only.
+
+### Result shape
+
+```json
+{
+  "ok": true,
+  "data": {
+    "top": { "genre": "house music", "mood": "confident", "energy": "high energy", "tempo_feel": "very fast tempo", "vocals": "has both male and female vocals" },
+    "axes": { "genre": [...top 5...], "mood": [...top 5...], ... }
+  }
+}
+```
+
+Summarize from `top` when speaking the result to the user.
 
 ## Flags reference (for admin commands)
 
