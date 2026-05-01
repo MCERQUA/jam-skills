@@ -1,3 +1,9 @@
+---
+name: ubuntu-desktop
+description: "Control the KDE Ubuntu webtop via 8 ovui-desktop plugin tools — screenshot, list windows, launch apps, move/resize windows, type text, send key combos, click at coordinates, and create desktop launchers."
+version: 1.0.0
+---
+
 # Ubuntu Desktop Control
 
 You have 8 tools to drive the KDE desktop via the ovui-desktop plugin. Use them to automate the desktop, run apps, take screenshots, type, click, and manage windows.

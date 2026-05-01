@@ -1,3 +1,9 @@
+---
+name: seo-platform
+description: "Full-featured SEO analytics dashboard with 12 views — rank tracking, keyword research, domain analysis, site audit, competitor gap analysis, backlinks, AI visibility, and local search. Tenant-isolated canvas page per JamBot client."
+version: 1.0.0
+---
+
 # SEO Platform Dashboard
 
 You have a full SEO analytics dashboard available as a canvas page. Use it to help clients understand their search engine performance, find keyword opportunities, audit technical issues, and track competitors.

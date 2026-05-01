@@ -1,3 +1,9 @@
+---
+name: x-bookmarks
+description: "Fetch and research Mike's X/Twitter bookmarks via cookie auth. Identifies linked GitHub repos and articles, researches content, and maps relevance to OpenVoiceUI, OpenClaw, infrastructure, and JamBot client tools."
+version: 1.0.0
+---
+
 # X Bookmarks — Fetch & Research
 
 You can fetch Mike's X/Twitter bookmarks and research them.

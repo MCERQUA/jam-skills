@@ -1,3 +1,9 @@
+---
+name: agencyzoom
+description: "AgencyZoom insurance CRM integration (by Vertafore) — search leads, create personal and business leads, add notes and tasks, open service requests, and update records. Syncs to AMS360 automatically. Never write back without user confirmation."
+version: 1.0.0
+---
+
 # AgencyZoom — Insurance CRM Integration
 
 AgencyZoom is the insurance CRM (by Vertafore) connected to AMS360 for policy management.

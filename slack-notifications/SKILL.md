@@ -1,3 +1,9 @@
+---
+name: slack-notifications
+description: "Send messages and rich Block Kit notifications to a client's Slack workspace — post text updates, structured status reports, and task completions to any configured channel using pre-wired bot credentials."
+version: 1.0.0
+---
+
 # Slack Notifications Skill
 
 Send messages and updates to the client's Slack workspace. Use this skill when the user asks you to post to Slack, send updates, notify their team, or share results.

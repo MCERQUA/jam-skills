@@ -1,3 +1,9 @@
+---
+name: hyperfy
+description: "Build and script objects in a Hyperfy 3D virtual world via REST API — AI generates Hyperfy scripts from plain-language descriptions. Create, edit, and delete live world objects without touching engine source. Runs on 3d-test-dev.jam-bot.com."
+version: 1.0.0
+---
+
 # Hyperfy 3D World Builder Skill
 
 Build, script, and manage objects in Hyperfy — an open-source 3D virtual world engine.

@@ -1,3 +1,9 @@
+---
+name: slack-voice-reply
+description: "Generate voice audio replies via Groq Orpheus TTS and post them to Slack as audio files. 6 voices, vocal direction tags, posts to any pre-wired Slack channel. Use when a spoken response is more engaging than text."
+version: 1.0.0
+---
+
 # Slack Voice Reply Skill
 
 Generate voice audio replies using Groq Orpheus TTS and send them to Slack channels. Use this when you want to reply with a voice message instead of (or in addition to) text.

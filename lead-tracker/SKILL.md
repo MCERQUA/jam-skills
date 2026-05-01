@@ -1,3 +1,9 @@
+---
+name: lead-tracker
+description: "Track and manage website form submission leads from the central Social Dashboard database. View, filter by status/site/date range, update lead status, add notes, and log follow-ups via the API at 172.17.0.1:6350/api/leads."
+version: 1.0.0
+---
+
 # Lead Tracker Skill
 
 All website form submissions are stored in a central database. Use this API to view, search, and manage leads — NOT the old `website_leads.json` file.

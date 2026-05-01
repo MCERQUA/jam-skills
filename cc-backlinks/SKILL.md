@@ -1,3 +1,9 @@
+---
+name: cc-backlinks
+description: "Free backlink discovery powered by the Common Crawl hyperlink graph — zero cost per query, on-VPS dataset. Additive check alongside paid DataForSEO backlink calls. Compare multiple domains or competitors without burning credits."
+version: 1.0.0
+---
+
 # Common Crawl Backlinks (Free Backlink Lookup)
 
 You have access to a free backlink discovery tool powered by the Common Crawl hyperlink graph. Use this as an **additive free check** alongside the paid DataForSEO backlink data — it costs nothing per query, so you can run it liberally for every client and every competitor.
