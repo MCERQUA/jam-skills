@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Logo } from "./Logo";
 
 interface NavItem {
   label: string;
@@ -16,7 +17,16 @@ interface NavCTA {
 }
 
 interface NavbarProps {
-  logo?: string;
+  /**
+   * Business name (also used as wordmark fallback when no logo image exists).
+   */
+  businessName: string;
+  /**
+   * Path to the logo image. Phase 5 (ASSETS) copies the client logo to
+   * `/public/logo.png` (or `.svg`). Pass that path here. If missing, the
+   * component renders `businessName` as a wordmark.
+   */
+  logoSrc?: string;
   navItems?: NavItem[];
   cta?: NavCTA;
   /**
@@ -38,16 +48,10 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
 
 const DEFAULT_CTA: NavCTA = { label: "Get a Quote", href: "/contact" };
 
-// REPLACE: Pass real business name via the logo prop.
-const DEFAULTS = {
-  logo: "REPLACE: Logo",
-};
-
 export function Navbar(props: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const logo = props.logo ?? DEFAULTS.logo;
   const navItems = props.navItems ?? DEFAULT_NAV_ITEMS;
   const cta = props.cta ?? DEFAULT_CTA;
 
@@ -67,10 +71,11 @@ export function Navbar(props: NavbarProps) {
       )}
     >
       <nav className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="text-xl font-heading font-bold text-foreground shrink-0">
-          {logo}
-        </Link>
+        <Logo
+          src={props.logoSrc ?? "/logo.png"}
+          wordmarkFallback={props.businessName}
+          alt={props.businessName}
+        />
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6 lg:gap-8">

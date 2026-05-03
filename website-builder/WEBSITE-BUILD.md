@@ -1,5 +1,50 @@
 # WEBSITE-BUILD.md — Automated Website Build Workflow
 
+## NON-NEGOTIABLE RULES (Read Before Any Phase)
+
+You are building a client-deliverable website. Violating any one of these rules
+fails the entire build. There is no "build with warnings". A phase passes its
+gate or the build fails.
+
+**RULE 0 — Determine the design source FIRST.** Read `intake.stitchScreens` and `intake.designTemplate` BEFORE any other phase decision. The result picks one of three paths:
+
+| TIER 1 winner | Trigger | What it means |
+|---|---|---|
+| **1.A — Stitch supplied** | `intake.stitchScreens` non-empty | The user gave you existing Stitch screens by ID. FETCH them via `get_screen` and use them as the LITERAL blueprint. DO NOT call `create_project` or `generate_screen_from_text`. DO NOT add pages that aren't in the supplied screens. DO NOT mix in any "PAGE COMPOSITION BY BUSINESS TYPE" boilerplate from this doc. |
+| **1.B — Design Template** | `intake.designTemplate` non-empty AND `stitchScreens` empty | The user picked a built-in template. Use its `designMd` tokens as the design source for Phase 3 generation. |
+| **1.C — Generate from brand controls** | both empty | Phase 3 generates Stitch screens from scratch using brand controls (theme, colors, fonts) below. Only this path may consult the boilerplate "PAGE COMPOSITION BY BUSINESS TYPE" section as a structural fallback. |
+
+Every phase below branches on this winner. Mix-and-match is forbidden — never use 1.A's Stitch HTMLs alongside 1.C's boilerplate templates.
+
+**RULE 1 — Palette source is CONDITIONAL on TIER 1.**
+- If 1.A wins → palette comes from the **fetched Stitch HTMLs themselves** (parse `colorsUsed` in `structure.json`). Logo / theme / manual color pickers are reference only — they do NOT override Stitch's palette.
+- If 1.B wins → palette comes from the template's `designMd` tokens.
+- If 1.C wins → cascade: Logo sampled (`extract-logo-colors.sh`) > Theme preset (`intake.theme`) > Manual pickers (`intake.colors.*`) > defaults.
+
+Phase 1.5 BRAND-EXTRACT may still write `.brand/colors.json` for reference + favicon background, but Phase 4 (DESIGN SYSTEM) consults the TIER-1-appropriate palette source — NOT always `.brand/colors.json`.
+
+**RULE 2 — Color tweaks come AFTER first deploy.** Do not adjust the supplied design's palette during the build. If the user wants to refine colors, that's a follow-up via `/build-rebuild --from design-system`.
+
+**RULE 3 — DataForSEO is mandatory for Phase 1.** Read `/mnt/shared-skills/dataforseo/SKILL.md` and call the API for keyword volumes, CPCs, and SERP data. Web-search results, "industry estimates", and your own guesses are unacceptable. If DataForSEO is unavailable, the build halts. Every row in `keywords.md` MUST cite an integer search_volume and decimal CPC from `.dfs/volumes.json` — string ranges like "Low (50-100)" are unacceptable.
+
+**RULE 4 — No purple, no indigo, no violet, no fuchsia.** Hue range 240-290 is forbidden. Phase 7 enforces with `tools/color-allowlist-check.py`. Tailwind classes `bg-purple-*`, `bg-indigo-*`, `bg-violet-*`, `bg-fuchsia-*` (and the same for `text/border/from/to/via`) are banned. Default `#4F46E5` indigo MUST NEVER appear.
+
+**RULE 5 — Logo must be visible in every page render.** Phase 6 copies the logo to `public/logo.png`, generates favicons, wires the `<Logo />` component into Navbar. Build is incomplete if the deployed header shows a wordmark fallback when a logo file exists.
+
+**RULE 6 — Supplied media wins over generated.** Phase 6 ASSETS uses `intake.heroImage`, `intake.teamImage`, `intake.gallery[]` for slots that match. Only generate AI images for slots Stitch left empty AND no user media exists for. Never replace a user-supplied image with an AI-generated one.
+
+**RULE 7 — Quality gate is functional, not static.** Phase 7 runs `pnpm build` (prod, in webdev container), curls every URL in `sitemap.xml`, runs color allowlist + Stitch fidelity check. `tsc --noEmit` alone is theater.
+
+**RULE 8 — Deploy reconciles the webdev container's environment.** Phase 8 calls `tools/webdev-deploy.sh <client> <project>` which inspects `WEBDEV_PROJECT_NAME`, rewrites compose if mismatched, ensures `.env.local` exists, recreates the service, HTTP 200-checks. The site MUST serve at the client's webdev URL after Phase 8 completes — verified by curl, not by trust.
+
+**RULE 9 — Snapshot the intake into the project repo.** Phase 8 copies `~/Websites/<project>/.intake.json` to `~/Websites/<project>/docs/website-intake-snapshot.json` and commits it. Future Mike + future agents need to know what was originally requested.
+
+**RULE 10 — Push to GitHub.** Phase 9 (VERIFICATION) creates the GitHub repo if it doesn't exist (using `intake.projectName` as the repo name under the configured org/user) and pushes the working branch. Build is not complete until the code is on GitHub.
+
+**RULE 11 — Failure stops the pipeline.** "Marked complete with warnings" is forbidden. If a phase gate fails, set `status: failed` with the failing gate name and HALT.
+
+---
+
 ## ⚠️ CONTAINER RULE — NON-NEGOTIABLE
 
 **You are running inside an openclaw container (2GB RAM). The webdev container (3GB) is what compiles and serves the website.**
@@ -37,12 +82,27 @@ This file describes the automated build pipeline that runs ONLY when the canvas 
 
 ## Trigger
 
-You receive a message from the automated build pipeline asking you to execute a 6-phase website build.
+You receive a message from the automated build pipeline asking you to execute the 9-phase website build.
 
-**Triggered by:** A message containing `Read WEBSITE-BUILD.md and execute the full 6-phase automated build for project: <project-name>`
+**Triggered by:** A message containing `Read WEBSITE-BUILD.md and execute the full automated build for project: <project-name>`
 
 The intake data is at: `~/Websites/<project-name>/.intake.json`
 The status file is at: `~/Websites/<project-name>/.build-status.json`
+
+### Phase Map (canonical order — DO NOT REORDER)
+
+| # | Phase | Type | Output | Gate |
+|---|-------|------|--------|------|
+| 1 | RESEARCH | sub-agent | `ai/research/keywords.md` + `.dfs/*.json` | `.dfs/volumes.json` exists + non-empty |
+| 1.5 | BRAND-EXTRACT | inline | `.brand/colors.json` (+ `.brand/logo.png`) | primary not in hue 240-290 |
+| 2 | SCAFFOLD | exec | Next.js project + deps | `pnpm install` exits 0 |
+| 3 | STITCH PAGES | inline | `.stitch-pages/*.html` + `structure.json` | every page in intake has a Stitch HTML |
+| 4 | DESIGN SYSTEM | inline | `globals.css`, `tailwind.config.ts`, `fonts.ts` | uses `.brand/colors.json` + Stitch palette |
+| 5 | BUILD PAGES | sub-agent | `src/app/**/page.tsx`, `src/components/sections/*.tsx` | `stitch-fidelity-check.py` ≥ 0.85 |
+| 6 | ASSETS | inline | `public/logo.png`, favicons, hero/og images | `<Logo />` referenced from Navbar |
+| 7 | QUALITY GATE | inline | `.quality-gate/*.json` reports | prod build OK + every URL 200 + 0 violations |
+| 8 | DEPLOY | exec | webdev-deploy.sh runs | webdev container healthy + serves new project |
+| 9 | VERIFICATION | inline | final checklist report | all 6 verification curls pass |
 
 ## Before You Start
 
@@ -87,9 +147,18 @@ Write the detected `BUSINESS_TYPE` into `.claude/CLAUDE.md` (created in Phase 2 
 
 ---
 
-## DESIGN RULES BY BUSINESS TYPE — NON-NEGOTIABLE
+## DESIGN RULES BY BUSINESS TYPE — APPLIES ONLY WHEN TIER 1 = 1.C (generate-from-controls)
 
-These rules exist because a dark SaaS aesthetic on a local plumber's website destroys trust and drives customers away. The aesthetic MUST match customer expectations for the industry.
+**HARD GATE — read RULE 0 in NON-NEGOTIABLE RULES at top of file FIRST.** This entire section applies ONLY when both `intake.stitchScreens` AND `intake.designTemplate` are empty. When EITHER is set:
+- Stitch / Template is the design source of truth
+- Section count, section types, layout decisions come from Stitch / Template
+- DO NOT inject TrustBar / HowItWorks / Stats / Features sections that aren't in the supplied design
+- DO NOT enforce "minimum 8 sections" or any section-count rule from this section
+- The CSS palette comes from `parse-stitch-html.py` colorsUsed (1.A) or `designTemplate.designMd` (1.B), NOT from the CSS-variable defaults below
+
+**If you skip this gate and apply the rules below to a 1.A or 1.B build, the build fails the Stitch fidelity gate (Phase 7) AND the visual outcome will not match the supplied design — see SRC build 2026-05-02 incident where TrustBar + Features were injected into a Stitch-supplied home that called for 5 sections.**
+
+These fallback rules exist for 1.C builds because a dark SaaS aesthetic on a local plumber's website destroys trust and drives customers away. The aesthetic MUST match customer expectations for the industry — but ONLY when there is no supplied design to defer to.
 
 ---
 
@@ -251,6 +320,7 @@ To update, read the current file, modify the relevant fields, write it back. Alw
 **Create research directory:**
 ```
 ~/Websites/<project>/ai/research/
+~/Websites/<project>/ai/research/.dfs/
 ```
 
 **Before spawning, copy intake for sub-agent access:**
@@ -263,31 +333,151 @@ cp ~/Websites/<project>/.intake.json ~/Websites/<project>/ai/.intake-copy.json
 sessions_spawn({
   task: "You are a market researcher. Read the business intake at ~/Websites/<PROJECT>/ai/.intake-copy.json.
 
-Your job: Research this business's market and competitors. Write findings to ~/Websites/<PROJECT>/ai/research/.
+Your job: Research this business's market and competitors using REAL DATA from DataForSEO. Write findings to ~/Websites/<PROJECT>/ai/research/.
 
-TASKS (do all 5):
+MANDATORY FIRST STEP: Read /mnt/shared-skills/dataforseo/SKILL.md to understand the API and the JSONL output format. This phase REQUIRES DataForSEO data — web search results for keyword volumes are unacceptable.
 
-1. COMPETITOR ANALYSIS — web_search for '<industry> <location>' and '<industry> near <location>'. Find 5-10 competitors. For each: name, URL, strengths, weaknesses, what they do well on their website. Save to: ai/research/competitors.md
+TASKS (do all in this order):
 
-2. KEYWORD RESEARCH — web_search for what customers search when looking for this service. Find 20-30 keywords grouped by intent (informational, commercial, transactional). Include estimated difficulty. Save to: ai/research/keywords.md
+1. DATAFORSEO PULL (mandatory — every keyword/CPC/SERP datum below MUST come from these calls):
+   a. dataforseo.sh keywords_for_site for top 3 competitors (from intake) → ai/research/.dfs/competitor-keywords.json
+   b. Compose a candidate term list (40-60 terms): intake's services × locations × intent variants. Write to ai/research/.dfs/candidates.txt
+   c. dataforseo.sh search_volume_live for the candidate list → ai/research/.dfs/volumes.json
+   d. dataforseo.sh google_organic_serp_live for top 5 head terms → ai/research/.dfs/serps.json
+   e. dataforseo.sh backlinks_summary_live for top 3 competitor domains → ai/research/.dfs/backlinks.json
 
-3. MARKET ANALYSIS — Summarize the local market: how competitive is it, what's the opportunity, what gaps exist. Save to: ai/research/market-analysis.md
+2. COMPETITOR ANALYSIS — for each of the top 5-10 competitors (from .dfs/competitor-keywords.json + intake): name, URL, strengths, weaknesses, total backlinks (from .dfs/backlinks.json), top organic keywords. Save to: ai/research/competitors.md
 
-4. CONTENT STRATEGY — Based on keywords and competitor gaps, recommend: which pages to build, what topics to cover, what questions to answer (FAQ). For SERVICE_LOCAL businesses, every individual service must be its own recommended page. Save to: ai/research/content-strategy.md
+3. KEYWORD STRATEGY — read .dfs/volumes.json. Group keywords by intent (informational, commercial, transactional, navigational). Each entry must list: keyword, MONTHLY VOLUME AS AN INTEGER from DFS (no "Low/Medium/High" qualifiers), CPC AS A DECIMAL from DFS, competition_index from DFS, assigned target page. Save as a Markdown table to: ai/research/keywords.md
+   At the top of keywords.md, write: 'Tools Used: DataForSEO (live pull, $X.XX cost — sum of API responses)'.
+   FORBIDDEN in keywords.md: any string ranges like "Low (50-100)", "Medium (200-500)", "~250/mo", "estimated", or empty volume cells. Every row MUST have an integer volume traceable to .dfs/volumes.json. Phase 5 will read this file and put these keywords in page titles + H1s — fake numbers means fake SEO.
 
-5. DESIGN NOTES — Based on competitor websites: what visual patterns work in this industry, what's overused, what would differentiate this business. Color and layout observations. IMPORTANT: note the BUSINESS_TYPE and whether competitor sites use light or dark backgrounds. Save to: ai/research/design-notes.md
+4. TOPICAL MAP — read .dfs/volumes.json + .dfs/serps.json. Cluster keywords into 4-8 topical clusters (e.g. "decking materials", "deck installation cost", "deck permits + regulations", "outdoor living design"). For each cluster: list pillar keyword (highest volume in cluster), 5-12 supporting keywords, 2-4 intent gaps competitors aren't covering, recommended hub-or-spoke page. Save to: ai/research/topical-map.md
 
-IMPORTANT: After completing ALL tasks, update ~/Websites/<PROJECT>/.build-status.json:
+5. FAQ RESEARCH — extract People-Also-Ask questions and "what/how/why" intent keywords from .dfs/serps.json + .dfs/volumes.json. Produce 20-40 Q&A pairs grouped by intent cluster. Each Q has: the question (verbatim from SERP), 2-3 sentence answer drafted from intake + competitor research, target page assignment. Save to: ai/research/faq-research.md
+
+6. PAGE RECOMMENDATIONS — based on topical-map.md + intake.pages + intake.services + intake.targetMarkets, recommend the FULL site page set for SEO strength. List: every page in intake.pages (must keep), recommended additions (e.g. service-detail pages per intake.services entry, location pages per intake.targetMarkets if local SEO opportunity warrants). Each recommendation includes WHY (which keywords it captures + their volume). Save to: ai/research/page-recommendations.md
+   Note: Phase 3.5 PAGE PLAN uses intake.pages as authoritative for what gets BUILT — recommendations here are for Mike to review and add to intake.pages on next run. DO NOT silently expand intake.pages.
+
+7. MARKET ANALYSIS — Summarize the local market using DFS-backed numbers: total monthly search volume in the niche, average CPC, competitive density. Identify gaps where competitors have low backlink counts on high-CPC terms. Save to: ai/research/market-analysis.md
+
+8. COMPETITOR ANALYSIS — for each of the top 5-10 competitors (from .dfs/competitor-keywords.json + intake): name, URL, strengths, weaknesses, total backlinks (from .dfs/backlinks.json), top organic keywords. Save to: ai/research/competitors.md
+
+9. CONTENT STRATEGY — One paragraph per page in intake.pages: what this page should achieve, primary keyword (from keywords.md), secondary keywords, conversion CTA. Save to: ai/research/content-strategy.md
+
+10. DESIGN NOTES — Based on competitor websites: what visual patterns work in this industry, what's overused, what would differentiate this business. Note BUSINESS_TYPE and whether competitor sites use light or dark backgrounds. Save to: ai/research/design-notes.md
+
+GATE: When done, verify ALL of these files exist AND non-empty:
+  ai/research/.dfs/volumes.json (≥30 keyword rows)
+  ai/research/keywords.md (≥30 rows, every row has integer volume + decimal CPC, no string ranges)
+  ai/research/topical-map.md (≥4 clusters)
+  ai/research/faq-research.md (≥20 Q&A pairs)
+  ai/research/page-recommendations.md
+  ai/research/competitors.md
+  ai/research/content-strategy.md
+If any are missing/empty/violating, set phases.research.status='failed' with message describing what's missing — do NOT mark complete.
+
+IMPORTANT: After completing ALL tasks (and only if the gate passes), update ~/Websites/<PROJECT>/.build-status.json:
 - Set phases.research.status to 'complete'
-- Set phases.research.message to 'Research complete — X competitors analyzed, Y keywords found'
+- Set phases.research.message to 'Research complete — N competitors, M keywords (DFS), $X.XX spend'
 - Set updatedAt to current time
 
-End with: OUTPUT_SAVED: ai/research/",
+End with: OUTPUT_SAVED: ai/research/  (and a one-line summary of DFS keyword count + cost)",
   label: "website-research-<project>"
 })
 ```
 
-**After sub-agent completes:** Read `ai/research/competitors.md` to verify it exists.
+**After sub-agent returns, host-side gate (you, not the sub-agent):**
+```bash
+PROJECT_DIR=~/Websites/<project>
+test -s "$PROJECT_DIR/ai/research/.dfs/volumes.json" || { echo "GATE FAIL: .dfs/volumes.json missing/empty"; exit 1; }
+KW_COUNT=$(python3 -c "import json; d=json.load(open('$PROJECT_DIR/ai/research/.dfs/volumes.json')); print(sum(len(t.get('result',[])) for t in d.get('tasks',[])))")
+[ "${KW_COUNT:-0}" -ge 30 ] || { echo "GATE FAIL: only $KW_COUNT keywords from DFS, need ≥30"; exit 1; }
+```
+
+If the gate fails, set `phases.research.status: "failed"` with the failing condition in `message`, set top-level `status: "failed"`, and HALT. Do NOT proceed to Phase 1.5.
+
+**After sub-agent completes:** Read `ai/research/competitors.md` and `ai/research/keywords.md` to verify they exist and that keywords.md has DFS-backed numbers (no `~` or "estimated" qualifiers in the volume column).
+
+---
+
+## Phase 1.5: BRAND-EXTRACT (inline, ~30 seconds)
+
+**Purpose:** Sample real pixel colors from the client's logo file. The intake's `brandColors` field is a hint only — the LOGO is the source of truth. Without this phase, builds fall back to whatever the intake has, which has historically been Tailwind defaults (indigo `#4F46E5`) producing purple websites that violate the no-purple rule.
+
+**Update status:** `currentPhase: "brand-extract"`, `phases.brand-extract.status: "in_progress"`, `phases.brand-extract.message: "Sampling logo colors..."`
+
+**Step 1 — locate the logo:**
+```bash
+PROJECT_DIR=~/Websites/<project>
+mkdir -p "$PROJECT_DIR/.brand"
+
+# Logo source priority:
+# 1. .intake.json → brandAssets.logo (server URL or local path)
+# 2. .intake.json → logo (legacy field)
+# 3. ~/openvoiceui/uploads/<project>-logo*.{png,svg,jpg}  (manual upload)
+LOGO_REF="$(python3 -c "
+import json
+d=json.load(open('$PROJECT_DIR/.intake.json'))
+print(d.get('brandAssets',{}).get('logo') or d.get('logo') or '')
+" 2>/dev/null)"
+
+if [ -z "$LOGO_REF" ]; then
+    # Fallback search
+    LOGO_REF="$(ls ~/openvoiceui/uploads/${PROJECT}-logo*.png ~/openvoiceui/uploads/${PROJECT}-logo*.svg 2>/dev/null | head -1)"
+fi
+
+if [ -z "$LOGO_REF" ]; then
+    echo "GATE FAIL: no logo found in intake.brandAssets.logo, intake.logo, or uploads/${PROJECT}-logo.*"
+    # Mark phase failed and HALT
+    exit 1
+fi
+```
+
+**Step 2 — extract colors:**
+```bash
+bash /mnt/shared-skills/website-builder/tools/extract-logo-colors.sh \
+    --logo "$LOGO_REF" \
+    --output "$PROJECT_DIR/.brand/colors.json"
+```
+
+The script writes:
+- `.brand/colors.json` with `{primary, primaryHsl, accent, accentHsl, neutral, dominantHues, isMonochrome, warnings}`
+- Hue range 240-290 (purple/indigo) is auto-rejected at the script level — primary will NEVER be purple even if the logo has purple accents
+
+**Step 3 — copy logo asset for Phase 6:**
+```bash
+# Determine extension and copy as canonical .brand/logo.<ext>
+case "$LOGO_REF" in
+    *.svg|*.SVG) cp "$LOGO_REF" "$PROJECT_DIR/.brand/logo.svg" ;;
+    http*://*) curl -fsSL "$LOGO_REF" -o "$PROJECT_DIR/.brand/logo.png" ;;
+    *) cp "$LOGO_REF" "$PROJECT_DIR/.brand/logo.png" ;;
+esac
+```
+
+**Step 4 — handle monochrome / palette warnings:**
+
+Read `.brand/colors.json`. If `isMonochrome: true` OR `warnings` mentions "primary and accent are within 20deg":
+- Phase 4 (DESIGN SYSTEM) will compute a complementary accent from the primary (rotate hue +180°). No action needed here, but log a note in `phases.brand-extract.message`.
+
+**Step 5 — gate:**
+```bash
+PRIMARY_HUE=$(python3 -c "
+import json
+d=json.load(open('$PROJECT_DIR/.brand/colors.json'))
+h=d.get('primaryHsl','0 0% 0%').split()[0]
+print(h)
+")
+# Sanity: primary must NOT be purple/indigo
+python3 -c "
+h=float('$PRIMARY_HUE')
+import sys
+sys.exit(1 if 240 <= h <= 290 else 0)
+" || { echo "GATE FAIL: extracted primary is in forbidden hue range $PRIMARY_HUE"; exit 1; }
+```
+
+**Step 6 — mark complete:**
+Update `phases.brand-extract.status: "complete"`, message: `"Logo colors extracted: primary=<hex>, accent=<hex>"`.
 
 ---
 
@@ -368,68 +558,125 @@ cd ~/Websites/<project> && git checkout -b web-dev
 
 ---
 
-## Phase 3: DESIGN SYSTEM (inline, ~1 minute)
+## Phase 3: STITCH PAGES (inline, ~2-4 minutes per page) — MANDATORY
 
-**Update status:** `currentPhase: "design-system"`, `phases.design-system.status: "in_progress"`, `phases.design-system.message: "Configuring brand colors and typography..."`
+**Why this runs BEFORE Design System:** Stitch is the design source of truth. Phase 4 (DESIGN SYSTEM) reads palette + typography from the fetched Stitch HTMLs. Building tokens first and asking Stitch later produces visual conflicts.
 
-**Read:** `/mnt/shared-skills/website-builder/instructions/design-system.md`
+### Step 0 — Detect TIER 1 (design source) and BRANCH
 
-**Read the BUSINESS_TYPE** from `.claude/CLAUDE.md` before touching any file in this phase.
-
-### Step 1: Set CSS variables in `src/app/globals.css`
-
-Use the intake's `colorPrimary`, `colorSecondary`, `colorAccent`. If no colors provided, use research `design-notes.md` to pick appropriate colors.
-
-**For SERVICE_LOCAL — apply these overrides non-negotiably:**
-```css
-:root {
-  --background: 0 0% 100%;           /* pure white — do NOT change for SERVICE_LOCAL */
-  --foreground: 222 47% 11%;         /* near-black */
-  --card: 210 20% 98%;               /* near-white card bg */
-  --card-foreground: 222 47% 11%;
-  --muted: 210 20% 96%;              /* light gray — used for alternating sections */
-  --muted-foreground: 215 16% 47%;
-  --border: 214 32% 91%;
-  /* Primary, secondary, accent come from intake brand colors */
-}
-/* Do NOT add a .dark { } block for SERVICE_LOCAL — no dark mode */
-```
-
-**For SAAS_PRODUCT or PROFESSIONAL_SERVICES:** Set background, surface, border, text, muted colors appropriate to their theme. Dark is acceptable for SAAS_PRODUCT only.
-
-### Step 2: Configure tailwind.config.ts
-- Set `colors.primary`, `colors.secondary`, `colors.accent` to the brand colors
-- Set `fontFamily.heading` and `fontFamily.body` from intake fonts (or defaults)
-
-### Step 3: Set up fonts in `src/lib/fonts.ts`
-- Import the heading and body fonts from Google Fonts
-- Match the tone from intake:
-  - SERVICE_LOCAL + PROFESSIONAL_SERVICES → clean sans-serif (Inter, Nunito, Geist)
-  - PROFESSIONAL_SERVICES → serif headings acceptable (Playfair Display, Lora)
-  - SAAS_PRODUCT → modern sans-serif (Geist, Inter, DM Sans)
-
-### Step 4: Write design approach to `.claude/CLAUDE.md`
-Add a section confirming:
-- BUSINESS_TYPE
-- Background approach (light/dark)
-- Whether phone prop is used (SERVICE_LOCAL and PROFESSIONAL_SERVICES → yes)
-- Hero layout to use (SERVICE_LOCAL → `split-right` preferred, SAAS → `centered` ok)
-- Animation style (SERVICE_LOCAL → fade-in only, SAAS → full creative allowed)
-
-### Step 5: Git commit
 ```bash
-cd ~/Websites/<project> && git add -A && git commit -m "style: apply brand design system"
+PROJECT_DIR=~/Websites/<project>
+TIER1=$(python3 -c "
+import json
+d=json.load(open('$PROJECT_DIR/.intake.json'))
+ss=d.get('stitchScreens') or []
+dt=d.get('designTemplate') or None
+print('stitch' if ss else ('template' if dt else 'generate'))
+")
+echo "TIER1=$TIER1"
 ```
 
-**Update status:** `phases.design-system.status: "complete"`, `phases.design-system.message: "Design system configured"`
+**Update status:** `currentPhase: "stitch-pages"`, `phases.stitch-pages.status: "in_progress"`, `phases.stitch-pages.message: "TIER1=<TIER1>: <fetching|generating> page layouts..."`
 
 ---
 
-## Phase 3.5: STITCH PAGES (inline, ~2-4 minutes per page)
+### TIER 1.A — FETCH SUPPLIED STITCH SCREENS (when `intake.stitchScreens` non-empty)
 
-Generate detailed HTML mockups for each site page using Google Stitch. The build-pages sub-agent in Phase 4 will read these as design references — they ARE NOT copied verbatim, they GUIDE the layout, sectioning, and visual hierarchy decisions.
+**This is the most common path and the one Mike uses for production builds.** The user has already designed the site in Stitch and supplied the project ID + screen IDs. Your job is to FETCH them and save the HTMLs verbatim. DO NOT call `create_project`. DO NOT call `generate_screen_from_text`. DO NOT add screens for pages the user didn't supply (Phase 3.5 PAGE PLAN handles unsupplied pages by cloning a sibling).
 
-**Update status:** `currentPhase: "stitch-pages"`, `phases.stitch-pages.status: "in_progress"`, `phases.stitch-pages.message: "Generating page layouts with Stitch..."`
+**Step 1 — Parse projectId from intake:**
+
+```bash
+PROJECT_DIR=~/Websites/<project>
+mkdir -p "$PROJECT_DIR/.stitch-pages"
+
+# The form's onStitchInput() parses the pasted markdown into stitchScreens[]
+# but the project ID itself is in the stitchInstructions free text. Regex it.
+STITCH_PROJECT_ID=$(python3 -c "
+import json, re
+d=json.load(open('$PROJECT_DIR/.intake.json'))
+text = d.get('stitchInstructions') or ''
+m = re.search(r'\bID:\s*(\d{10,})', text)
+print(m.group(1) if m else '')
+")
+[ -z "$STITCH_PROJECT_ID" ] && { echo "GATE FAIL: could not parse Stitch project ID from intake.stitchInstructions"; exit 1; }
+echo "Stitch project ID: $STITCH_PROJECT_ID"
+```
+
+**Step 2 — For each supplied screen, fetch its HTML:**
+
+For EACH `intake.stitchScreens[i]`:
+
+1. Map the screen `name` to a page slug using these patterns (FIRST match wins):
+   - `/Home(page)?/i` → `home`
+   - `/About(\s*Us)?/i` → `about`
+   - `/Services?/i` → `services`
+   - `/Contact(\s*Us)?/i` → `contact`
+   - `/FAQ/i` → `faq`
+   - `/Gallery|Portfolio/i` → `gallery`
+   - `/Reviews|Testimonials/i` → `reviews`
+   - `/Pricing/i` → `pricing`
+   - `/Team/i` → `team`
+   - If no match, slugify the name (lowercase, hyphens, alphanum only) and use that.
+
+2. Call the Stitch skill's `get_screen` for each `screenId` against `STITCH_PROJECT_ID`:
+   ```bash
+   exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh get_screen '{\"name\": \"projects/$STITCH_PROJECT_ID/screens/$SCREEN_ID\", \"projectId\": \"$STITCH_PROJECT_ID\", \"screenId\": \"$SCREEN_ID\"}'")
+   ```
+
+3. The response contains `htmlCode.downloadUrl`. Download:
+   ```bash
+   curl -L -s -o "$PROJECT_DIR/.stitch-pages/<slug>.html" "<htmlCode.downloadUrl>"
+   ```
+   (Mike's `intake.stitchInstructions` even says "Use a utility like `curl -L`".)
+
+4. If a `screenshot.downloadUrl` exists, download that too as `.stitch-pages/<slug>.png` for debugging.
+
+**Step 3 — Run the structure parser:**
+```bash
+python3 /mnt/shared-skills/website-builder/tools/parse-stitch-html.py "$PROJECT_DIR/.stitch-pages"
+```
+This writes `.stitch-pages/structure.json`. Phase 5 consumes it.
+
+**Step 4 — GATE (host-side, mandatory):**
+```bash
+# Every supplied screen must have produced a non-empty HTML.
+N_SUPPLIED=$(python3 -c "import json;print(len(json.load(open('$PROJECT_DIR/.intake.json'))['stitchScreens']))")
+N_FETCHED=$(ls "$PROJECT_DIR/.stitch-pages/"*.html 2>/dev/null | wc -l)
+[ "$N_FETCHED" -lt "$N_SUPPLIED" ] && { echo "GATE FAIL: fetched $N_FETCHED of $N_SUPPLIED supplied screens"; exit 1; }
+echo "Fetched $N_FETCHED Stitch screens (all supplied)."
+```
+
+**If any single supplied screen failed to fetch, set `phases.stitch-pages.status: "failed"` and HALT.** Pages the user supplied are non-negotiable.
+
+**Step 5 — Write manifest:**
+```bash
+python3 -c "
+import json, os
+d = json.load(open('$PROJECT_DIR/.intake.json'))
+manifest = {
+  'projectId': '$STITCH_PROJECT_ID',
+  'tier1': 'stitch',
+  'pages': []
+}
+# (mapping from name→slug applied above; record what's on disk)
+import glob
+for html in sorted(glob.glob('$PROJECT_DIR/.stitch-pages/*.html')):
+    slug = os.path.basename(html)[:-5]
+    manifest['pages'].append({'slug': slug, 'htmlPath': '.stitch-pages/' + slug + '.html', 'status': 'complete'})
+open('$PROJECT_DIR/.stitch-pages/manifest.json', 'w').write(json.dumps(manifest, indent=2))
+"
+```
+
+**Mark complete:** `phases.stitch-pages.status: "complete"`, `message: "<N> supplied Stitch screens fetched; structure.json written"`. Continue to Phase 3.5 PAGE PLAN.
+
+---
+
+### TIER 1.B / 1.C — GENERATE STITCH SCREENS (only when no `intake.stitchScreens` supplied)
+
+This path runs ONLY when 1.A doesn't fire. The historical generate-from-prompt logic remains below for these paths. If `intake.designTemplate` is set, embed its `compactDesignMd` in the prompts; otherwise, generate from brand controls.
+
+(The legacy generation steps below execute ONLY in TIER 1.B / 1.C.)
 
 ### Step 1 — Check for a selected design template
 
@@ -469,7 +716,7 @@ exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh create_pro
 
 Save the returned project ID into a variable. You'll use it for every page generation.
 
-If the response contains an error, mark `phases.stitch-pages.status: "failed"` with the error message AND continue to Phase 4 anyway — the build-pages sub-agent can still build pages from scratch. Stitch is enhancement, not a hard dependency.
+If `create_project` returns an error, mark `phases.stitch-pages.status: "failed"` with the error message and HALT the build (top-level `status: "failed"`). Per the NON-NEGOTIABLE RULES, Stitch is the design source of truth — Phase 5 (BUILD PAGES) refuses to run without `.stitch-pages/structure.json`. Do NOT continue.
 
 ### Step 4 — Generate one screen per page
 
@@ -545,19 +792,21 @@ After `generate_screen_from_text` returns (it may return success before the scre
    curl -L -s -o ~/Websites/<project>/.stitch-pages/<page>.png '<screenshot.downloadUrl>'
    ```
 
-### Step 6 — Failure handling per page
+### Step 6 — Failure handling per page (HALT-ON-FAIL)
 
 If a page fails after 3 retries OR `generate_screen_from_text` returns an error:
-- Append the page name to a `failed` list
-- Continue to the next page — do NOT abort the whole phase
-- After all pages: update `phases.stitch-pages.message` to `"<N> pages generated, <M> skipped: <names>"`
+- Mark `phases.stitch-pages.status: "failed"` with `message="page <name> failed: <details>"`
+- Set top-level `status: "failed"`
+- HALT the build — do NOT proceed to other pages, do NOT proceed to Phase 4
+
+There is no "partial success" mode for Stitch. Every page in the intake's pages list MUST have a corresponding `.stitch-pages/<page>.html`. Phase 5 (BUILD PAGES) refuses to run with missing pages.
 
 ### Step 7 — Mark phase complete
 
-After all pages have been attempted:
+After ALL pages have been generated (no partials allowed):
 
-- `phases.stitch-pages.status: "complete"` (even if some pages failed — partial success is success)
-- `phases.stitch-pages.message: "<N> page layouts generated"`
+- `phases.stitch-pages.status: "complete"`
+- `phases.stitch-pages.message: "<N> page layouts generated, all pages present"`
 - Write a manifest at `~/Websites/<project>/.stitch-pages/manifest.json`:
   ```json
   {
@@ -572,338 +821,267 @@ After all pages have been attempted:
   }
   ```
 
-If the WHOLE phase failed (e.g. create_project failed) — mark `phases.stitch-pages.status: "failed"` but DO NOT abort the build. Phase 4 will detect missing `.stitch-pages/` and build from scratch.
+If the WHOLE phase failed (e.g. create_project failed, OR any single page in the intake's pages list could not be generated after retries), mark `phases.stitch-pages.status: "failed"`, set top-level `status: "failed"`, and HALT the build. Phase 5 (BUILD PAGES) WILL NOT run without Stitch HTMLs — see Rule 3 in NON-NEGOTIABLE RULES at the top.
+
+After all Stitch HTMLs are downloaded, run the structure parser:
+```bash
+python3 /mnt/shared-skills/website-builder/tools/parse-stitch-html.py \
+    ~/Websites/<project>/.stitch-pages
+```
+This writes `.stitch-pages/structure.json` — the machine-readable contract Phase 5 consumes for fidelity checking. If parse fails, mark phase failed and HALT.
 
 ---
 
-## Phase 4: BUILD PAGES (sub-agent, ~5-10 minutes)
+## Phase 3.5: PAGE PLAN (inline, ~10 seconds) — NEW
 
-**Update status:** `currentPhase: "build-pages"`, `phases.build-pages.status: "in_progress"`, `phases.build-pages.message: "Building pages with real content..."`
+**Purpose:** Before any pages are built, decide which Stitch HTML each page in `intake.pages` will be built from. Two outcomes per page:
+- `literal` — Mike supplied a Stitch screen for this page; build that page from the supplied HTML 1:1
+- `cloned-from` — Mike did NOT supply Stitch for this page; clone structure from a stylistic sibling supplied screen (preserves visual consistency)
+- `needs-decision` — neither possible; HALT for Mike to provide more Stitch screens or remove the page
 
-**Read:** `/mnt/shared-skills/website-builder/instructions/animations.md`
+This phase is DETERMINISTIC. No sub-agent. Run the script.
 
-**Spawn a sub-agent:**
+```bash
+python3 /mnt/shared-skills/website-builder/tools/page-plan.py ~/Websites/<project>
+```
+
+**Outputs:** `~/Websites/<project>/ai/page-map.json` — Phase 5's locked input.
+
+**Exit codes:**
+- `0` — page-map.json written, no halt-warnings → continue to Phase 4
+- `1` — page-map.json written WITH halt-warnings (one or more pages have no Stitch source AND no acceptable clone fallback) → set `phases.page-plan.status: "failed"`, surface haltWarnings to canvas console, HALT
+- `2` — invalid project layout → set failed, HALT
+
+When 0: `phases.page-plan.status: "complete"`, `message: "<N> pages mapped: <X> literal + <Y> cloned-from"`.
+
+---
+
+## Phase 4: DESIGN SYSTEM (inline, ~1 minute) — was Phase 3
+
+**Why this runs AFTER Stitch:** Stitch has already chosen a palette and button rhythm. We extract those choices into CSS tokens so every page Phase 5 builds renders consistently with the Stitch mockups.
+
+**Update status:** `currentPhase: "design-system"`, `phases.design-system.status: "in_progress"`, `phases.design-system.message: "Configuring brand colors and typography from logo + Stitch..."`
+
+**Read these files in order:**
+1. `~/Websites/<project>/.brand/colors.json` (from Phase 1.5) — primary, accent, neutral are LOCKED.
+2. `~/Websites/<project>/.stitch-pages/structure.json` (from Phase 3) — `colorsUsed` array per page, `buttonStyles`.
+3. `/mnt/shared-skills/website-builder/instructions/design-system.md` — the existing template doc.
+4. `.claude/CLAUDE.md` for BUSINESS_TYPE.
+
+**Source-of-truth precedence (NEVER deviate):**
+
+| Token | Source | Notes |
+|-------|--------|-------|
+| `--primary` | `.brand/colors.json → primaryHsl` | NEVER from intake.colorPrimary |
+| `--accent` | `.brand/colors.json → accentHsl` | If `warnings` mentions "within 20deg", compute complementary: `(primaryHue + 180) % 360 91% 60%` |
+| `--neutral` / muted / border | `.brand/colors.json → neutralHsl` | Lighten for muted, darken for border |
+| `--background`, `--foreground` | BUSINESS_TYPE rules below | Light theme for SERVICE_LOCAL |
+| Heading + body fonts | intake `fonts` field, falls back to BUSINESS_TYPE defaults | Stitch's chosen font is a hint not a mandate (Stitch may pick fonts not on Google Fonts) |
+| Button style | Stitch `structure.json → buttonStyles.primary` if present | Otherwise default rounded-lg primary |
+
+### Step 1: Set CSS variables in `src/app/globals.css`
+
+Use `.brand/colors.json` HSL values. Do NOT use intake `colorPrimary` etc.
+
+**For SERVICE_LOCAL — apply these overrides non-negotiably:**
+```css
+:root {
+  --background: 0 0% 100%;           /* pure white — do NOT change for SERVICE_LOCAL */
+  --foreground: 222 47% 11%;         /* near-black */
+  --card: 210 20% 98%;               /* near-white card bg */
+  --card-foreground: 222 47% 11%;
+  --muted: 210 20% 96%;              /* light gray — used for alternating sections */
+  --muted-foreground: 215 16% 47%;
+  --border: 214 32% 91%;
+
+  /* THESE MUST come from .brand/colors.json — NEVER hardcoded indigo defaults */
+  --primary: <primaryHsl from .brand/colors.json>;
+  --primary-foreground: 0 0% 100%;
+  --accent: <accentHsl from .brand/colors.json — or computed complementary>;
+  --accent-foreground: 0 0% 100%;
+}
+/* Do NOT add a .dark { } block for SERVICE_LOCAL — no dark mode */
+```
+
+**For SAAS_PRODUCT or PROFESSIONAL_SERVICES:** Set background, surface, border, text, muted colors appropriate to their theme. Dark is acceptable for SAAS_PRODUCT only. `--primary` and `--accent` STILL come from `.brand/colors.json`, never from intake.
+
+**Forbidden:** any `:root` value that lands in HSL hue 240-290. Phase 7 will fail the build if found. The default `#4F46E5` (indigo-600 HSL `243 75% 59%`) MUST NEVER appear.
+
+### Step 2: Configure tailwind.config.ts
+- Set `colors.primary`, `colors.accent` from `.brand/colors.json`
+- Set `fontFamily.heading` and `fontFamily.body` from intake fonts (or BUSINESS_TYPE defaults)
+
+### Step 3: Set up fonts in `src/lib/fonts.ts`
+- Import the heading and body fonts from Google Fonts
+- Match the tone from intake:
+  - SERVICE_LOCAL + PROFESSIONAL_SERVICES → clean sans-serif (Inter, Nunito, Geist)
+  - PROFESSIONAL_SERVICES → serif headings acceptable (Playfair Display, Lora)
+  - SAAS_PRODUCT → modern sans-serif (Geist, Inter, DM Sans)
+
+### Step 4: Write design approach to `.claude/CLAUDE.md`
+Add a section confirming:
+- BUSINESS_TYPE
+- Background approach (light/dark)
+- Whether phone prop is used (SERVICE_LOCAL and PROFESSIONAL_SERVICES → yes)
+- Hero layout to use (SERVICE_LOCAL → `split-right` preferred, SAAS → `centered` ok)
+- Animation style (SERVICE_LOCAL → fade-in only, SAAS → full creative allowed)
+- The exact `--primary` and `--accent` HSL values that came from `.brand/colors.json`
+
+### Step 5: Git commit
+```bash
+cd ~/Websites/<project> && git add -A && git commit -m "style: apply brand design system from logo + Stitch"
+```
+
+**Gate:** Run `grep -E "indigo|purple|violet|fuchsia|#4F46E5|243 7" ~/Websites/<project>/src/app/globals.css ~/Websites/<project>/tailwind.config.ts` — if ANY hits, fail this phase with the offending file:line.
+
+**Update status:** `phases.design-system.status: "complete"`, `phases.design-system.message: "Design system configured (primary=<hex>, accent=<hex>)"`
+
+---
+
+## Phase 5: BUILD PAGES (sub-agent, ~5-10 minutes) — was Phase 4
+
+**Update status:** `currentPhase: "build-pages"`, `phases.build-pages.status: "in_progress"`, `phases.build-pages.message: "Translating Stitch HTMLs to Next.js pages..."`
+
+**Pre-conditions (verify BEFORE spawning the sub-agent — fail Phase 5 if missing):**
+1. `~/Websites/<PROJECT>/.stitch-pages/structure.json` exists and lists every page in `intake.pages` AND `intake.stitchScreens[].name`-mapped slug. If a page is missing, fail with `"Phase 3 incomplete: page <name> has no Stitch HTML"`. Do NOT spawn the sub-agent.
+2. `~/Websites/<PROJECT>/ai/page-map.json` exists (Phase 1.6 PAGE PLAN output) — assigns each page to a Stitch source screen + role + keywords.
+3. `~/Websites/<PROJECT>/.brand/colors.json` exists.
+
+**Spawn ONE sub-agent with this exact prompt (do not embellish, do not add boilerplate, do not include any "build a great website" guidance — every word below is load-bearing):**
+
 ```
 sessions_spawn({
-  task: "You are a website builder. Build all pages for the <PROJECT> website.
+  task: "You translate Stitch HTML mockups into Next.js page.tsx files. You DO NOT design. You DO NOT add sections. You DO NOT remove sections. You preserve structure verbatim and only substitute copy.
 
-READ THESE FILES FIRST — IN THIS ORDER:
-1. ~/Websites/<PROJECT>/.claude/CLAUDE.md (brand config + BUSINESS_TYPE — THIS IS YOUR NORTH STAR)
-2. ~/Websites/<PROJECT>/ai/research/content-strategy.md (what pages and content to build)
-3. ~/Websites/<PROJECT>/ai/research/keywords.md (SEO keywords to target in headings)
-4. ~/Websites/<PROJECT>/ai/research/competitors.md (what to differentiate from)
-5. /mnt/shared-skills/website-builder/instructions/animations.md (animation patterns)
-6. /mnt/shared-skills/website-builder/instructions/images.md (image strategy — required images per page, sizing, alt text rules)
-7. ~/Websites/<PROJECT>/.stitch-pages/manifest.json IF IT EXISTS — lists per-page Stitch HTML mockups generated in Phase 3.5
+INPUT (locked):
+  ~/Websites/<PROJECT>/.stitch-pages/structure.json   — machine-parsed Stitch structure per page
+  ~/Websites/<PROJECT>/.stitch-pages/<page>.html       — raw Stitch HTML per page (your blueprint)
+  ~/Websites/<PROJECT>/ai/page-map.json                — page → stitch-source mapping + per-page keywords
+  ~/Websites/<PROJECT>/ai/research/keywords.md         — DFS-backed keyword data
+  ~/Websites/<PROJECT>/ai/research/faq-research.md     — researched FAQ Q&A
+  ~/Websites/<PROJECT>/.brand/colors.json              — locked palette
+  ~/Websites/<PROJECT>/.intake.json                    — business info, contact, socials, services, address
 
-STITCH MOCKUPS — IF .stitch-pages/manifest.json EXISTS:
-  For every page you build, FIRST read ~/Websites/<PROJECT>/.stitch-pages/<page>.html as a DESIGN REFERENCE.
-  - The Stitch HTML shows the intended layout, section order, hierarchy, and visual treatment for that page
-  - Use it to decide: WHICH sections to include, in WHAT order, with WHAT visual emphasis
-  - DO NOT copy the Stitch HTML verbatim. It is Tailwind/HTML, not Next.js. You build with the section components in src/components/sections/, and use the Stitch HTML as a layout blueprint
-  - DO match the section count, section order, and visual hierarchy of the Stitch mockup
-  - DO match the headline tone and CTA wording style (but use real keywords from research)
-  - If a Stitch HTML for a specific page is missing from .stitch-pages/, build that page from scratch using the standard section templates
-  - The compactDesignMd in manifest.json contains brand rules — apply them to ALL pages (color treatment, signature elements, do/don't rules)
+OUTPUT (locked):
+  ~/Websites/<PROJECT>/src/app/<route>/page.tsx        — one file per page in page-map.json
+  ~/Websites/<PROJECT>/src/components/sections/<...>.tsx — only if a Stitch section needs a new template; copy from /mnt/shared-skills/website-builder/templates/sections/ as the base
 
-SECTION TEMPLATES are already at: ~/Websites/<PROJECT>/src/components/sections/
-ANIMATION WRAPPERS are at: ~/Websites/<PROJECT>/src/components/animations/
+HARD RULES:
+1. For each page in page-map.json, read its assigned <stitch_source>.html and structure.json[page] FIRST.
+2. Build the page.tsx with EXACTLY the section count + section order from structure.json. No additions. No removals.
+3. Hero H1 = the H1 from structure.json (you may insert the page's primary keyword if it fits naturally; otherwise verbatim).
+4. Page <title> in metadata = '<H1> | <businessName>' — primary keyword MUST appear in title.
+5. Section copy: replace Stitch's placeholder text with real copy derived from intake + keywords.md + faq-research.md. Section structure (headings, card count, layout) is FROZEN.
+6. Forbidden imports/colors: no Tailwind palette classes from purple/indigo/violet/fuchsia families. No hex literals outside .brand/colors.json.
+7. Logo + Navbar API: <Navbar businessName='...' logoSrc='/logo.png' phone='...' navItems={...} cta={...} /> — there is no 'logo' prop.
+8. Image slots in Stitch: the corresponding <img> URL is captured in structure.json[page].images[]. Reference those by their public path that Phase 6 will populate (/images/<slot>.<ext>). DO NOT invent new image slots Stitch didn't have. DO NOT remove image slots Stitch did have.
+9. Pages NOT in page-map.json may NOT be built. If intake.pages references a page that page-map.json doesn't, that's a Phase 1.6 bug — set phases.build-pages.status='failed' and HALT.
+10. **SECTION COMPONENT ALLOWLIST**: `src/components/sections/` IS the allowlist. You may ONLY import section components that already exist in that directory. Run `ls src/components/sections/` FIRST. If a Stitch section type needs a component that doesn't exist (e.g. Stitch has a 'before-after' section but no BeforeAfter.tsx in sections/), COPY a similar canonical template from `/mnt/shared-skills/website-builder/templates/sections/<name>.tsx` to your project's `src/components/sections/<name>.tsx` AS THE BASE, then customize.
+11. **FORBIDDEN imports for 1.A and 1.B builds**: TrustBar, Features, FeaturesBento, HowItWorks, Stats, Pricing, BlogList, ErrorPage, NotFound, ThemeToggle. These live in `/mnt/shared-skills/website-builder/templates/sections-fallback-1c/` and are ONLY for 1.C generate-from-controls builds. If you import any of these in a 1.A/1.B build, the build fails. Stitch did not call for them — do not invent them.
+12. **No section additions, no section removals.** Per the structure.json sectionCount target. If Stitch has 5 sections, build 5. If 7, build 7. The number is fixed by the supplied design.
 
-IMAGE PREP: Phase 5 (Assets) will generate images AFTER you finish. When building Hero components, include the heroImage prop pointing to '/images/hero.png' — the file will be created in Phase 5. For service pages, use '/images/<service-slug>.png'. These paths will be populated with real AI-generated images.
+STANDARD INFRASTRUCTURE (build these once, NOT in any per-page section):
+- src/app/layout.tsx: metadataBase=new URL('https://<intake.domain>'), JSON-LD per BUSINESS_TYPE (LocalBusiness for service-local; include address, telephone, openingHours, areaServed from intake), openGraph.images=[{url:'/og/default.png',width:1200,height:630}], icons={icon:'/favicon.ico',apple:'/apple-touch-icon.png'}
+- src/app/sitemap.ts: emit one entry per page in page-map.json
+- public/robots.txt: User-agent: * / Allow: / / Sitemap: https://<intake.domain>/sitemap.xml
+- /privacy and /terms: minimal pages (not in page-map but must exist for legal/footer compliance)
+- src/app/api/contact/route.ts: basic POST handler that accepts the contact form payload — must exist so the form does not 404. If intake.email is set, send via mailto fallback or log.
 
-THE BUSINESS_TYPE in CLAUDE.md controls EVERYTHING about visual design.
-Read it. Follow it. Do not deviate.
+VERIFICATION (run before marking complete):
+- pnpm tsc --noEmit  (must exit 0)
+- python3 /mnt/shared-skills/website-builder/tools/stitch-fidelity-check.py ~/Websites/<PROJECT> --threshold 0.85 --strict
+- python3 /mnt/shared-skills/website-builder/tools/color-allowlist-check.py ~/Websites/<PROJECT>
 
----
+If any of those exit non-zero, set phases.build-pages.status='failed' with the failing report path in message. DO NOT mark complete.
 
-## CONTENT RULES (Follow exactly — these prevent the most common build failures)
-
-### URLs and Links
-- ALL external links (GitHub, social, etc.) must come from the intake's `socials` field
-- If a social URL is not in intake, do NOT guess it — use `#` or omit the link
-- Never use placeholder URLs like github.com/openvoiceui, twitter.com/example, etc.
-- The GitHub link in Navbar and Footer must be: intake.socials.github (or omitted if missing)
-
-### Social Proof (Testimonials)
-NEVER generate fake testimonials with made-up names and fake job titles.
-
-Instead, pick ONE of these approaches based on the intake:
-a) **Open source project**: Replace Testimonials with a GitHub Stats section — show star count, fork count, contributor count (use shields.io badges or GitHub API data from research)
-b) **New business (no reviews yet)**: Use a 'How It Works' section or a Use Cases section instead of testimonials. Include a note: <!-- CLIENT: Add real customer quotes here before launch -->
-c) **Established business**: Only include testimonials if the intake provides real customer names and quotes in the `notes` or a dedicated field
-
-### Stats
-Stats must be accurate and verifiable:
-- Only include a stat if you can confirm it from intake data or research
-- If the stat is an estimate, round conservatively
-- Common bad stats to avoid: made-up years in business, inflated job counts, fake review ratings
-- If no real stats are available, replace the Stats section with an additional service card or service area callout
-
-### Feature Descriptions
-Every feature description MUST include a concrete example in plain language.
-
-Bad: 'Extensible skill system for adding integrations'
-Good: 'Skill System — Add new capabilities without touching core code. Example: connect your CRM so your AI can look up customer history mid-call.'
-
----
-
-## PAGE COMPOSITION BY BUSINESS TYPE
-
-### SERVICE_LOCAL — HOME PAGE (minimum 8 sections, in this order)
-
-1. **Navbar** — pass `logo`, `phone`, `navItems`, `cta` props. Phone MUST be passed.
-   ```tsx
-   <Navbar
-     logo="<Business Name>"
-     phone="<phone from intake>"
-     navItems={[...]}
-     cta={{ label: 'Get a Free Quote', href: '/contact' }}
-   />
-   ```
-
-2. **Hero** — pass `layout="split-right"`, `phone`, `badge`, `title`, `subtitle`, primary and secondary CTAs. Phone MUST be passed.
-   ```tsx
-   <Hero
-     layout="split-right"
-     badge="<trust signal — e.g. 'Licensed & Insured · 20+ Years Experience'>"
-     title="<main headline targeting primary keyword>"
-     titleAccent="<accent phrase>"
-     subtitle="<1-2 sentence description with location and service>"
-     phone="<phone from intake>"
-     primaryCTA="Get a Free Quote"
-     primaryHref="/contact"
-     secondaryCTA="See Our Services"
-     secondaryHref="/services"
-     heroImage="<heroImage from intake if available>"
-   />
-   ```
-
-3. **TrustBar** — horizontal strip immediately below hero with trust signals. Use real data from intake/research ONLY.
-   - Years in business
-   - Jobs completed or clients served (if available from intake)
-   - Review rating + platform (Google, BBB — only if available)
-   - Certifications, licenses (list real ones from intake)
-   - Licensed / Bonded / Insured (if applicable)
-   This section builds immediate credibility. Do NOT put placeholder numbers here.
-
-4. **Services section** — label it 'Our Services'. List 4-6 specific named services with real descriptions. Each card links to that service's dedicated page (e.g., `/spray-foam-insulation`). Add a short concrete example for each. Do NOT use generic descriptions like 'Professional service with attention to detail.'
-
-5. **How It Works** — 3-4 numbered steps showing exactly how the client engages this business. Make the steps specific to their process, not generic. Example for a contractor: '1. Free on-site estimate → 2. We provide a written proposal → 3. Work begins on your schedule → 4. Final walkthrough & satisfaction guarantee.'
-
-6. **Social proof section** — choose ONE:
-   - If intake has real customer quotes: Testimonials with real names, real locations, real text
-   - If no reviews yet: Results / Case Studies section with specific project outcomes (without invented client names)
-   - Comment: <!-- CLIENT: Add real customer reviews here before launch -->
-
-7. **Stats** — ONLY if real numbers are available from intake:
-   - Years in business, number of jobs, number of cities served, etc.
-   If NO real stats are available from intake, SKIP this section and replace with an additional services callout or service area grid.
-
-8. **CTA section** — strong call to action with:
-   - Headline: 'Ready to Get Started?'
-   - Subtext: mention free estimate or quick response time if that's in the intake
-   - Phone number displayed large (same `Phone` icon + `tel:` link pattern as Hero)
-   - 'Get a Free Quote' button linking to `/contact`
-   - Do NOT add a secondary CTA here — one clear action only
-
-9. **Footer** — include: business name, phone, email, address, hours, nav links, service links, copyright, privacy + terms links
-
----
-
-### SERVICE_LOCAL — SERVICE PAGES (one page per service)
-
-Each service gets its own route (e.g., `/spray-foam-insulation`, `/hvac-repair`, `/general-liability-insurance`).
-Source the service list from intake `services` field + content-strategy.md recommendations.
-
-Each service page must have these sections IN ORDER:
-1. Navbar (with phone)
-2. Hero — smaller than home hero, focused on this specific service. `layout="centered"` OK here. Include service name in title, target the service-specific keyword.
-3. 'What's Included' — detailed breakdown of what this service covers. Use real specifics from intake or research. 4-6 bullet points minimum.
-4. 'Who It's For / Use Cases' — 3-4 specific scenarios where a customer would need this service
-5. 'Our Process' — 3-4 steps specific to delivering this service
-6. 'Why Choose [Business Name] for [Service]' — differentiators: certifications, experience, warranty, response time, local knowledge
-7. FAQ — 4-6 questions specific to this service. Source from keyword research (people also ask). Real questions, specific answers.
-8. CTA with phone number
-9. Footer
-
----
-
-### SERVICE_LOCAL — ABOUT PAGE
-
-Sections IN ORDER:
-1. Navbar (with phone)
-2. Hero (centered, simpler — 'About [Business Name]')
-3. Story section — when founded, by whom, why. Be specific — generic 'passion for excellence' copy is not acceptable.
-4. Credentials — real licenses, certifications, memberships, awards
-5. Team section (if intake has team info) — real names and roles only, no stock photos
-6. 'Why Choose Us' — 4-6 specific differentiators that actually distinguish this business
-7. CTA with phone
-8. Footer
-
----
-
-### SERVICE_LOCAL — CONTACT PAGE
-
-1. Navbar (with phone)
-2. Contact section with:
-   - Working contact form (POST to `/api/contact` or mailto fallback)
-   - Phone number displayed prominently
-   - Email address
-   - Physical address (if in intake)
-   - Business hours (if in intake)
-3. Footer
-
----
-
-### SERVICE_LOCAL — ADDITIONAL PAGES (create these if not already in intake pages list)
-
-- `/faq` — Frequently asked questions. Source from keyword research 'people also ask' section + research/content-strategy.md. Organize by category.
-- `/service-area` — If location-based business: list cities/counties served, include a note about radius or travel distance
-- `/privacy` — Always required (see Required Pages below)
-- `/terms` — Always required (see Required Pages below)
-
----
-
-### SAAS_PRODUCT — HOME PAGE (5-6 sections)
-
-1. Navbar (logo, navItems, cta — no phone required unless intake has one)
-2. Hero (centered or split — both OK, animated bg OK)
-3. Features — 3-4 key features with concrete examples
-4. Social proof — GitHub stats OR real user testimonials OR use cases
-5. CTA section
-6. Footer
-
-SAAS additional pages: `/pricing` (if applicable), `/docs` or `/getting-started`, `/about`, `/contact`, `/privacy`, `/terms`
-
----
-
-### PROFESSIONAL_SERVICES — HOME PAGE (6-7 sections)
-
-1. Navbar (with phone)
-2. Hero (split-right preferred)
-3. Services offered — with specific descriptions
-4. Results / Case studies — specific outcomes not generic praise
-5. Team / Credentials
-6. CTA section (with phone)
-7. Footer
-
----
-
-## FOR EACH PAGE in the intake's pages list:
-1. Create src/app/<page>/page.tsx (or src/app/page.tsx for Home)
-2. Export a `metadata` object with a unique title and description for that page:
-   ```typescript
-   export const metadata: Metadata = {
-     title: 'Page Title — Business Name',
-     description: 'Unique 150-char description targeting that page\\'s keywords',
-   };
-   ```
-3. Import section components and compose the page
-4. Pass REAL content as props — business name, real descriptions, real features
-   DO NOT use template defaults. Every piece of text must be specific to this business.
-5. Target keywords from keyword research in headings (H1, H2)
-6. Apply FadeIn, StaggerChildren animations to sections (fade-in only for SERVICE_LOCAL)
-7. Use the brand's primary CTA text on all CTA buttons
-
-## layout.tsx — Required Updates
-1. Set `metadataBase` to the intake domain:
-   ```typescript
-   metadataBase: new URL('https://<intake.domain>'),
-   ```
-   NOT a hardcoded URL or the dev server URL.
-
-2. Add JSON-LD structured data appropriate to the business type:
-   - SERVICE_LOCAL → LocalBusiness schema (include address, telephone, openingHours, areaServed)
-   - SAAS_PRODUCT → SoftwareApplication schema
-   - PROFESSIONAL_SERVICES → ProfessionalService schema
-   Include: name, url, description, email, telephone (if in intake), sameAs (social URLs from intake)
-
-3. Add OG image metadata pointing to `/og/default.png`:
-   ```typescript
-   openGraph: {
-     images: [{ url: '/og/default.png', width: 1200, height: 630 }],
-   }
-   ```
-   (Phase 5 Assets will generate the actual OG image file — just set the metadata reference here.)
-
-4. Add favicon metadata (Phase 5 Assets will generate the actual favicon file):
-   ```typescript
-   icons: {
-     icon: '/favicon.ico',
-     apple: '/apple-touch-icon.png',
-   }
-   ```
-
-## sitemap.xml and robots.txt
-After all pages are built, create:
-
-`public/robots.txt`:
-```
-User-agent: *
-Allow: /
-Sitemap: https://<intake.domain>/sitemap.xml
-```
-
-`src/app/sitemap.ts` (Next.js sitemap):
-```typescript
-import { MetadataRoute } from 'next'
-export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://<intake.domain>'
-  return [
-    { url: base, lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },
-    // one entry per page in intake.pages
-  ]
-}
-```
-
-## Required Pages (Always Create)
-These pages must exist or footer links will 404:
-- `/privacy` — Privacy Policy (generate a basic GDPR-compliant boilerplate using the intake's business name, email, and domain)
-- `/terms` — Terms of Service (generate basic ToS boilerplate)
-If these pages aren't in the intake's `pages` list, create them anyway as minimal pages — they are legally required for any site with a contact form.
-
-## Pricing Page
-If the intake does not include a working payment system or Stripe integration:
-- Free tier: show as normal with CTA
-- Any paid tiers (Pro, Enterprise): mark with a 'Coming Soon' badge, grey out the CTA button, do NOT link to a checkout page
-- Add a note below: 'Paid plans launching soon. Join the waitlist:' + email field (mailto link)
-
-## Contact Form
-The ContactForm component must work. Choose:
-a) If intake has an email address: implement `/api/contact/route.ts` that sends email via the configured SMTP/Resend/etc, OR make the form submit to a `mailto:` link as a fallback
-b) Minimum acceptable: `<form action='mailto:<email>' method='post' enctype='text/plain'>` — at least something happens when they click submit
-c) Create `src/app/api/contact/route.ts` with a basic handler that returns a JSON response (even if it just logs for now — the form should not 404)
-
-AFTER ALL PAGES:
-1. Update src/app/layout.tsx with metadataBase, JSON-LD, OG metadata, favicon
-2. Run a TypeScript type-check (lighter than full build): cd ~/Websites/<PROJECT> && pnpm tsc --noEmit 2>&1 | head -40
-3. FIX any TypeScript errors found — do NOT run pnpm build (the webdev container handles compilation)
-4. Commit: git add -A && git commit -m 'feat: build all pages with content'
-
-Update ~/Websites/<PROJECT>/.build-status.json when done:
-- phases.build-pages.status = 'complete'
-- phases.build-pages.message = 'X pages built, compilation verified'
-
-End with: OUTPUT_SAVED: src/app/page.tsx",
+When complete: phases.build-pages.status='complete', message='<N> pages translated from Stitch, fidelity ≥ 0.85'. Then end with: OUTPUT_SAVED: src/app/page.tsx",
   label: "website-pages-<project>"
 })
 ```
 
-**After sub-agent completes:** Run `pnpm tsc --noEmit 2>&1 | head -30` to check for type errors. Fix any errors found. Do NOT run `pnpm build`.
+**After sub-agent returns, host-side post-checks:**
+```bash
+PROJ=~/Websites/<project>
+test -f "$PROJ/src/app/layout.tsx" || { echo "GATE FAIL: no layout.tsx"; exit 1; }
+test -f "$PROJ/src/app/sitemap.ts" || { echo "GATE FAIL: no sitemap.ts"; exit 1; }
+test -f "$PROJ/src/app/api/contact/route.ts" || { echo "GATE FAIL: no contact route"; exit 1; }
+# every page in page-map.json must have a page.tsx
+python3 -c "
+import json,os,sys
+m=json.load(open('$PROJ/ai/page-map.json'))
+missing=[p for p in m['pages'] if not os.path.exists(f\"$PROJ/src/app/{('' if p['route']=='/' else p['route'].lstrip('/'))}/page.tsx\".replace('//','/'))]
+if missing:
+    print('GATE FAIL: missing page.tsx for:', [p['route'] for p in missing]); sys.exit(1)
+print('OK: all', len(m['pages']), 'pages built')
+"
+```
 
 ---
 
-## Phase 5: ASSETS (inline, ~2-3 minutes)
+## Phase 6: ASSETS (inline, ~3-4 minutes) — was Phase 5
 
-**Update status:** `currentPhase: "assets"`, `phases.assets.status: "in_progress"`, `phases.assets.message: "Generating brand images..."`
+**Update status:** `currentPhase: "assets"`, `phases.assets.status: "in_progress"`, `phases.assets.message: "Copying logo, generating favicons, generating brand images..."`
 
 **Read:** `/mnt/shared-skills/website-builder/instructions/images.md`
 
-This phase generates real images for the website using the Gemini image API, replacing placeholder graphics with brand-specific visuals. Every image is saved to `public/images/` or `public/og/` in the project — never held in memory or skipped.
+This phase ships the visual assets the site needs: (1) the actual logo file copied into `public/`, (2) favicons sized for browsers/iOS/Android, (3) AI-generated brand-specific imagery. Every asset is saved to disk — nothing is held in memory.
 
 ### Prerequisites
 - `GEMINI_API_KEY` must be set in the environment (injected via `.platform-keys.env`)
-- Phase 4 (Build Pages) must be complete — we need to know which pages exist
+- Phase 5 (Build Pages) must be complete — we need to know which pages exist
+- `.brand/logo.png` (or `.brand/logo.svg`) must exist from Phase 1.5
+
+### Step 0: Logo + favicon (NEW — non-negotiable)
+
+```bash
+PROJECT_DIR=~/Websites/<project>
+mkdir -p "$PROJECT_DIR/public"
+
+# Copy logo as canonical /logo.png (Navbar.tsx references this path)
+if [ -f "$PROJECT_DIR/.brand/logo.svg" ]; then
+    cp "$PROJECT_DIR/.brand/logo.svg" "$PROJECT_DIR/public/logo.svg"
+    # Also rasterize a PNG fallback for OG/social
+    convert -background none -density 300 "$PROJECT_DIR/.brand/logo.svg" \
+        -resize 512x -define png:color-type=6 "$PROJECT_DIR/public/logo.png"
+elif [ -f "$PROJECT_DIR/.brand/logo.png" ]; then
+    cp "$PROJECT_DIR/.brand/logo.png" "$PROJECT_DIR/public/logo.png"
+else
+    echo "GATE FAIL: no logo file in $PROJECT_DIR/.brand/"
+    exit 1
+fi
+
+# Generate favicon set from logo (force white background for transparent logos)
+SOURCE_FOR_ICONS="$PROJECT_DIR/public/logo.png"
+convert "$SOURCE_FOR_ICONS" -background white -alpha remove -alpha off -resize 16x16   "$PROJECT_DIR/public/favicon-16x16.png"
+convert "$SOURCE_FOR_ICONS" -background white -alpha remove -alpha off -resize 32x32   "$PROJECT_DIR/public/favicon-32x32.png"
+convert "$SOURCE_FOR_ICONS" -background white -alpha remove -alpha off -resize 180x180 "$PROJECT_DIR/public/apple-touch-icon.png"
+convert "$SOURCE_FOR_ICONS" -background white -alpha remove -alpha off -resize 192x192 "$PROJECT_DIR/public/icon-192.png"
+convert "$SOURCE_FOR_ICONS" -background white -alpha remove -alpha off -resize 512x512 "$PROJECT_DIR/public/icon-512.png"
+convert "$PROJECT_DIR/public/favicon-32x32.png" "$PROJECT_DIR/public/favicon.ico"
+
+# Web app manifest
+cat > "$PROJECT_DIR/public/site.webmanifest" <<EOF
+{
+  "name": "<businessName from intake>",
+  "short_name": "<businessName from intake>",
+  "icons": [
+    {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ],
+  "theme_color": "<primary hex from .brand/colors.json>",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}
+EOF
+
+# Sanity gate: Navbar must reference Logo component
+if ! grep -q '<Logo ' "$PROJECT_DIR/src/components/sections/Navbar.tsx" 2>/dev/null; then
+    if ! grep -q 'logoSrc=' "$PROJECT_DIR/src/app/layout.tsx" 2>/dev/null; then
+        echo "GATE FAIL: Navbar.tsx does not reference <Logo /> and layout.tsx doesn't pass logoSrc"
+        exit 1
+    fi
+fi
+```
 
 ### Step 1: Read intake for brand context
 ```bash
@@ -918,7 +1096,98 @@ mkdir -p ~/Websites/<project>/public/images
 mkdir -p ~/Websites/<project>/public/og
 ```
 
-### Step 3: Generate Hero Image
+### Step 2.5: SUPPLIED MEDIA WINS — install user-supplied assets FIRST
+
+Per RULE 6: every image slot the user supplied via the canvas form is installed BEFORE any AI generation. AI generation only fills slots the user did NOT supply.
+
+```bash
+PROJECT_DIR=~/Websites/<project>
+INTAKE="$PROJECT_DIR/.intake.json"
+
+# 1. Hero image — intake.heroImage (URL)
+HERO_URL=$(python3 -c "import json;print(json.load(open('$INTAKE')).get('heroImage') or '')")
+if [ -n "$HERO_URL" ]; then
+    if [[ "$HERO_URL" == http* ]]; then
+        curl -fsSL "$HERO_URL" -o "$PROJECT_DIR/public/images/hero.jpg" && echo "hero: installed from intake.heroImage"
+    elif [ -f "$HERO_URL" ]; then
+        cp "$HERO_URL" "$PROJECT_DIR/public/images/hero.jpg" && echo "hero: installed from local intake.heroImage"
+    fi
+fi
+
+# 2. Team image — intake.teamImage (URL, optional)
+TEAM_URL=$(python3 -c "import json;print(json.load(open('$INTAKE')).get('teamImage') or '')")
+if [ -n "$TEAM_URL" ] && [[ "$TEAM_URL" == http* ]]; then
+    curl -fsSL "$TEAM_URL" -o "$PROJECT_DIR/public/images/team.jpg" && echo "team: installed"
+fi
+
+# 3. Gallery — intake.gallery[] (array of URLs / paths)
+python3 <<'PYEOF'
+import json, os, urllib.request, shutil
+proj = os.path.expanduser('~/Websites/<project>')
+intake = json.load(open(f"{proj}/.intake.json"))
+gallery = intake.get('gallery') or []
+if gallery:
+    os.makedirs(f"{proj}/public/images/gallery", exist_ok=True)
+    for i, item in enumerate(gallery):
+        url = item if isinstance(item, str) else item.get('url') or item.get('src')
+        if not url: continue
+        ext = os.path.splitext(url)[1].split('?')[0] or '.jpg'
+        dest = f"{proj}/public/images/gallery/g{i+1}{ext}"
+        try:
+            if url.startswith('http'):
+                urllib.request.urlretrieve(url, dest)
+            elif os.path.exists(url):
+                shutil.copy(url, dest)
+            print(f"gallery: g{i+1}{ext}")
+        except Exception as e:
+            print(f"gallery {i}: SKIP {e}")
+PYEOF
+
+# 4. Stitch-referenced images — every <img src="..."> in .stitch-pages/*.html
+# Stitch designs reference image URLs (CDN). Download them as canonical
+# /images/<slot>.<ext> so the built pages don't depend on Stitch's CDN at runtime.
+python3 <<'PYEOF'
+import json, os, re, urllib.request, glob, hashlib
+proj = os.path.expanduser('~/Websites/<project>')
+img_re = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']')
+seen = set()
+manifest = {}
+for html_path in sorted(glob.glob(f"{proj}/.stitch-pages/*.html")):
+    page = os.path.basename(html_path)[:-5]
+    text = open(html_path).read()
+    page_imgs = []
+    for src in img_re.findall(text):
+        if not src.startswith('http'): continue
+        if src in seen: continue
+        seen.add(src)
+        h = hashlib.md5(src.encode()).hexdigest()[:8]
+        ext = os.path.splitext(src.split('?')[0])[1] or '.jpg'
+        dest_name = f"stitch-{page}-{h}{ext}"
+        dest = f"{proj}/public/images/{dest_name}"
+        try:
+            urllib.request.urlretrieve(src, dest)
+            page_imgs.append({'original': src, 'local': f'/images/{dest_name}'})
+        except Exception as e:
+            print(f"stitch-img {page}: SKIP {src[:60]}... ({e})")
+    if page_imgs:
+        manifest[page] = page_imgs
+        print(f"stitch-img {page}: downloaded {len(page_imgs)}")
+
+if manifest:
+    open(f"{proj}/.stitch-pages/image-manifest.json", 'w').write(json.dumps(manifest, indent=2))
+PYEOF
+
+# At this point public/images/ contains: hero.jpg (if supplied), team.jpg (if supplied),
+# gallery/g*.{jpg,png,webp} (if supplied), stitch-<page>-<hash>.{jpg,png} (Stitch CDN images downloaded)
+ls -la "$PROJECT_DIR/public/images/" 2>/dev/null
+```
+
+**After Step 2.5, AI generation in Steps 3-5 only fills slots that are still empty:**
+- If `public/images/hero.jpg` exists from supplied media → SKIP Step 3 (Hero generation)
+- If `public/images/team.jpg` exists → SKIP team generation
+- For service-detail icon images: only generate if no Stitch image was downloaded for that page
+
+### Step 3: Generate Hero Image (SKIP if supplied)
 
 **For SERVICE_LOCAL** — a realistic industry photo:
 ```bash
@@ -1104,13 +1373,81 @@ cd ~/Websites/<project> && git add -A && git commit -m "feat: generate brand ima
 
 ---
 
-## Phase 6: QUALITY GATE (inline, ~2-3 minutes)
+## Phase 7: QUALITY GATE (inline, ~3-5 minutes, FUNCTIONAL) — was Phase 6
 
-**Update status:** `currentPhase: "quality-gate"`, `phases.quality-gate.status: "in_progress"`, `phases.quality-gate.message: "Running quality checks..."`
+**Update status:** `currentPhase: "quality-gate"`, `phases.quality-gate.status: "in_progress"`, `phases.quality-gate.message: "Running functional quality gates..."`
 
 **Read:** `/mnt/shared-skills/website-builder/instructions/quality-checklist.md`
 
 **Read the BUSINESS_TYPE** from `.claude/CLAUDE.md` before running type-specific checks.
+
+**This phase has TWO halves:** (A) FUNCTIONAL gates that produce JSON reports under `.quality-gate/`, and (B) static sweeps for content rules. Both must pass — A first because it catches the show-stoppers (broken build, 500 errors, forbidden colors). The build halts at the first hard failure.
+
+### A1. Production build inside the webdev container (NOT in openclaw)
+
+```bash
+PROJECT=<project>
+CLIENT=$(echo $HOSTNAME | sed 's/openclaw-//')
+WEBDEV_CONTAINER="webdev-${CLIENT}"  # may have a -1 suffix; verify with docker ps from host
+
+# Build is run from outside the openclaw container — the watcher invokes:
+#   docker exec $WEBDEV_CONTAINER sh -c "cd /app/websites/$PROJECT && pnpm build 2>&1 | tail -40"
+# Exit non-zero on any compilation error or RSC boundary violation.
+# Inside this skill, write the gate-report stub and let the watcher fill it:
+mkdir -p ~/Websites/$PROJECT/.quality-gate
+echo '{"build": "pending — webdev container will run pnpm build"}' > ~/Websites/$PROJECT/.quality-gate/build.json
+```
+
+NOTE for the watcher: After Phase 7 hands off, the watcher MUST run `docker exec $WEBDEV_CONTAINER pnpm build` and write `.quality-gate/build.json` with `{success: bool, errors: [...]}`. If success=false, mark `phases.quality-gate.status='failed'` and HALT.
+
+### A2. HTTP 200 check on every sitemap URL
+
+```bash
+PROJECT_DIR=~/Websites/$PROJECT
+mkdir -p "$PROJECT_DIR/.quality-gate"
+
+# Read sitemap routes (sitemap.ts exports an array; we extract paths via a Node one-liner OR fall back to a glob of src/app/**/page.tsx)
+URLS_FILE="$PROJECT_DIR/.quality-gate/urls.txt"
+find "$PROJECT_DIR/src/app" -name 'page.tsx' -not -path '*/api/*' | \
+    sed -E "s|$PROJECT_DIR/src/app||; s|/page.tsx||; s|^$|/|" | sort -u > "$URLS_FILE"
+echo "Routes to verify:"; cat "$URLS_FILE"
+
+# The webdev container serves from http://localhost:3000 inside its network.
+# The watcher hits the host port. Inside openclaw, we ask the watcher to populate this report.
+echo '{"urls": "pending — webdev container will curl each route after pnpm start"}' > "$PROJECT_DIR/.quality-gate/urls.json"
+```
+
+NOTE for the watcher: After A1 succeeds, run `docker exec $WEBDEV_CONTAINER sh -c "cd /app/websites/$PROJECT && pnpm start &"`, then for each line in `urls.txt`, `curl -s -o /dev/null -w '%{http_code}\n'` against the host port. Write `.quality-gate/urls.json` with `[{url, status}]`. If ANY status != 200, fail this phase.
+
+### A3. Color allowlist (no purple, no indigo)
+
+```bash
+python3 /mnt/shared-skills/website-builder/tools/color-allowlist-check.py "$PROJECT_DIR"
+```
+
+If exit non-zero, set `phases.quality-gate.status='failed'` with `message="forbidden colors at $(jq -r '.violations[0].file + \":\" + (.violations[0].line|tostring)' $PROJECT_DIR/.quality-gate/color-allowlist.json)"` and HALT.
+
+### A4. Stitch fidelity gate
+
+```bash
+python3 /mnt/shared-skills/website-builder/tools/stitch-fidelity-check.py "$PROJECT_DIR" --threshold 0.85
+```
+
+If exit non-zero, set `phases.quality-gate.status='failed'` with the report path in `message` and HALT. Phase 5 was supposed to enforce this — if it failed here, Phase 5 lied about completion.
+
+### A5. Logo + favicon presence
+
+```bash
+[ -f "$PROJECT_DIR/public/logo.png" -o -f "$PROJECT_DIR/public/logo.svg" ] || { echo "GATE FAIL: missing /logo.{png,svg}"; exit 1; }
+[ -f "$PROJECT_DIR/public/favicon.ico" -o -f "$PROJECT_DIR/src/app/icon.tsx" ] || { echo "GATE FAIL: missing favicon"; exit 1; }
+grep -q '<Logo ' "$PROJECT_DIR/src/components/sections/Navbar.tsx" || \
+    grep -q 'logoSrc=' "$PROJECT_DIR/src/app/layout.tsx" || \
+    { echo "GATE FAIL: Navbar does not reference <Logo /> and layout doesn't pass logoSrc"; exit 1; }
+```
+
+---
+
+### B (legacy, content sweeps — run after A1-A5 ALL pass)
 
 ### 0. Image asset check (run FIRST):
 ```bash
@@ -1196,10 +1533,16 @@ grep -n 'phone=' ~/Websites/<project>/src/app/page.tsx | grep "Hero" && echo "�
 # White background check
 grep 'background:' ~/Websites/<project>/src/app/globals.css | grep -E '0 0% 100%|100%' && echo "✓ White background confirmed" || echo "⚠️  Background may not be white — SERVICE_LOCAL MUST use light backgrounds"
 
-# Section count check
-section_count=$(grep -c '<section' ~/Websites/<project>/src/app/page.tsx 2>/dev/null || echo 0)
-echo "Sections on home page: $section_count"
-[ "$section_count" -lt 7 ] && echo "⚠️  SERVICE_LOCAL requires 8+ sections on home page — current: $section_count" || echo "✓ Section count OK"
+# Section count check — ONLY enforced when TIER 1 = generate (no Stitch)
+TIER1=$(python3 -c "import json;d=json.load(open(\"$HOME/Websites/<project>/.intake.json\"));print('stitch' if d.get('stitchScreens') else ('template' if d.get('designTemplate') else 'generate'))")
+if [ "$TIER1" = "generate" ]; then
+    section_count=$(grep -c '<section' ~/Websites/<project>/src/app/page.tsx 2>/dev/null || echo 0)
+    echo "Sections on home page (1.C): $section_count"
+    [ "$section_count" -lt 7 ] && echo "⚠️  1.C SERVICE_LOCAL requires 8+ sections on home page — current: $section_count" || echo "✓ Section count OK (1.C)"
+else
+    # 1.A/1.B → section count comes from supplied Stitch / template; check fidelity instead (already done)
+    echo "✓ Section count: deferring to Stitch fidelity check (TIER 1 = $TIER1, supplied design has authority)"
+fi
 
 # Floating orbs check
 grep -rn 'blur-\[100px\]\|floating.*orb\|animate.*float\|w-\[500px\].*rounded-full\|w-\[400px\].*rounded-full' ~/Websites/<project>/src/components/ --include='*.tsx' 2>/dev/null && echo "⚠️  Floating orb pattern found — REMOVE for SERVICE_LOCAL" || echo "✓ No floating orbs"
@@ -1233,9 +1576,11 @@ cd ~/Websites/<project> && git add -A && git commit -m "fix: quality gate cleanu
 
 ---
 
-## Phase 7: DEPLOY (exec, ~30 seconds)
+## Phase 8: DEPLOY (exec, ~60 seconds) — was Phase 7
 
-**Update status:** `currentPhase: "deploy"`, `phases.deploy.status: "in_progress"`, `phases.deploy.message: "Deploying to dev server..."`
+**Update status:** `currentPhase: "deploy"`, `phases.deploy.status: "in_progress"`, `phases.deploy.message: "Reconciling webdev container env, recreating service..."`
+
+**Why this phase changed:** Writing `~/Websites/.active-project` alone does NOT switch the webdev container — the compose env var `WEBDEV_PROJECT_NAME` always wins. Phase 8 now calls `webdev-deploy.sh` which rewrites compose, ensures `.env.local`, recreates the container, and HTTP 200-checks before marking complete.
 
 1. **Type-check only (do NOT run pnpm build):**
 ```bash
@@ -1248,18 +1593,75 @@ Fix any TypeScript errors. The webdev container handles compilation — you do n
 [ -d ~/Websites/<project>/.next ] && mv ~/Websites/<project>/.next ~/Websites/<project>/.next.bak || true
 ```
 
-3. **Set active project** (the build watcher restarts the webdev container and reinstalls dependencies automatically — do NOT run pnpm install in webdev yourself):
+2.5. **Snapshot the intake into the project repo** (per RULE 9 — the design brief lives with the code so future Mike + future agents know what was originally requested):
 ```bash
-echo "<project>" > ~/Websites/.active-project
+PROJ=~/Websites/<project>
+mkdir -p "$PROJ/docs"
+cp "$PROJ/.intake.json" "$PROJ/docs/website-intake-snapshot.json"
+# Also produce a human-readable summary
+python3 <<'PYEOF' > "$PROJ/docs/website-intake-summary.md"
+import json, os
+d = json.load(open(os.path.expanduser("~/Websites/<project>/.intake.json")))
+def f(k, default=""): return d.get(k) or default
+print(f"# {f('businessName')} — Build Brief")
+print(f"\n**Project slug:** `{f('projectName')}`  ")
+print(f"**Domain:** {f('domain')}  ")
+print(f"**Industry:** {f('industry')}  ")
+print(f"**Owner:** {f('ownerName')}  ")
+print(f"**Phone:** {f('phone')}  ")
+print(f"**Email:** {f('email')}  ")
+print(f"**Address:** {f('address')}  ")
+print(f"**Hours:** {f('hours')}  ")
+print(f"**Years in business:** {f('yearsInBusiness')}  ")
+print(f"**License:** {f('license')}  ")
+print(f"**Geographic scope:** {f('geographicScope')}  ")
+print(f"\n## Description\n{f('description')}\n")
+print(f"## About\n{f('about')}\n")
+print(f"## Services\n" + "\n".join(f"- {s}" for s in (d.get('services') or [])))
+print(f"\n## Target markets\n" + "\n".join(f"- {m}" for m in (d.get('targetMarkets') or [])))
+print(f"\n## Pages\n" + "\n".join(f"- {p}" for p in (d.get('pages') or [])))
+print(f"\n## Primary keywords (intake-supplied; see ai/research/keywords.md for DFS data)\n" + "\n".join(f"- {k}" for k in (d.get('primaryKeywords') or [])))
+print(f"\n## Competitors\n" + "\n".join(f"- {c}" for c in (d.get('competitors') or [])))
+print(f"\n## Selling points\n" + "\n".join(f"- {p}" for p in (d.get('sellingPoints') or [])))
+print(f"\n## Stitch design source\n")
+print(f"- Project title: {f('stitchProjectTitle')}")
+ss = d.get('stitchScreens') or []
+if ss:
+    print(f"- Screens supplied ({len(ss)}):")
+    for s in ss:
+        print(f"  - {s.get('name')} (id `{s.get('id')}`)")
+else:
+    print("- (none — generated from brand controls)")
+print(f"\n## Notes\n{f('notes')}\n")
+PYEOF
+cd "$PROJ" && git add docs/ && git commit -m "docs: snapshot website-setup intake into repo" || echo "(nothing to commit in docs/)"
 ```
 
-4. **Verify the file was written:**
+3. **Set active project AND run the host-side deploy reconciliation.**
+
+   The `~/Websites/.active-project` file is still written so the watcher can detect the change, BUT the actual reconciliation happens via the watcher invoking the host-side script:
+   ```bash
+   echo "<project>" > ~/Websites/.active-project
+   ```
+   The watcher (running on the host) sees the change and runs:
+   ```bash
+   bash /mnt/system/base/skills/website-builder/tools/webdev-deploy.sh <client> <project>
+   ```
+   That script: backs up compose, rewrites `WEBDEV_PROJECT_NAME` and `env_file` to point at the new project, ensures `.env.local` exists, runs `docker compose up -d --no-deps webdev`, waits for HTTP 200 (60s timeout), optionally verifies the page title contains the business name. Exit 0 = success, exit 1 = rollback to previous compose.
+
+4. **Verify the active project file was written:**
 ```bash
 cat ~/Websites/.active-project
 ```
 Should output: `<project>`
 
-5. **Update final status:**
+5. **Wait for the watcher's deploy report.** The watcher writes `.quality-gate/deploy.json` with `{success: bool, hostPort: int, finalUrl: str}`. Read it:
+```bash
+cat ~/Websites/<project>/.quality-gate/deploy.json
+```
+If `success: false`, set `phases.deploy.status='failed'` with the watcher's error message and HALT.
+
+6. **Update final status:**
 
 Read the current status file, then write:
 ```json
@@ -1267,12 +1669,12 @@ Read the current status file, then write:
   "status": "complete",
   "completedAt": "<current ISO timestamp>",
   "currentPhase": "deploy",
-  "phases": { "deploy": { "status": "complete", "message": "Live at dev-test-dev.jam-bot.com — dev server restarting" } }
+  "phases": { "deploy": { "status": "complete", "message": "Live at <devUrl from deploy.json> — webdev container reconciled" } }
 }
 ```
 
-6. **Tell the user:**
-"Your website is live! The dev server is restarting to pick up the new project (~15s). Check it here: [CANVAS_URL:https://dev-test-dev.jam-bot.com]
+7. **Tell the user:**
+"Your website is live! The webdev container has been reconciled to the new project. Check it here: [CANVAS_URL:<devUrl from deploy.json>]
 
 **Pages built:**
 - List every page that was created (Home, About, Services, individual service pages, Contact, Privacy, Terms, etc.)
@@ -1290,18 +1692,104 @@ Read the current status file, then write:
 
 ---
 
-## Phase 8: VERIFICATION AGENT (sub-agent, ~5-10 minutes)
+## Phase 8.5: GITHUB PUSH (exec, ~30 seconds) — NEW
 
-**This is the gatekeeper. Nothing is "done" until this agent confirms it.**
+**Purpose:** Per RULE 10, the build is not complete until the code is pushed to GitHub. This makes the work durable, reviewable, and recoverable.
 
-**Update status:** `currentPhase: "verification"`, add `"verification": { "status": "in_progress", "message": "Verification agent checking every page..." }` to `phases`.
+**Update status:** `currentPhase: "github-push"`, `phases.github-push.status: "in_progress"`, `phases.github-push.message: "Creating/updating GitHub repo and pushing..."`
+
+**Step 1 — Configure git identity (idempotent):**
+```bash
+cd ~/Websites/<project>
+git config user.email "agent@$(hostname).jam-bot.com"
+git config user.name "JamBot Build Agent"
+```
+
+**Step 2 — Determine target repo:**
+- Org/user: Mike's GitHub user `MCERQUA` (default; override per-client by setting `intake.githubOrg` in future).
+- Repo name: `intake.projectName` (e.g. `the-seattle-decking-company`).
+
+**Step 3 — Create repo if it doesn't exist:**
+```bash
+PROJECT=<project>
+gh auth status >/dev/null 2>&1 || { echo "GATE FAIL: gh CLI not authenticated"; exit 1; }
+if ! gh repo view "MCERQUA/$PROJECT" >/dev/null 2>&1; then
+    gh repo create "MCERQUA/$PROJECT" --private \
+        --description "$(python3 -c "import json;print(json.load(open('.intake.json')).get('description','')[:200])")" \
+        --source . --remote origin
+else
+    git remote get-url origin >/dev/null 2>&1 || git remote add origin "git@github.com:MCERQUA/$PROJECT.git"
+fi
+```
+
+**Step 4 — Push the working branch:**
+```bash
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)
+git push -u origin "$BRANCH" 2>&1 | tee /tmp/git-push.log
+```
+
+**Step 5 — Verify push succeeded:**
+```bash
+REMOTE_SHA=$(git ls-remote origin "$BRANCH" 2>/dev/null | awk '{print $1}')
+LOCAL_SHA=$(git rev-parse HEAD)
+[ "$REMOTE_SHA" = "$LOCAL_SHA" ] && echo "GitHub: pushed $LOCAL_SHA to $BRANCH" || { echo "GATE FAIL: remote SHA $REMOTE_SHA != local $LOCAL_SHA"; exit 1; }
+```
+
+**Mark complete:** `phases.github-push.status: "complete"`, `message: "Pushed to github.com/MCERQUA/<project> @ <sha>"`.
+
+---
+
+## Phase 9: VERIFICATION (inline checklist, ~2 minutes) — was Phase 8
+
+**This is the gatekeeper. Nothing is "done" until every check passes.**
+
+**Update status:** `currentPhase: "verification"`, add `"verification": { "status": "in_progress", "message": "Running final HTTP + content verification..." }` to `phases`.
+
+### A. Inline HTTP checklist (run from openclaw — uses curl against the deployed dev URL)
+
+Read the deployed URL from `.quality-gate/deploy.json` (Phase 8 wrote it):
+```bash
+DEV_URL=$(python3 -c "import json; print(json.load(open('$HOME/Websites/<project>/.quality-gate/deploy.json'))['finalUrl'])")
+BUSINESS_NAME=$(python3 -c "import json; print(json.load(open('$HOME/Websites/<project>/.intake.json'))['businessName'])")
+PRIMARY_HEX=$(python3 -c "import json; print(json.load(open('$HOME/Websites/<project>/.brand/colors.json'))['primary'])")
+```
+
+Run each step in sequence; halt on first failure:
+
+| Step | Check | How |
+|------|-------|-----|
+| 1 | Home page returns 200 with business name in title | `curl -fsSL "$DEV_URL/" \| grep -qi "<title>.*$BUSINESS_NAME" \|\| { echo "FAIL: title missing business name"; exit 1; }` |
+| 2 | Every sitemap URL returns 200 | for each line in `.quality-gate/urls.txt`: `curl -sS -o /dev/null -w '%{http_code}' "$DEV_URL$line"` must be 200 |
+| 3 | `/logo.png` (or `/logo.svg`) returns image | `curl -sS -o /dev/null -w '%{content_type}' "$DEV_URL/logo.png"` must start with `image/` |
+| 4 | `/favicon.ico` returns image | same pattern |
+| 5 | Section count fidelity | parse home page rendered HTML, count `<section>`, compare to `.stitch-pages/structure.json → home.sectionCount` (within ±1) |
+| 6 | Render-time forbidden colors | download home page HTML + CSS, scan for `#4F46E5`, `oklch(...purple...)`, `bg-purple-`, `bg-indigo-`, `bg-violet-`, `bg-fuchsia-` — must be zero matches |
+| 7 | Primary brand color rendered | rendered HTML/CSS must contain `$PRIMARY_HEX` (or its HSL equivalent) at least once |
+
+Each step has its own pass/fail. Write `~/Websites/<project>/.quality-gate/verification.json`:
+```json
+{
+  "passed": true,
+  "checks": [
+    {"step": 1, "name": "home-200-with-title", "passed": true},
+    {"step": 2, "name": "sitemap-urls-200", "passed": true, "details": "12/12 URLs"},
+    ...
+  ]
+}
+```
+
+If ANY check fails, set `phases.verification.status='failed'` with `message="step <N> failed: <name>"`, set top-level `status='failed'`, and HALT. Do NOT proceed to the legacy sub-agent block below.
+
+---
+
+### B. (Legacy — only run if A passes) Sub-agent deep content review
 
 **Spawn a sub-agent** with fresh context and the following instructions:
 
 ```
 You are the VERIFICATION AGENT for website project: <project-name>.
-Your job is to verify that EVERY aspect of this website is complete, working, and high quality.
-You are the last gate — if you pass this, it ships. If anything is broken, YOU fix it before reporting done.
+The HTTP checklist (Phase 9 step A) has already passed. Your job is to verify content quality and SEO completeness.
+If anything is broken, YOU fix it before reporting done.
 
 The project is at: ~/Websites/<project-name>/
 The intake is at: ~/Websites/<project-name>/.intake.json
