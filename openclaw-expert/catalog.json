@@ -1,0 +1,5239 @@
+{
+  "schema": "openclaw-expert-catalog/1",
+  "upstream": "https://docs.openclaw.ai/llms.txt",
+  "fetchedAt": "2026-05-04T04:54:08+00:00",
+  "upstreamSha256": "10bf4edc923ef419031a55662a3ce50343192187084e2fb5ab5b728342e64a30",
+  "pageCount": 464,
+  "relevanceCounts": {
+    "high": 203,
+    "med": 170,
+    "low": 91
+  },
+  "pages": [
+    {
+      "id": "api-reference__openapi.json",
+      "url": "https://docs.openclaw.ai/api-reference/openapi.json",
+      "section": "API",
+      "title": "openapi",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "automation__cron-jobs",
+      "url": "https://docs.openclaw.ai/automation/cron-jobs.md",
+      "section": "Automation",
+      "title": "Scheduled tasks",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "automation__hooks",
+      "url": "https://docs.openclaw.ai/automation/hooks.md",
+      "section": "Automation",
+      "title": "Hooks",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "automation__index",
+      "url": "https://docs.openclaw.ai/automation/index.md",
+      "section": "Automation",
+      "title": "Automation & tasks",
+      "relevance": "high",
+      "annotation": "annotations/automation__index.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "automation__standing-orders",
+      "url": "https://docs.openclaw.ai/automation/standing-orders.md",
+      "section": "Automation",
+      "title": "Standing orders",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "automation__taskflow",
+      "url": "https://docs.openclaw.ai/automation/taskflow.md",
+      "section": "Automation",
+      "title": "Task flow",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "automation__tasks",
+      "url": "https://docs.openclaw.ai/automation/tasks.md",
+      "section": "Automation",
+      "title": "Background tasks",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__acp",
+      "url": "https://docs.openclaw.ai/cli/acp.md",
+      "section": "CLI",
+      "title": "ACP",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__agent",
+      "url": "https://docs.openclaw.ai/cli/agent.md",
+      "section": "CLI",
+      "title": "Agent",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__agents",
+      "url": "https://docs.openclaw.ai/cli/agents.md",
+      "section": "CLI",
+      "title": "Agents",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__approvals",
+      "url": "https://docs.openclaw.ai/cli/approvals.md",
+      "section": "CLI",
+      "title": "Approvals",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__backup",
+      "url": "https://docs.openclaw.ai/cli/backup.md",
+      "section": "CLI",
+      "title": "Backup",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__browser",
+      "url": "https://docs.openclaw.ai/cli/browser.md",
+      "section": "CLI",
+      "title": "Browser",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__channels",
+      "url": "https://docs.openclaw.ai/cli/channels.md",
+      "section": "CLI",
+      "title": "Channels",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__clawbot",
+      "url": "https://docs.openclaw.ai/cli/clawbot.md",
+      "section": "CLI",
+      "title": "Clawbot",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__commitments",
+      "url": "https://docs.openclaw.ai/cli/commitments.md",
+      "section": "CLI",
+      "title": "`openclaw commitments`",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__completion",
+      "url": "https://docs.openclaw.ai/cli/completion.md",
+      "section": "CLI",
+      "title": "Completion",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__config",
+      "url": "https://docs.openclaw.ai/cli/config.md",
+      "section": "CLI",
+      "title": "Config",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__configure",
+      "url": "https://docs.openclaw.ai/cli/configure.md",
+      "section": "CLI",
+      "title": "Configure",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__crestodian",
+      "url": "https://docs.openclaw.ai/cli/crestodian.md",
+      "section": "CLI",
+      "title": "Crestodian",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__cron",
+      "url": "https://docs.openclaw.ai/cli/cron.md",
+      "section": "CLI",
+      "title": "Cron",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__daemon",
+      "url": "https://docs.openclaw.ai/cli/daemon.md",
+      "section": "CLI",
+      "title": "Daemon",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__dashboard",
+      "url": "https://docs.openclaw.ai/cli/dashboard.md",
+      "section": "CLI",
+      "title": "Dashboard",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__devices",
+      "url": "https://docs.openclaw.ai/cli/devices.md",
+      "section": "CLI",
+      "title": "Devices",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__directory",
+      "url": "https://docs.openclaw.ai/cli/directory.md",
+      "section": "CLI",
+      "title": "Directory",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__dns",
+      "url": "https://docs.openclaw.ai/cli/dns.md",
+      "section": "CLI",
+      "title": "DNS",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__docs",
+      "url": "https://docs.openclaw.ai/cli/docs.md",
+      "section": "CLI",
+      "title": "Docs",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__doctor",
+      "url": "https://docs.openclaw.ai/cli/doctor.md",
+      "section": "CLI",
+      "title": "Doctor",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        7
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__flows",
+      "url": "https://docs.openclaw.ai/cli/flows.md",
+      "section": "CLI",
+      "title": "Flows (redirect)",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__gateway",
+      "url": "https://docs.openclaw.ai/cli/gateway.md",
+      "section": "CLI",
+      "title": "Gateway",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__health",
+      "url": "https://docs.openclaw.ai/cli/health.md",
+      "section": "CLI",
+      "title": "Health",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__hooks",
+      "url": "https://docs.openclaw.ai/cli/hooks.md",
+      "section": "CLI",
+      "title": "Hooks",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__index",
+      "url": "https://docs.openclaw.ai/cli/index.md",
+      "section": "CLI",
+      "title": "CLI reference",
+      "relevance": "high",
+      "annotation": "annotations/cli__index.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "cli__infer",
+      "url": "https://docs.openclaw.ai/cli/infer.md",
+      "section": "CLI",
+      "title": "Inference CLI",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__logs",
+      "url": "https://docs.openclaw.ai/cli/logs.md",
+      "section": "CLI",
+      "title": "Logs",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__mcp",
+      "url": "https://docs.openclaw.ai/cli/mcp.md",
+      "section": "CLI",
+      "title": "MCP",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__memory",
+      "url": "https://docs.openclaw.ai/cli/memory.md",
+      "section": "CLI",
+      "title": "Memory",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__message",
+      "url": "https://docs.openclaw.ai/cli/message.md",
+      "section": "CLI",
+      "title": "Message",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__migrate",
+      "url": "https://docs.openclaw.ai/cli/migrate.md",
+      "section": "CLI",
+      "title": "Migrate",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__models",
+      "url": "https://docs.openclaw.ai/cli/models.md",
+      "section": "CLI",
+      "title": "Models",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__node",
+      "url": "https://docs.openclaw.ai/cli/node.md",
+      "section": "CLI",
+      "title": "Node",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__nodes",
+      "url": "https://docs.openclaw.ai/cli/nodes.md",
+      "section": "CLI",
+      "title": "Nodes",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__onboard",
+      "url": "https://docs.openclaw.ai/cli/onboard.md",
+      "section": "CLI",
+      "title": "Onboard",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__pairing",
+      "url": "https://docs.openclaw.ai/cli/pairing.md",
+      "section": "CLI",
+      "title": "Pairing",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__plugins",
+      "url": "https://docs.openclaw.ai/cli/plugins.md",
+      "section": "CLI",
+      "title": "Plugins",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        12
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__proxy",
+      "url": "https://docs.openclaw.ai/cli/proxy.md",
+      "section": "CLI",
+      "title": "Proxy",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__qr",
+      "url": "https://docs.openclaw.ai/cli/qr.md",
+      "section": "CLI",
+      "title": "QR",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__reset",
+      "url": "https://docs.openclaw.ai/cli/reset.md",
+      "section": "CLI",
+      "title": "Reset",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__sandbox",
+      "url": "https://docs.openclaw.ai/cli/sandbox.md",
+      "section": "CLI",
+      "title": "Sandbox CLI",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__secrets",
+      "url": "https://docs.openclaw.ai/cli/secrets.md",
+      "section": "CLI",
+      "title": "Secrets",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__security",
+      "url": "https://docs.openclaw.ai/cli/security.md",
+      "section": "CLI",
+      "title": "Security",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__sessions",
+      "url": "https://docs.openclaw.ai/cli/sessions.md",
+      "section": "CLI",
+      "title": "Sessions",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__setup",
+      "url": "https://docs.openclaw.ai/cli/setup.md",
+      "section": "CLI",
+      "title": "Setup",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__skills",
+      "url": "https://docs.openclaw.ai/cli/skills.md",
+      "section": "CLI",
+      "title": "Skills",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__status",
+      "url": "https://docs.openclaw.ai/cli/status.md",
+      "section": "CLI",
+      "title": "Status",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__system",
+      "url": "https://docs.openclaw.ai/cli/system.md",
+      "section": "CLI",
+      "title": "System",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__tasks",
+      "url": "https://docs.openclaw.ai/cli/tasks.md",
+      "section": "CLI",
+      "title": "`openclaw tasks`",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__tui",
+      "url": "https://docs.openclaw.ai/cli/tui.md",
+      "section": "CLI",
+      "title": "TUI",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__uninstall",
+      "url": "https://docs.openclaw.ai/cli/uninstall.md",
+      "section": "CLI",
+      "title": "Uninstall",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__update",
+      "url": "https://docs.openclaw.ai/cli/update.md",
+      "section": "CLI",
+      "title": "Update",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__voicecall",
+      "url": "https://docs.openclaw.ai/cli/voicecall.md",
+      "section": "CLI",
+      "title": "Voicecall",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__webhooks",
+      "url": "https://docs.openclaw.ai/cli/webhooks.md",
+      "section": "CLI",
+      "title": "Webhooks",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "cli__wiki",
+      "url": "https://docs.openclaw.ai/cli/wiki.md",
+      "section": "CLI",
+      "title": "Wiki",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__access-groups",
+      "url": "https://docs.openclaw.ai/channels/access-groups.md",
+      "section": "Channels",
+      "title": "Access groups",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__bluebubbles",
+      "url": "https://docs.openclaw.ai/channels/bluebubbles.md",
+      "section": "Channels",
+      "title": "BlueBubbles",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__broadcast-groups",
+      "url": "https://docs.openclaw.ai/channels/broadcast-groups.md",
+      "section": "Channels",
+      "title": "Broadcast groups",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__channel-routing",
+      "url": "https://docs.openclaw.ai/channels/channel-routing.md",
+      "section": "Channels",
+      "title": "Channel routing",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__discord",
+      "url": "https://docs.openclaw.ai/channels/discord.md",
+      "section": "Channels",
+      "title": "Discord",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__feishu",
+      "url": "https://docs.openclaw.ai/channels/feishu.md",
+      "section": "Channels",
+      "title": "Feishu",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__googlechat",
+      "url": "https://docs.openclaw.ai/channels/googlechat.md",
+      "section": "Channels",
+      "title": "Google Chat",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__group-messages",
+      "url": "https://docs.openclaw.ai/channels/group-messages.md",
+      "section": "Channels",
+      "title": "Group messages",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__groups",
+      "url": "https://docs.openclaw.ai/channels/groups.md",
+      "section": "Channels",
+      "title": "Groups",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__imessage",
+      "url": "https://docs.openclaw.ai/channels/imessage.md",
+      "section": "Channels",
+      "title": "iMessage",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__index",
+      "url": "https://docs.openclaw.ai/channels/index.md",
+      "section": "Channels",
+      "title": "Chat channels",
+      "relevance": "high",
+      "annotation": "annotations/channels__index.md",
+      "audit_anchors": [
+        12
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "channels__irc",
+      "url": "https://docs.openclaw.ai/channels/irc.md",
+      "section": "Channels",
+      "title": "IRC",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__line",
+      "url": "https://docs.openclaw.ai/channels/line.md",
+      "section": "Channels",
+      "title": "LINE",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__location",
+      "url": "https://docs.openclaw.ai/channels/location.md",
+      "section": "Channels",
+      "title": "Channel location parsing",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__matrix",
+      "url": "https://docs.openclaw.ai/channels/matrix.md",
+      "section": "Channels",
+      "title": "Matrix",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__matrix-migration",
+      "url": "https://docs.openclaw.ai/channels/matrix-migration.md",
+      "section": "Channels",
+      "title": "Matrix migration",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__matrix-push-rules",
+      "url": "https://docs.openclaw.ai/channels/matrix-push-rules.md",
+      "section": "Channels",
+      "title": "Matrix push rules for quiet previews",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__mattermost",
+      "url": "https://docs.openclaw.ai/channels/mattermost.md",
+      "section": "Channels",
+      "title": "Mattermost",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__msteams",
+      "url": "https://docs.openclaw.ai/channels/msteams.md",
+      "section": "Channels",
+      "title": "Microsoft Teams",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__nextcloud-talk",
+      "url": "https://docs.openclaw.ai/channels/nextcloud-talk.md",
+      "section": "Channels",
+      "title": "Nextcloud Talk",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__nostr",
+      "url": "https://docs.openclaw.ai/channels/nostr.md",
+      "section": "Channels",
+      "title": "Nostr",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__pairing",
+      "url": "https://docs.openclaw.ai/channels/pairing.md",
+      "section": "Channels",
+      "title": "Pairing",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__qa-channel",
+      "url": "https://docs.openclaw.ai/channels/qa-channel.md",
+      "section": "Channels",
+      "title": "QA channel",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__qqbot",
+      "url": "https://docs.openclaw.ai/channels/qqbot.md",
+      "section": "Channels",
+      "title": "QQ bot",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__signal",
+      "url": "https://docs.openclaw.ai/channels/signal.md",
+      "section": "Channels",
+      "title": "Signal",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__slack",
+      "url": "https://docs.openclaw.ai/channels/slack.md",
+      "section": "Channels",
+      "title": "Slack",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__synology-chat",
+      "url": "https://docs.openclaw.ai/channels/synology-chat.md",
+      "section": "Channels",
+      "title": "Synology Chat",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__telegram",
+      "url": "https://docs.openclaw.ai/channels/telegram.md",
+      "section": "Channels",
+      "title": "Telegram",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__tlon",
+      "url": "https://docs.openclaw.ai/channels/tlon.md",
+      "section": "Channels",
+      "title": "Tlon",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__troubleshooting",
+      "url": "https://docs.openclaw.ai/channels/troubleshooting.md",
+      "section": "Channels",
+      "title": "Channel troubleshooting",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__twitch",
+      "url": "https://docs.openclaw.ai/channels/twitch.md",
+      "section": "Channels",
+      "title": "Twitch",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__wechat",
+      "url": "https://docs.openclaw.ai/channels/wechat.md",
+      "section": "Channels",
+      "title": "WeChat",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__whatsapp",
+      "url": "https://docs.openclaw.ai/channels/whatsapp.md",
+      "section": "Channels",
+      "title": "WhatsApp",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__yuanbao",
+      "url": "https://docs.openclaw.ai/channels/yuanbao.md",
+      "section": "Channels",
+      "title": "Yuanbao",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__zalo",
+      "url": "https://docs.openclaw.ai/channels/zalo.md",
+      "section": "Channels",
+      "title": "Zalo",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "channels__zalouser",
+      "url": "https://docs.openclaw.ai/channels/zalouser.md",
+      "section": "Channels",
+      "title": "Zalo personal",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__active-memory",
+      "url": "https://docs.openclaw.ai/concepts/active-memory.md",
+      "section": "Concepts",
+      "title": "Active memory",
+      "relevance": "high",
+      "annotation": "annotations/concepts__active-memory.md",
+      "audit_anchors": [
+        2
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "concepts__agent",
+      "url": "https://docs.openclaw.ai/concepts/agent.md",
+      "section": "Concepts",
+      "title": "Agent runtime",
+      "relevance": "high",
+      "annotation": "annotations/concepts__agent.md",
+      "audit_anchors": [
+        4
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "concepts__agent-loop",
+      "url": "https://docs.openclaw.ai/concepts/agent-loop.md",
+      "section": "Concepts",
+      "title": "Agent loop",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__agent-runtimes",
+      "url": "https://docs.openclaw.ai/concepts/agent-runtimes.md",
+      "section": "Concepts",
+      "title": "Agent runtimes",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__agent-workspace",
+      "url": "https://docs.openclaw.ai/concepts/agent-workspace.md",
+      "section": "Concepts",
+      "title": "Agent workspace",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        5
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__architecture",
+      "url": "https://docs.openclaw.ai/concepts/architecture.md",
+      "section": "Concepts",
+      "title": "Gateway architecture",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__channel-docking",
+      "url": "https://docs.openclaw.ai/concepts/channel-docking.md",
+      "section": "Concepts",
+      "title": "Channel docking",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__commitments",
+      "url": "https://docs.openclaw.ai/concepts/commitments.md",
+      "section": "Concepts",
+      "title": "Inferred commitments",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__compaction",
+      "url": "https://docs.openclaw.ai/concepts/compaction.md",
+      "section": "Concepts",
+      "title": "Compaction",
+      "relevance": "high",
+      "annotation": "annotations/concepts__compaction.md",
+      "audit_anchors": [
+        6
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "concepts__context",
+      "url": "https://docs.openclaw.ai/concepts/context.md",
+      "section": "Concepts",
+      "title": "Context",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__context-engine",
+      "url": "https://docs.openclaw.ai/concepts/context-engine.md",
+      "section": "Concepts",
+      "title": "Context engine",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__delegate-architecture",
+      "url": "https://docs.openclaw.ai/concepts/delegate-architecture.md",
+      "section": "Concepts",
+      "title": "Delegate architecture",
+      "relevance": "high",
+      "annotation": "annotations/concepts__delegate-architecture.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": []
+    },
+    {
+      "id": "concepts__dreaming",
+      "url": "https://docs.openclaw.ai/concepts/dreaming.md",
+      "section": "Concepts",
+      "title": "Dreaming",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__experimental-features",
+      "url": "https://docs.openclaw.ai/concepts/experimental-features.md",
+      "section": "Concepts",
+      "title": "Experimental features",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__features",
+      "url": "https://docs.openclaw.ai/concepts/features.md",
+      "section": "Concepts",
+      "title": "Features",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__markdown-formatting",
+      "url": "https://docs.openclaw.ai/concepts/markdown-formatting.md",
+      "section": "Concepts",
+      "title": "Markdown formatting",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__memory",
+      "url": "https://docs.openclaw.ai/concepts/memory.md",
+      "section": "Concepts",
+      "title": "Memory overview",
+      "relevance": "high",
+      "annotation": "annotations/concepts__memory.md",
+      "audit_anchors": [
+        2
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "concepts__memory-builtin",
+      "url": "https://docs.openclaw.ai/concepts/memory-builtin.md",
+      "section": "Concepts",
+      "title": "Builtin memory engine",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        2
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__memory-honcho",
+      "url": "https://docs.openclaw.ai/concepts/memory-honcho.md",
+      "section": "Concepts",
+      "title": "Honcho memory",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__memory-qmd",
+      "url": "https://docs.openclaw.ai/concepts/memory-qmd.md",
+      "section": "Concepts",
+      "title": "QMD memory engine",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__memory-search",
+      "url": "https://docs.openclaw.ai/concepts/memory-search.md",
+      "section": "Concepts",
+      "title": "Memory search",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        2
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__messages",
+      "url": "https://docs.openclaw.ai/concepts/messages.md",
+      "section": "Concepts",
+      "title": "Messages",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__model-failover",
+      "url": "https://docs.openclaw.ai/concepts/model-failover.md",
+      "section": "Concepts",
+      "title": "Model failover",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__model-providers",
+      "url": "https://docs.openclaw.ai/concepts/model-providers.md",
+      "section": "Concepts",
+      "title": "Model providers",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__models",
+      "url": "https://docs.openclaw.ai/concepts/models.md",
+      "section": "Concepts",
+      "title": "Models CLI",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__multi-agent",
+      "url": "https://docs.openclaw.ai/concepts/multi-agent.md",
+      "section": "Concepts",
+      "title": "Multi-agent routing",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__oauth",
+      "url": "https://docs.openclaw.ai/concepts/oauth.md",
+      "section": "Concepts",
+      "title": "OAuth",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__openclaw-sdk",
+      "url": "https://docs.openclaw.ai/concepts/openclaw-sdk.md",
+      "section": "Concepts",
+      "title": "OpenClaw App SDK",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__parallel-specialist-lanes",
+      "url": "https://docs.openclaw.ai/concepts/parallel-specialist-lanes.md",
+      "section": "Concepts",
+      "title": "Parallel specialist lanes",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__presence",
+      "url": "https://docs.openclaw.ai/concepts/presence.md",
+      "section": "Concepts",
+      "title": "Presence",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__progress-drafts",
+      "url": "https://docs.openclaw.ai/concepts/progress-drafts.md",
+      "section": "Concepts",
+      "title": "Progress drafts",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__qa-e2e-automation",
+      "url": "https://docs.openclaw.ai/concepts/qa-e2e-automation.md",
+      "section": "Concepts",
+      "title": "QA overview",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__qa-matrix",
+      "url": "https://docs.openclaw.ai/concepts/qa-matrix.md",
+      "section": "Concepts",
+      "title": "Matrix QA",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__queue",
+      "url": "https://docs.openclaw.ai/concepts/queue.md",
+      "section": "Concepts",
+      "title": "Command queue",
+      "relevance": "high",
+      "annotation": "annotations/concepts__queue.md",
+      "audit_anchors": [
+        14
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "concepts__queue-steering",
+      "url": "https://docs.openclaw.ai/concepts/queue-steering.md",
+      "section": "Concepts",
+      "title": "Steering queue",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        14
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__retry",
+      "url": "https://docs.openclaw.ai/concepts/retry.md",
+      "section": "Concepts",
+      "title": "Retry policy",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        4
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__session",
+      "url": "https://docs.openclaw.ai/concepts/session.md",
+      "section": "Concepts",
+      "title": "Session management",
+      "relevance": "high",
+      "annotation": "annotations/concepts__session.md",
+      "audit_anchors": [
+        15
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "concepts__session-pruning",
+      "url": "https://docs.openclaw.ai/concepts/session-pruning.md",
+      "section": "Concepts",
+      "title": "Session pruning",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__session-tool",
+      "url": "https://docs.openclaw.ai/concepts/session-tool.md",
+      "section": "Concepts",
+      "title": "Session tools",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__soul",
+      "url": "https://docs.openclaw.ai/concepts/soul.md",
+      "section": "Concepts",
+      "title": "SOUL.md personality guide",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__streaming",
+      "url": "https://docs.openclaw.ai/concepts/streaming.md",
+      "section": "Concepts",
+      "title": "Streaming and chunking",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__system-prompt",
+      "url": "https://docs.openclaw.ai/concepts/system-prompt.md",
+      "section": "Concepts",
+      "title": "System prompt",
+      "relevance": "high",
+      "annotation": "annotations/concepts__system-prompt.md",
+      "audit_anchors": [
+        5
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "concepts__timezone",
+      "url": "https://docs.openclaw.ai/concepts/timezone.md",
+      "section": "Concepts",
+      "title": "Timezones",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__typebox",
+      "url": "https://docs.openclaw.ai/concepts/typebox.md",
+      "section": "Concepts",
+      "title": "TypeBox",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__typing-indicators",
+      "url": "https://docs.openclaw.ai/concepts/typing-indicators.md",
+      "section": "Concepts",
+      "title": "Typing indicators",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "concepts__usage-tracking",
+      "url": "https://docs.openclaw.ai/concepts/usage-tracking.md",
+      "section": "Concepts",
+      "title": "Usage tracking",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "debug__node-issue",
+      "url": "https://docs.openclaw.ai/debug/node-issue.md",
+      "section": "Debug",
+      "title": "Node + tsx crash",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "diagnostics__flags",
+      "url": "https://docs.openclaw.ai/diagnostics/flags.md",
+      "section": "Diagnostics",
+      "title": "Diagnostics flags",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__authentication",
+      "url": "https://docs.openclaw.ai/gateway/authentication.md",
+      "section": "Gateway",
+      "title": "Authentication",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__background-process",
+      "url": "https://docs.openclaw.ai/gateway/background-process.md",
+      "section": "Gateway",
+      "title": "Background exec and process tool",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__bonjour",
+      "url": "https://docs.openclaw.ai/gateway/bonjour.md",
+      "section": "Gateway",
+      "title": "Bonjour discovery",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [
+        8
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__bridge-protocol",
+      "url": "https://docs.openclaw.ai/gateway/bridge-protocol.md",
+      "section": "Gateway",
+      "title": "Bridge protocol",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__cli-backends",
+      "url": "https://docs.openclaw.ai/gateway/cli-backends.md",
+      "section": "Gateway",
+      "title": "CLI backends",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__config-agents",
+      "url": "https://docs.openclaw.ai/gateway/config-agents.md",
+      "section": "Gateway",
+      "title": "Configuration \u2014 agents",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__config-channels",
+      "url": "https://docs.openclaw.ai/gateway/config-channels.md",
+      "section": "Gateway",
+      "title": "Configuration \u2014 channels",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__config-tools",
+      "url": "https://docs.openclaw.ai/gateway/config-tools.md",
+      "section": "Gateway",
+      "title": "Configuration \u2014 tools and custom providers",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__configuration",
+      "url": "https://docs.openclaw.ai/gateway/configuration.md",
+      "section": "Gateway",
+      "title": "Configuration",
+      "relevance": "high",
+      "annotation": "annotations/gateway__configuration.md",
+      "audit_anchors": [
+        3,
+        4,
+        7,
+        15
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "gateway__configuration-examples",
+      "url": "https://docs.openclaw.ai/gateway/configuration-examples.md",
+      "section": "Gateway",
+      "title": "Configuration examples",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__configuration-reference",
+      "url": "https://docs.openclaw.ai/gateway/configuration-reference.md",
+      "section": "Gateway",
+      "title": "Configuration reference",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__diagnostics",
+      "url": "https://docs.openclaw.ai/gateway/diagnostics.md",
+      "section": "Gateway",
+      "title": "Diagnostics export",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__discovery",
+      "url": "https://docs.openclaw.ai/gateway/discovery.md",
+      "section": "Gateway",
+      "title": "Discovery and transports",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__doctor",
+      "url": "https://docs.openclaw.ai/gateway/doctor.md",
+      "section": "Gateway",
+      "title": "Doctor",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__gateway-lock",
+      "url": "https://docs.openclaw.ai/gateway/gateway-lock.md",
+      "section": "Gateway",
+      "title": "Gateway lock",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__health",
+      "url": "https://docs.openclaw.ai/gateway/health.md",
+      "section": "Gateway",
+      "title": "Health checks",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__heartbeat",
+      "url": "https://docs.openclaw.ai/gateway/heartbeat.md",
+      "section": "Gateway",
+      "title": "Heartbeat",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__index",
+      "url": "https://docs.openclaw.ai/gateway/index.md",
+      "section": "Gateway",
+      "title": "Gateway runbook",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__local-models",
+      "url": "https://docs.openclaw.ai/gateway/local-models.md",
+      "section": "Gateway",
+      "title": "Local models",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__logging",
+      "url": "https://docs.openclaw.ai/gateway/logging.md",
+      "section": "Gateway",
+      "title": "Gateway logging",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__multiple-gateways",
+      "url": "https://docs.openclaw.ai/gateway/multiple-gateways.md",
+      "section": "Gateway",
+      "title": "Multiple gateways",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__network-model",
+      "url": "https://docs.openclaw.ai/gateway/network-model.md",
+      "section": "Gateway",
+      "title": "Network model",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__openai-http-api",
+      "url": "https://docs.openclaw.ai/gateway/openai-http-api.md",
+      "section": "Gateway",
+      "title": "OpenAI chat completions",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__openresponses-http-api",
+      "url": "https://docs.openclaw.ai/gateway/openresponses-http-api.md",
+      "section": "Gateway",
+      "title": "OpenResponses API",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__openshell",
+      "url": "https://docs.openclaw.ai/gateway/openshell.md",
+      "section": "Gateway",
+      "title": "OpenShell",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__opentelemetry",
+      "url": "https://docs.openclaw.ai/gateway/opentelemetry.md",
+      "section": "Gateway",
+      "title": "OpenTelemetry export",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__operator-scopes",
+      "url": "https://docs.openclaw.ai/gateway/operator-scopes.md",
+      "section": "Gateway",
+      "title": "Operator scopes",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__pairing",
+      "url": "https://docs.openclaw.ai/gateway/pairing.md",
+      "section": "Gateway",
+      "title": "Gateway-owned pairing",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__prometheus",
+      "url": "https://docs.openclaw.ai/gateway/prometheus.md",
+      "section": "Gateway",
+      "title": "Prometheus metrics",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__protocol",
+      "url": "https://docs.openclaw.ai/gateway/protocol.md",
+      "section": "Gateway",
+      "title": "Gateway protocol",
+      "relevance": "high",
+      "annotation": "annotations/gateway__protocol.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": []
+    },
+    {
+      "id": "gateway__remote",
+      "url": "https://docs.openclaw.ai/gateway/remote.md",
+      "section": "Gateway",
+      "title": "Remote access",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__remote-gateway-readme",
+      "url": "https://docs.openclaw.ai/gateway/remote-gateway-readme.md",
+      "section": "Gateway",
+      "title": "Remote gateway setup",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__sandbox-vs-tool-policy-vs-elevated",
+      "url": "https://docs.openclaw.ai/gateway/sandbox-vs-tool-policy-vs-elevated.md",
+      "section": "Gateway",
+      "title": "Sandbox vs tool policy vs elevated",
+      "relevance": "high",
+      "annotation": "annotations/gateway__sandbox-vs-tool-policy-vs-elevated.md",
+      "audit_anchors": [
+        13
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "gateway__sandboxing",
+      "url": "https://docs.openclaw.ai/gateway/sandboxing.md",
+      "section": "Gateway",
+      "title": "Sandboxing",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__secrets",
+      "url": "https://docs.openclaw.ai/gateway/secrets.md",
+      "section": "Gateway",
+      "title": "Secrets management",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__secrets-plan-contract",
+      "url": "https://docs.openclaw.ai/gateway/secrets-plan-contract.md",
+      "section": "Gateway",
+      "title": "Secrets apply plan contract",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__tailscale",
+      "url": "https://docs.openclaw.ai/gateway/tailscale.md",
+      "section": "Gateway",
+      "title": "Tailscale",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__tools-invoke-http-api",
+      "url": "https://docs.openclaw.ai/gateway/tools-invoke-http-api.md",
+      "section": "Gateway",
+      "title": "Tools invoke API",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__troubleshooting",
+      "url": "https://docs.openclaw.ai/gateway/troubleshooting.md",
+      "section": "Gateway",
+      "title": "Troubleshooting",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__trusted-proxy-auth",
+      "url": "https://docs.openclaw.ai/gateway/trusted-proxy-auth.md",
+      "section": "Gateway",
+      "title": "Trusted proxy auth",
+      "relevance": "high",
+      "annotation": "annotations/gateway__trusted-proxy-auth.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "gateway__security__audit-checks",
+      "url": "https://docs.openclaw.ai/gateway/security/audit-checks.md",
+      "section": "Gateway/Security",
+      "title": "Security audit checks",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "gateway__security__index",
+      "url": "https://docs.openclaw.ai/gateway/security/index.md",
+      "section": "Gateway/Security",
+      "title": "Security",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__debugging",
+      "url": "https://docs.openclaw.ai/help/debugging.md",
+      "section": "Help",
+      "title": "Debugging",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__environment",
+      "url": "https://docs.openclaw.ai/help/environment.md",
+      "section": "Help",
+      "title": "Environment variables",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__faq",
+      "url": "https://docs.openclaw.ai/help/faq.md",
+      "section": "Help",
+      "title": "FAQ",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__faq-first-run",
+      "url": "https://docs.openclaw.ai/help/faq-first-run.md",
+      "section": "Help",
+      "title": "FAQ: first-run setup",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__faq-models",
+      "url": "https://docs.openclaw.ai/help/faq-models.md",
+      "section": "Help",
+      "title": "FAQ: models and auth",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__gpt55-codex-agentic-parity",
+      "url": "https://docs.openclaw.ai/help/gpt55-codex-agentic-parity.md",
+      "section": "Help",
+      "title": "GPT-5.5 / Codex agentic parity",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__gpt55-codex-agentic-parity-maintainers",
+      "url": "https://docs.openclaw.ai/help/gpt55-codex-agentic-parity-maintainers.md",
+      "section": "Help",
+      "title": "GPT-5.5 / Codex parity maintainer notes",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__index",
+      "url": "https://docs.openclaw.ai/help/index.md",
+      "section": "Help",
+      "title": "Help",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__scripts",
+      "url": "https://docs.openclaw.ai/help/scripts.md",
+      "section": "Help",
+      "title": "Scripts",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__testing",
+      "url": "https://docs.openclaw.ai/help/testing.md",
+      "section": "Help",
+      "title": "Testing",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__testing-live",
+      "url": "https://docs.openclaw.ai/help/testing-live.md",
+      "section": "Help",
+      "title": "Testing: live suites",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__testing-updates-plugins",
+      "url": "https://docs.openclaw.ai/help/testing-updates-plugins.md",
+      "section": "Help",
+      "title": "Testing: updates and plugins",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "help__troubleshooting",
+      "url": "https://docs.openclaw.ai/help/troubleshooting.md",
+      "section": "Help",
+      "title": "General troubleshooting",
+      "relevance": "high",
+      "annotation": "annotations/help__troubleshooting.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "install__ansible",
+      "url": "https://docs.openclaw.ai/install/ansible.md",
+      "section": "Install",
+      "title": "Ansible",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__azure",
+      "url": "https://docs.openclaw.ai/install/azure.md",
+      "section": "Install",
+      "title": "Azure",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__bun",
+      "url": "https://docs.openclaw.ai/install/bun.md",
+      "section": "Install",
+      "title": "Bun (experimental)",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__clawdock",
+      "url": "https://docs.openclaw.ai/install/clawdock.md",
+      "section": "Install",
+      "title": "ClawDock",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__development-channels",
+      "url": "https://docs.openclaw.ai/install/development-channels.md",
+      "section": "Install",
+      "title": "Release channels",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__digitalocean",
+      "url": "https://docs.openclaw.ai/install/digitalocean.md",
+      "section": "Install",
+      "title": "DigitalOcean",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__docker",
+      "url": "https://docs.openclaw.ai/install/docker.md",
+      "section": "Install",
+      "title": "Docker",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        8
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__docker-vm-runtime",
+      "url": "https://docs.openclaw.ai/install/docker-vm-runtime.md",
+      "section": "Install",
+      "title": "Docker VM runtime",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__exe-dev",
+      "url": "https://docs.openclaw.ai/install/exe-dev.md",
+      "section": "Install",
+      "title": "exe.dev",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__fly",
+      "url": "https://docs.openclaw.ai/install/fly.md",
+      "section": "Install",
+      "title": "Fly.io",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__gcp",
+      "url": "https://docs.openclaw.ai/install/gcp.md",
+      "section": "Install",
+      "title": "GCP",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__hetzner",
+      "url": "https://docs.openclaw.ai/install/hetzner.md",
+      "section": "Install",
+      "title": "Hetzner",
+      "relevance": "high",
+      "annotation": "annotations/install__hetzner.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "install__hostinger",
+      "url": "https://docs.openclaw.ai/install/hostinger.md",
+      "section": "Install",
+      "title": "Hostinger",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__index",
+      "url": "https://docs.openclaw.ai/install/index.md",
+      "section": "Install",
+      "title": "Install",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__installer",
+      "url": "https://docs.openclaw.ai/install/installer.md",
+      "section": "Install",
+      "title": "Installer internals",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__kubernetes",
+      "url": "https://docs.openclaw.ai/install/kubernetes.md",
+      "section": "Install",
+      "title": "Kubernetes",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__macos-vm",
+      "url": "https://docs.openclaw.ai/install/macos-vm.md",
+      "section": "Install",
+      "title": "macOS VMs",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__migrating",
+      "url": "https://docs.openclaw.ai/install/migrating.md",
+      "section": "Install",
+      "title": "Migration guide",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__migrating-claude",
+      "url": "https://docs.openclaw.ai/install/migrating-claude.md",
+      "section": "Install",
+      "title": "Migrating from Claude",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__migrating-hermes",
+      "url": "https://docs.openclaw.ai/install/migrating-hermes.md",
+      "section": "Install",
+      "title": "Migrating from Hermes",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__nix",
+      "url": "https://docs.openclaw.ai/install/nix.md",
+      "section": "Install",
+      "title": "Nix",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__node",
+      "url": "https://docs.openclaw.ai/install/node.md",
+      "section": "Install",
+      "title": "Node.js",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__northflank",
+      "url": "https://docs.openclaw.ai/install/northflank.md",
+      "section": "Install",
+      "title": "Northflank",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__oracle",
+      "url": "https://docs.openclaw.ai/install/oracle.md",
+      "section": "Install",
+      "title": "Oracle Cloud",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__podman",
+      "url": "https://docs.openclaw.ai/install/podman.md",
+      "section": "Install",
+      "title": "Podman",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__railway",
+      "url": "https://docs.openclaw.ai/install/railway.md",
+      "section": "Install",
+      "title": "Railway",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__raspberry-pi",
+      "url": "https://docs.openclaw.ai/install/raspberry-pi.md",
+      "section": "Install",
+      "title": "Raspberry Pi",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__render",
+      "url": "https://docs.openclaw.ai/install/render.md",
+      "section": "Install",
+      "title": "Render",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__uninstall",
+      "url": "https://docs.openclaw.ai/install/uninstall.md",
+      "section": "Install",
+      "title": "Uninstall",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "install__updating",
+      "url": "https://docs.openclaw.ai/install/updating.md",
+      "section": "Install",
+      "title": "Updating",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        7
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "nodes__audio",
+      "url": "https://docs.openclaw.ai/nodes/audio.md",
+      "section": "Nodes",
+      "title": "Audio and voice notes",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "nodes__camera",
+      "url": "https://docs.openclaw.ai/nodes/camera.md",
+      "section": "Nodes",
+      "title": "Camera capture",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "nodes__images",
+      "url": "https://docs.openclaw.ai/nodes/images.md",
+      "section": "Nodes",
+      "title": "Image and media support",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "nodes__index",
+      "url": "https://docs.openclaw.ai/nodes/index.md",
+      "section": "Nodes",
+      "title": "Nodes",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "nodes__location-command",
+      "url": "https://docs.openclaw.ai/nodes/location-command.md",
+      "section": "Nodes",
+      "title": "Location command",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "nodes__media-understanding",
+      "url": "https://docs.openclaw.ai/nodes/media-understanding.md",
+      "section": "Nodes",
+      "title": "Media understanding",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "nodes__talk",
+      "url": "https://docs.openclaw.ai/nodes/talk.md",
+      "section": "Nodes",
+      "title": "Talk mode",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "nodes__troubleshooting",
+      "url": "https://docs.openclaw.ai/nodes/troubleshooting.md",
+      "section": "Nodes",
+      "title": "Node troubleshooting",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "nodes__voicewake",
+      "url": "https://docs.openclaw.ai/nodes/voicewake.md",
+      "section": "Nodes",
+      "title": "Voice wake",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__android",
+      "url": "https://docs.openclaw.ai/platforms/android.md",
+      "section": "Platform",
+      "title": "Android app",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__index",
+      "url": "https://docs.openclaw.ai/platforms/index.md",
+      "section": "Platform",
+      "title": "Platforms",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__ios",
+      "url": "https://docs.openclaw.ai/platforms/ios.md",
+      "section": "Platform",
+      "title": "iOS app",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__linux",
+      "url": "https://docs.openclaw.ai/platforms/linux.md",
+      "section": "Platform",
+      "title": "Linux app",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__macos",
+      "url": "https://docs.openclaw.ai/platforms/macos.md",
+      "section": "Platform",
+      "title": "macOS app",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__windows",
+      "url": "https://docs.openclaw.ai/platforms/windows.md",
+      "section": "Platform",
+      "title": "Windows",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__bundled-gateway",
+      "url": "https://docs.openclaw.ai/platforms/mac/bundled-gateway.md",
+      "section": "Platform/macOS",
+      "title": "Gateway on macOS",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__canvas",
+      "url": "https://docs.openclaw.ai/platforms/mac/canvas.md",
+      "section": "Platform/macOS",
+      "title": "Canvas",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__child-process",
+      "url": "https://docs.openclaw.ai/platforms/mac/child-process.md",
+      "section": "Platform/macOS",
+      "title": "Gateway lifecycle",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__dev-setup",
+      "url": "https://docs.openclaw.ai/platforms/mac/dev-setup.md",
+      "section": "Platform/macOS",
+      "title": "macOS dev setup",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__health",
+      "url": "https://docs.openclaw.ai/platforms/mac/health.md",
+      "section": "Platform/macOS",
+      "title": "Health checks (macOS)",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__icon",
+      "url": "https://docs.openclaw.ai/platforms/mac/icon.md",
+      "section": "Platform/macOS",
+      "title": "Menu bar icon",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__logging",
+      "url": "https://docs.openclaw.ai/platforms/mac/logging.md",
+      "section": "Platform/macOS",
+      "title": "macOS logging",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__menu-bar",
+      "url": "https://docs.openclaw.ai/platforms/mac/menu-bar.md",
+      "section": "Platform/macOS",
+      "title": "Menu bar",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__peekaboo",
+      "url": "https://docs.openclaw.ai/platforms/mac/peekaboo.md",
+      "section": "Platform/macOS",
+      "title": "Peekaboo bridge",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__permissions",
+      "url": "https://docs.openclaw.ai/platforms/mac/permissions.md",
+      "section": "Platform/macOS",
+      "title": "macOS permissions",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__remote",
+      "url": "https://docs.openclaw.ai/platforms/mac/remote.md",
+      "section": "Platform/macOS",
+      "title": "Remote control",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__signing",
+      "url": "https://docs.openclaw.ai/platforms/mac/signing.md",
+      "section": "Platform/macOS",
+      "title": "macOS signing",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__skills",
+      "url": "https://docs.openclaw.ai/platforms/mac/skills.md",
+      "section": "Platform/macOS",
+      "title": "Skills (macOS)",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__voice-overlay",
+      "url": "https://docs.openclaw.ai/platforms/mac/voice-overlay.md",
+      "section": "Platform/macOS",
+      "title": "Voice overlay",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__voicewake",
+      "url": "https://docs.openclaw.ai/platforms/mac/voicewake.md",
+      "section": "Platform/macOS",
+      "title": "Voice wake (macOS)",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__webchat",
+      "url": "https://docs.openclaw.ai/platforms/mac/webchat.md",
+      "section": "Platform/macOS",
+      "title": "WebChat (macOS)",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "platforms__mac__xpc",
+      "url": "https://docs.openclaw.ai/platforms/mac/xpc.md",
+      "section": "Platform/macOS",
+      "title": "macOS IPC",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__architecture",
+      "url": "https://docs.openclaw.ai/plugins/architecture.md",
+      "section": "Plugins",
+      "title": "Plugin internals",
+      "relevance": "high",
+      "annotation": "annotations/plugins__architecture.md",
+      "audit_anchors": [
+        1,
+        11
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "plugins__architecture-internals",
+      "url": "https://docs.openclaw.ai/plugins/architecture-internals.md",
+      "section": "Plugins",
+      "title": "Plugin architecture internals",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__building-plugins",
+      "url": "https://docs.openclaw.ai/plugins/building-plugins.md",
+      "section": "Plugins",
+      "title": "Building plugins",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__bundles",
+      "url": "https://docs.openclaw.ai/plugins/bundles.md",
+      "section": "Plugins",
+      "title": "Plugin bundles",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__codex-computer-use",
+      "url": "https://docs.openclaw.ai/plugins/codex-computer-use.md",
+      "section": "Plugins",
+      "title": "Codex Computer Use",
+      "relevance": "high",
+      "annotation": "annotations/plugins__codex-computer-use.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "plugins__codex-harness",
+      "url": "https://docs.openclaw.ai/plugins/codex-harness.md",
+      "section": "Plugins",
+      "title": "Codex harness",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__community",
+      "url": "https://docs.openclaw.ai/plugins/community.md",
+      "section": "Plugins",
+      "title": "Community plugins",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__compatibility",
+      "url": "https://docs.openclaw.ai/plugins/compatibility.md",
+      "section": "Plugins",
+      "title": "Plugin compatibility",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__dependency-resolution",
+      "url": "https://docs.openclaw.ai/plugins/dependency-resolution.md",
+      "section": "Plugins",
+      "title": "Plugin dependency resolution",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__google-meet",
+      "url": "https://docs.openclaw.ai/plugins/google-meet.md",
+      "section": "Plugins",
+      "title": "Google Meet plugin",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__hooks",
+      "url": "https://docs.openclaw.ai/plugins/hooks.md",
+      "section": "Plugins",
+      "title": "Plugin hooks",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__manage-plugins",
+      "url": "https://docs.openclaw.ai/plugins/manage-plugins.md",
+      "section": "Plugins",
+      "title": "Manage plugins",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        12
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__manifest",
+      "url": "https://docs.openclaw.ai/plugins/manifest.md",
+      "section": "Plugins",
+      "title": "Plugin manifest",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        12
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__memory-lancedb",
+      "url": "https://docs.openclaw.ai/plugins/memory-lancedb.md",
+      "section": "Plugins",
+      "title": "Memory LanceDB",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__memory-wiki",
+      "url": "https://docs.openclaw.ai/plugins/memory-wiki.md",
+      "section": "Plugins",
+      "title": "Memory wiki",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__message-presentation",
+      "url": "https://docs.openclaw.ai/plugins/message-presentation.md",
+      "section": "Plugins",
+      "title": "Message presentation",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__plugin-inventory",
+      "url": "https://docs.openclaw.ai/plugins/plugin-inventory.md",
+      "section": "Plugins",
+      "title": "Plugin inventory",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__reference",
+      "url": "https://docs.openclaw.ai/plugins/reference.md",
+      "section": "Plugins",
+      "title": "Plugin reference",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-agent-harness",
+      "url": "https://docs.openclaw.ai/plugins/sdk-agent-harness.md",
+      "section": "Plugins",
+      "title": "Agent harness plugins",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-channel-plugins",
+      "url": "https://docs.openclaw.ai/plugins/sdk-channel-plugins.md",
+      "section": "Plugins",
+      "title": "Building channel plugins",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-channel-turn",
+      "url": "https://docs.openclaw.ai/plugins/sdk-channel-turn.md",
+      "section": "Plugins",
+      "title": "Channel turn kernel",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-entrypoints",
+      "url": "https://docs.openclaw.ai/plugins/sdk-entrypoints.md",
+      "section": "Plugins",
+      "title": "Plugin entry points",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-migration",
+      "url": "https://docs.openclaw.ai/plugins/sdk-migration.md",
+      "section": "Plugins",
+      "title": "Plugin SDK migration",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-overview",
+      "url": "https://docs.openclaw.ai/plugins/sdk-overview.md",
+      "section": "Plugins",
+      "title": "Plugin SDK overview",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        1
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-provider-plugins",
+      "url": "https://docs.openclaw.ai/plugins/sdk-provider-plugins.md",
+      "section": "Plugins",
+      "title": "Building provider plugins",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-runtime",
+      "url": "https://docs.openclaw.ai/plugins/sdk-runtime.md",
+      "section": "Plugins",
+      "title": "Plugin runtime helpers",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        1
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-setup",
+      "url": "https://docs.openclaw.ai/plugins/sdk-setup.md",
+      "section": "Plugins",
+      "title": "Plugin setup and config",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-subpaths",
+      "url": "https://docs.openclaw.ai/plugins/sdk-subpaths.md",
+      "section": "Plugins",
+      "title": "Plugin SDK subpaths",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__sdk-testing",
+      "url": "https://docs.openclaw.ai/plugins/sdk-testing.md",
+      "section": "Plugins",
+      "title": "Plugin testing",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__skill-workshop",
+      "url": "https://docs.openclaw.ai/plugins/skill-workshop.md",
+      "section": "Plugins",
+      "title": "Skill workshop plugin",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__voice-call",
+      "url": "https://docs.openclaw.ai/plugins/voice-call.md",
+      "section": "Plugins",
+      "title": "Voice call plugin",
+      "relevance": "high",
+      "annotation": "annotations/plugins__voice-call.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "plugins__webhooks",
+      "url": "https://docs.openclaw.ai/plugins/webhooks.md",
+      "section": "Plugins",
+      "title": "Webhooks plugin",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "plugins__zalouser",
+      "url": "https://docs.openclaw.ai/plugins/zalouser.md",
+      "section": "Plugins",
+      "title": "Zalo personal plugin",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__alibaba",
+      "url": "https://docs.openclaw.ai/providers/alibaba.md",
+      "section": "Providers",
+      "title": "Alibaba Model Studio",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__anthropic",
+      "url": "https://docs.openclaw.ai/providers/anthropic.md",
+      "section": "Providers",
+      "title": "Anthropic",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        10
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__arcee",
+      "url": "https://docs.openclaw.ai/providers/arcee.md",
+      "section": "Providers",
+      "title": "Arcee AI",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__azure-speech",
+      "url": "https://docs.openclaw.ai/providers/azure-speech.md",
+      "section": "Providers",
+      "title": "Azure Speech",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__bedrock",
+      "url": "https://docs.openclaw.ai/providers/bedrock.md",
+      "section": "Providers",
+      "title": "Amazon Bedrock",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__bedrock-mantle",
+      "url": "https://docs.openclaw.ai/providers/bedrock-mantle.md",
+      "section": "Providers",
+      "title": "Amazon Bedrock Mantle",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__cerebras",
+      "url": "https://docs.openclaw.ai/providers/cerebras.md",
+      "section": "Providers",
+      "title": "Cerebras",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__chutes",
+      "url": "https://docs.openclaw.ai/providers/chutes.md",
+      "section": "Providers",
+      "title": "Chutes",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__claude-max-api-proxy",
+      "url": "https://docs.openclaw.ai/providers/claude-max-api-proxy.md",
+      "section": "Providers",
+      "title": "Claude Max API proxy",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__cloudflare-ai-gateway",
+      "url": "https://docs.openclaw.ai/providers/cloudflare-ai-gateway.md",
+      "section": "Providers",
+      "title": "Cloudflare AI gateway",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__comfy",
+      "url": "https://docs.openclaw.ai/providers/comfy.md",
+      "section": "Providers",
+      "title": "ComfyUI",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__deepgram",
+      "url": "https://docs.openclaw.ai/providers/deepgram.md",
+      "section": "Providers",
+      "title": "Deepgram",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__deepinfra",
+      "url": "https://docs.openclaw.ai/providers/deepinfra.md",
+      "section": "Providers",
+      "title": "Deepinfra",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__deepseek",
+      "url": "https://docs.openclaw.ai/providers/deepseek.md",
+      "section": "Providers",
+      "title": "DeepSeek",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__elevenlabs",
+      "url": "https://docs.openclaw.ai/providers/elevenlabs.md",
+      "section": "Providers",
+      "title": "ElevenLabs",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__fal",
+      "url": "https://docs.openclaw.ai/providers/fal.md",
+      "section": "Providers",
+      "title": "Fal",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__fireworks",
+      "url": "https://docs.openclaw.ai/providers/fireworks.md",
+      "section": "Providers",
+      "title": "Fireworks",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__github-copilot",
+      "url": "https://docs.openclaw.ai/providers/github-copilot.md",
+      "section": "Providers",
+      "title": "GitHub Copilot",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__glm",
+      "url": "https://docs.openclaw.ai/providers/glm.md",
+      "section": "Providers",
+      "title": "GLM (Zhipu)",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        9
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__google",
+      "url": "https://docs.openclaw.ai/providers/google.md",
+      "section": "Providers",
+      "title": "Google (Gemini)",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__gradium",
+      "url": "https://docs.openclaw.ai/providers/gradium.md",
+      "section": "Providers",
+      "title": "Gradium",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__groq",
+      "url": "https://docs.openclaw.ai/providers/groq.md",
+      "section": "Providers",
+      "title": "Groq",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__huggingface",
+      "url": "https://docs.openclaw.ai/providers/huggingface.md",
+      "section": "Providers",
+      "title": "Hugging Face (inference)",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__index",
+      "url": "https://docs.openclaw.ai/providers/index.md",
+      "section": "Providers",
+      "title": "Provider directory",
+      "relevance": "high",
+      "annotation": "annotations/providers__index.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "providers__inferrs",
+      "url": "https://docs.openclaw.ai/providers/inferrs.md",
+      "section": "Providers",
+      "title": "Inferrs",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__inworld",
+      "url": "https://docs.openclaw.ai/providers/inworld.md",
+      "section": "Providers",
+      "title": "Inworld",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__kilocode",
+      "url": "https://docs.openclaw.ai/providers/kilocode.md",
+      "section": "Providers",
+      "title": "Kilocode",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__litellm",
+      "url": "https://docs.openclaw.ai/providers/litellm.md",
+      "section": "Providers",
+      "title": "LiteLLM",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__lmstudio",
+      "url": "https://docs.openclaw.ai/providers/lmstudio.md",
+      "section": "Providers",
+      "title": "LM Studio",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__minimax",
+      "url": "https://docs.openclaw.ai/providers/minimax.md",
+      "section": "Providers",
+      "title": "MiniMax",
+      "relevance": "high",
+      "annotation": "annotations/providers__minimax.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "providers__mistral",
+      "url": "https://docs.openclaw.ai/providers/mistral.md",
+      "section": "Providers",
+      "title": "Mistral",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__models",
+      "url": "https://docs.openclaw.ai/providers/models.md",
+      "section": "Providers",
+      "title": "Model provider quickstart",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__moonshot",
+      "url": "https://docs.openclaw.ai/providers/moonshot.md",
+      "section": "Providers",
+      "title": "Moonshot AI",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__nvidia",
+      "url": "https://docs.openclaw.ai/providers/nvidia.md",
+      "section": "Providers",
+      "title": "NVIDIA",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__ollama",
+      "url": "https://docs.openclaw.ai/providers/ollama.md",
+      "section": "Providers",
+      "title": "Ollama",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__openai",
+      "url": "https://docs.openclaw.ai/providers/openai.md",
+      "section": "Providers",
+      "title": "OpenAI",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        10
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__opencode",
+      "url": "https://docs.openclaw.ai/providers/opencode.md",
+      "section": "Providers",
+      "title": "OpenCode",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__opencode-go",
+      "url": "https://docs.openclaw.ai/providers/opencode-go.md",
+      "section": "Providers",
+      "title": "OpenCode Go",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__openrouter",
+      "url": "https://docs.openclaw.ai/providers/openrouter.md",
+      "section": "Providers",
+      "title": "OpenRouter",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__perplexity-provider",
+      "url": "https://docs.openclaw.ai/providers/perplexity-provider.md",
+      "section": "Providers",
+      "title": "Perplexity",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__qianfan",
+      "url": "https://docs.openclaw.ai/providers/qianfan.md",
+      "section": "Providers",
+      "title": "Qianfan",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__qwen",
+      "url": "https://docs.openclaw.ai/providers/qwen.md",
+      "section": "Providers",
+      "title": "Qwen",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__runway",
+      "url": "https://docs.openclaw.ai/providers/runway.md",
+      "section": "Providers",
+      "title": "Runway",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__senseaudio",
+      "url": "https://docs.openclaw.ai/providers/senseaudio.md",
+      "section": "Providers",
+      "title": "SenseAudio",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__sglang",
+      "url": "https://docs.openclaw.ai/providers/sglang.md",
+      "section": "Providers",
+      "title": "SGLang",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__stepfun",
+      "url": "https://docs.openclaw.ai/providers/stepfun.md",
+      "section": "Providers",
+      "title": "StepFun",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__synthetic",
+      "url": "https://docs.openclaw.ai/providers/synthetic.md",
+      "section": "Providers",
+      "title": "Synthetic",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__tencent",
+      "url": "https://docs.openclaw.ai/providers/tencent.md",
+      "section": "Providers",
+      "title": "Tencent Cloud (TokenHub)",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__together",
+      "url": "https://docs.openclaw.ai/providers/together.md",
+      "section": "Providers",
+      "title": "Together AI",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__venice",
+      "url": "https://docs.openclaw.ai/providers/venice.md",
+      "section": "Providers",
+      "title": "Venice AI",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__vercel-ai-gateway",
+      "url": "https://docs.openclaw.ai/providers/vercel-ai-gateway.md",
+      "section": "Providers",
+      "title": "Vercel AI gateway",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__vllm",
+      "url": "https://docs.openclaw.ai/providers/vllm.md",
+      "section": "Providers",
+      "title": "vLLM",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__volcengine",
+      "url": "https://docs.openclaw.ai/providers/volcengine.md",
+      "section": "Providers",
+      "title": "Volcengine (Doubao)",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__vydra",
+      "url": "https://docs.openclaw.ai/providers/vydra.md",
+      "section": "Providers",
+      "title": "Vydra",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__xai",
+      "url": "https://docs.openclaw.ai/providers/xai.md",
+      "section": "Providers",
+      "title": "xAI",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__xiaomi",
+      "url": "https://docs.openclaw.ai/providers/xiaomi.md",
+      "section": "Providers",
+      "title": "Xiaomi MiMo",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "providers__zai",
+      "url": "https://docs.openclaw.ai/providers/zai.md",
+      "section": "Providers",
+      "title": "Z.AI",
+      "relevance": "high",
+      "annotation": "annotations/providers__zai.md",
+      "audit_anchors": [
+        9
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "reference__AGENTS.default",
+      "url": "https://docs.openclaw.ai/reference/AGENTS.default.md",
+      "section": "Reference",
+      "title": "Default AGENTS.md",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__RELEASING",
+      "url": "https://docs.openclaw.ai/reference/RELEASING.md",
+      "section": "Reference",
+      "title": "Release policy",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__api-usage-costs",
+      "url": "https://docs.openclaw.ai/reference/api-usage-costs.md",
+      "section": "Reference",
+      "title": "API usage and costs",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__application-modernization-plan",
+      "url": "https://docs.openclaw.ai/reference/application-modernization-plan.md",
+      "section": "Reference",
+      "title": "Application modernization plan",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__credits",
+      "url": "https://docs.openclaw.ai/reference/credits.md",
+      "section": "Reference",
+      "title": "Credits",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__device-models",
+      "url": "https://docs.openclaw.ai/reference/device-models.md",
+      "section": "Reference",
+      "title": "Device model database",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__full-release-validation",
+      "url": "https://docs.openclaw.ai/reference/full-release-validation.md",
+      "section": "Reference",
+      "title": "Full release validation",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__memory-config",
+      "url": "https://docs.openclaw.ai/reference/memory-config.md",
+      "section": "Reference",
+      "title": "Memory configuration reference",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__openclaw-sdk-api-design",
+      "url": "https://docs.openclaw.ai/reference/openclaw-sdk-api-design.md",
+      "section": "Reference",
+      "title": "OpenClaw App SDK API design",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__prompt-caching",
+      "url": "https://docs.openclaw.ai/reference/prompt-caching.md",
+      "section": "Reference",
+      "title": "Prompt caching",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__rich-output-protocol",
+      "url": "https://docs.openclaw.ai/reference/rich-output-protocol.md",
+      "section": "Reference",
+      "title": "Rich output protocol",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__rpc",
+      "url": "https://docs.openclaw.ai/reference/rpc.md",
+      "section": "Reference",
+      "title": "RPC adapters",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__secretref-credential-surface",
+      "url": "https://docs.openclaw.ai/reference/secretref-credential-surface.md",
+      "section": "Reference",
+      "title": "SecretRef credential surface",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__session-management-compaction",
+      "url": "https://docs.openclaw.ai/reference/session-management-compaction.md",
+      "section": "Reference",
+      "title": "Session management deep dive",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        6,
+        15
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__test",
+      "url": "https://docs.openclaw.ai/reference/test.md",
+      "section": "Reference",
+      "title": "Tests",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__token-use",
+      "url": "https://docs.openclaw.ai/reference/token-use.md",
+      "section": "Reference",
+      "title": "Token use and costs",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__transcript-hygiene",
+      "url": "https://docs.openclaw.ai/reference/transcript-hygiene.md",
+      "section": "Reference",
+      "title": "Transcript hygiene",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__wizard",
+      "url": "https://docs.openclaw.ai/reference/wizard.md",
+      "section": "Reference",
+      "title": "Onboarding reference",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__templates__AGENTS",
+      "url": "https://docs.openclaw.ai/reference/templates/AGENTS.md",
+      "section": "Reference/Templates",
+      "title": "AGENTS.md template",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__templates__BOOT",
+      "url": "https://docs.openclaw.ai/reference/templates/BOOT.md",
+      "section": "Reference/Templates",
+      "title": "BOOT.md template",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__templates__BOOTSTRAP",
+      "url": "https://docs.openclaw.ai/reference/templates/BOOTSTRAP.md",
+      "section": "Reference/Templates",
+      "title": "BOOTSTRAP.md template",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__templates__HEARTBEAT",
+      "url": "https://docs.openclaw.ai/reference/templates/HEARTBEAT.md",
+      "section": "Reference/Templates",
+      "title": "HEARTBEAT.md template",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__templates__IDENTITY",
+      "url": "https://docs.openclaw.ai/reference/templates/IDENTITY.md",
+      "section": "Reference/Templates",
+      "title": "IDENTITY template",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__templates__SOUL",
+      "url": "https://docs.openclaw.ai/reference/templates/SOUL.md",
+      "section": "Reference/Templates",
+      "title": "SOUL.md template",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__templates__TOOLS",
+      "url": "https://docs.openclaw.ai/reference/templates/TOOLS.md",
+      "section": "Reference/Templates",
+      "title": "TOOLS.md template",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "reference__templates__USER",
+      "url": "https://docs.openclaw.ai/reference/templates/USER.md",
+      "section": "Reference/Templates",
+      "title": "USER template",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "auth-credential-semantics",
+      "url": "https://docs.openclaw.ai/auth-credential-semantics.md",
+      "section": "Root",
+      "title": "Auth credential semantics",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "ci",
+      "url": "https://docs.openclaw.ai/ci.md",
+      "section": "Root",
+      "title": "CI pipeline",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "date-time",
+      "url": "https://docs.openclaw.ai/date-time.md",
+      "section": "Root",
+      "title": "Date and time",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "index",
+      "url": "https://docs.openclaw.ai/index.md",
+      "section": "Root",
+      "title": "OpenClaw",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "logging",
+      "url": "https://docs.openclaw.ai/logging.md",
+      "section": "Root",
+      "title": "Logging",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "network",
+      "url": "https://docs.openclaw.ai/network.md",
+      "section": "Root",
+      "title": "Network",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "pi",
+      "url": "https://docs.openclaw.ai/pi.md",
+      "section": "Root",
+      "title": "Pi integration architecture",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "pi-dev",
+      "url": "https://docs.openclaw.ai/pi-dev.md",
+      "section": "Root",
+      "title": "Pi development workflow",
+      "relevance": "low",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "prose",
+      "url": "https://docs.openclaw.ai/prose.md",
+      "section": "Root",
+      "title": "OpenProse",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "vps",
+      "url": "https://docs.openclaw.ai/vps.md",
+      "section": "Root",
+      "title": "Linux server",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "security__CONTRIBUTING-THREAT-MODEL",
+      "url": "https://docs.openclaw.ai/security/CONTRIBUTING-THREAT-MODEL.md",
+      "section": "Security",
+      "title": "Contributing to the threat model",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "security__THREAT-MODEL-ATLAS",
+      "url": "https://docs.openclaw.ai/security/THREAT-MODEL-ATLAS.md",
+      "section": "Security",
+      "title": "Threat model (MITRE ATLAS)",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "security__formal-verification",
+      "url": "https://docs.openclaw.ai/security/formal-verification.md",
+      "section": "Security",
+      "title": "Formal verification (security models)",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "security__network-proxy",
+      "url": "https://docs.openclaw.ai/security/network-proxy.md",
+      "section": "Security",
+      "title": "Network proxy",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__bootstrapping",
+      "url": "https://docs.openclaw.ai/start/bootstrapping.md",
+      "section": "Start",
+      "title": "Agent bootstrapping",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__docs-directory",
+      "url": "https://docs.openclaw.ai/start/docs-directory.md",
+      "section": "Start",
+      "title": "Docs directory",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__getting-started",
+      "url": "https://docs.openclaw.ai/start/getting-started.md",
+      "section": "Start",
+      "title": "Getting started",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__hubs",
+      "url": "https://docs.openclaw.ai/start/hubs.md",
+      "section": "Start",
+      "title": "Docs hubs",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__lore",
+      "url": "https://docs.openclaw.ai/start/lore.md",
+      "section": "Start",
+      "title": "OpenClaw lore",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__onboarding",
+      "url": "https://docs.openclaw.ai/start/onboarding.md",
+      "section": "Start",
+      "title": "Onboarding (macOS app)",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__onboarding-overview",
+      "url": "https://docs.openclaw.ai/start/onboarding-overview.md",
+      "section": "Start",
+      "title": "Onboarding overview",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__openclaw",
+      "url": "https://docs.openclaw.ai/start/openclaw.md",
+      "section": "Start",
+      "title": "Personal assistant setup",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__setup",
+      "url": "https://docs.openclaw.ai/start/setup.md",
+      "section": "Start",
+      "title": "Setup",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__wizard",
+      "url": "https://docs.openclaw.ai/start/wizard.md",
+      "section": "Start",
+      "title": "Onboarding (CLI)",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__wizard-cli-automation",
+      "url": "https://docs.openclaw.ai/start/wizard-cli-automation.md",
+      "section": "Start",
+      "title": "CLI automation",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "start__wizard-cli-reference",
+      "url": "https://docs.openclaw.ai/start/wizard-cli-reference.md",
+      "section": "Start",
+      "title": "CLI setup reference",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__acp-agents",
+      "url": "https://docs.openclaw.ai/tools/acp-agents.md",
+      "section": "Tools",
+      "title": "ACP agents",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__acp-agents-setup",
+      "url": "https://docs.openclaw.ai/tools/acp-agents-setup.md",
+      "section": "Tools",
+      "title": "ACP agents \u2014 setup",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__agent-send",
+      "url": "https://docs.openclaw.ai/tools/agent-send.md",
+      "section": "Tools",
+      "title": "Agent send",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__apply-patch",
+      "url": "https://docs.openclaw.ai/tools/apply-patch.md",
+      "section": "Tools",
+      "title": "apply_patch tool",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__brave-search",
+      "url": "https://docs.openclaw.ai/tools/brave-search.md",
+      "section": "Tools",
+      "title": "Brave search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__browser",
+      "url": "https://docs.openclaw.ai/tools/browser.md",
+      "section": "Tools",
+      "title": "Browser (OpenClaw-managed)",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__browser-control",
+      "url": "https://docs.openclaw.ai/tools/browser-control.md",
+      "section": "Tools",
+      "title": "Browser control API",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__browser-linux-troubleshooting",
+      "url": "https://docs.openclaw.ai/tools/browser-linux-troubleshooting.md",
+      "section": "Tools",
+      "title": "Browser troubleshooting",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__browser-login",
+      "url": "https://docs.openclaw.ai/tools/browser-login.md",
+      "section": "Tools",
+      "title": "Browser login",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__browser-wsl2-windows-remote-cdp-troubleshooting",
+      "url": "https://docs.openclaw.ai/tools/browser-wsl2-windows-remote-cdp-troubleshooting.md",
+      "section": "Tools",
+      "title": "WSL2 + Windows + remote Chrome CDP troubleshooting",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__btw",
+      "url": "https://docs.openclaw.ai/tools/btw.md",
+      "section": "Tools",
+      "title": "BTW side questions",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__clawhub",
+      "url": "https://docs.openclaw.ai/tools/clawhub.md",
+      "section": "Tools",
+      "title": "ClawHub",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__code-execution",
+      "url": "https://docs.openclaw.ai/tools/code-execution.md",
+      "section": "Tools",
+      "title": "Code execution",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__creating-skills",
+      "url": "https://docs.openclaw.ai/tools/creating-skills.md",
+      "section": "Tools",
+      "title": "Creating skills",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__diffs",
+      "url": "https://docs.openclaw.ai/tools/diffs.md",
+      "section": "Tools",
+      "title": "Diffs",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__duckduckgo-search",
+      "url": "https://docs.openclaw.ai/tools/duckduckgo-search.md",
+      "section": "Tools",
+      "title": "DuckDuckGo search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__elevated",
+      "url": "https://docs.openclaw.ai/tools/elevated.md",
+      "section": "Tools",
+      "title": "Elevated mode",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__exa-search",
+      "url": "https://docs.openclaw.ai/tools/exa-search.md",
+      "section": "Tools",
+      "title": "Exa search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__exec",
+      "url": "https://docs.openclaw.ai/tools/exec.md",
+      "section": "Tools",
+      "title": "Exec tool",
+      "relevance": "high",
+      "annotation": "annotations/tools__exec.md",
+      "audit_anchors": [
+        13
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "tools__exec-approvals",
+      "url": "https://docs.openclaw.ai/tools/exec-approvals.md",
+      "section": "Tools",
+      "title": "Exec approvals",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        13
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__exec-approvals-advanced",
+      "url": "https://docs.openclaw.ai/tools/exec-approvals-advanced.md",
+      "section": "Tools",
+      "title": "Exec approvals \u2014 advanced",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__firecrawl",
+      "url": "https://docs.openclaw.ai/tools/firecrawl.md",
+      "section": "Tools",
+      "title": "Firecrawl",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__gemini-search",
+      "url": "https://docs.openclaw.ai/tools/gemini-search.md",
+      "section": "Tools",
+      "title": "Gemini search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__grok-search",
+      "url": "https://docs.openclaw.ai/tools/grok-search.md",
+      "section": "Tools",
+      "title": "Grok search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__image-generation",
+      "url": "https://docs.openclaw.ai/tools/image-generation.md",
+      "section": "Tools",
+      "title": "Image generation",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__index",
+      "url": "https://docs.openclaw.ai/tools/index.md",
+      "section": "Tools",
+      "title": "Tools and plugins",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        3
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__kimi-search",
+      "url": "https://docs.openclaw.ai/tools/kimi-search.md",
+      "section": "Tools",
+      "title": "Kimi search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__llm-task",
+      "url": "https://docs.openclaw.ai/tools/llm-task.md",
+      "section": "Tools",
+      "title": "LLM task",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__lobster",
+      "url": "https://docs.openclaw.ai/tools/lobster.md",
+      "section": "Tools",
+      "title": "Lobster",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__loop-detection",
+      "url": "https://docs.openclaw.ai/tools/loop-detection.md",
+      "section": "Tools",
+      "title": "Tool-loop detection",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__media-overview",
+      "url": "https://docs.openclaw.ai/tools/media-overview.md",
+      "section": "Tools",
+      "title": "Media overview",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__minimax-search",
+      "url": "https://docs.openclaw.ai/tools/minimax-search.md",
+      "section": "Tools",
+      "title": "MiniMax search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__multi-agent-sandbox-tools",
+      "url": "https://docs.openclaw.ai/tools/multi-agent-sandbox-tools.md",
+      "section": "Tools",
+      "title": "Multi-agent sandbox and tools",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__music-generation",
+      "url": "https://docs.openclaw.ai/tools/music-generation.md",
+      "section": "Tools",
+      "title": "Music generation",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__ollama-search",
+      "url": "https://docs.openclaw.ai/tools/ollama-search.md",
+      "section": "Tools",
+      "title": "Ollama web search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__pdf",
+      "url": "https://docs.openclaw.ai/tools/pdf.md",
+      "section": "Tools",
+      "title": "PDF tool",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__perplexity-search",
+      "url": "https://docs.openclaw.ai/tools/perplexity-search.md",
+      "section": "Tools",
+      "title": "Perplexity search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__plugin",
+      "url": "https://docs.openclaw.ai/tools/plugin.md",
+      "section": "Tools",
+      "title": "Plugins",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__reactions",
+      "url": "https://docs.openclaw.ai/tools/reactions.md",
+      "section": "Tools",
+      "title": "Reactions",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__searxng-search",
+      "url": "https://docs.openclaw.ai/tools/searxng-search.md",
+      "section": "Tools",
+      "title": "SearXNG search",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__skills",
+      "url": "https://docs.openclaw.ai/tools/skills.md",
+      "section": "Tools",
+      "title": "Skills",
+      "relevance": "high",
+      "annotation": "annotations/tools__skills.md",
+      "audit_anchors": [
+        11
+      ],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
+    },
+    {
+      "id": "tools__skills-config",
+      "url": "https://docs.openclaw.ai/tools/skills-config.md",
+      "section": "Tools",
+      "title": "Skills config",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [
+        11
+      ],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__slash-commands",
+      "url": "https://docs.openclaw.ai/tools/slash-commands.md",
+      "section": "Tools",
+      "title": "Slash commands",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__steer",
+      "url": "https://docs.openclaw.ai/tools/steer.md",
+      "section": "Tools",
+      "title": "Steer",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__subagents",
+      "url": "https://docs.openclaw.ai/tools/subagents.md",
+      "section": "Tools",
+      "title": "Sub-agents",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__tavily",
+      "url": "https://docs.openclaw.ai/tools/tavily.md",
+      "section": "Tools",
+      "title": "Tavily",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__thinking",
+      "url": "https://docs.openclaw.ai/tools/thinking.md",
+      "section": "Tools",
+      "title": "Thinking levels",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__tokenjuice",
+      "url": "https://docs.openclaw.ai/tools/tokenjuice.md",
+      "section": "Tools",
+      "title": "Tokenjuice",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__trajectory",
+      "url": "https://docs.openclaw.ai/tools/trajectory.md",
+      "section": "Tools",
+      "title": "Trajectory bundles",
+      "relevance": "high",
+      "annotation": "annotations/tools__trajectory.md",
+      "audit_anchors": [],
+      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "tags": []
+    },
+    {
+      "id": "tools__tts",
+      "url": "https://docs.openclaw.ai/tools/tts.md",
+      "section": "Tools",
+      "title": "Text-to-speech",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__video-generation",
+      "url": "https://docs.openclaw.ai/tools/video-generation.md",
+      "section": "Tools",
+      "title": "Video generation",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__web",
+      "url": "https://docs.openclaw.ai/tools/web.md",
+      "section": "Tools",
+      "title": "Web search",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "tools__web-fetch",
+      "url": "https://docs.openclaw.ai/tools/web-fetch.md",
+      "section": "Tools",
+      "title": "Web fetch",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "web__control-ui",
+      "url": "https://docs.openclaw.ai/web/control-ui.md",
+      "section": "Web",
+      "title": "Control UI",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "web__dashboard",
+      "url": "https://docs.openclaw.ai/web/dashboard.md",
+      "section": "Web",
+      "title": "Dashboard",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "web__index",
+      "url": "https://docs.openclaw.ai/web/index.md",
+      "section": "Web",
+      "title": "Web",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "web__tui",
+      "url": "https://docs.openclaw.ai/web/tui.md",
+      "section": "Web",
+      "title": "TUI",
+      "relevance": "med",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    },
+    {
+      "id": "web__webchat",
+      "url": "https://docs.openclaw.ai/web/webchat.md",
+      "section": "Web",
+      "title": "WebChat",
+      "relevance": "high",
+      "annotation": null,
+      "audit_anchors": [],
+      "lastVerified": null,
+      "tags": []
+    }
+  ]
+}

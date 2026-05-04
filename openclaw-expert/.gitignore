@@ -1,0 +1,4 @@
+# Lazy-fetched upstream doc snapshots — regenerate via scripts/fetch-page.sh
+cache/*.md
+cache/*.meta.json
+!cache/.gitkeep

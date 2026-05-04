@@ -1,215 +1,161 @@
 ---
 name: openclaw-expert
-description: Comprehensive guide to OpenClaw architecture, configuration, skills, gateway, memory, and all platform internals. Use for teaching, debugging, and building on OpenClaw.
+description: OpenClaw expertise for JamBot. Catalog-indexed router into 464 upstream doc pages + JamBot-specific overrides + 15 version-anchor corrections covering the 2026.4.20 → 2026.5.2 changelog window. Use to teach, debug, configure, or build on OpenClaw.
 metadata: {"openclaw": {"emoji": "🧠"}}
 ---
 
 # OpenClaw Expert
 
-## What is OpenClaw
+**OpenClaw npm latest:** `2026.5.2` (audited 2026-05-04). **Catalog refreshed:** see `catalog.json` `fetchedAt`.
 
-- **Personal AI assistant platform** — runs on your own devices, connects to channels you already use
-- Single **Gateway daemon** (Node ≥ 22) is the control plane: one WS server, all channels, all sessions
-- Default port: `ws://127.0.0.1:18789` (Clawdbot uses `18791`)
-- Channels: WhatsApp, Telegram, Discord, Slack, Signal, iMessage/BlueBubbles, Matrix, MS Teams, Google Chat, IRC, Nostr, LINE, Twitch, Zalo, Feishu, Mattermost, WebChat
-- **Agent Runtime**: Pi agent in RPC mode — streaming LLM + tool execution
-- **Skills**: Markdown-defined agent plugins (workspace / managed / bundled), published to ClawHub
-- **Sessions**: One per channel/group; `main` = direct 1:1; persistent key = Z.AI prompt cache warm
-- **Memory**: `MEMORY.md` (long-term, injected every session) + `memory/YYYY-MM-DD.md` (daily logs, on-demand)
-- **Nodes**: macOS/iOS/Android devices with camera, canvas, screen recording, location, system.run
-- **Config file**: `~/.openclaw/openclaw.json` (JSON5), workspace: `~/.openclaw/workspace/`
+This skill is a **router**, not a textbook. Upstream docs at `docs.openclaw.ai` are authoritative — we index them, layer JamBot-specific deltas, and surface 15 audit anchors that mark version-specific corrections discovered in production.
 
-## Architecture Mental Model
+## How to use this skill
 
-```
-Channels (WhatsApp / Telegram / Discord / Slack / Signal / iMessage / Matrix / Teams…)
-               │
-               ▼
-┌────────────────────────────────────────────────────────┐
-│                     GATEWAY (Node daemon)              │
-│  Channels ─ Sessions ─ Agent Runtime ─ Skills ─ Tools  │
-│  Memory / Workspace (~/.openclaw/workspace/)           │
-└────────────────────────────────────────────────────────┘
-               │
-    ┌──────────┼──────────────────┐
-    ▼          ▼                  ▼
-  CLI        Nodes           Canvas Host
-(openclaw) (iOS/macOS/Android)  (port 18793)
-```
+### 1. Find the right page
 
-**Message flow:** Channel inbound → access control (allowFrom / dmPolicy / mention gate) → session key resolved → agent runtime → LLM (streaming) → tool execution → response chunks → channel outbound.
-
-**Key insight:** Everything is stateful via sessions. Persistent session key = warm Z.AI prompt cache (3-8s). New session key = cold (15-30s). Context is the bootstrap files injected on first turn (~14K tokens for a full workspace). Sub-agents run in isolated sessions. Multi-agent: each agent has its own workspace, auth, sessions — routed by bindings config.
-
-## Quick Reference — All Reference Files
-
-| Topic | File |
-|-------|------|
-| Architecture & component diagram | `{baseDir}/references/architecture-overview.md` |
-| Gateway wire protocol & handshake | `{baseDir}/references/gateway-protocol.md` |
-| Full config schema (`openclaw.json`) | `{baseDir}/references/gateway-configuration.md` |
-| **Heartbeat, local models, multiple gateways, Tailscale, OpenAI API compat, trusted proxy, config examples** | `{baseDir}/references/gateway-advanced.md` |
-| **OpenResponses API, Tools Invoke API, Chat Completions API** | `{baseDir}/references/http-apis.md` |
-| Agent lifecycle, tools, model selection | `{baseDir}/references/agent-runtime.md` |
-| Sessions, compaction, pruning | `{baseDir}/references/sessions-and-context.md` |
-| Memory files, vector search, QMD backend | `{baseDir}/references/memory-system.md` |
-| System prompt assembly, bootstrap injection | `{baseDir}/references/system-prompt.md` |
-| Skills format, gating, ClawHub CLI | `{baseDir}/references/skills-system.md` |
-| Models, providers list, auth, fallbacks | `{baseDir}/references/models-and-providers.md` |
-| Channels overview, DM/group policies, routing | `{baseDir}/references/channels-overview.md` |
-| Per-channel setup (WhatsApp/Telegram/Discord/etc.) | `{baseDir}/references/channels-detail.md` |
-| **Tools: exec, process, browser, tool profiles, tool groups, byProvider, loop detection, sub-agents, thinking, lobster, llm-task, agent-send, tool policy** | `{baseDir}/references/tools-and-exec.md` |
-| **Web tools: web_search, web_fetch (Perplexity, Brave, Gemini, Grok, Kimi)** | `{baseDir}/references/web-tools.md` |
-| **ACP Agents: Pi, Claude Code, Codex, OpenCode, Gemini CLI, Kimi harnesses** | `{baseDir}/references/acp-agents.md` |
-| **Plugins/extensions: discovery, SDK, tools, channels, providers, hooks** | `{baseDir}/references/plugins-system.md` |
-| Cron, webhooks, heartbeat, lifecycle hooks | `{baseDir}/references/automation.md` |
-| Security model, sandboxing, prompt injection | `{baseDir}/references/security.md` |
-| Full CLI reference (all commands) | `{baseDir}/references/cli-reference.md` |
-| Multi-agent routing, isolation, sub-agents | `{baseDir}/references/multi-agent.md` |
-| Canvas, nodes, macOS app, voice wake | `{baseDir}/references/canvas-and-nodes.md` |
-| Troubleshooting ladder, per-channel fixes | `{baseDir}/references/troubleshooting.md` |
-| **Hetzner VPS deployment (Docker)** | `{baseDir}/references/install-hetzner.md` |
-
-## Teaching Mode
-
-When the user asks to **teach**, **explain**, or **present** OpenClaw topics:
-
-1. Read the relevant reference file(s) from `{baseDir}/references/`
-2. Build an HTML slide deck using the `canvas` tool:
-   ```
-   canvas present — show a URL or local HTML on the node canvas
-   canvas a2ui_push — push A2UI components (v0.8 format)
-   canvas hide — hide canvas panel
-   ```
-3. HTML slides template (minimal):
-   ```html
-   <!DOCTYPE html><html><head><style>
-   body{font-family:sans-serif;background:#111;color:#eee;padding:2rem}
-   h1{color:#7cf;} h2{color:#adf;} code{background:#333;padding:2px 6px;border-radius:3px}
-   .slide{max-width:800px;margin:0 auto}
-   </style></head><body><div class="slide">
-   <h1>Topic Title</h1>
-   <!-- bullet points, code blocks, tables -->
-   </div></body></html>
-   ```
-4. Write slide HTML to `~/.openclaw/workspace/canvas/teach-<topic>.html`
-5. Use `canvas present` with the local file path or serve via canvas host (port 18793)
-6. Walk through each slide conversationally — pause for questions
-
-**Canvas show command** (agent tool call):
-```json
-{"tool": "canvas", "action": "present", "target": "file:///home/mike/.openclaw/workspace/canvas/teach-topic.html"}
-```
-
-## Top 10 FAQ
-
-**Q1: Why are responses slow (15-30s)?**
-Cold session — Z.AI prompt cache miss. Use persistent session key. After first warm-up, responses drop to 3-8s. Cache TTL is 30 min idle. See `sessions-and-context.md`.
-
-**Q2: How do I add a new channel?**
-`openclaw channels add` or edit `~/.openclaw/openclaw.json` under `channels.<name>`. Run `openclaw gateway restart`. See `channels-detail.md` for per-channel setup steps.
-
-**Q3: How do I create a skill?**
 ```bash
-mkdir -p ~/.openclaw/workspace/skills/my-skill
-cat > ~/.openclaw/workspace/skills/my-skill/SKILL.md << 'EOF'
----
-name: my-skill
-description: One-line description.
----
-# My Skill
-Instructions for the agent.
-EOF
+# By keyword (most common)
+bash {baseDir}/scripts/lookup.sh compaction
+
+# By section
+bash {baseDir}/scripts/lookup.sh section:Plugins
+bash {baseDir}/scripts/lookup.sh section:Channels
+
+# By JamBot relevance (high|med|low)
+bash {baseDir}/scripts/lookup.sh relevance:high
+
+# By audit-anchor number (1–15)
+bash {baseDir}/scripts/lookup.sh anchor:13     # YOLO exec defaults flip
+
+# Pages with JamBot annotation
+bash {baseDir}/scripts/lookup.sh annotated
+
+# Annotations not verified in 60+ days
+bash {baseDir}/scripts/lookup.sh stale 60
 ```
-Reload: ask agent "refresh skills" or restart gateway. See `skills-system.md`.
 
-**Q4: How do I add a new AI model/provider?**
-Set `ZAI_API_KEY` (or relevant env var), update `agents.defaults.model.primary` in config. Use `openclaw models list` and `openclaw models set provider/model`. See `models-and-providers.md`.
+### 2. Read the right layer first
 
-**Q5: Bot not replying in group chat?**
-Check `requireMention` setting and whether bot is mentioned. Run `openclaw channels status --probe` and `openclaw pairing list <channel>`. See `troubleshooting.md` section 5.2.
+Order matters when answering a question:
 
-**Q6: How do sessions work? What's dmScope?**
-`dmScope` controls how DM conversations are isolated. Default `"main"` = all DMs share one session. Use `"per-channel-peer"` for multi-user setups. Session keys determine Z.AI cache warmth. See `sessions-and-context.md`.
+1. **`audit-anchors/`** — version-specific corrections. If the page has an anchor, the skill knows upstream prose is misleading and what to say instead.
+2. **`overrides/`** — what JamBot does *differently* than docs. Multi-tenant Docker, `trustedProxies`, `dangerouslyDisableDeviceAuth`, voice flow constraints, etc.
+3. **`annotations/<page>.md`** — page-specific JamBot notes, burns, related files. Updated when we touch the topic in production.
+4. **`cache/<page>.md`** — frozen snapshot of upstream page (fetched lazily by `fetch-page.sh`, 24h TTL).
+5. **Live upstream** — only when current truth matters more than speed: `WebFetch` the URL.
 
-**Q7: How do I run a cron job / scheduled task?**
 ```bash
-openclaw cron add --name "daily" --cron "0 9 * * *" --session isolated \
-  --message "Morning summary" --announce --channel telegram --to "@me"
+# Fetch and cache one page
+bash {baseDir}/scripts/fetch-page.sh concepts__compaction
+
+# Print cached file path
+bash {baseDir}/scripts/fetch-page.sh --path-only plugins__voice-call
+
+# Force refetch
+bash {baseDir}/scripts/fetch-page.sh --no-cache providers__zai
 ```
-See `automation.md` for full cron, webhooks, heartbeat reference.
 
-**Q8: How do I sandbox the agent for untrusted users?**
-```json5
-{ agents: { defaults: { sandbox: { mode: "non-main", scope: "session", workspaceAccess: "none" } } } }
+### 3. Refresh when OpenClaw releases
+
+```bash
+# Re-fetch llms.txt, diff, regenerate catalog. Posts diff to stdout.
+bash {baseDir}/scripts/refresh-catalog.sh
 ```
-Also set `dmPolicy: "pairing"` and tool deny lists. See `security.md`.
 
-**Q9: Context window filling up? Slow compaction?**
-Use `/compact` to summarize manually. Enable `contextPruning: { mode: "cache-ttl", ttl: "30m" }`. Run `/context list` to see what's consuming tokens. Keep `TOOLS.md`, `HEARTBEAT.md` small. See `sessions-and-context.md`.
+Exit 0 = no changes. Exit 2 = added/removed/renamed pages — review the diff, decide which new pages need annotations.
 
-**Q10: How do I use the canvas / show something visually?**
-Agent uses `canvas` tool: `present`, `hide`, `navigate`, `eval`, `snapshot`. Nodes (macOS/iOS/Android) must be paired. See `canvas-and-nodes.md`. For A2UI push: v0.8 format only (`beginRendering`, `surfaceUpdate`).
+## Audit anchors (v2026.4.20 → v2026.5.2)
 
-## Troubleshooting Quick-Start
+15 confirmed deltas from the changelog audit (`docs/jambot/openclaw-skill-update-2026-05-04.md`). When answering ANY question about a topic in this list, the audit anchor wins over the upstream prose:
 
-Run these in order (verbatim):
+| # | Topic | One-liner |
+|---|-------|-----------|
+| 1 | Plugin SDK breaking | `registerEmbeddedExtensionFactory` removed v2026.4.24 → use `registerAgentToolResultMiddleware` |
+| 2 | memory-core auto-activates | Bundled `memory-core` + active-memory sub-agent run before every reply unless `plugins.slots.memory: "none"` |
+| 3 | Strict tool-allowlist | v5.2 hard-errors with "No callable tools remain after resolving explicit tool allowlist" if allowlisted tool's plugin is disabled |
+| 4 | Embedded run timeout = 15s | NOT `agents.defaults.timeoutSeconds`; embedded path uses its own (low) default |
+| 5 | Per-file bootstrap caps | TOOLS.md ≈ 24K chars, MEMORY.md ≈ 10.5K chars (auto-truncated with marker) |
+| 6 | Compaction trigger ≈ 68% prompt usage | Plus `midTurnPrecheck` (4.27), `maxActiveTranscriptBytes` (4.26), `memoryFlush.model` (4.27), pluggable provider (4.7) |
+| 7 | `meta.lastTouchedVersion` migration | Auto-runs on first 5.2 start; auto-adds zai to plugins.allow when referenced |
+| 8 | Bonjour disabled by default | For bundled Compose gateways on bridge networking — opt back in via `OPENCLAW_DISABLE_BONJOUR=0` |
+| 9 | GLM-5 consecutive-turn fix | v5.2 preserves prior context for z.ai/openrouter z-ai/in-house GLM gateways |
+| 10 | Anthropic-messages scoping | v4.20 — custom providers MUST explicitly set `api: "anthropic-messages"` |
+| 11 | plugins.entries vs skills.entries | `plugins.slots.memory: "none"` is the only single-knob disable for memory-core |
+| 12 | External plugin migration | v5.2 wholesale move: ACPX, OTel, Discord, WhatsApp, Voice Call, Brave, Codex, Memory LanceDB, Teams, Diffs, Lobster, BlueBubbles, Mattermost, Matrix, Tlon, Google Chat, LINE, Nextcloud Talk, Nostr, Zalo, QQ Bot, Synology Chat, Twitch, Feishu, Google Meet, Yuanbao |
+| 13 | tools.exec defaults flipped to YOLO | v4.5 — gateway/node host now `security: "full", ask: "off"` (was `deny`/`on-miss`) |
+| 14 | messages.queue.mode default flipped | v4.29 — default now `steer` with 500ms followup-fallback debounce (was `collect`) |
+| 15 | rotateBytes deprecated | v4.27 — `session.maintenance.rotateBytes` removed; use `session.writeLock.acquireTimeoutMs` (default 60s) |
+
+Each anchor has a full file in `audit-anchors/anchor-NN-<slug>.md` with changelog line numbers, exact config keys, and skill files affected.
+
+## JamBot-specific overrides
+
+`overrides/` holds things JamBot does that docs don't describe:
+
+- `openclaw-json-deltas.md` — the 4 critical fields (`thinkingDefault`, `trustedProxies`, `allowInsecureAuth`, `dangerouslyDisableDeviceAuth`) + compaction tuning
+- `docker-deployment.md` — `name: jambot-<user>` rule, `jambot-shared` network, NO `external: true` in compose
+- `voice-flow-quirks.md` — single-instance SpeechRecognition rule, wake-word abort loop
+- `multi-tenant-isolation.md` — per-user openclaw + openvoiceui pair, port registry
+
+When the user asks about anything in these overrides, **the override wins** — docs may describe a different deployment model.
+
+## Playbooks (task-shaped recipes)
+
+`playbooks/` holds end-to-end workflows that span multiple doc pages:
+
+- `debug-empty-final.md` — the 13-fix MiniMax empty-response recovery cascade
+- `tune-compaction.md` — sizing context window, cache TTL, transcript rotation
+- `provision-new-tenant.md` — full client provisioning flow
+- `add-new-channel.md` — Telegram/Discord/Slack channel onboarding
+
+## Version metadata
+
+| File | Purpose |
+|------|---------|
+| `catalog.json` | 464 doc pages × {url, section, relevance, annotation, audit_anchors, lastVerified, tags} |
+| `audit-anchors/anchor-NN-*.md` | 15 version-anchor correction files |
+| `annotations/<page-id>.md` | JamBot notes per upstream page (page id = url path with `/` → `__`) |
+| `cache/<page-id>.md` | Lazy-fetched frozen snapshot (24h TTL) |
+| `cache/<page-id>.meta.json` | Fetch metadata (sha256, fetchedAt, bytes) |
+| `overrides/*.md` | JamBot-specific deployment deltas |
+| `playbooks/*.md` | Multi-page task recipes |
+| `references/` | **DEPRECATED** — pre-redesign prose. Do not extend. New work goes into annotations or playbooks. |
+| `SKILL.md.pre-2026-05-04` | Frozen pre-redesign skill for archaeology |
+
+## Quick reference
+
+**Default ports:** Gateway WS `127.0.0.1:18789`, Clawdbot `18791`, Canvas host `18793`
+**Config file:** `~/.openclaw/openclaw.json` (JSON5)
+**Workspace:** `~/.openclaw/workspace/`
+**Logs:** `~/.openclaw/logs/`
+**Sessions:** `~/.openclaw/agents/<agent>/sessions/`
+**Cron runs:** `~/.openclaw/cron/runs/<jobId>.jsonl`
+
+**JamBot-specific paths:**
+- Container config: `/mnt/clients/<user>/openclaw/openclaw.json`
+- Container workspace: `/mnt/clients/<user>/openclaw/workspace/`
+- Shared skills (mounted into containers): `/mnt/system/base/skills/`
+- Canonical openclaw.json template: `/mnt/system/base/templates/openclaw.json`
+
+## Diagnostic commands (verbatim)
 
 ```bash
 openclaw status
 openclaw gateway status
+openclaw doctor                          # since v5.2 also runs meta.lastTouchedVersion migration
+openclaw gateway restart --force --wait 60s   # NEW v5.2 (anchor #15 territory)
 openclaw logs --follow
-openclaw doctor
 openclaw channels status --probe
+openclaw plugins registry --refresh      # NEW v4.25
+openclaw plugins deps                    # NEW v4.27
+openclaw migrate plan --dry-run          # NEW v4.26
+openclaw sandbox explain                 # debug sandbox/tool-policy/elevated layering
 ```
 
-**Healthy signals:**
-- `gateway status` → `Runtime: running` and `RPC probe: ok`
-- `doctor` → no blocking errors
-- `channels status --probe` → `connected` or `ready`
-- `logs --follow` → steady activity, no repeating fatal errors
+## Maintenance discipline
 
-**Common errors → fixes:**
-
-| Error | Fix |
-|-------|-----|
-| `Gateway start blocked: set gateway.mode=local` | `openclaw config set gateway.mode local` |
-| `refusing to bind gateway ... without auth` | Set `gateway.auth.token` in config |
-| `EADDRINUSE` / port conflict | `openclaw gateway --force` |
-| `NOT_PAIRED` / `device identity required` | Auth token missing or wrong in connect |
-| `unauthorized` during connect | Token mismatch — check `launchctl getenv OPENCLAW_GATEWAY_TOKEN` |
-| No replies in group chat | Check `requireMention` + `openclaw pairing list <channel>` |
-| WhatsApp disconnects | `openclaw channels logout && openclaw channels login --verbose` |
-| Model auth failed | `openclaw models status` → re-run `claude setup-token` or set API key |
-| `NODE_BACKGROUND_UNAVAILABLE` | Bring node app to foreground |
-| `SYSTEM_RUN_DENIED` | `openclaw approvals get --node <id>` → approve or add to allowlist |
-
-**Full troubleshooting:** `{baseDir}/references/troubleshooting.md`
-
-## Reference File Index
-
-| File | 1-line Description |
-|------|--------------------|
-| `architecture-overview.md` | Component diagram, message flow, ports, wire protocol, key directories, minimal config |
-| `gateway-protocol.md` | WebSocket handshake (3-step), frame formats, RPC methods, event types, auth, node pairing |
-| `gateway-configuration.md` | Full `openclaw.json` schema: agents, channels, session, tools, skills, cron, hooks, gateway, env |
-| `gateway-advanced.md` | Heartbeat, local models, multiple gateways, Tailscale, OpenAI API, trusted proxy, config examples |
-| `http-apis.md` | OpenResponses API (`/v1/responses`), Tools Invoke API (`/tools/invoke`), Chat Completions API |
-| `agent-runtime.md` | Agent lifecycle (11 steps), workspace layout, bootstrap injection, tools table, queue modes, multi-agent |
-| `sessions-and-context.md` | Session keys, dmScope, reset policy, compaction vs pruning, JSONL format, inspect commands |
-| `memory-system.md` | Memory files, vector search providers, hybrid BM25+vector, QMD backend, embedding config |
-| `system-prompt.md` | Prompt assembly order (26 sections), bootstrap file injection, token cost, `/context` commands |
-| `skills-system.md` | SKILL.md format, frontmatter keys, gating (`requires.*`), installer specs, ClawHub CLI, `{baseDir}` |
-| `models-and-providers.md` | Provider table (26 providers), auth types, fallback config, Ollama, Z.AI, OpenRouter, model aliases |
-| `channels-overview.md` | DM/group policies, mention gating, routing priority, session keys, message flow, reply tags |
-| `channels-detail.md` | Per-channel setup: WhatsApp, Telegram, Discord, Slack, Signal, iMessage, BlueBubbles, Teams, Matrix + more |
-| `tools-and-exec.md` | Full tool inventory, tool profiles/groups/byProvider, exec, process, browser, sub-agents, thinking, tool policy |
-| `web-tools.md` | web_search + web_fetch: Perplexity, Brave, Gemini, Grok, Kimi providers, Firecrawl fallback |
-| `acp-agents.md` | ACP agent sessions: Pi, Claude Code, Codex, OpenCode, Gemini CLI, Kimi harnesses, thread binding |
-| `plugins-system.md` | Plugin architecture, SDK paths, tool/channel/provider registration, hooks, CLI, distribution |
-| `automation.md` | Cron jobs, heartbeat, webhooks (`/hooks/wake`, `/hooks/agent`), lifecycle hooks, Gmail Pub/Sub |
-| `security.md` | Threat model, 5 trust boundaries, sandbox setup, DM pairing, network exposure, prompt injection, incident response |
-| `cli-reference.md` | Every CLI command: setup, config, gateway, messaging, agents, sessions, memory, channels, models, nodes, cron |
-| `multi-agent.md` | Multi-agent config, binding rules (6-priority), broadcast groups, session isolation, sub-agents, skills scope |
-| `canvas-and-nodes.md` | Canvas system, A2UI v0.8, node commands (camera/screen/location/SMS), macOS app, voice wake, headless node |
-| `troubleshooting.md` | Triage ladder, log reading, 12 issue categories, per-channel fixes, config migration table, node error codes |
+- After ANY OpenClaw upgrade: run `refresh-catalog.sh`. If exit code 2, review diff and add annotations for new high-relevance pages.
+- After hitting a production gotcha: write an annotation file, link it in `catalog.json`, bump `lastVerified` to today.
+- Annotations older than 60 days: re-verify with `bash scripts/lookup.sh stale 60`. If still correct, bump `lastVerified` only.
+- Never re-prose upstream docs in this skill. Cache them. Annotate the deltas.
