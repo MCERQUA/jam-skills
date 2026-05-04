@@ -1,7 +1,7 @@
 {
   "schema": "openclaw-expert-catalog/1",
   "upstream": "https://docs.openclaw.ai/llms.txt",
-  "fetchedAt": "2026-05-04T04:54:08+00:00",
+  "fetchedAt": "2026-05-04T05:53:06+00:00",
   "upstreamSha256": "10bf4edc923ef419031a55662a3ce50343192187084e2fb5ab5b728342e64a30",
   "pageCount": 464,
   "relevanceCounts": {

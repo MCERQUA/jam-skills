@@ -93,7 +93,7 @@ Commit message convention: `[bun-desktop@mesh] update canvas-pages/admin.html â€
 | `canvas-pages/*.html` | nothing | served live by openvoiceui |
 | `openclaw/workspace/AGENTS.md`, `SOUL.md`, `TOOLS.md` | openclaw session reset | files are bootstrap-loaded; next conversation reads fresh |
 | `openclaw/workspace/local-skills/**` | openclaw session reset | same |
-| `openclaw/workspace/memory/**` | nothing | byterover reads on-demand |
+| `openclaw/workspace/memory/**` | nothing | read on-demand by the agent |
 | `openclaw.json` | openclaw container restart | `sg docker -c "docker restart openclaw-<tenant>"` on host |
 | `compose/.env` | openclaw container recreate | `docker compose up -d` â€” state loss acceptable |
 | `vault/**` | varies | never touch |
