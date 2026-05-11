@@ -21,15 +21,34 @@ DO NOT use this for:
 - Looking up email content (use the `agentmail` skill)
 - Sending email (use `agentmail` skill — and remember the double-confirmation rail)
 
-## Helper Script (preferred)
+## Helper Scripts (preferred)
 
-`/mnt/shared-skills/email-finder/find-email.sh "<first>" "<last>" "<domain>" [--provider hunter|snov|apollo|all]`
+All under `/mnt/shared-skills/email-finder/`:
 
-Defaults to `--provider all`, which tries Hunter → Snov → Apollo and prints the highest-confidence hit. Output is JSON to stdout, errors to stderr, exit code 0 only when at least one provider returned an email.
+| Script | Purpose | Cost |
+|---|---|---|
+| `find-email.sh "<first>" "<last>" "<domain>" [--provider hunter\|snov\|apollo\|all]` | Per-person lookup. Tries Hunter → Snov → Apollo, prints highest-confidence hit as JSON, short-circuits on Hunter ≥80%. | 1 Hunter search credit (+1 Snov if Hunter misses) |
+| `domain-search.sh <domain> [limit]` | Returns the org's email pattern + ~10 crawled named addresses. **Use this FIRST for batch work** — see Recommended Flow below. | 1 Hunter search credit |
+| `verify-email.sh <email>` | Confirms whether an address is deliverable + scores it. Use freely on pattern-derived guesses. | 1 Hunter verification credit (100/mo, separate from searches) |
+| `quota.sh [--hunter\|--snov] [--raw]` | Show remaining Hunter searches + verifications + Snov credits. Run before any batch. | free |
 
 ```bash
-/mnt/shared-skills/email-finder/find-email.sh "Joel" "Pressley" "insulate48.com"
+find-email.sh "Joel" "Pressley" "insulate48.com"
 # → {"email":"joel@insulate48.com","confidence":99,"source":"hunter","name":"Joel Pressley"}
+
+domain-search.sh insulate48.com
+# → {"data":{"pattern":"{first}","emails":[{"value":"joel@insulate48.com","confidence":99,...}]}}
+
+verify-email.sh joel@insulate48.com
+# → {"data":{"status":"valid","score":100,"mx_records":true,"smtp_check":true,...}}
+
+quota.sh
+# → Hunter (Free, resets 2026-06-04):
+#     searches:      28/50 used
+#     verifications: 56/100 used
+#   Snov:
+#     balance:      50.00 credits
+#     resets in:    29 days
 ```
 
 ## Provider Reference (when you need to call APIs directly)
@@ -104,17 +123,36 @@ curl -sS "https://api.apollo.io/v1/auth/health" -H "X-Api-Key: $APOLLO_API_KEY"
 
 ## Recommended Flow
 
-1. **If you only have a company name (no domain):** Hunter `domain-search` with `company` param, OR Apollo `organizations/search` to get the domain + LinkedIn first.
-2. **If you have name + domain:** Hunter `email-finder` first. If `data.email` is null or score < 50, fall through to Snov `get-emails-from-names`.
+### Single-person lookup (one-off)
+
+1. **If you only have a company name (no domain):** Apollo `organizations/search` to get the domain + LinkedIn first.
+2. **If you have name + domain:** `find-email.sh "<first>" "<last>" "<domain>"` — uses Hunter, falls through to Snov on miss.
 3. **If both miss:** report "no high-confidence email found" — do not guess. Suggest the user verify via LinkedIn (Apollo enrichment gives the LinkedIn URL).
-4. **Always check the confidence score** before handing the email to a compose form. Below 70% = warn the user.
-5. **Never blast** the result into an outbound email without the [APPROVAL NEEDED] double-confirmation rail (see `TOOLS.md` line 17 in any josh-style workspace).
+
+### Batch / contacts-list lookup — PATTERN-FIRST (preferred for >3 prospects)
+
+This is the credit-efficient path. **Validated 2026-05-11 on FoamBook: ~40 hits off ~26 search credits**, vs. the brute-force per-person path which would have spent ~40 credits. Use this any time you have a list of named prospects against a smaller set of company domains.
+
+1. **Per company:** `domain-search.sh <domain>` — costs **1 Hunter credit** and returns:
+   - `data.pattern` — the org's email pattern (e.g. `{first}.{last}`, `{f}{last}`, `{first}`)
+   - `data.emails[]` — ~10 already-crawled named addresses with confidence scores
+2. **For each known person:** check if they're already in `data.emails[]` (free hit). If not, derive their address from the pattern (e.g. pattern `{first}.{last}` + person `Joel Pressley` + domain `insulate48.com` → `joel.pressley@insulate48.com`).
+3. **Verify the derived address:** `verify-email.sh <derived-email>` — costs **1 verification credit** (separate quota: 100/month vs 50 search/month). Look at `data.status == "valid"` + `data.score >= 70`.
+4. **Only fall to per-person `find-email.sh`** for people Hunter has zero crawl on (often small/regional contractors). That's where Snov fallback earns its keep.
+
+**Check quota before starting a batch:** `quota.sh` shows Hunter searches+verifications used and Snov credits remaining. If you're below 5 search credits, switch to verify-only / Snov-only modes.
+
+### Always
+
+- **Check the confidence score** before handing the email to a compose form. Below 70% = warn the user.
+- **Never blast** the result into an outbound email without the [APPROVAL NEEDED] double-confirmation rail (see `TOOLS.md` line 17 in any josh-style workspace).
+- **Never fabricate** when all sources miss — guesses fail SPF/DMARC and damage sender reputation.
 
 ## Cost Awareness
 
 | Provider | Free quota | Cost per lookup |
 |---|---|---|
-| Hunter.io | 25 searches/month free, paid plans go from there | ~1 search credit per email-finder call |
+| Hunter.io | **50 searches + 100 verifications / month, resets the 4th** (Mike's current Free plan — verified 2026-05-11 by residential-laptop) | 1 search credit per `email-finder` call, 1 verification credit per `email-verifier` call |
 | Snov.io | 50 credits / 30-day reset | 1 credit per `get-emails-from-names` call |
 | Apollo.io | unlimited org searches on free plan | free for company endpoints; people endpoints LOCKED |
 
