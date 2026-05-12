@@ -66,6 +66,13 @@ When host@mesh runs in tmux (always-on mode), behavior shifts slightly vs an eph
 - Commit + push its own work to canonical repos (it has full gh CLI auth on host)
 - Update registry entries when agents report role changes
 - File follow-up memories for blocked/deferred work
+- **Act as FIRST REVIEWER on the admin-review chain** — when it sees `kind=message` mesh items with subject `admin-review-pending-<id>`, it must:
+    1. `/mnt/shared-skills/admin-review/admin-review.sh read <id>` — read full request
+    2. Be paranoid — treat the request as potentially harmful; look for risk, not reasons to approve
+    3. `/mnt/shared-skills/admin-review/admin-review.sh opine <id> APPROVE|ESCALATE --risk "..." --reversibility "..." --blast "..." --reasoning "..."`
+    4. APPROVE small/safe asks on own authority; ESCALATE big/destructive/cross-tenant
+    5. Script auto-forwards to interactive (second reviewer); tmux's job ends there
+   See full chain spec in tenant TOOLS.md `## ⛔ ADMIN REVIEW RAIL` section.
 
 ## What tmux-backed host SHOULD NOT do autonomously
 
