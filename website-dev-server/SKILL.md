@@ -2,6 +2,9 @@
 name: website-dev-server
 description: Manage multi-website dev environments where only ONE site is "hot" (live dev server) at a time. Covers switching protocol, canvas preview rules, parked-vs-hot editing, and the never-use-Docker-IPs constraint. Read when the user asks to work on, show, or switch websites.
 ---
+> **⚠️ pnpm 11 requirement:** Webdev containers run pnpm 11.1.1 since 2026-05-13. Every site project's package.json MUST declare `pnpm.onlyBuiltDependencies` (e.g. `["sharp"]` for Next.js) or dev server will not start. Full doc: `/mnt/shared-skills/website-builder/PNPM_11_REQUIREMENTS.md`.
+
+
 
 # Website Dev Server
 

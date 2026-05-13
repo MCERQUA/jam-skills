@@ -6,6 +6,9 @@ metadata:
   openclaw:
     emoji: "🌐"
 ---
+> **⚠️ pnpm 11 requirement:** Webdev containers run pnpm 11.1.1 since 2026-05-13. Every site project's package.json MUST declare `pnpm.onlyBuiltDependencies` (e.g. `["sharp"]` for Next.js) or dev server will not start. Full doc: `/mnt/shared-skills/website-builder/PNPM_11_REQUIREMENTS.md`.
+
+
 
 # Website Setup Skill — Agent Secretary Mode
 
