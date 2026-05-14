@@ -87,6 +87,15 @@ def parse_iso_since(since: str) -> float:
 
 
 def main() -> None:
+    # Voice-tenant admin gate (added 2026-05-13). See mesh-gate-check.
+    import subprocess
+    gate_check = Path(__file__).parent / "mesh-gate-check"
+    if gate_check.exists():
+        try:
+            subprocess.run([str(gate_check)], check=True, capture_output=False)
+        except subprocess.CalledProcessError:
+            sys.exit(4)
+
     p = argparse.ArgumentParser()
     p.add_argument("--kind", help="filter by KIND")
     p.add_argument("--since", help="only include files modified after ISO timestamp YYYY-MM-DDTHH:MM:SSZ")

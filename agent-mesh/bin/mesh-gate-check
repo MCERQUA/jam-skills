@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""mesh-gate-check — voice-tenant admin gate for mesh tools.
+
+Exit 0 if mesh access is authorized for $AGENT_URI; exit 1 if denied.
+
+Sourced by mesh-send and mesh-recv before any other action. The gate only
+applies to customer-facing voice tenants (AGENT_URI ending -voice@mesh).
+Admin walkie-talkie (test-dev), webtops, and host bypass the gate.
+
+Authorization signal: a "gate file" written by openvoiceui's conversation
+route when an admin Clerk user (Mike: user_3AJGqe2Fgn1qD580pg6tt2ysplR)
+is the current authenticated user. Contents of the file = the admin's
+clerk_id + UTC timestamp. Freshness TTL = 300 seconds.
+
+Gate file location (resolved in this order):
+    1. $MESH_GATE_FILE (env override)
+    2. /home/node/.openclaw/workspace/uploads/.mesh-admin-session  (in container)
+    3. /app/runtime/uploads/.mesh-admin-session  (in openvoiceui container)
+    4. /mnt/clients/<tenant>/openvoiceui/uploads/.mesh-admin-session  (host)
+
+Stdlib only.
+"""
+import os
+import re
+import sys
+import time
+from pathlib import Path
+
+GATE_TTL_SECS = 300
+
+EXEMPT_AGENTS = {
+    'host@mesh',
+    'test-dev-voice@mesh',
+    'mike-voice@mesh',
+}
+EXEMPT_SUFFIXES = (
+    '-desktop@mesh',  # bun/josh/danielle/src webtops — admin-only by design
+)
+GATED_SUFFIX = '-voice@mesh'  # customer-facing voice tenants
+
+AGENT_URI = os.environ.get('AGENT_URI', '').strip()
+
+if not AGENT_URI:
+    sys.exit(0)
+
+if AGENT_URI in EXEMPT_AGENTS:
+    sys.exit(0)
+
+if any(AGENT_URI.endswith(s) for s in EXEMPT_SUFFIXES):
+    sys.exit(0)
+
+if not AGENT_URI.endswith(GATED_SUFFIX):
+    sys.exit(0)
+
+# Voice tenant — must have fresh admin gate file
+def find_gate_file() -> Path:
+    candidates = []
+    env_path = os.environ.get('MESH_GATE_FILE')
+    if env_path:
+        candidates.append(env_path)
+    candidates.extend([
+        '/home/node/.openclaw/workspace/uploads/.mesh-admin-session',
+        '/app/runtime/uploads/.mesh-admin-session',
+    ])
+    tenant = AGENT_URI.replace('-voice@mesh', '').replace('@mesh', '')
+    candidates.append(f'/mnt/clients/{tenant}/openvoiceui/uploads/.mesh-admin-session')
+    for c in candidates:
+        if c and Path(c).exists():
+            return Path(c)
+    return None
+
+gate = find_gate_file()
+if gate is None:
+    print(f'mesh-gate: DENIED — voice tenant {AGENT_URI} has no admin session active', file=sys.stderr)
+    print(f'mesh-gate: hint — admin must log in via Clerk on this tenant, OR run:', file=sys.stderr)
+    print(f'mesh-gate:   bash /home/mike/MIKE-AI/scripts/mesh-grant-admin.sh {AGENT_URI.replace("-voice@mesh","")} 5m', file=sys.stderr)
+    sys.exit(1)
+
+age = time.time() - gate.stat().st_mtime
+if age > GATE_TTL_SECS:
+    print(f'mesh-gate: DENIED — admin session expired ({int(age)}s old, TTL={GATE_TTL_SECS}s)', file=sys.stderr)
+    print(f'mesh-gate: gate file: {gate}', file=sys.stderr)
+    sys.exit(1)
+
+try:
+    content = gate.read_text(encoding='utf-8').strip()
+except Exception as e:
+    print(f'mesh-gate: DENIED — gate file unreadable ({e})', file=sys.stderr)
+    sys.exit(1)
+
+if not content:
+    print(f'mesh-gate: DENIED — gate file empty', file=sys.stderr)
+    sys.exit(1)
+
+if 'admin=' not in content and 'user_3AJ' not in content:
+    print(f'mesh-gate: DENIED — gate file does not authorize admin (content: {content[:80]})', file=sys.stderr)
+    sys.exit(1)
+
+sys.exit(0)
