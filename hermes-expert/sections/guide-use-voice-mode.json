@@ -1,0 +1,219 @@
+{
+  "id": "guide-use-voice-mode",
+  "title": "Use Voice Mode with Hermes",
+  "source_path": "website/docs/guides/use-voice-mode-with-hermes.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/use-voice-mode-with-hermes",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Practical guide for setting up and using all three Hermes voice modes: CLI microphone loop, voice replies in Telegram/Discord messaging, and Discord live voice channel bot, with provider recommendations, config tuning, and troubleshooting.",
+  "key_concepts": [
+    "voice mode",
+    "STT",
+    "TTS",
+    "CLI microphone",
+    "Discord voice channel",
+    "Edge TTS",
+    "ElevenLabs",
+    "local whisper",
+    "Groq STT",
+    "NeuTTS",
+    "silence detection",
+    "voice replies"
+  ],
+  "env_vars": [
+    {
+      "name": "GROQ_API_KEY",
+      "purpose": "Groq cloud STT provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "VOICE_TOOLS_OPENAI_KEY",
+      "purpose": "OpenAI TTS and STT provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "ELEVENLABS_API_KEY",
+      "purpose": "ElevenLabs premium TTS",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "pip install \"hermes-agent[voice]\"",
+      "purpose": "Install CLI microphone/playback extras"
+    },
+    {
+      "command": "pip install \"hermes-agent[messaging]\"",
+      "purpose": "Install messaging platform extras"
+    },
+    {
+      "command": "pip install \"hermes-agent[tts-premium]\"",
+      "purpose": "Install ElevenLabs TTS extras"
+    },
+    {
+      "command": "python -m pip install -U neutts[all]",
+      "purpose": "Install NeuTTS for local on-device TTS"
+    },
+    {
+      "command": "brew install portaudio ffmpeg opus espeak-ng",
+      "purpose": "macOS system dependencies for voice"
+    },
+    {
+      "command": "sudo apt install portaudio19-dev ffmpeg libopus0 espeak-ng",
+      "purpose": "Ubuntu/Debian system dependencies"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "voice.record_key",
+      "type": "string",
+      "default": "ctrl+b",
+      "description": "Keyboard shortcut for recording",
+      "example": "ctrl+space"
+    },
+    {
+      "path": "voice.max_recording_seconds",
+      "type": "integer",
+      "default": 120,
+      "description": "Maximum recording duration",
+      "example": 120
+    },
+    {
+      "path": "voice.auto_tts",
+      "type": "boolean",
+      "default": false,
+      "description": "Auto-play TTS for every response",
+      "example": "false"
+    },
+    {
+      "path": "voice.beep_enabled",
+      "type": "boolean",
+      "default": true,
+      "description": "Play beep on recording start/stop",
+      "example": "true"
+    },
+    {
+      "path": "voice.silence_threshold",
+      "type": "integer",
+      "default": 200,
+      "description": "Silence detection sensitivity — higher = less sensitive",
+      "example": 250
+    },
+    {
+      "path": "voice.silence_duration",
+      "type": "float",
+      "default": 3.0,
+      "description": "Seconds of silence before stopping recording",
+      "example": 4.0
+    },
+    {
+      "path": "stt.provider",
+      "type": "string",
+      "default": "local",
+      "description": "STT provider: local | groq | openai | mistral | xai",
+      "example": "local"
+    },
+    {
+      "path": "stt.local.model",
+      "type": "string",
+      "default": "base",
+      "description": "Local faster-whisper model size",
+      "example": "large-v3"
+    },
+    {
+      "path": "tts.provider",
+      "type": "string",
+      "default": "edge",
+      "description": "TTS provider: edge | elevenlabs | openai | mistral | neutts | xai",
+      "example": "edge"
+    },
+    {
+      "path": "tts.edge.voice",
+      "type": "string",
+      "default": "en-US-AriaNeural",
+      "description": "Edge TTS voice name",
+      "example": "en-US-AriaNeural"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/voice",
+      "purpose": "Show voice mode status"
+    },
+    {
+      "command": "/voice on",
+      "purpose": "Enable voice mode"
+    },
+    {
+      "command": "/voice off",
+      "purpose": "Disable voice mode"
+    },
+    {
+      "command": "/voice tts",
+      "purpose": "Enable TTS for all replies"
+    },
+    {
+      "command": "/voice status",
+      "purpose": "Show voice mode details"
+    },
+    {
+      "command": "/voice join",
+      "purpose": "Join Discord voice channel"
+    },
+    {
+      "command": "/voice leave",
+      "purpose": "Leave Discord voice channel"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "Recommended starter voice config",
+      "code": "voice:\n  record_key: \"ctrl+b\"\n  max_recording_seconds: 120\n  auto_tts: false\n  beep_enabled: true\n  silence_threshold: 200\n  silence_duration: 3.0\n\nstt:\n  provider: \"local\"\n  local:\n    model: \"base\"\n\ntts:\n  provider: \"edge\"\n  edge:\n    voice: \"en-US-AriaNeural\""
+    },
+    {
+      "language": "yaml",
+      "caption": "Local NeuTTS config",
+      "code": "tts:\n  provider: \"neutts\"\n  neutts:\n    ref_audio: ''\n    ref_text: ''\n    model: neuphonic/neutts-air-q4-gguf\n    device: cpu"
+    }
+  ],
+  "gotchas": [
+    "Get text working first, then add voice — don't try to debug both at once",
+    "Discord VC mode requires Presence Intent, Server Members Intent, and Message Content Intent in Developer Portal",
+    "Whisper garbage output usually means noisy environment, too-high silence_threshold, or wrong model size",
+    "Without portaudio, CLI microphone mode fails with 'No audio device found'",
+    "ffmpeg is required for Edge TTS audio conversion on messaging platforms",
+    "Bot in server channels typically requires @mention unless configured otherwise — DMs work without mention"
+  ],
+  "cross_refs": [
+    "voice-mode",
+    "tts",
+    "messaging-discord",
+    "messaging-telegram",
+    "configuration"
+  ],
+  "keywords": [
+    "voice",
+    "STT",
+    "TTS",
+    "speech-to-text",
+    "text-to-speech",
+    "microphone",
+    "CLI voice",
+    "Discord voice channel",
+    "Telegram voice",
+    "Edge TTS",
+    "ElevenLabs",
+    "whisper",
+    "Groq",
+    "NeuTTS",
+    "silence detection",
+    "portaudio",
+    "ffmpeg",
+    "opus"
+  ],
+  "full_text": "# Use Voice Mode with Hermes\n\nThis guide is the practical companion to the Voice Mode feature reference, showing how to actually use it well.\n\n[...full content as read from source...]"
+}

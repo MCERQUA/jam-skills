@@ -1,0 +1,255 @@
+{
+  "id": "browser",
+  "title": "Browser Automation",
+  "source_path": "website/docs/user-guide/features/browser.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/browser",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Provides full browser automation through multiple backends (Browserbase, Browser Use, Firecrawl, Camofox, local Chrome via CDP) with accessibility-tree-based page interaction and tools for navigation, clicking, typing, vision analysis, and raw CDP access.",
+  "key_concepts": [
+    "accessibility tree",
+    "ref IDs",
+    "Browserbase",
+    "Camofox",
+    "CDP",
+    "hybrid routing",
+    "session isolation",
+    "browser_snapshot",
+    "browser_vision"
+  ],
+  "env_vars": [
+    {
+      "name": "BROWSERBASE_API_KEY",
+      "purpose": "Browserbase cloud browser API key",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BROWSERBASE_PROJECT_ID",
+      "purpose": "Browserbase project ID",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BROWSER_USE_API_KEY",
+      "purpose": "Browser Use cloud browser API key",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "FIRECRAWL_API_KEY",
+      "purpose": "Firecrawl cloud browser/scraping API key",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "FIRECRAWL_API_URL",
+      "purpose": "Self-hosted Firecrawl instance URL",
+      "required": false,
+      "default": "https://api.firecrawl.dev"
+    },
+    {
+      "name": "CAMOFOX_URL",
+      "purpose": "Local Camofox browser server URL",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "CAMOFOX_USER_ID",
+      "purpose": "Camofox userId for externally managed sessions",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "CAMOFOX_SESSION_KEY",
+      "purpose": "Camofox sessionKey for tab adoption",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "CAMOFOX_ADOPT_EXISTING_TAB",
+      "purpose": "Adopt existing Camofox tab instead of creating new",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BROWSERBASE_PROXIES",
+      "purpose": "Enable residential proxies for Browserbase (default true)",
+      "required": false,
+      "default": "true"
+    },
+    {
+      "name": "BROWSERBASE_KEEP_ALIVE",
+      "purpose": "Session reconnection after disconnects",
+      "required": false,
+      "default": "true"
+    },
+    {
+      "name": "BROWSERBASE_SESSION_TIMEOUT",
+      "purpose": "Custom session timeout in milliseconds",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BROWSER_INACTIVITY_TIMEOUT",
+      "purpose": "Inactivity timeout before auto-cleanup in seconds",
+      "required": false,
+      "default": "120"
+    },
+    {
+      "name": "AGENT_BROWSER_ARGS",
+      "purpose": "Extra Chromium launch flags (disables auto-injection)",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "/browser connect",
+      "purpose": "Connect browser tools to local Chrome via CDP"
+    },
+    {
+      "command": "/browser connect ws://host:port",
+      "purpose": "Connect to a specific CDP endpoint"
+    },
+    {
+      "command": "/browser status",
+      "purpose": "Check current browser connection"
+    },
+    {
+      "command": "/browser disconnect",
+      "purpose": "Detach from CDP and return to cloud/local mode"
+    },
+    {
+      "command": "npm install -g agent-browser",
+      "purpose": "Install local browser CLI"
+    },
+    {
+      "command": "hermes setup tools",
+      "purpose": "Configure browser automation backend interactively"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "browser.cloud_provider",
+      "type": "string",
+      "default": null,
+      "description": "Cloud browser provider: browserbase, browser_use, or firecrawl",
+      "example": "browserbase"
+    },
+    {
+      "path": "browser.auto_local_for_private_urls",
+      "type": "bool",
+      "default": "true",
+      "description": "Auto-route private/LAN URLs to local sidecar",
+      "example": "false"
+    },
+    {
+      "path": "browser.allow_private_urls",
+      "type": "bool",
+      "default": "false",
+      "description": "Allow cloud provider to attempt private URLs",
+      "example": "true"
+    },
+    {
+      "path": "browser.record_sessions",
+      "type": "bool",
+      "default": "false",
+      "description": "Record browser sessions as WebM video",
+      "example": "true"
+    },
+    {
+      "path": "browser.dialog_policy",
+      "type": "string",
+      "default": "must_respond",
+      "description": "JS dialog handling: must_respond, auto_dismiss, or auto_accept",
+      "example": "auto_dismiss"
+    },
+    {
+      "path": "browser.camofox.managed_persistence",
+      "type": "bool",
+      "default": "false",
+      "description": "Enable persistent Camofox browser sessions (must be nested under browser.camofox)",
+      "example": "true"
+    },
+    {
+      "path": "browser.cdp_url",
+      "type": "string",
+      "default": null,
+      "description": "CDP endpoint URL (alternative to /browser connect)",
+      "example": "ws://localhost:9222"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/browser connect",
+      "purpose": "Connect to Chrome via CDP (CLI only)"
+    },
+    {
+      "command": "/browser status",
+      "purpose": "Check browser connection status"
+    },
+    {
+      "command": "/browser disconnect",
+      "purpose": "Detach from CDP browser"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Configure Browserbase",
+      "code": "# ~/.hermes/.env\nBROWSERBASE_API_KEY=***\nBROWSERBASE_PROJECT_ID=your-project-id-here"
+    },
+    {
+      "language": "yaml",
+      "caption": "Disable hybrid routing",
+      "code": "browser:\n  cloud_provider: browserbase\n  auto_local_for_private_urls: false"
+    },
+    {
+      "language": "yaml",
+      "caption": "Camofox persistent sessions",
+      "code": "browser:\n  camofox:\n    managed_persistence: true"
+    },
+    {
+      "language": "bash",
+      "caption": "Start Chrome with remote debugging",
+      "code": "google-chrome --remote-debugging-port=9222 --user-data-dir=$HOME/.hermes/chrome-debug --no-first-run &"
+    },
+    {
+      "language": "bash",
+      "caption": "Run Camofox with Docker",
+      "code": "git clone https://github.com/jo-inc/camofox-browser\ncd camofox-browser\nmake up"
+    }
+  ],
+  "gotchas": [
+    "`browser.camofox.managed_persistence` must be nested correctly — a top-level `managed_persistence: true` is silently ignored",
+    "`/browser connect` is a CLI slash command only — does not work in gateway/WebUI/Telegram/Discord",
+    "WSL2 + Windows Chrome: prefer chrome-devtools-mcp over /browser connect",
+    "Without `--user-data-dir`, starting Chrome while another instance is running won't open port 9222",
+    "Snapshots over 8000 characters are automatically LLM-summarized — may lose detail",
+    "Cloud providers (Browserbase, Browser Use, Firecrawl) do not expose CDP to browser_cdp tool",
+    "If paid Browserbase features aren't available, Hermes auto-falls back (keepAlive → proxies)"
+  ],
+  "cross_refs": [
+    "vision",
+    "tool-gateway"
+  ],
+  "keywords": [
+    "browser automation",
+    "Browserbase",
+    "Camofox",
+    "CDP",
+    "accessibility tree",
+    "web scraping",
+    "browser_navigate",
+    "browser_snapshot",
+    "browser_click",
+    "browser_vision",
+    "CAPTCHA",
+    "stealth",
+    "fingerprint spoofing",
+    "local Chrome",
+    "remote debugging"
+  ],
+  "full_text": "# Browser Automation\n\nHermes Agent includes a full browser automation toolset with multiple backend options:\n\n- **Browserbase cloud mode** — managed cloud browsers with anti-bot tooling\n- **Browser Use cloud mode** — alternative cloud browser provider\n- **Firecrawl cloud mode** — cloud browsers with built-in scraping\n- **Camofox local mode** — local anti-detection browsing (Firefox-based fingerprint spoofing)\n- **Local Chrome via CDP** — connect to your own Chrome instance using `/browser connect`\n- **Local browser mode** — `agent-browser` CLI with local Chromium\n\nPages are represented as **accessibility trees** (text-based snapshots). Interactive elements get ref IDs (like `@e1`, `@e2`) for clicking and typing.\n\n## Setup\n\nNous Portal subscribers can use browser automation through the Tool Gateway without separate API keys.\n\n```bash\n# ~/.hermes/.env\nBROWSERBASE_API_KEY=***\nBROWSERBASE_PROJECT_ID=your-project-id\nBROWSER_USE_API_KEY=***       # Alternative provider\nFIRECRAWL_API_KEY=fc-***      # Firecrawl provider\nCAMOFOX_URL=http://localhost:9377  # Local Camofox\n```\n\n## Hybrid Routing\n\nWhen a cloud provider is configured, Hermes auto-spawns a local Chromium sidecar for private/LAN URLs (localhost, 192.168.x.x, etc.). Public URLs use the cloud provider.\n\n```yaml\nbrowser:\n  cloud_provider: browserbase\n  auto_local_for_private_urls: false  # disable hybrid routing\n```\n\n## Local Chrome via CDP (`/browser connect`)\n\n```\n/browser connect              # Connect to Chrome at ws://localhost:9222\n/browser connect ws://host:port  # Connect to specific endpoint\n/browser status               # Check current connection\n/browser disconnect           # Detach\n```\n\nNote: `/browser connect` is CLI-only — not available in gateway/WebUI contexts.\n\n## Available Tools\n\n- **`browser_navigate`** — Navigate to a URL (must be called first)\n- **`browser_snapshot`** — Get accessibility tree snapshot; `full=true` for complete content\n- **`browser_click`** — Click element by ref ID (e.g., `@e5`)\n- **`browser_type`** — Type text into input field (clears first)\n- **`browser_scroll`** — Scroll up or down\n- **`browser_press`** — Press keyboard key (Enter, Tab, Escape, etc.)\n- **`browser_back`** — Navigate back\n- **`browser_get_images`** — List all images on page\n- **`browser_vision`** — Screenshot + AI vision analysis\n- **`browser_console`** — Get JS console output; evaluate JS expressions\n- **`browser_cdp`** — Raw CDP passthrough (CDP endpoint required)\n- **`browser_dialog`** — Respond to native JS dialogs\n\n## Session Management\n\n- Each task gets an isolated browser session\n- Auto-cleanup after 2 minutes of inactivity (background check every 30s)\n- Emergency cleanup on process exit\n- Session recording: `browser.record_sessions: true`\n\n## Limitations\n\n- Text-based only (accessibility tree, not pixel coordinates)\n- Snapshots over 8000 characters are LLM-summarized\n- No file downloads\n- Cloud sessions consume provider credits\n"
+}

@@ -1,0 +1,72 @@
+{
+  "id": "dev-context-engine-plugin",
+  "title": "Context Engine Plugins",
+  "source_path": "website/docs/developer-guide/context-engine-plugin.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/context-engine-plugin",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Guide for building context engine plugins that replace the built-in ContextCompressor with alternative context management strategies, covering the ContextEngine ABC required methods, optional hooks, engine tool registration, lifecycle, and registration via directory or plugin system.",
+  "key_concepts": [
+    "ContextEngine ABC",
+    "context engine plugin",
+    "should_compress",
+    "compress",
+    "get_tool_schemas",
+    "on_session_start",
+    "on_session_end",
+    "plugin directory",
+    "single-select",
+    "LCM"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "context.engine",
+      "type": "string",
+      "default": "compressor",
+      "description": "Active context engine — 'compressor' or a plugin name",
+      "example": "lcm"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "ContextEngine ABC implementation",
+      "code": "from agent.context_engine import ContextEngine\n\nclass LCMEngine(ContextEngine):\n    @property\n    def name(self) -> str:\n        return \"lcm\"\n\n    def update_from_response(self, usage: dict) -> None:\n        pass  # update token counters\n\n    def should_compress(self, prompt_tokens: int = None) -> bool:\n        return False\n\n    def compress(self, messages: list, current_tokens: int = None,\n                 focus_topic: str = None) -> list:\n        return messages  # return valid OpenAI-format message sequence"
+    },
+    {
+      "language": "python",
+      "caption": "Register via general plugin",
+      "code": "def register(ctx):\n    engine = LCMEngine(context_length=200000)\n    ctx.register_context_engine(engine)"
+    }
+  ],
+  "gotchas": [
+    "Only ONE context engine can be active at a time — a second plugin attempting to register is rejected with a warning",
+    "Plugin engines are never auto-activated — user must explicitly set context.engine in config.yaml",
+    "The compression config block (threshold, protect_last_n, etc.) is specific to the built-in ContextCompressor",
+    "Engine tools are injected into the agent's tool list at startup — no registry registration needed",
+    "focus_topic from /compress <focus> is passed to compress() — engines that don't support guided compression may ignore it"
+  ],
+  "cross_refs": [
+    "dev-context-compression",
+    "dev-memory-provider-plugin",
+    "plugins"
+  ],
+  "keywords": [
+    "context engine plugin",
+    "ContextEngine ABC",
+    "should_compress",
+    "compress",
+    "context compressor",
+    "LCM",
+    "single-select",
+    "context management",
+    "plugin directory",
+    "on_session_start",
+    "on_session_end",
+    "engine tools"
+  ],
+  "full_text": "# Building a Context Engine Plugin\n\nContext engine plugins replace the built-in `ContextCompressor` with an alternative strategy for managing conversation context.\n\n## How it works\n\nThe agent's context management is built on the `ContextEngine` ABC (`agent/context_engine.py`). Plugin engines must implement the same interface. Only **one** context engine can be active at a time. Selection is config-driven:\n\n```yaml\n# config.yaml\ncontext:\n  engine: \"compressor\"    # default built-in\n  engine: \"lcm\"           # activates a plugin engine named \"lcm\"\n```\n\nPlugin engines are **never auto-activated** — the user must explicitly set `context.engine` to the plugin's name.\n\n## Directory structure\n\nEach context engine lives in `plugins/context_engine/<name>/`:\n\n```\nplugins/context_engine/lcm/\n__init__.py      # exports the ContextEngine subclass\nplugin.yaml      # metadata (name, description, version)\n```\n\n## The ContextEngine ABC\n\nRequired methods: `name` (property), `update_from_response(usage)`, `should_compress(prompt_tokens)`, `compress(messages, current_tokens, focus_topic)`.\n\n### Class attributes your engine must maintain\n\n```python\nlast_prompt_tokens: int = 0\nlast_completion_tokens: int = 0\nlast_total_tokens: int = 0\nthreshold_tokens: int = 0\ncontext_length: int = 0\ncompression_count: int = 0\n```\n\n### Optional methods\n\n| Method | Default | Override when |\n|--------|---------|--------------|\n| `on_session_start(session_id, **kwargs)` | No-op | You need to load persisted state |\n| `on_session_end(session_id, messages)` | No-op | You need to flush state |\n| `on_session_reset()` | Resets token counters | You have per-session state to clear |\n| `update_model(model, context_length, ...)` | Updates context_length + threshold | You need to recalculate budgets on model switch |\n| `get_tool_schemas()` | Returns `[]` | Your engine provides agent-callable tools |\n| `handle_tool_call(name, args, **kwargs)` | Returns error JSON | You implement tool handlers |\n| `should_compress_preflight(messages)` | Returns `False` | You can do a cheap pre-API-call estimate |\n| `get_status()` | Standard token/threshold dict | You have custom metrics to expose |\n\n## Engine tools\n\nContext engines can expose tools the agent calls directly. Return schemas from `get_tool_schemas()` and handle calls in `handle_tool_call()`. Engine tools are injected into the agent's tool list at startup and dispatched automatically.\n\n## Registration\n\n### Via directory (recommended)\n\nPlace your engine in `plugins/context_engine/<name>/`. The `__init__.py` must export a `ContextEngine` subclass. The discovery system finds and instantiates it automatically.\n\n### Via general plugin system\n\n```python\ndef register(ctx):\n    engine = LCMEngine(context_length=200000)\n    ctx.register_context_engine(engine)\n```\n\nOnly one engine can be registered. A second plugin attempting to register is rejected with a warning.\n\n## Lifecycle\n\n```\n1. Engine instantiated (plugin load or directory discovery)\n2. on_session_start() — conversation begins\n3. update_from_response() — after each API call\n4. should_compress() — checked each turn\n5. compress() — called when should_compress() returns True\n6. on_session_end() — session boundary (CLI exit, /reset, gateway expiry)\n```\n\n`on_session_reset()` is called on `/new` or `/reset` to clear per-session state without a full shutdown.\n\n## Configuration\n\nUsers select your engine via `hermes plugins` or by editing `config.yaml`:\n\n```yaml\ncontext:\n  engine: \"lcm\"   # must match your engine name property\n```\n\nThe `compression` config block is specific to the built-in `ContextCompressor`. Your engine should define its own config format if needed.\n\n## Testing\n\n```python\nfrom agent.context_engine import ContextEngine\n\ndef test_engine_satisfies_abc():\n    engine = YourEngine(context_length=200000)\n    assert isinstance(engine, ContextEngine)\n    assert engine.name == \"your-name\"\n\ndef test_compress_returns_valid_messages():\n    engine = YourEngine(context_length=200000)\n    msgs = [{\"role\": \"user\", \"content\": \"hello\"}]\n    result = engine.compress(msgs)\n    assert isinstance(result, list)\n    assert all(\"role\" in m for m in result)\n```\n\nSee `tests/agent/test_context_engine.py` for the full ABC contract test suite.\n\n## See also\n\n- [Context Compression and Caching](/docs/developer-guide/context-compression-and-caching)\n- [Memory Provider Plugins](/docs/developer-guide/memory-provider-plugin)\n- [Plugins](/docs/user-guide/features/plugins)"
+}

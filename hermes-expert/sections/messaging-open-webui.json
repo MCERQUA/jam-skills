@@ -1,0 +1,247 @@
+{
+  "id": "messaging-open-webui",
+  "title": "Open WebUI",
+  "source_path": "website/docs/user-guide/messaging/open-webui.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/open-webui",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Open WebUI(https://github.com/open-webui/open-webui) (126k★) is the most popular self-hosted chat interface for AI. With Hermes Agent's built-in API server, you can use Open WebUI as a polished web frontend for your agent — complete with conversation management, user accounts, and a modern chat interface.",
+  "key_concepts": [
+    "Open WebUI Integration",
+    "Architecture",
+    "Quick Setup",
+    "One-command local bootstrap (macOS/Linux, no Docker)",
+    "1. Enable the API server",
+    "2. Start Hermes Agent gateway",
+    "3. Verify the API server is reachable",
+    "{\"status\": \"ok\", ...}"
+  ],
+  "env_vars": [
+    {
+      "name": "API_SERVER_CORS_ORIGINS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "API_SERVER_ENABLED",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "API_SERVER_HOST",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "API_SERVER_KEY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "API_SERVER_PORT",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "API_SERVER_MODEL_NAME",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPEN_WEBUI_NAME",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPEN_WEBUI_ENABLE_SIGNUP",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_API_MODEL_NAME",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPEN_WEBUI_ENABLE_SERVICE",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPENAI_API_BASE_URL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes config set API_SERVER_ENABLED true",
+      "purpose": ""
+    },
+    {
+      "command": "hermes config set API_SERVER_KEY your-secret-key",
+      "purpose": ""
+    },
+    {
+      "command": "hermes gateway stop && hermes gateway",
+      "purpose": ""
+    },
+    {
+      "command": "hermes gateway",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile create alice",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile create bob",
+      "purpose": ""
+    },
+    {
+      "command": "hermes -p alice gateway &",
+      "purpose": ""
+    },
+    {
+      "command": "hermes -p bob gateway &",
+      "purpose": ""
+    },
+    {
+      "command": "hermes -p alice config set API_SERVER_MODEL_NAME \"Alice's Agent\"",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/health",
+      "purpose": ""
+    },
+    {
+      "command": "/v1",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "mermaid",
+      "caption": "",
+      "code": "flowchart LR\n    A[\"Open WebUI<br/>browser UI<br/>port 3000\"]\n    B[\"hermes-agent<br/>gateway API server<br/>port 8642\"]\n    A -->|POST /v1/chat/completions| B\n    B -->|SSE streaming response| A\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "cd ~/.hermes/hermes-agent\nbash scripts/setup_open_webui.sh\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "OPEN_WEBUI_NAME='My Hermes UI' \\\nOPEN_WEBUI_ENABLE_SIGNUP=true \\\nHERMES_API_MODEL_NAME='My Hermes Agent' \\\nbash scripts/setup_open_webui.sh\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "OPEN_WEBUI_ENABLE_SERVICE=false bash scripts/setup_open_webui.sh\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes config set API_SERVER_ENABLED true\nhermes config set API_SERVER_KEY your-secret-key\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway stop && hermes gateway\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "[API Server] API server listening on http://127.0.0.1:8642\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "curl -s http://127.0.0.1:8642/health\n# {\"status\": \"ok\", ...}\n\ncurl -s -H \"Authorization: Bearer your-secret-key\" http://127.0.0.1:8642/v1/models\n# {\"object\":\"list\",\"data\":[{\"id\":\"hermes-agent\", ...}]}\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "docker run -d -p 3000:8080 \\\n  -e OPENAI_API_BASE_URL=http://host.docker.internal:8642/v1 \\\n  -e OPENAI_API_KEY=your-secret-key \\\n  -e ENABLE_OLLAMA_API=false \\\n  --add-host=host.docker.internal:host-gateway \\\n  -v open-webui:/app/backend/data \\\n  --name open-webui \\\n  --restart always \\\n  ghcr.io/open-webui/open-webui:main\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "services:\n  open-webui:\n    image: ghcr.io/open-webui/open-webui:main\n    ports:\n      - \"3000:8080\"\n    volumes:\n      - open-webui:/app/backend/data\n    environment:\n      - OPENAI_API_BASE_URL=http://host.docker.internal:8642/v1\n      - OPENAI_API_KEY=your-secret-key\n      - ENABLE_OLLAMA_API=false\n    extra_hosts:\n      - \"host.docker.internal:host-gateway\"\n    restart: always\n\nvolumes:\n  open-webui:\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "docker compose up -d\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes profile create alice\ncat >> ~/.hermes/profiles/alice/.env <<EOF\nAPI_SERVER_ENABLED=true\nAPI_SERVER_PORT=8650\nAPI_SERVER_KEY=alice-secret\nEOF\n\nhermes profile create bob\ncat >> ~/.hermes/profiles/bob/.env <<EOF\nAPI_SERVER_ENABLED=true\nAPI_SERVER_PORT=8651\nAPI_SERVER_KEY=bob-secret\nEOF\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes -p alice gateway &\nhermes -p bob gateway &\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes -p alice config set API_SERVER_MODEL_NAME \"Alice's Agent\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Option 1: Add host mapping\ndocker run --add-host=host.docker.internal:host-gateway ...\n\n# Option 2: Use host networking\ndocker run --network=host -e OPENAI_API_BASE_URL=http://localhost:8642/v1 ...\n\n# Option 3: Use Docker bridge IP\ndocker run -e OPENAI_API_BASE_URL=http://172.17.0.1:8642/v1 ...\n"
+    }
+  ],
+  "gotchas": [
+    "Environment variables only take effect on Open WebUI's **first launch**. After that, connection settings are stored in its internal database. To change them later, use the Admin UI or delete the Docker volume and start fresh.",
+    "Open WebUI persists OpenAI-compatible connection settings in its own database after first launch. If you accidentally saved a wrong key in the Admin UI, fixing the environment variables alone is not enough — update or delete the saved connection in **Admin Settings → Connections**, or reset the Open"
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "api",
+    "auto-routes",
+    "built-in",
+    "hermes-agent",
+    "llm",
+    "mcp",
+    "messaging",
+    "open",
+    "open-webui",
+    "open-webui-venv",
+    "post",
+    "self-hosted",
+    "server-side",
+    "server-to-server",
+    "sse"
+  ],
+  "full_text": "# Open WebUI\n\n# Open WebUI Integration\n\n[Open WebUI](https://github.com/open-webui/open-webui) (126k★) is the most popular self-hosted chat interface for AI. With Hermes Agent's built-in API server, you can use Open WebUI as a polished web frontend for your agent — complete with conversation management, user accounts, and a modern chat interface.\n\n## Architecture\n\n```mermaid\nflowchart LR\n    A[\"Open WebUI<br/>browser UI<br/>port 3000\"]\n    B[\"hermes-agent<br/>gateway API server<br/>port 8642\"]\n    A -->|POST /v1/chat/completions| B\n    B -->|SSE streaming response| A\n```\n\nOpen WebUI connects to Hermes Agent's API server just like it would connect to OpenAI. Hermes handles the requests with its full toolset — terminal, file operations, web search, memory, skills — and returns the final response.\n\n:::important Runtime location\nThe API server is a **Hermes agent runtime**, not a pure LLM proxy. For each request, Hermes creates a server-side `AIAgent` on the API-server host. Tool calls run where that API server is running.\n\nFor example, if a laptop points Open WebUI or another OpenAI-compatible client at a Hermes API server on a remote machine, `pwd`, file tools, browser tools, local MCP tools, and other workspace tools run on the remote API-server host, not on the laptop.\n:::\n\nOpen WebUI talks to Hermes server-to-server, so you do not need `API_SERVER_CORS_ORIGINS` for this integration.\n\n## Quick Setup\n\n### One-command local bootstrap (macOS/Linux, no Docker)\n\nIf you want Hermes + Open WebUI wired together locally with a reusable launcher, run:\n\n```bash\ncd ~/.hermes/hermes-agent\nbash scripts/setup_open_webui.sh\n```\n\nWhat the script does:\n\n- ensures `~/.hermes/.env` contains `API_SERVER_ENABLED`, `API_SERVER_HOST`, `API_SERVER_KEY`, `API_SERVER_PORT`, and `API_SERVER_MODEL_NAME`\n- restarts the Hermes gateway so the API server comes up\n- installs Open WebUI into `~/.local/open-webui-venv`\n- writes a launcher at `~/.local/bin/start-open-webui-hermes.sh`\n- on macOS, installs a `launchd` user service; on Linux with `systemd --user`, installs a user service there\n\nDefaults:\n\n- Hermes API: `http://127.0.0.1:8642/v1`\n- Open WebUI: `http://127.0.0.1:8080`\n- model name advertised to Open WebUI: `Hermes Agent`\n\nUseful overrides:\n\n```bash\nOPEN_WEBUI_NAME='My Hermes UI' \\\nOPEN_WEBUI_ENABLE_SIGNUP=true \\\nHERMES_API_MODEL_NAME='My Hermes Agent' \\\nbash scripts/setup_open_webui.sh\n```\n\nOn Linux, automatic background service setup requires a working `systemd --user` session. If you are on a headless SSH box and want to skip service installation, run:\n\n```bash\nOPEN_WEBUI_ENABLE_SERVICE=false bash scripts/setup_open_webui.sh\n```\n\n### 1. Enable the API server\n\n```bash\nhermes config set API_SERVER_ENABLED true\nhermes config set API_SERVER_KEY your-secret-key\n```\n\n`hermes config set` auto-routes the flag to `config.yaml` and the secret to `~/.hermes/.env`. If the gateway is already running, restart it so the change takes effect:\n\n```bash\nhermes gateway stop && hermes gateway\n```\n\n### 2. Start Hermes Agent gateway\n\n```bash\nhermes gateway\n```\n\nYou should see:\n\n```\n[API Server] API server listening on http://127.0.0.1:8642\n```\n\n### 3. Verify the API server is reachable\n\n```bash\ncurl -s http://127.0.0.1:8642/health\n# {\"status\": \"ok\", ...}\n\ncurl -s -H \"Authorization: Bearer your-secret-key\" http://127.0.0.1:8642/v1/models\n# {\"object\":\"list\",\"data\":[{\"id\":\"hermes-agent\", ...}]}\n```\n\nIf `/health` fails, the gateway didn't pick up `API_SERVER_ENABLED=true` — restart it. If `/v1/models` returns `401`, your `Authorization` header doesn't match `API_SERVER_KEY`.\n\n### 4. Start Open WebUI\n\n```bash\ndocker run -d -p 3000:8080 \\\n  -e OPENAI_API_BASE_URL=http://host.docker.internal:8642/v1 \\\n  -e OPENAI_API_KEY=your-secret-key \\\n  -e ENABLE_OLLAMA_API=false \\\n  --add-host=host.docker.internal:host-gateway \\\n  -v open-webui:/app/backend/data \\\n  --name open-webui \\\n  --restart always \\\n  ghcr.io/open-webui/open-webui:main\n```\n\n`ENABLE_OLLAMA_API=false` suppresses the default Ollama backend, which would otherwise show up empty and clutter the model picker. Omit it if you actually have Ollama running alongside.\n\nFirst launch takes 15–30 seconds: Open WebUI downloads sentence-transformer embedding models (~150MB) the first time it starts. Wait for `docker logs open-webui` to settle before opening the UI.\n\n### 5. Open the UI\n\nGo to **http://localhost:3000**. Create your admin account (the first user becomes admin). You should see your agent in the model dropdown (named after your profile, or **hermes-agent** for the default profile). Start chatting!\n\n## Docker Compose Setup\n\nFor a more permanent setup, create a `docker-compose.yml`:\n\n```yaml\nservices:\n  open-webui:\n    image: ghcr.io/open-webui/open-webui:main\n    ports:\n      - \"3000:8080\"\n    volumes:\n      - open-webui:/app/backend/data\n    environment:\n      - OPENAI_API_BASE_URL=http://host.docker.internal:8642/v1\n      - OPENAI_API_KEY=your-secret-key\n      - ENABLE_OLLAMA_API=false\n    extra_hosts:\n      - \"host.docker.internal:host-gateway\"\n    restart: always\n\nvolumes:\n  open-webui:\n```\n\nThen:\n\n```bash\ndocker compose up -d\n```\n\n## Configuring via the Admin UI\n\nIf you prefer to configure the connection through the UI instead of environment variables:\n\n1. Log in to Open WebUI at **http://localhost:3000**\n2. Click your **profile avatar** → **Admin Settings**\n3. Go to **Connections**\n4. Under **OpenAI API**, click the **wrench icon** (Manage)\n5. Click **+ Add New Connection**\n6. Enter:\n   - **URL**: `http://host.docker.internal:8642/v1`\n   - **API Key**: the exact same value as `API_SERVER_KEY` in Hermes\n7. Click the **checkmark** to verify the connection\n8. **Save**\n\nYour agent model should now appear in the model dropdown (named after your profile, or **hermes-agent** for the default profile).\n\n:::warning\nEnvironment variables only take effect on Open WebUI's **first launch**. After that, connection settings are stored in its internal database. To change them later, use the Admin UI or delete the Docker volume and start fresh.\n:::\n\n## API Type: Chat Completions vs Responses\n\nOpen WebUI supports two API modes when connecting to a backend:\n\n| Mode | Format | When to use |\n|------|--------|-------------|\n| **Chat Completions** (default) | `/v1/chat/completions` | Recommended. Works out of the box. |\n| **Responses** (experimental) | `/v1/responses` | For server-side conversation state via `previous_response_id`. |\n\n### Using Chat Completions (recommended)\n\nThis is the default and requires no extra configuration. Open WebUI sends standard OpenAI-format requests and Hermes Agent responds accordingly. Each request includes the full conversation history.\n\n### Using Responses API\n\nTo use the Responses API mode:\n\n1. Go to **Admin Settings** → **Connections** → **OpenAI** → **Manage**\n2. Edit your hermes-agent connection\n3. Change **API Type** from \"Chat Completions\" to **\"Responses (Experimental)\"**\n4. Save\n\nWith the Responses API, Open WebUI sends requests in the Responses format (`input` array + `instructions`), and Hermes Agent can preserve full tool call history across turns via `previous_response_id`. When `stream: true`, Hermes also streams spec-native `function_call` and `function_call_output` items, which enables custom structured tool-call UI in clients that render Responses events.\n\n:::note\nOpen WebUI currently manages conversation history client-side even in Responses mode — it sends the full message history in each request rather than using `previous_response_id`. The main advantage of Responses mode today is the structured event stream: text deltas, `function_call`, and `function_call_output` items arrive as OpenAI Responses SSE events instead of Chat Completions chunks.\n:::\n\n## How It Works\n\nWhen you send a message in Open WebUI:\n\n1. Open WebUI sends a `POST /v1/chat/completions` request with your message and conversation history\n2. Hermes Agent creates a server-side `AIAgent` instance using the API server's profile, model/provider config, memory, skills, and configured API-server toolsets\n3. The agent processes your request — it may call tools (terminal, file operations, web search, etc.) on the API-server host\n4. As tools execute, **inline progress messages stream to the UI** so you can see what the agent is doing (e.g. `` `💻 ls -la` ``, `` `🔍 Python 3.12 release` ``)\n5. The agent's final text response streams back to Open WebUI\n6. Open WebUI displays the response in its chat interface\n\nYour agent has access to the same tools and capabilities as that API-server Hermes instance. If the API server is remote, those tools are remote too.\n\nIf you need tools to run against your **local** workspace today, run Hermes locally and point it at a pure LLM provider or pure OpenAI-compatible model proxy (for example vLLM, LiteLLM, Ollama, llama.cpp, OpenAI, OpenRouter, etc.). A future split-runtime mode for \"remote brain, local hands\" is being tracked in [#18715](https://github.com/NousResearch/hermes-agent/issues/18715); it is not the behavior of the current API server.\n\n:::tip Tool Progress\nWith streaming enabled (the default), you'll see brief inline indicators as tools run — the tool emoji and its key argument. These appear in the response stream before the agent's final answer, giving you visibility into what's happening behind the scenes.\n:::\n\n## Configuration Reference\n\n### Hermes Agent (API server)\n\n| Variable | Default | Description |\n|----------|---------|-------------|\n| `API_SERVER_ENABLED` | `false` | Enable the API server |\n| `API_SERVER_PORT` | `8642` | HTTP server port |\n| `API_SERVER_HOST` | `127.0.0.1` | Bind address |\n| `API_SERVER_KEY` | _(required)_ | Bearer token for auth. Match `OPENAI_API_KEY`. |\n\n### Open WebUI\n\n| Variable | Description |\n|----------|-------------|\n| `OPENAI_API_BASE_URL` | Hermes Agent's API URL (include `/v1`) |\n| `OPENAI_API_KEY` | Must be non-empty. Match your `API_SERVER_KEY`. |\n\n## Troubleshooting\n\n### No models appear in the dropdown\n\n- **Check the URL has `/v1` suffix**: `http://host.docker.internal:8642/v1` (not just `:8642`)\n- **Verify the gateway is running**: `curl http://localhost:8642/health` should return `{\"status\": \"ok\"}`\n- **Check model listing**: `curl -H \"Authorization: Bearer your-secret-key\" http://localhost:8642/v1/models` should return a list with `hermes-agent`\n- **Docker networking**: From inside Docker, `localhost` means the container, not your host. Use `host.docker.internal` or `--network=host`.\n- **Empty Ollama backend shadowing the picker**: If you omitted `ENABLE_OLLAMA_API=false`, Open WebUI shows an empty Ollama section above your Hermes models. Restart the container with `-e ENABLE_OLLAMA_API=false` or disable Ollama in **Admin Settings → Connections**.\n\n### Connection test passes but no models load\n\nThis is almost always the missing `/v1` suffix. Open WebUI's connection test is a basic connectivity check — it doesn't verify model listing works.\n\n### Response takes a long time\n\nHermes Agent may be executing multiple tool calls (reading files, running commands, searching the web) before producing its final response. This is normal for complex queries. The response appears all at once when the agent finishes.\n\n### \"Invalid API key\" errors\n\nMake sure your `OPENAI_API_KEY` in Open WebUI matches the `API_SERVER_KEY` in Hermes Agent.\n\n:::warning\nOpen WebUI persists OpenAI-compatible connection settings in its own database after first launch. If you accidentally saved a wrong key in the Admin UI, fixing the environment variables alone is not enough — update or delete the saved connection in **Admin Settings → Connections**, or reset the Open WebUI data directory / database.\n:::\n\n## Multi-User Setup with Profiles\n\nTo run separate Hermes instances per user — each with their own config, memory, and skills — use [profiles](/docs/user-guide/profiles). Each profile runs its own API server on a different port and automatically advertises the profile name as the model in Open WebUI.\n\n### 1. Create profiles and configure API servers\n\n`API_SERVER_*` are env vars, not YAML config keys, so write them to each profile's `.env`. Pick ports outside the default-platform range (`8644` is the webhook adapter, `8645` is wecom-callback, `8646` is msgraph-webhook), e.g. `8650+`:\n\n```bash\nhermes profile create alice\ncat >> ~/.hermes/profiles/alice/.env <<EOF\nAPI_SERVER_ENABLED=true\nAPI_SERVER_PORT=8650\nAPI_SERVER_KEY=alice-secret\nEOF\n\nhermes profile create bob\ncat >> ~/.hermes/profiles/bob/.env <<EOF\nAPI_SERVER_ENABLED=true\nAPI_SERVER_PORT=8651\nAPI_SERVER_KEY=bob-secret\nEOF\n```\n\n### 2. Start each gateway\n\n```bash\nhermes -p alice gateway &\nhermes -p bob gateway &\n```\n\n### 3. Add connections in Open WebUI\n\nIn **Admin Settings** → **Connections** → **OpenAI API** → **Manage**, add one connection per profile:\n\n| Connection | URL | API Key |\n|-----------|-----|---------|\n| Alice | `http://host.docker.internal:8650/v1` | `alice-secret` |\n| Bob | `http://host.docker.internal:8651/v1` | `bob-secret` |\n\nThe model dropdown will show `alice` and `bob` as distinct models. You can assign models to Open WebUI users via the admin panel, giving each user their own isolated Hermes agent.\n\n:::tip Custom Model Names\nThe model name defaults to the profile name. To override it, set `API_SERVER_MODEL_NAME` in the profile's `.env`:\n```bash\nhermes -p alice config set API_SERVER_MODEL_NAME \"Alice's Agent\"\n```\n:::\n\n## Linux Docker (no Docker Desktop)\n\nOn Linux without Docker Desktop, `host.docker.internal` doesn't resolve by default. Options:\n\n```bash\n# Option 1: Add host mapping\ndocker run --add-host=host.docker.internal:host-gateway ...\n\n# Option 2: Use host networking\ndocker run --network=host -e OPENAI_API_BASE_URL=http://localhost:8642/v1 ...\n\n# Option 3: Use Docker bridge IP\ndocker run -e OPENAI_API_BASE_URL=http://172.17.0.1:8642/v1 ...\n```\n\n---"
+}

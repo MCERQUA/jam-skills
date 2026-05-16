@@ -1,0 +1,161 @@
+{
+  "id": "guide-xai-grok-oauth",
+  "title": "xAI Grok OAuth (SuperGrok Subscription)",
+  "source_path": "website/docs/guides/xai-grok-oauth.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/xai-grok-oauth",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Hermes Agent supports xAI Grok through a browser-based OAuth login flow against [accounts.x.ai](https://accounts.x.ai), using your existing **SuperGrok subscription**. No `XAI_API_KEY` is required — log in once and Hermes automatically refreshes your session in the background. The transport reuse...",
+  "key_concepts": [
+    "Overview",
+    "Prerequisites",
+    "Quick Start",
+    "Logging In Manually",
+    "Remote / headless sessions",
+    "How the Login Works",
+    "Checking Login Status",
+    "Switching Models"
+  ],
+  "env_vars": [
+    {
+      "name": "XAI_API_KEY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "XAI_BASE_URL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_INFERENCE_PROVIDER",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes model",
+      "purpose": ""
+    },
+    {
+      "command": "hermes auth add xai-oauth",
+      "purpose": ""
+    },
+    {
+      "command": "hermes auth add xai-oauth --no-browser",
+      "purpose": ""
+    },
+    {
+      "command": "hermes doctor",
+      "purpose": ""
+    },
+    {
+      "command": "hermes config set model.default grok-4.3",
+      "purpose": ""
+    },
+    {
+      "command": "hermes config set model.provider xai-oauth",
+      "purpose": ""
+    },
+    {
+      "command": "hermes --provider xai-oauth",
+      "purpose": ""
+    },
+    {
+      "command": "hermes --provider grok-oauth",
+      "purpose": ""
+    },
+    {
+      "command": "hermes --provider x-ai-oauth",
+      "purpose": ""
+    },
+    {
+      "command": "hermes --provider xai-grok-oauth",
+      "purpose": ""
+    },
+    {
+      "command": "hermes tools",
+      "purpose": ""
+    },
+    {
+      "command": "hermes auth logout xai-oauth",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Launch the provider and model picker\nhermes model\n# → Select \"xAI Grok OAuth (SuperGrok Subscription)\" from the provider list\n# → Hermes opens your browser to accounts.x.ai\n# → Approve access in the browser\n# → Pick a model (grok-4.3 is at the top)\n# → Start chatting\n\nhermes"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes auth add xai-oauth"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# In a separate terminal on your local machine:\nssh -N -L 56121:127.0.0.1:56121 user@remote-host\n\n# Then in your SSH session on the remote machine:\nhermes auth add xai-oauth --no-browser\n# Open the printed authorize URL in your local browser."
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes doctor"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes model\n# → Select \"xAI Grok OAuth (SuperGrok Subscription)\"\n# → Pick from the model list (grok-4.3 is pinned to the top)"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes config set model.default grok-4.3\nhermes config set model.provider xai-oauth"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "model:\n  default: grok-4.3\n  provider: xai-oauth\n  base_url: https://api.x.ai/v1"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes --provider xai-oauth        # canonical\nhermes --provider grok-oauth       # alias\nhermes --provider x-ai-oauth       # alias\nhermes --provider xai-grok-oauth   # alias"
+    }
+  ],
+  "gotchas": [
+    "The loopback listener has a finite expiry window (default 180 s). If you don't approve the login in time, Hermes raises a timeout error."
+  ],
+  "cross_refs": [
+    "oauth-over-ssh",
+    "providers",
+    "environment-variables",
+    "configuration",
+    "tts"
+  ],
+  "keywords": [
+    "access",
+    "accounts",
+    "aliases",
+    "also",
+    "api",
+    "approve",
+    "authorization",
+    "authorize",
+    "automatically",
+    "browser",
+    "chatting",
+    "checking",
+    "config",
+    "configuration",
+    "credentials"
+  ],
+  "full_text": "# xAI Grok OAuth (SuperGrok Subscription)\n\n# xAI Grok OAuth (SuperGrok Subscription)\n\nHermes Agent supports xAI Grok through a browser-based OAuth login flow against [accounts.x.ai](https://accounts.x.ai), using your existing **SuperGrok subscription**. No `XAI_API_KEY` is required — log in once and Hermes automatically refreshes your session in the background.\n\nThe transport reuses the `codex_responses` adapter (xAI exposes a Responses-style endpoint), so reasoning, tool-calling, streaming, and prompt caching work without any adapter changes.\n\nThe same OAuth bearer token is also reused by every direct-to-xAI surface in Hermes — TTS, image generation, video generation, and transcription — so a single login covers all four.\n\n## Overview\n\n| Item | Value |\n|------|-------|\n| Provider ID | `xai-oauth` |\n| Display name | xAI Grok OAuth (SuperGrok Subscription) |\n| Auth type | Browser OAuth 2.0 PKCE (loopback callback) |\n| Transport | xAI Responses API (`codex_responses`) |\n| Default model | `grok-4.3` |\n| Endpoint | `https://api.x.ai/v1` |\n| Auth server | `https://accounts.x.ai` |\n| Requires env var | No (`XAI_API_KEY` is **not** used for this provider) |\n| Subscription | [SuperGrok](https://x.ai/grok) (any active tier) |\n\n## Prerequisites\n\n- Python 3.9+\n- Hermes Agent installed\n- An active SuperGrok subscription on your xAI account\n- A browser available on the local machine (or use `--no-browser` for remote sessions)\n\n## Quick Start\n\n```bash\n# Launch the provider and model picker\nhermes model\n# → Select \"xAI Grok OAuth (SuperGrok Subscription)\" from the provider list\n# → Hermes opens your browser to accounts.x.ai\n# → Approve access in the browser\n# → Pick a model (grok-4.3 is at the top)\n# → Start chatting\n\nhermes\n```\n\nAfter the first login, credentials are stored under `~/.hermes/auth.json` and refreshed automatically before they expire.\n\n## Logging In Manually\n\nYou can trigger a login without going through the model picker:\n\n```bash\nhermes auth add xai-oauth\n```\n\n### Remote / headless sessions\n\nOn servers, containers, or SSH sessions where no browser is available, Hermes detects the remote environment and prints the authorization URL instead of opening a browser.\n\n**Important:** the loopback listener still runs on the remote machine at `127.0.0.1:56121`. The xAI redirect needs to reach *that* listener, so opening the URL on your laptop will fail (`Could not establish connection. We couldn't reach your app.`) unless you forward the port:\n\n```bash\n# In a separate terminal on your local machine:\nssh -N -L 56121:127.0.0.1:56121 user@remote-host\n\n# Then in your SSH session on the remote machine:\nhermes auth add xai-oauth --no-browser\n# Open the printed authorize URL in your local browser.\n```\n\nThrough a jump box / bastion: add `-J jump-user@jump-host`.\n\nSee [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md) for the full step-by-step, including ProxyJump chains, mosh/tmux, and ControlMaster gotchas.\n\n## How the Login Works\n\n1. Hermes opens your browser to `accounts.x.ai`.\n2. You sign in (or confirm your existing session) and approve access.\n3. xAI redirects back to Hermes and the tokens are saved to `~/.hermes/auth.json`.\n4. From then on, Hermes refreshes the access token in the background — you stay signed in until you `hermes auth remove xai-oauth` or revoke access from your xAI account settings.\n\n## Checking Login Status\n\n```bash\nhermes doctor\n```\n\nThe `◆ Auth Providers` section will show the current state of every provider, including `xai-oauth`.\n\n## Switching Models\n\n```bash\nhermes model\n# → Select \"xAI Grok OAuth (SuperGrok Subscription)\"\n# → Pick from the model list (grok-4.3 is pinned to the top)\n```\n\nOr set the model directly:\n\n```bash\nhermes config set model.default grok-4.3\nhermes config set model.provider xai-oauth\n```\n\n## Configuration Reference\n\nAfter login, `~/.hermes/config.yaml` will contain:\n\n```yaml\nmodel:\n  default: grok-4.3\n  provider: xai-oauth\n  base_url: https://api.x.ai/v1\n```\n\n### Provider aliases\n\nAll of the following resolve to `xai-oauth`:\n\n```bash\nhermes --provider xai-oauth        # canonical\nhermes --provider grok-oauth       # alias\nhermes --provider x-ai-oauth       # alias\nhermes --provider xai-grok-oauth   # alias\n```\n\n## Direct-to-xAI Tools (TTS / Image / Video / Transcription)\n\nOnce you're logged in via OAuth, every direct-to-xAI tool reuses the same bearer token automatically — there is **no separate setup** unless you'd rather use an API key.\n\nTo pick a backend for each tool:\n\n```bash\nhermes tools\n# → Text-to-Speech       → \"xAI TTS\"\n# → Image Generation     → \"xAI Grok Imagine (image)\"\n# → Video Generation     → \"xAI Grok Imagine\"\n```\n\nIf OAuth tokens are already stored, the picker confirms it and skips the credential prompt. If neither OAuth nor `XAI_API_KEY` is set, the picker offers a 3-choice menu: OAuth login, paste API key, or skip.\n\n:::note Video generation is off by default\nThe `video_gen` toolset is disabled by default. Enable it in `hermes tools` → `🎬 Video Generation` (press space) before the agent can call `video_generate`. Otherwise the agent may fall back to the bundled ComfyUI skill, which is also tagged for video generation.\n:::\n\n### Models\n\n| Tool | Model | Notes |\n|------|-------|-------|\n| Chat | `grok-4.3` | Default; auto-selected when you log in via OAuth |\n| Chat | `grok-4.20-0309-reasoning` | Reasoning variant |\n| Chat | `grok-4.20-0309-non-reasoning` | Non-reasoning variant |\n| Chat | `grok-4.20-multi-agent-0309` | Multi-agent variant |\n| Image | `grok-imagine-image` | Default; ~5–10 s |\n| Image | `grok-imagine-image-quality` | Higher fidelity; ~10–20 s |\n| Video | `grok-imagine-video` | Text-to-video and image-to-video; up to 7 reference images |\n| TTS | (default voice) | xAI `/v1/tts` endpoint |\n\nThe chat catalog is derived live from the on-disk `models.dev` cache; new xAI releases appear automatically once that cache refreshes. `grok-4.3` is always pinned to the top of the list.\n\n## Environment Variables\n\n| Variable | Effect |\n|----------|--------|\n| `XAI_BASE_URL` | Override the default `https://api.x.ai/v1` endpoint (rarely needed). |\n| `HERMES_INFERENCE_PROVIDER` | Force the active provider at runtime, e.g. `HERMES_INFERENCE_PROVIDER=xai-oauth hermes`. |\n\n## Troubleshooting\n\n### Token expired — not re-logging in automatically\n\nHermes refreshes the token before each session and again reactively on a 401. If refresh fails with `invalid_grant` (the refresh token was revoked, or the account was rotated), Hermes surfaces a typed re-auth message instead of crashing.\n\n**Fix:** run `hermes auth add xai-oauth` again to start a fresh login.\n\n### Authorization timed out\n\nThe loopback listener has a finite expiry window (default 180 s). If you don't approve the login in time, Hermes raises a timeout error.\n\n**Fix:** re-run `hermes auth add xai-oauth` (or `hermes model`). The flow starts fresh.\n\n### State mismatch (possible CSRF)\n\nHermes detected that the `state` value returned by the authorization server doesn't match what it sent.\n\n**Fix:** re-run the login. If it persists, check for a proxy or redirect that is modifying the OAuth response.\n\n### Logging in from a remote server\n\nOn SSH or container sessions Hermes prints the authorization URL instead of opening a browser. The loopback callback listener still binds `127.0.0.1:56121` on the remote host — your laptop's browser can't reach it without an SSH local-forward:\n\n```bash\n# Local machine, separate terminal:\nssh -N -L 56121:127.0.0.1:56121 user@remote-host\n\n# Remote machine:\nhermes auth add xai-oauth --no-browser\n```\n\nFull walkthrough (jump boxes, mosh/tmux, port conflicts): [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md).\n\n### \"No xAI credentials found\" error at runtime\n\nThe auth store has no `xai-oauth` entry and no `XAI_API_KEY` is set. You haven't logged in yet, or the credential file was deleted.\n\n**Fix:** run `hermes model` and pick the xAI Grok OAuth provider, or run `hermes auth add xai-oauth`.\n\n## Logging Out\n\nTo remove all stored xAI Grok OAuth credentials:\n\n```bash\nhermes auth logout xai-oauth\n```\n\nThis clears both the singleton OAuth entry in `auth.json` and any credential-pool rows for `xai-oauth`. Use `hermes auth remove xai-oauth <index|id|label>` if you only want to drop a single pool entry (run `hermes auth list xai-oauth` to see them).\n\n## See Also\n\n- [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md) — required reading if Hermes is on a different machine than your browser\n- [AI Providers reference](../integrations/providers.md)\n- [Environment Variables](../reference/environment-variables.md)\n- [Configuration](../user-guide/configuration.md)\n- [Voice & TTS](../user-guide/features/tts.md)\n\n---"
+}

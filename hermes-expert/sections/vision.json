@@ -1,0 +1,84 @@
+{
+  "id": "vision",
+  "title": "Vision & Image Paste",
+  "source_path": "website/docs/user-guide/features/vision.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/vision",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Enables multimodal vision by letting users paste images from clipboard into the CLI or messaging platforms; automatically routes images to the model as native vision content or through an auxiliary vision tool for text-only models.",
+  "key_concepts": [
+    "clipboard paste",
+    "multimodal vision",
+    "image routing",
+    "vision_analyze",
+    "accessibility tree",
+    "base64 content blocks"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "auxiliary.vision",
+      "type": "string",
+      "default": null,
+      "description": "Auxiliary vision model for text-only model image routing",
+      "example": "anthropic/claude-3-haiku"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/paste",
+      "purpose": "Attach image from clipboard (most reliable method)"
+    },
+    {
+      "command": "/terminal-setup",
+      "purpose": "Install recommended VS Code/Cursor/Windsurf terminal keybindings for better paste parity"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Install xclip for Linux X11",
+      "code": "sudo apt install xclip"
+    },
+    {
+      "language": "bash",
+      "caption": "Install wl-clipboard for Wayland",
+      "code": "sudo apt install wl-clipboard"
+    },
+    {
+      "language": "bash",
+      "caption": "Verify WSL2 clipboard access",
+      "code": "powershell.exe -NoProfile -Command \"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::ContainsImage()\""
+    },
+    {
+      "language": "json",
+      "caption": "Vision content format sent to model",
+      "code": "{\"type\": \"image_url\", \"image_url\": {\"url\": \"data:image/png;base64,...\"}}"
+    }
+  ],
+  "gotchas": [
+    "If clipboard has ONLY an image (no text), use /paste — terminals cannot send binary image bytes directly",
+    "SSH remote sessions: clipboard tools read the remote server clipboard, not your local machine",
+    "WSLg clipboard bridge only supports BMP format — Hermes auto-converts with Pillow or ImageMagick",
+    "/terminal-setup writes LOCAL IDE keybindings — do not run from an SSH session"
+  ],
+  "cross_refs": [
+    "browser"
+  ],
+  "keywords": [
+    "vision",
+    "image paste",
+    "clipboard",
+    "multimodal",
+    "vision_analyze",
+    "xclip",
+    "wl-paste",
+    "WSL2",
+    "osascript",
+    "base64",
+    "image upload",
+    "SSH"
+  ],
+  "full_text": "# Vision & Image Paste\n\nHermes Agent supports **multimodal vision** — paste images from clipboard directly into the CLI and ask the agent to analyze, describe, or work with them.\n\n## How It Works\n\n1. Copy image to clipboard\n2. Attach via `/paste` command or Ctrl+V/Cmd+V\n3. Type question and press Enter\n4. Image appears as `[📎 Image #1]` badge\n5. On submit, sent to model as vision content block\n\nMultiple images can be attached. Press Ctrl+C to clear. Images saved to `~/.hermes/images/` as timestamped PNGs.\n\n## Paste Methods\n\n### `/paste` Command\nMost reliable fallback. Type `/paste` and press Enter — Hermes checks clipboard for image and attaches it.\n\n### Ctrl+V / Cmd+V\nLayered flow: text paste first, then native clipboard/OSC52 fallback, then image attach if clipboard resolves to image.\n\n## Platform Compatibility\n\n| Environment | `/paste` | Cmd/Ctrl+V | Notes |\n|---|:---:|:---:|---|\n| macOS Terminal / iTerm2 | ✅ | ✅ | Uses osascript |\n| Linux X11 | ✅ | ✅ | Requires `xclip` |\n| Linux Wayland | ✅ | ✅ | Requires `wl-clipboard` |\n| WSL2 (Windows Terminal) | ✅ | ✅ | Uses powershell.exe |\n| VS Code / Cursor (local) | ✅ | ✅ | Use /terminal-setup |\n| SSH terminal | ❌ | ❌ | Remote clipboard inaccessible |\n\n## Platform Setup\n\n- macOS: no setup needed (uses `osascript`); optionally `brew install pngpaste`\n- Linux X11: `sudo apt install xclip`\n- Linux Wayland: `sudo apt install wl-clipboard`\n- WSL2: no setup (uses `powershell.exe` automatically)\n\n## SSH Workarounds\n\n1. Upload via `scp` and reference by path\n2. Use a URL — agent can use `vision_analyze` on any URL\n3. X11 forwarding with `ssh -X`\n4. Send via Telegram/Discord/Slack/WhatsApp (platform handles upload)\n\n## Image Routing\n\n| Your model | What happens |\n|---|---|\n| Vision-capable | Sent as real pixels using native image content format |\n| Text-only | Routed through `vision_analyze` auxiliary tool — text description injected |\n\nHermes auto-detects model capabilities and picks the right path. Configurable via `auxiliary.vision`.\n"
+}

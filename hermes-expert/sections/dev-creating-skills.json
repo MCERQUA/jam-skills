@@ -1,0 +1,103 @@
+{
+  "id": "dev-creating-skills",
+  "title": "Creating Skills",
+  "source_path": "website/docs/developer-guide/creating-skills.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/creating-skills",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Complete guide for creating Hermes skills — the preferred way to add capabilities without code changes — covering SKILL.md format, frontmatter fields, platform restrictions, conditional activation (requires_toolsets, fallback_for_tools), environment variable requirements, credential file requirements, helper scripts, and publishing.",
+  "key_concepts": [
+    "SKILL.md",
+    "skill frontmatter",
+    "conditional activation",
+    "required_environment_variables",
+    "required_credential_files",
+    "helper scripts",
+    "HERMES_SKILL_DIR",
+    "inline shell snippets",
+    "skills hub",
+    "security scanning"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes chat --toolsets skills -q \"Use the X skill to do Y\"",
+      "purpose": "Test a skill in isolation"
+    },
+    {
+      "command": "hermes skills publish skills/my-skill --to github --repo owner/repo",
+      "purpose": "Publish a skill to the Skills Hub"
+    },
+    {
+      "command": "hermes skills tap add owner/repo",
+      "purpose": "Add a custom repository as a skills tap"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "skills.template_vars",
+      "type": "boolean",
+      "default": "true",
+      "description": "Enable/disable ${HERMES_SKILL_DIR} substitution in SKILL.md",
+      "example": "false"
+    },
+    {
+      "path": "skills.inline_shell",
+      "type": "boolean",
+      "default": "false",
+      "description": "Enable inline shell snippets in SKILL.md",
+      "example": "true"
+    },
+    {
+      "path": "skills.inline_shell_timeout",
+      "type": "integer",
+      "default": "10",
+      "description": "Timeout in seconds for inline shell snippets",
+      "example": "10"
+    },
+    {
+      "path": "terminal.env_passthrough",
+      "type": "list",
+      "default": "[]",
+      "description": "Env vars to pass through to terminal sandbox",
+      "example": "[MY_VAR]"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "markdown",
+      "caption": "SKILL.md frontmatter format",
+      "code": "---\nname: my-skill\ndescription: Brief description\nversion: 1.0.0\nauthor: Your Name\nlicense: MIT\nplatforms: [macos, linux]\nmetadata:\n  hermes:\n    tags: [Category, Keywords]\n    requires_toolsets: [web]\n    fallback_for_tools: [browser_navigate]\nrequired_environment_variables:\n  - name: MY_API_KEY\n    prompt: \"Enter your API key\"\n    help: \"Get one at https://example.com\"\n---"
+    }
+  ],
+  "gotchas": [
+    "Make it a Skill when capability = instructions + shell commands + existing tools; make it a Tool when it needs Python integration, auth flows, binary data, or streaming",
+    "inline_shell is off by default — snippets run on host without approval so only enable for trusted skill sources",
+    "required_environment_variables do NOT hide the skill from discovery — Hermes prompts for them when the skill is loaded",
+    "Use required_environment_variables for secrets (stored in .env), config keys for non-sensitive settings (stored in config.yaml)",
+    "Bundled skills in skills/ should be broadly useful; niche skills belong in optional-skills/ or Skills Hub"
+  ],
+  "cross_refs": [
+    "dev-adding-tools",
+    "guide-build-plugin",
+    "guide-work-with-skills",
+    "skills"
+  ],
+  "keywords": [
+    "creating skills",
+    "SKILL.md",
+    "skill frontmatter",
+    "conditional activation",
+    "requires_toolsets",
+    "fallback_for_tools",
+    "required_environment_variables",
+    "helper scripts",
+    "HERMES_SKILL_DIR",
+    "inline shell",
+    "skills hub",
+    "security scanning",
+    "publishing skills"
+  ],
+  "full_text": "# Creating Skills\n\nSkills are the preferred way to add new capabilities to Hermes Agent. They're easier to create than tools, require no code changes to the agent, and can be shared with the community.\n\n## Should it be a Skill or a Tool?\n\nMake it a **Skill** when:\n- The capability can be expressed as instructions + shell commands + existing tools\n- It wraps an external CLI or API that the agent can call via `terminal` or `web_extract`\n- Examples: arXiv search, git workflows, Docker management, PDF processing\n\nMake it a **Tool** when:\n- It requires end-to-end integration with API keys, auth flows, or multi-component configuration\n- Examples: browser automation, TTS, vision analysis\n\n## Skill Directory Structure\n\n```text\nskills/\n├── research/\n│   └── arxiv/\n│       ├── SKILL.md              # Required: main instructions\n│       └── scripts/              # Optional: helper scripts\n└── productivity/\n    └── ocr-and-documents/\n        ├── SKILL.md\n        └── scripts/\n```\n\n## SKILL.md Format\n\n```markdown\n---\nname: my-skill\ndescription: Brief description (shown in skill search results)\nversion: 1.0.0\nauthor: Your Name\nlicense: MIT\nplatforms: [macos, linux]          # Optional — omit to load on all platforms\nmetadata:\n  hermes:\n    tags: [Category, Subcategory, Keywords]\n    related_skills: [other-skill-name]\n    requires_toolsets: [web]            # Only show when these toolsets are active\n    requires_tools: [web_search]        # Only show when these tools are available\n    fallback_for_toolsets: [browser]    # Hide when these toolsets are active\n    fallback_for_tools: [browser_navigate]\n    config:\n      - key: my.setting\n        description: \"What this setting controls\"\n        default: \"sensible-default\"\nrequired_environment_variables:\n  - name: MY_API_KEY\n    prompt: \"Enter your API key\"\n    help: \"Get one at https://example.com\"\n    required_for: \"API access\"\n---\n\n# Skill Title\n\nBrief intro.\n\n## When to Use\nTrigger conditions.\n\n## Quick Reference\nTable of common commands.\n\n## Procedure\nStep-by-step instructions.\n\n## Pitfalls\nKnown failure modes.\n```\n\n## Conditional Skill Activation\n\n| Field | Behavior |\n|-------|----------|\n| `requires_toolsets` | Skill is **hidden** when ANY listed toolset is **not** available |\n| `requires_tools` | Skill is **hidden** when ANY listed tool is **not** available |\n| `fallback_for_toolsets` | Skill is **hidden** when ANY listed toolset **is** available |\n| `fallback_for_tools` | Skill is **hidden** when ANY listed tool **is** available |\n\n## Environment Variable Requirements\n\nWhen a skill is loaded via `skill_view`, its required vars are automatically registered for passthrough into sandboxed execution environments.\n\n```yaml\nrequired_environment_variables:\n  - name: TENOR_API_KEY\n    prompt: \"Tenor API key\"\n    help: \"Get your key at https://tenor.com\"\n    required_for: \"GIF search functionality\"\n```\n\n## Credential File Requirements (OAuth tokens, etc.)\n\n```yaml\nrequired_credential_files:\n  - path: google_token.json\n    description: Google OAuth2 token (created by setup script)\n  - path: google_client_secret.json\n    description: Google OAuth2 client credentials\n```\n\n## Referencing bundled scripts from SKILL.md\n\nTwo template tokens available anywhere in the SKILL.md body:\n\n| Token | Replaced with |\n|---|---|\n| `${HERMES_SKILL_DIR}` | Absolute path to the skill's directory |\n| `${HERMES_SESSION_ID}` | The active session id |\n\n```markdown\nTo analyse the input, run:\n\n    node ${HERMES_SKILL_DIR}/scripts/analyse.js <input>\n```\n\n## Inline shell snippets (opt-in)\n\n```markdown\nCurrent date: !`date -u +%Y-%m-%d`\nGit branch: !`git -C ${HERMES_SKILL_DIR} rev-parse --abbrev-ref HEAD`\n```\n\nMust be enabled in config:\n```yaml\nskills:\n  inline_shell: true\n  inline_shell_timeout: 10   # seconds per snippet\n```\n\n## Security Scanning\n\nTrust levels:\n- `builtin` — ships with Hermes (always trusted)\n- `official` — from `optional-skills/` in the repo (builtin trust)\n- `trusted` — from openai/skills, anthropics/skills, huggingface/skills\n- `community` — non-dangerous findings can be overridden with `--force`"
+}

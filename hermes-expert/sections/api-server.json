@@ -1,0 +1,128 @@
+{
+  "id": "api-server",
+  "title": "API Server",
+  "source_path": "website/docs/user-guide/features/api-server.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/api-server",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "How to expose Hermes Agent as an OpenAI-compatible HTTP API server (port 8642) supporting Chat Completions, Responses API, Runs API, and Jobs API, enabling frontends like Open WebUI, LobeChat, and LibreChat to use Hermes as a full-toolset backend.",
+  "key_concepts": [
+    "OpenAI-compatible API",
+    "Chat Completions",
+    "Responses API",
+    "Runs API",
+    "Jobs API",
+    "streaming SSE",
+    "bearer auth",
+    "CORS",
+    "multi-user profiles",
+    "proxy mode"
+  ],
+  "env_vars": [
+    {
+      "name": "API_SERVER_ENABLED",
+      "purpose": "Enable the API server",
+      "required": true,
+      "default": "false"
+    },
+    {
+      "name": "API_SERVER_PORT",
+      "purpose": "HTTP server port",
+      "required": false,
+      "default": "8642"
+    },
+    {
+      "name": "API_SERVER_HOST",
+      "purpose": "Bind address",
+      "required": false,
+      "default": "127.0.0.1"
+    },
+    {
+      "name": "API_SERVER_KEY",
+      "purpose": "Bearer token for authentication",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "API_SERVER_CORS_ORIGINS",
+      "purpose": "Comma-separated allowed browser origins for CORS",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "API_SERVER_MODEL_NAME",
+      "purpose": "Model name advertised on /v1/models",
+      "required": false,
+      "default": "profile name or hermes-agent"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "purpose": "Start the gateway including the API server"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Enable API server in .env",
+      "code": "API_SERVER_ENABLED=true\nAPI_SERVER_KEY=change-me-local-dev"
+    },
+    {
+      "language": "bash",
+      "caption": "Test with curl",
+      "code": "curl http://localhost:8642/v1/chat/completions \\\n  -H \"Authorization: Bearer change-me-local-dev\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"hermes-agent\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello!\"}]}'"
+    },
+    {
+      "language": "json",
+      "caption": "Chat Completions request",
+      "code": "{\n  \"model\": \"hermes-agent\",\n  \"messages\": [\n    {\"role\": \"system\", \"content\": \"You are a Python expert.\"},\n    {\"role\": \"user\", \"content\": \"Write a fibonacci function\"}\n  ],\n  \"stream\": false\n}"
+    },
+    {
+      "language": "json",
+      "caption": "Responses API request",
+      "code": "{\n  \"model\": \"hermes-agent\",\n  \"input\": \"What files are in my project?\",\n  \"instructions\": \"You are a helpful coding assistant.\",\n  \"store\": true\n}"
+    },
+    {
+      "language": "bash",
+      "caption": "Multi-user profile setup",
+      "code": "hermes profile create alice\ncat >> ~/.hermes/profiles/alice/.env <<EOF\nAPI_SERVER_ENABLED=true\nAPI_SERVER_PORT=8643\nAPI_SERVER_KEY=alice-secret\nEOF\nhermes -p alice gateway &"
+    }
+  ],
+  "gotchas": [
+    "API_SERVER_KEY is REQUIRED when binding to 0.0.0.0 — the server gives full terminal access",
+    "CORS is disabled by default — set API_SERVER_CORS_ORIGINS for browser direct access",
+    "The model field in requests is cosmetic — actual model is configured server-side in config.yaml",
+    "Stored responses (for previous_response_id) max out at 100 with LRU eviction",
+    "File upload is not supported — only inline images via data: URLs or http(s) URLs",
+    "System prompts/instructions are layered on top of Hermes core prompt, not replacing it"
+  ],
+  "cross_refs": [
+    "integrations-overview",
+    "profiles",
+    "messaging-open-webui"
+  ],
+  "keywords": [
+    "API server",
+    "OpenAI compatible",
+    "Chat Completions",
+    "Responses API",
+    "Runs API",
+    "Jobs API",
+    "streaming",
+    "SSE",
+    "bearer token",
+    "auth",
+    "CORS",
+    "Open WebUI",
+    "LobeChat",
+    "LibreChat",
+    "frontend",
+    "multi-user",
+    "profiles",
+    "proxy mode"
+  ],
+  "full_text": "# API Server\n\nThe API server exposes hermes-agent as an OpenAI-compatible HTTP endpoint. Any frontend that speaks the OpenAI format can connect to hermes-agent and use it as a backend.\n\n[...full content as read from source...]"
+}

@@ -1,0 +1,117 @@
+{
+  "id": "dev-gateway-internals",
+  "title": "Gateway Internals",
+  "source_path": "website/docs/developer-guide/gateway-internals.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/gateway-internals",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the messaging gateway architecture covering GatewayRunner, message flow, session key format, two-level message guard, user authorization (allowlists + DM pairing), slash command dispatch, platform adapters (20+), delivery paths, hooks, and background maintenance tasks.",
+  "key_concepts": [
+    "GatewayRunner",
+    "platform adapters",
+    "session key format",
+    "two-level message guard",
+    "DM pairing",
+    "slash command dispatch",
+    "hook events",
+    "delivery path",
+    "background maintenance",
+    "token locks"
+  ],
+  "env_vars": [
+    {
+      "name": "TELEGRAM_ALLOW_ALL_USERS",
+      "purpose": "Allow all Telegram users without allowlist check",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TELEGRAM_ALLOWED_USERS",
+      "purpose": "Comma-separated list of allowed Telegram user IDs",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GATEWAY_ALLOW_ALL_USERS",
+      "purpose": "Allow all users across all gateway platforms",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway start",
+      "purpose": "Start the gateway as a background service"
+    },
+    {
+      "command": "hermes gateway stop",
+      "purpose": "Stop the current profile's gateway"
+    },
+    {
+      "command": "hermes gateway stop --all",
+      "purpose": "Stop all profiles' gateway processes"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/pair",
+      "purpose": "Generate a pairing code for DM authorization"
+    },
+    {
+      "command": "/stop",
+      "purpose": "Interrupt a running agent"
+    },
+    {
+      "command": "/new",
+      "purpose": "Reset the current session"
+    },
+    {
+      "command": "/status",
+      "purpose": "Show gateway status"
+    },
+    {
+      "command": "/approve",
+      "purpose": "Approve a pending dangerous command"
+    },
+    {
+      "command": "/deny",
+      "purpose": "Deny a pending dangerous command"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "Session key format",
+      "code": "agent:main:{platform}:{chat_type}:{chat_id}\n# Example: agent:main:telegram:private:123456789"
+    }
+  ],
+  "gotchas": [
+    "Never construct session keys manually — always use build_session_key() from gateway/session.py",
+    "Cron deliveries are NOT mirrored into gateway session history to avoid message alternation violations",
+    "Gateway reads config.yaml differently from CLI — missing config keys may behave differently",
+    "PID files are profile-scoped — hermes gateway stop only stops current profile"
+  ],
+  "cross_refs": [
+    "dev-session-storage",
+    "dev-cron-internals",
+    "dev-acp-internals",
+    "dev-agent-loop",
+    "messaging-overview"
+  ],
+  "keywords": [
+    "gateway",
+    "GatewayRunner",
+    "platform adapters",
+    "session key",
+    "DM pairing",
+    "slash commands",
+    "hooks",
+    "authorization",
+    "delivery",
+    "background maintenance",
+    "token locks",
+    "messaging"
+  ],
+  "full_text": "# Gateway Internals\n\nThe messaging gateway is the long-running process that connects Hermes to 20+ external messaging platforms through a unified architecture.\n\n## Key Files\n\n| File | Purpose |\n|------|---------|\n| `gateway/run.py` | `GatewayRunner` — main loop, slash commands, message dispatch |\n| `gateway/session.py` | `SessionStore` — conversation persistence and session key construction |\n| `gateway/delivery.py` | Outbound message delivery to target platforms/channels |\n| `gateway/pairing.py` | DM pairing flow for user authorization |\n| `gateway/hooks.py` | Hook discovery, loading, and lifecycle event dispatch |\n| `gateway/mirror.py` | Cross-session message mirroring for `send_message` |\n| `gateway/status.py` | Token lock management for profile-scoped gateway instances |\n| `gateway/platforms/` | Platform adapters (one per messaging platform) |\n\n## Message Flow\n\n1. **Platform adapter** receives raw event, normalizes it into a `MessageEvent`\n2. **Base adapter** checks active session guard\n3. **GatewayRunner._handle_message()** receives the event:\n   - Resolve session key: `agent:main:{platform}:{chat_type}:{chat_id}`\n   - Check authorization\n   - Check if slash command → dispatch to command handler\n   - Otherwise → create `AIAgent` instance and run conversation\n4. **Response** sent back through the platform adapter\n\n### Two-Level Message Guard\n\n1. **Level 1 — Base adapter**: Checks `_active_sessions`. If active, queues message in `_pending_messages`.\n2. **Level 2 — Gateway runner**: Checks `_running_agents`. Intercepts `/stop`, `/new`, `/queue`, `/status`, `/approve`, `/deny`.\n\n## Authorization\n\n1. **Per-platform allow-all flag** (e.g., `TELEGRAM_ALLOW_ALL_USERS`)\n2. **Platform allowlist** (e.g., `TELEGRAM_ALLOWED_USERS`)\n3. **DM pairing** — authenticated users can pair new users via pairing code\n4. **Global allow-all** (`GATEWAY_ALLOW_ALL_USERS`)\n5. **Default: deny**\n\n## Platform Adapters\n\n```text\ngateway/platforms/\n├── base.py              # BaseAdapter — shared logic\n├── telegram.py          # Telegram Bot API\n├── discord.py           # Discord bot via discord.py\n├── slack.py             # Slack Socket Mode\n├── whatsapp.py          # WhatsApp Business Cloud API\n├── signal.py            # Signal via signal-cli REST API\n├── matrix.py            # Matrix via mautrix\n├── mattermost.py        # Mattermost WebSocket API\n├── email.py             # Email via IMAP/SMTP\n├── sms.py               # SMS via Twilio\n├── dingtalk.py          # DingTalk WebSocket\n├── feishu.py            # Feishu/Lark WebSocket or webhook\n├── wecom.py             # WeCom (WeChat Work) callback\n├── weixin.py            # Weixin (personal WeChat)\n├── bluebubbles.py       # Apple iMessage via BlueBubbles\n├── qqbot/               # QQ Bot (Tencent QQ)\n├── yuanbao.py           # Yuanbao (Tencent)\n├── webhook.py           # Inbound/outbound webhook\n├── api_server.py        # REST API server\n└── homeassistant.py     # Home Assistant\n```\n\n## Gateway Hook Events\n\n| Event | When fired |\n|-------|-----------|\n| `gateway:startup` | Gateway process starts |\n| `session:start` | New conversation session begins |\n| `session:end` | Session completes or times out |\n| `agent:start` | Agent begins processing a message |\n| `agent:step` | Agent completes one tool-calling iteration |\n| `agent:end` | Agent finishes and returns response |\n\n## Background Maintenance\n\n- **Cron ticking** — checks job schedules and fires due jobs\n- **Session expiry** — cleans up abandoned sessions after timeout\n- **Memory flush** — proactively flushes memory before session expiry\n- **Cache refresh** — refreshes model lists and provider status\n\n## Process Management\n\n- `hermes gateway start` / `hermes gateway stop` — manual control\n- PID file at `~/.hermes/gateway.pid` — profile-scoped process tracking\n- `hermes gateway stop --all` — stops all gateway processes"
+}

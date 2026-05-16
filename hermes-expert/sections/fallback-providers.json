@@ -1,0 +1,172 @@
+{
+  "id": "fallback-providers",
+  "title": "Fallback Providers",
+  "source_path": "website/docs/user-guide/features/fallback-providers.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/fallback-providers",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Three-layer resilience system for Hermes: credential pools (same-provider key rotation), primary model fallback (cross-provider automatic failover on errors), and auxiliary task fallback (independent provider resolution for vision, compression, web extraction, etc.).",
+  "key_concepts": [
+    "fallback providers",
+    "credential pools",
+    "primary model fallback",
+    "auxiliary task fallback",
+    "per-turn failover",
+    "cross-provider",
+    "auto-detection chain",
+    "delegation provider override",
+    "cron job providers"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes fallback",
+      "purpose": "Interactively manage fallback provider chain"
+    },
+    {
+      "command": "hermes fallback add",
+      "purpose": "Add a fallback provider"
+    },
+    {
+      "command": "hermes fallback list",
+      "purpose": "List current fallback chain"
+    },
+    {
+      "command": "hermes fallback remove",
+      "purpose": "Remove a fallback provider"
+    },
+    {
+      "command": "hermes fallback clear",
+      "purpose": "Clear all fallback providers"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "fallback_providers",
+      "type": "list",
+      "default": null,
+      "description": "Ordered list of fallback provider+model pairs (preferred key)",
+      "example": "- provider: openrouter\n  model: anthropic/claude-sonnet-4"
+    },
+    {
+      "path": "fallback_model",
+      "type": "object",
+      "default": null,
+      "description": "Legacy single-fallback key (still honored for back-compat)",
+      "example": "provider: openrouter\nmodel: anthropic/claude-sonnet-4"
+    },
+    {
+      "path": "auxiliary.vision.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Provider for image analysis tasks",
+      "example": "openrouter"
+    },
+    {
+      "path": "auxiliary.vision.model",
+      "type": "string",
+      "default": "",
+      "description": "Model for vision tasks",
+      "example": "openai/gpt-4o"
+    },
+    {
+      "path": "auxiliary.compression.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Provider for context compression",
+      "example": "auto"
+    },
+    {
+      "path": "auxiliary.compression.model",
+      "type": "string",
+      "default": "",
+      "description": "Model for context compression",
+      "example": "google/gemini-3-flash-preview"
+    },
+    {
+      "path": "auxiliary.web_extract.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Provider for web page summarization",
+      "example": "auto"
+    },
+    {
+      "path": "auxiliary.session_search.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Provider for past session summarization",
+      "example": "main"
+    },
+    {
+      "path": "auxiliary.session_search.max_concurrency",
+      "type": "integer",
+      "default": 3,
+      "description": "Max concurrent session summary requests",
+      "example": 2
+    },
+    {
+      "path": "delegation.provider",
+      "type": "string",
+      "default": null,
+      "description": "Provider override for all subagents",
+      "example": "openrouter"
+    },
+    {
+      "path": "delegation.model",
+      "type": "string",
+      "default": null,
+      "description": "Model override for all subagents",
+      "example": "google/gemini-3-flash-preview"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "OpenRouter as fallback for Anthropic",
+      "code": "model:\n  provider: anthropic\n  default: claude-sonnet-4-6\n\nfallback_model:\n  provider: openrouter\n  model: anthropic/claude-sonnet-4"
+    },
+    {
+      "language": "yaml",
+      "caption": "Custom endpoint fallback",
+      "code": "fallback_model:\n  provider: custom\n  model: my-local-model\n  base_url: http://localhost:8000/v1\n  key_env: MY_LOCAL_KEY"
+    },
+    {
+      "language": "yaml",
+      "caption": "Auxiliary task config",
+      "code": "auxiliary:\n  vision:\n    provider: \"auto\"\n    model: \"\"\n  compression:\n    provider: \"auto\"\n    model: \"google/gemini-3-flash-preview\"\n  session_search:\n    provider: main\n    model: glm-4.5-air\n    max_concurrency: 2"
+    }
+  ],
+  "gotchas": [
+    "Fallback is per-turn, not per-session — primary model is restored at the start of each new user message",
+    "Within a single turn, fallback activates at most once — if fallback also fails, normal error handling takes over",
+    "Subagents spawned by delegate_task do NOT inherit the primary fallback model",
+    "Cron jobs do not support fallback — use per-job provider overrides",
+    "fallback_providers (plural list) takes priority over fallback_model (singular) when both are set",
+    "No environment variables for fallback_model — configured exclusively through config.yaml"
+  ],
+  "cross_refs": [
+    "credential-pools",
+    "providers",
+    "provider-routing",
+    "integrations-overview"
+  ],
+  "keywords": [
+    "fallback",
+    "failover",
+    "resilience",
+    "rate limit",
+    "429",
+    "server error",
+    "credential pool",
+    "auxiliary tasks",
+    "vision",
+    "compression",
+    "web extraction",
+    "delegation",
+    "cron",
+    "per-turn",
+    "backup provider"
+  ],
+  "full_text": "# Fallback Providers\n\nHermes Agent has three layers of resilience that keep your sessions running when providers hit issues.\n\n[...full content as read from source...]"
+}

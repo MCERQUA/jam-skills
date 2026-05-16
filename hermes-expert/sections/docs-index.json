@@ -1,0 +1,53 @@
+{
+  "id": "docs-index",
+  "title": "Hermes Agent Documentation",
+  "source_path": "website/docs/index.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/index",
+  "category": "docs",
+  "subcategory": "",
+  "summary": "The self-improving AI agent built by Nous Research(https://nousresearch.com). The only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, and builds a deepening model of who you are across sessions.",
+  "key_concepts": [
+    "Hermes Agent",
+    "Install",
+    "What is Hermes Agent?",
+    "Quick Links",
+    "Key Features",
+    "For LLMs and coding agents"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash\n"
+    },
+    {
+      "language": "powershell",
+      "caption": "",
+      "code": "irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1 | iex\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "agent",
+    "api",
+    "auto-detects",
+    "built-in",
+    "docs",
+    "documentation",
+    "ffd700",
+    "getting-started",
+    "gpu",
+    "hermes",
+    "hermes-agent",
+    "ide",
+    "index",
+    "inline-block",
+    "learning-path"
+  ],
+  "full_text": "# Hermes Agent Documentation\n\n# Hermes Agent\n\nThe self-improving AI agent built by [Nous Research](https://nousresearch.com). The only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, and builds a deepening model of who you are across sessions.\n\n<div style={{display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap'}}>\n  <a href=\"/docs/getting-started/installation\" style={{display: 'inline-block', padding: '0.6rem 1.2rem', backgroundColor: '#FFD700', color: '#07070d', borderRadius: '8px', fontWeight: 600, textDecoration: 'none'}}>Get Started →</a>\n  <a href=\"https://github.com/NousResearch/hermes-agent\" style={{display: 'inline-block', padding: '0.6rem 1.2rem', border: '1px solid rgba(255,215,0,0.2)', borderRadius: '8px', textDecoration: 'none'}}>View on GitHub</a>\n</div>\n\n## Install\n\n**Linux / macOS / WSL2**\n\n```bash\ncurl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash\n```\n\n**Windows (native, PowerShell)** — *early beta, [details →](/docs/user-guide/windows-native)*\n\n```powershell\nirm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1 | iex\n```\n\n**Android (Termux)** — same curl one-liner as Linux; the installer auto-detects Termux.\n\nSee the full **[Installation Guide](/docs/getting-started/installation)** for what the installer does, the per-user vs root layout, and Windows-specific notes.\n\n## What is Hermes Agent?\n\nIt's not a coding copilot tethered to an IDE or a chatbot wrapper around a single API. It's an **autonomous agent** that gets more capable the longer it runs. It lives wherever you put it — a $5 VPS, a GPU cluster, or serverless infrastructure (Daytona, Modal) that costs nearly nothing when idle. Talk to it from Telegram while it works on a cloud VM you never SSH into yourself. It's not tied to your laptop.\n\n## Quick Links\n\n| | |\n|---|---|\n| 🚀 **[Installation](/docs/getting-started/installation)** | Install in 60 seconds on Linux, macOS, WSL2, or native Windows (early beta) |\n| 📖 **[Quickstart Tutorial](/docs/getting-started/quickstart)** | Your first conversation and key features to try |\n| 🗺️ **[Learning Path](/docs/getting-started/learning-path)** | Find the right docs for your experience level |\n| ⚙️ **[Configuration](/docs/user-guide/configuration)** | Config file, providers, models, and options |\n| 💬 **[Messaging Gateway](/docs/user-guide/messaging)** | Set up Telegram, Discord, Slack, WhatsApp, Teams, or more |\n| 🔧 **[Tools & Toolsets](/docs/user-guide/features/tools)** | 70+ built-in tools and how to configure them |\n| 🧠 **[Memory System](/docs/user-guide/features/memory)** | Persistent memory that grows across sessions |\n| 📚 **[Skills System](/docs/user-guide/features/skills)** | Procedural memory the agent creates and reuses |\n| 🔌 **[MCP Integration](/docs/user-guide/features/mcp)** | Connect to MCP servers, filter their tools, and extend Hermes safely |\n| 🧭 **[Use MCP with Hermes](/docs/guides/use-mcp-with-hermes)** | Practical MCP setup patterns, examples, and tutorials |\n| 🎙️ **[Voice Mode](/docs/user-guide/features/voice-mode)** | Real-time voice interaction in CLI, Telegram, Discord, and Discord VC |\n| 🗣️ **[Use Voice Mode with Hermes](/docs/guides/use-voice-mode-with-hermes)** | Hands-on setup and usage patterns for Hermes voice workflows |\n| 🎭 **[Personality & SOUL.md](/docs/user-guide/features/personality)** | Define Hermes' default voice with a global SOUL.md |\n| 📄 **[Context Files](/docs/user-guide/features/context-files)** | Project context files that shape every conversation |\n| 🔒 **[Security](/docs/user-guide/security)** | Command approval, authorization, container isolation |\n| 💡 **[Tips & Best Practices](/docs/guides/tips)** | Quick wins to get the most out of Hermes |\n| 🏗️ **[Architecture](/docs/developer-guide/architecture)** | How it works under the hood |\n| ❓ **[FAQ & Troubleshooting](/docs/reference/faq)** | Common questions and solutions |\n\n## Key Features\n\n- **A closed learning loop** — Agent-curated memory with periodic nudges, autonomous skill creation, skill self-improvement during use, FTS5 cross-session recall with LLM summarization, and [Honcho](https://github.com/plastic-labs/honcho) dialectic user modeling\n- **Runs anywhere, not just your laptop** — 6 terminal backends: local, Docker, SSH, Daytona, Singularity, Modal. Daytona and Modal offer serverless persistence — your environment hibernates when idle, costing nearly nothing\n- **Lives where you do** — CLI, Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, Email, SMS, DingTalk, Feishu, WeCom, Weixin, QQ Bot, Yuanbao, BlueBubbles, Home Assistant, Microsoft Teams, Google Chat, and more — 20+ platforms from one gateway\n- **Built by model trainers** — Created by [Nous Research](https://nousresearch.com), the lab behind Hermes, Nomos, and Psyche. Works with [Nous Portal](https://portal.nousresearch.com), [OpenRouter](https://openrouter.ai), OpenAI, or any endpoint\n- **Scheduled automations** — Built-in cron with delivery to any platform\n- **Delegates & parallelizes** — Spawn isolated subagents for parallel workstreams. Programmatic Tool Calling via `execute_code` collapses multi-step pipelines into single inference calls\n- **Open standard skills** — Compatible with [agentskills.io](https://agentskills.io). Skills are portable, shareable, and community-contributed via the Skills Hub\n- **Full web control** — Search, extract, browse, vision, image generation, TTS\n- **MCP support** — Connect to any MCP server for extended tool capabilities\n- **Research-ready** — Batch processing, trajectory export, RL training with Atropos. Built by [Nous Research](https://nousresearch.com) — the lab behind Hermes, Nomos, and Psyche models\n\n## For LLMs and coding agents\n\nMachine-readable entry points to this documentation:\n\n- **[`/llms.txt`](/llms.txt)** — curated index of every doc page with short descriptions. ~17 KB, safe to load into an LLM context.\n- **[`/llms-full.txt`](/llms-full.txt)** — every doc page concatenated into a single markdown file for one-shot ingestion. ~1.8 MB.\n\nBoth files also resolve at `/docs/llms.txt` and `/docs/llms-full.txt`. Generated fresh on every deploy.\n\n---"
+}

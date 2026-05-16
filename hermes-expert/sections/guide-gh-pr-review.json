@@ -1,0 +1,118 @@
+{
+  "id": "guide-gh-pr-review",
+  "title": "Tutorial: GitHub PR Review Agent",
+  "source_path": "website/docs/guides/github-pr-review-agent.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/github-pr-review-agent",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Tutorial for building an automated GitHub PR review agent using Hermes cron jobs, the GitHub CLI (gh), a custom code-review skill, and memory-stored team conventions, with support for Telegram/Discord delivery and optional direct GitHub PR comment posting.",
+  "key_concepts": [
+    "PR review agent",
+    "GitHub CLI",
+    "gh pr diff",
+    "cron scheduling",
+    "code-review skill",
+    "memory conventions",
+    "team standards",
+    "direct GitHub comments",
+    "webhook alternative",
+    "delivery targets"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes gateway install",
+      "purpose": "Install gateway as background service"
+    },
+    {
+      "command": "brew install gh",
+      "purpose": "Install GitHub CLI on macOS"
+    },
+    {
+      "command": "gh auth login",
+      "purpose": "Authenticate GitHub CLI"
+    },
+    {
+      "command": "hermes cron create <schedule> <prompt> --name pr-review --deliver telegram --skill code-review",
+      "purpose": "Create PR review cron job"
+    },
+    {
+      "command": "hermes cron list",
+      "purpose": "Verify scheduled job"
+    },
+    {
+      "command": "hermes cron run pr-review",
+      "purpose": "Trigger review immediately for testing"
+    },
+    {
+      "command": "hermes gateway status",
+      "purpose": "Check if gateway is running"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/cron run <id>",
+      "purpose": "Trigger cron job immediately"
+    },
+    {
+      "command": "/cron list",
+      "purpose": "List scheduled jobs"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "markdown",
+      "caption": "code-review SKILL.md",
+      "code": "---\nname: code-review\ndescription: Review pull requests for bugs, security issues, and code quality\n---\n\n# Code Review Guidelines\n\n## What to Check\n1. **Bugs** — Logic errors, off-by-one, null/undefined handling\n2. **Security** — Injection, auth bypass, secrets in code, SSRF\n3. **Performance** — N+1 queries, unbounded loops, memory leaks\n4. **Style** — Naming conventions, dead code, missing error handling\n5. **Tests** — Are changes tested?\n\n## Output Format\nFor each finding:\n- **File:Line** — exact location\n- **Severity** — Critical / Warning / Suggestion\n- **What's wrong** — one sentence\n- **Fix** — how to fix it\n\n## Rules\n- Be specific. Quote the problematic code.\n- If the PR looks good, say so.\n- End with: APPROVE / REQUEST_CHANGES / COMMENT"
+    },
+    {
+      "language": "bash",
+      "caption": "Create cron PR review job",
+      "code": "hermes cron create \"0 */2 * * *\" \\\n  \"Check for new open PRs and review them.\n\nRepos to monitor:\n- myorg/backend-api\n- myorg/frontend-app\n\nSteps:\n1. Run: gh pr list --repo REPO --state open --limit 5 --json number,title,author,createdAt\n2. For each PR created or updated in the last 4 hours:\n   - Run: gh pr diff NUMBER --repo REPO\n   - Review the diff using the code-review guidelines\" \\\n  --name \"pr-review\" \\\n  --deliver telegram \\\n  --skill code-review"
+    },
+    {
+      "language": "text",
+      "caption": "Teach conventions via memory",
+      "code": "Remember: In our backend repo, we use Python with FastAPI.\nAll endpoints must have type annotations and Pydantic models.\nWe don't allow raw SQL — only SQLAlchemy ORM.\nTest files go in tests/ and must use pytest fixtures."
+    },
+    {
+      "language": "text",
+      "caption": "Post review directly to GitHub",
+      "code": "After reviewing, post your review:\n- For issues: gh pr review NUMBER --repo REPO --comment --body \"YOUR_REVIEW\"\n- For critical issues: gh pr review NUMBER --repo REPO --request-changes --body \"YOUR_REVIEW\"\n- For clean PRs: gh pr review NUMBER --repo REPO --approve --body \"Looks good\""
+    }
+  ],
+  "gotchas": [
+    "gh must be in the system PATH accessible to the gateway — if 'gh: command not found', ensure it's in PATH and restart gateway",
+    "GitHub allows 5,000 API requests/hour for authenticated users — each PR review uses ~3-5 requests",
+    "Cron job prompts run in fresh sessions with NO memory — include all context (repo names, format, conventions) in the prompt",
+    "The code-review skill and memory conventions are what make reviews useful — generic prompts produce generic reviews",
+    "gh token needs 'repo' scope to post reviews directly to GitHub",
+    "Use hermes cron run pr-review to test immediately without waiting for schedule"
+  ],
+  "cross_refs": [
+    "cron",
+    "guide-automate-cron",
+    "skills",
+    "guide-work-with-skills",
+    "guide-daily-briefing-bot"
+  ],
+  "keywords": [
+    "GitHub",
+    "PR review",
+    "pull request",
+    "code review",
+    "gh CLI",
+    "cron",
+    "automation",
+    "skill",
+    "memory",
+    "conventions",
+    "Telegram",
+    "Discord",
+    "schedule",
+    "security review",
+    "webhook"
+  ],
+  "full_text": "# Tutorial: Build a GitHub PR Review Agent\n\nThis tutorial shows how to build an automated PR reviewer using Hermes cron jobs, the GitHub CLI, a custom code-review skill, and memory-stored team conventions.\n\n[...full content as read from source...]"
+}

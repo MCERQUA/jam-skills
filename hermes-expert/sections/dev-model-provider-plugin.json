@@ -1,0 +1,76 @@
+{
+  "id": "dev-model-provider-plugin",
+  "title": "Model Provider Plugins",
+  "source_path": "website/docs/developer-guide/model-provider-plugin.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/model-provider-plugin",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Guide for building model provider plugins using ProviderProfile, covering discovery order, auto-wire integrations (auth, CLI, model picker, doctor, setup wizard, runtime resolution), ProviderProfile field reference, overridable hooks (prepare_messages, build_extra_body, fetch_models), api_mode selection, auth types, and user overrides.",
+  "key_concepts": [
+    "ProviderProfile",
+    "register_provider",
+    "auto-wire",
+    "plugin discovery",
+    "api_mode",
+    "auth_type",
+    "overridable hooks",
+    "prepare_messages",
+    "build_extra_body",
+    "user override",
+    "bundled vs user plugins"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes doctor",
+      "purpose": "Verify a new model provider plugin loaded correctly"
+    },
+    {
+      "command": "hermes -z \"hello\" --provider my-provider -m some-model",
+      "purpose": "Smoke test a newly registered provider"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Minimal API-key provider plugin",
+      "code": "from providers import register_provider\nfrom providers.base import ProviderProfile\n\nacme = ProviderProfile(\n    name=\"acme-inference\",\n    aliases=(\"acme\",),\n    env_vars=(\"ACME_API_KEY\", \"ACME_BASE_URL\"),\n    base_url=\"https://api.acme.example.com/v1\",\n    auth_type=\"api_key\",\n    default_aux_model=\"acme-small-fast\",\n    fallback_models=(\"acme-large-v3\", \"acme-small-fast\",),\n)\nregister_provider(acme)"
+    },
+    {
+      "language": "python",
+      "caption": "Subclass for provider-specific quirks",
+      "code": "class AcmeProfile(ProviderProfile):\n    def prepare_messages(self, messages):\n        return messages  # normalize message format\n\n    def build_extra_body(self, *, session_id=None, **context):\n        return {}  # provider-specific extra_body fields\n\n    def fetch_models(self, *, api_key=None, timeout=8.0):\n        return super().fetch_models(api_key=api_key, timeout=timeout)"
+    }
+  ],
+  "gotchas": [
+    "Provider discovery is LAZY — triggered by first get_provider_profile() or list_providers() call",
+    "User plugins at $HERMES_HOME/plugins/model-providers/<name>/ override bundled plugins of same name (last-writer-wins)",
+    "plugin.yaml is optional but recommended — without it the general loader uses source-text heuristics",
+    "auth_type='api_key' is required for doctor checks, --provider flag, and setup wizard automation",
+    "The general PluginManager sees model-provider plugins but does not import them — providers/__init__.py owns their lifecycle"
+  ],
+  "cross_refs": [
+    "dev-provider-runtime",
+    "dev-adding-providers",
+    "dev-memory-provider-plugin",
+    "dev-context-engine-plugin",
+    "guide-build-plugin"
+  ],
+  "keywords": [
+    "model provider plugin",
+    "ProviderProfile",
+    "register_provider",
+    "plugin discovery",
+    "auto-wire",
+    "api_mode",
+    "auth_type",
+    "prepare_messages",
+    "build_extra_body",
+    "fetch_models",
+    "user override",
+    "bundled plugins"
+  ],
+  "full_text": "# Building a Model Provider Plugin\n\nModel provider plugins declare an inference backend — an OpenAI-compatible endpoint, an Anthropic Messages server, a Codex-style Responses API, or a Bedrock-native surface — that Hermes can route `AIAgent` calls through. Every built-in provider (OpenRouter, Anthropic, GMI, DeepSeek, Nvidia, etc.) ships as one of these plugins.\n\n## How discovery works\n\n`providers/__init__.py._discover_providers()` runs lazily the first time any code calls `get_provider_profile()` or `list_providers()`. Discovery order:\n\n1. **Bundled plugins** — `<repo>/plugins/model-providers/<name>/`\n2. **User plugins** — `$HERMES_HOME/plugins/model-providers/<name>/`\n3. **Legacy single-file** — `<repo>/providers/<name>.py`\n\nUser plugins override bundled plugins of the same name because `register_provider()` is last-writer-wins.\n\n## Directory structure\n\n```\nplugins/model-providers/my-provider/\n__init__.py       # Calls register_provider(profile) at module-level\nplugin.yaml       # kind: model-provider + metadata (optional but recommended)\nREADME.md         # Setup instructions (optional)\n```\n\nThe only required file is `__init__.py`.\n\n## Minimal example\n\n```python\nfrom providers import register_provider\nfrom providers.base import ProviderProfile\n\nacme = ProviderProfile(\n    name=\"acme-inference\",\n    aliases=(\"acme\",),\n    display_name=\"Acme Inference\",\n    description=\"Acme — OpenAI-compatible direct API\",\n    signup_url=\"https://acme.example.com/keys\",\n    env_vars=(\"ACME_API_KEY\", \"ACME_BASE_URL\"),\n    base_url=\"https://api.acme.example.com/v1\",\n    auth_type=\"api_key\",\n    default_aux_model=\"acme-small-fast\",\n    fallback_models=(\n        \"acme-large-v3\",\n        \"acme-medium-v3\",\n        \"acme-small-fast\",\n    ),\n)\n\nregister_provider(acme)\n```\n\nAfter dropping these two files, the following auto-wire with no other edits: credential resolution, `--provider` CLI flag, `hermes model` picker, `hermes doctor` health check, `hermes setup` wizard, URL reverse-mapping, auxiliary model, runtime resolution, transport.\n\n## ProviderProfile fields\n\n| Field | Type | Purpose |\n|---|---|---|\n| `name` | str | Canonical id |\n| `aliases` | tuple | Alternative names resolved by `get_provider_profile()` |\n| `api_mode` | str | `chat_completions` / `codex_responses` / `anthropic_messages` / `bedrock_converse` |\n| `display_name` | str | Human label shown in `hermes model` picker |\n| `description` | str | Picker subtitle |\n| `signup_url` | str | Shown during first-run setup |\n| `env_vars` | tuple | API-key env vars in priority order |\n| `base_url` | str | Default inference endpoint |\n| `models_url` | str | Explicit catalog URL |\n| `auth_type` | str | `api_key` / `oauth_device_code` / `oauth_external` / `copilot` / `aws_sdk` / `external_process` |\n| `fallback_models` | tuple | Curated list shown when live catalog fetch fails |\n| `default_headers` | dict | Sent on every request |\n| `fixed_temperature` | Any | None = use caller's value |\n| `default_max_tokens` | int / None | Provider-level max_tokens cap |\n| `default_aux_model` | str | Cheap model for auxiliary tasks |\n\n## Overridable hooks\n\nSubclass `ProviderProfile` for non-trivial quirks: `prepare_messages()`, `build_extra_body()`, `build_api_kwargs_extras()`, `fetch_models()`.\n\n## Hook reference examples\n\n| Plugin | Why look |\n|---|---|\n| `plugins/model-providers/openrouter/` | Aggregator with provider preferences, public model catalog |\n| `plugins/model-providers/gemini/` | `thinking_config` translation |\n| `plugins/model-providers/kimi-coding/` | `OMIT_TEMPERATURE`, `extra_body.thinking`, top-level `reasoning_effort` |\n| `plugins/model-providers/qwen-oauth/` | Message normalization, `cache_control` injection |\n| `plugins/model-providers/nous/` | Attribution tags |\n| `plugins/model-providers/bedrock/` | `api_mode='bedrock_converse'`, `fetch_models` returns None |\n\n## api_mode selection\n\nFour values are recognized. Hermes picks one based on: user explicit override, OpenCode's per-model dispatch, URL auto-detection, profile `api_mode` as fallback, default `chat_completions`.\n\n## Auth types\n\n| `auth_type` | Meaning |\n|---|---|\n| `api_key` | Single env var carries a static API key |\n| `oauth_device_code` | Device-code OAuth flow |\n| `oauth_external` | User signs in elsewhere, tokens land in `auth.json` |\n| `copilot` | GitHub Copilot token refresh cycle |\n| `aws_sdk` | AWS SDK credential chain |\n| `external_process` | Auth handled by a subprocess |\n\n## Discovery timing\n\nProvider discovery is **lazy** — triggered by the first `get_provider_profile()` or `list_providers()` call. Verify your plugin loaded with `hermes doctor`.\n\n## User overrides — replace a built-in without editing the repo\n\nCreate `~/.hermes/plugins/model-providers/<name>/__init__.py` with a `register_provider()` call. Next session, the user profile wins because user plugins are discovered after bundled ones.\n\n## Distribute via pip\n\n```toml\n[project.entry-points.\"hermes.plugins\"]\nacme-inference = \"acme_hermes_plugin:register\"\n```\n\n## Related pages\n\n- [Provider Runtime](/docs/developer-guide/provider-runtime)\n- [Adding Providers](/docs/developer-guide/adding-providers)\n- [Memory Provider Plugins](/docs/developer-guide/memory-provider-plugin)\n- [Context Engine Plugins](/docs/developer-guide/context-engine-plugin)\n- [Building a Hermes Plugin](/docs/guides/build-a-hermes-plugin)"
+}

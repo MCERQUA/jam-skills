@@ -1,0 +1,122 @@
+{
+  "id": "guide-use-mcp",
+  "title": "Use MCP with Hermes",
+  "source_path": "website/docs/guides/use-mcp-with-hermes.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/use-mcp-with-hermes",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Practical guide for using MCP with Hermes Agent day-to-day: when to use MCP vs built-in tools, step-by-step setup, filtering best practices, WSL2 browser bridging, common patterns (project assistant, GitHub triage, internal API, docs), and troubleshooting by symptom.",
+  "key_concepts": [
+    "MCP setup",
+    "tool filtering",
+    "WSL2 browser bridge",
+    "chrome-devtools-mcp",
+    "whitelist",
+    "blacklist",
+    "safe usage",
+    "common patterns",
+    "progressive filtering",
+    "troubleshooting"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes mcp add <name> --command <cmd>",
+      "purpose": "Add an MCP server via CLI"
+    },
+    {
+      "command": "hermes mcp test <name>",
+      "purpose": "Test an MCP server connection"
+    },
+    {
+      "command": "/reload-mcp",
+      "purpose": "Reload MCP servers and refresh tool list after config changes"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "mcp_servers.<name>.tools.include",
+      "type": "list",
+      "default": null,
+      "description": "Whitelist of tool names to register",
+      "example": "[list_issues, create_issue]"
+    },
+    {
+      "path": "mcp_servers.<name>.tools.exclude",
+      "type": "list",
+      "default": null,
+      "description": "Blacklist of tool names to exclude",
+      "example": "[delete_customer]"
+    },
+    {
+      "path": "mcp_servers.<name>.tools.resources",
+      "type": "boolean",
+      "default": true,
+      "description": "Register resource utility wrappers",
+      "example": "false"
+    },
+    {
+      "path": "mcp_servers.<name>.tools.prompts",
+      "type": "boolean",
+      "default": true,
+      "description": "Register prompt utility wrappers",
+      "example": "false"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/reload-mcp",
+      "purpose": "Reload MCP config and refresh available tools"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "GitHub triage with strict whitelist",
+      "code": "mcp_servers:\n  github:\n    command: \"npx\"\n    args: [\"-y\", \"@modelcontextprotocol/server-github\"]\n    env:\n      GITHUB_PERSONAL_ACCESS_TOKEN: \"***\"\n    tools:\n      include: [list_issues, create_issue, update_issue, search_code]\n      prompts: false\n      resources: false"
+    },
+    {
+      "language": "bash",
+      "caption": "WSL2 to Windows Chrome bridge",
+      "code": "hermes mcp add chrome-devtools-win --command cmd.exe --args /c npx -y chrome-devtools-mcp@latest --autoConnect --no-usage-statistics"
+    },
+    {
+      "language": "yaml",
+      "caption": "Local project assistant",
+      "code": "mcp_servers:\n  fs:\n    command: \"npx\"\n    args: [\"-y\", \"@modelcontextprotocol/server-filesystem\", \"/home/user/project\"]\n  git:\n    command: \"uvx\"\n    args: [\"mcp-server-git\", \"--repository\", \"/home/user/project\"]"
+    }
+  ],
+  "gotchas": [
+    "Don't wait to filter — filter immediately when adding a server that exposes many or dangerous tools",
+    "Start Hermes from a Windows-mounted path (/mnt/c/...) when using Windows stdio executables through MCP in WSL2",
+    "Prefer include whitelists over exclude blacklists for sensitive systems (financial, customer-facing, destructive)",
+    "Use enabled: false to temporarily disable a server without removing its config",
+    "Always /reload-mcp after changing include/exclude lists, enabled flags, auth headers, or env vars",
+    "WSL2: /browser connect may fail for Windows Chrome — use chrome-devtools-mcp as an MCP server instead"
+  ],
+  "cross_refs": [
+    "mcp",
+    "ref-faq",
+    "ref-slash-commands"
+  ],
+  "keywords": [
+    "MCP",
+    "Model Context Protocol",
+    "tool servers",
+    "filtering",
+    "whitelist",
+    "blacklist",
+    "WSL2",
+    "Chrome",
+    "browser bridge",
+    "GitHub",
+    "filesystem",
+    "git",
+    "internal API",
+    "docs server",
+    "troubleshooting",
+    "safe usage",
+    "progressive"
+  ],
+  "full_text": "# Use MCP with Hermes\n\nThis guide shows how to actually use MCP with Hermes Agent in day-to-day workflows.\n\n[...full content as read from source...]"
+}

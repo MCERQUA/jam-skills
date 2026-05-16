@@ -1,0 +1,271 @@
+{
+  "id": "messaging-overview",
+  "title": "Messaging Gateway",
+  "source_path": "website/docs/user-guide/messaging/index.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "The messaging gateway connects Hermes to 20+ platforms (Telegram, Discord, Slack, WhatsApp, Signal, SMS, Email, Matrix, etc.) through a single background process that handles sessions, security, cron jobs, and voice delivery.",
+  "key_concepts": [
+    "gateway",
+    "session management",
+    "DM pairing",
+    "allowlists",
+    "slash command access control",
+    "background sessions",
+    "busy-input mode",
+    "platform adapters",
+    "home channel"
+  ],
+  "env_vars": [
+    {
+      "name": "GATEWAY_ALLOWED_USERS",
+      "purpose": "Cross-platform user allowlist",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GATEWAY_ALLOW_ALL_USERS",
+      "purpose": "Allow all users on all platforms (not recommended)",
+      "required": false,
+      "default": "false"
+    },
+    {
+      "name": "TELEGRAM_ALLOWED_USERS",
+      "purpose": "Telegram-specific user allowlist",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DISCORD_ALLOWED_USERS",
+      "purpose": "Discord-specific user allowlist",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "SIGNAL_ALLOWED_USERS",
+      "purpose": "Signal-specific user allowlist",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "SMS_ALLOWED_USERS",
+      "purpose": "SMS-specific user allowlist",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "EMAIL_ALLOWED_USERS",
+      "purpose": "Email-specific sender allowlist",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "MATTERMOST_ALLOWED_USERS",
+      "purpose": "Mattermost user allowlist",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "MATRIX_ALLOWED_USERS",
+      "purpose": "Matrix user allowlist",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_BACKGROUND_NOTIFICATIONS",
+      "purpose": "Background process notification level: all|result|error|off",
+      "required": false,
+      "default": "all"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "purpose": "Run gateway in foreground"
+    },
+    {
+      "command": "hermes gateway setup",
+      "purpose": "Interactive setup for all messaging platforms"
+    },
+    {
+      "command": "hermes gateway install",
+      "purpose": "Install as user service (Linux/macOS)"
+    },
+    {
+      "command": "sudo hermes gateway install --system",
+      "purpose": "Install boot-time system service (Linux)"
+    },
+    {
+      "command": "hermes gateway start",
+      "purpose": "Start the service"
+    },
+    {
+      "command": "hermes gateway stop",
+      "purpose": "Stop the service"
+    },
+    {
+      "command": "hermes gateway status",
+      "purpose": "Check service status"
+    },
+    {
+      "command": "hermes pairing approve telegram CODE",
+      "purpose": "Approve DM pairing code"
+    },
+    {
+      "command": "hermes pairing list",
+      "purpose": "View pending and approved users"
+    },
+    {
+      "command": "hermes pairing revoke telegram USER_ID",
+      "purpose": "Remove user access"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "display.tool_progress",
+      "type": "string",
+      "default": "all",
+      "description": "Tool activity display: off, new, all, verbose",
+      "example": "off"
+    },
+    {
+      "path": "display.busy_input_mode",
+      "type": "string",
+      "default": "interrupt",
+      "description": "How to handle messages while agent is busy: interrupt, queue, steer",
+      "example": "queue"
+    },
+    {
+      "path": "display.busy_ack_enabled",
+      "type": "bool",
+      "default": "true",
+      "description": "Show busy acknowledgment reply",
+      "example": "false"
+    },
+    {
+      "path": "display.background_process_notifications",
+      "type": "string",
+      "default": "all",
+      "description": "Background process notification level: all, result, error, off",
+      "example": "result"
+    },
+    {
+      "path": "group_sessions_per_user",
+      "type": "bool",
+      "default": "true",
+      "description": "Isolate session history per user in shared channels",
+      "example": "false"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/new",
+      "purpose": "Start fresh conversation"
+    },
+    {
+      "command": "/reset",
+      "purpose": "Start fresh conversation"
+    },
+    {
+      "command": "/model",
+      "purpose": "Show or change the model"
+    },
+    {
+      "command": "/stop",
+      "purpose": "Stop the running agent"
+    },
+    {
+      "command": "/approve",
+      "purpose": "Approve a pending dangerous command"
+    },
+    {
+      "command": "/deny",
+      "purpose": "Reject a pending dangerous command"
+    },
+    {
+      "command": "/sethome",
+      "purpose": "Set this chat as the home channel"
+    },
+    {
+      "command": "/background",
+      "purpose": "Run prompt in a separate background session"
+    },
+    {
+      "command": "/voice",
+      "purpose": "Control messaging voice replies"
+    },
+    {
+      "command": "/whoami",
+      "purpose": "Show slash command access tier"
+    },
+    {
+      "command": "/reload-mcp",
+      "purpose": "Reload MCP servers from config"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Start gateway",
+      "code": "hermes gateway setup\nhermes gateway"
+    },
+    {
+      "language": "bash",
+      "caption": "Install as systemd user service (Linux)",
+      "code": "hermes gateway install\nhermes gateway start\njournalctl --user -u hermes-gateway -f"
+    },
+    {
+      "language": "json",
+      "caption": "Per-platform session reset config",
+      "code": "{\n  \"reset_by_platform\": {\n    \"telegram\": { \"mode\": \"idle\", \"idle_minutes\": 240 },\n    \"discord\": { \"mode\": \"idle\", \"idle_minutes\": 60 }\n  }\n}"
+    },
+    {
+      "language": "yaml",
+      "caption": "Busy input mode config",
+      "code": "display:\n  busy_input_mode: steer\n  busy_ack_enabled: true"
+    }
+  ],
+  "gotchas": [
+    "Gateway denies ALL users by default without allowlist or DM pairing",
+    "DM pairing codes expire after 1 hour and are rate-limited",
+    "Multiple installations on same machine each get their own systemd service name",
+    "PATH changes after launchd install: run `hermes gateway install` again to capture new PATH",
+    "/background sessions are isolated — they don't know about current chat context"
+  ],
+  "cross_refs": [
+    "messaging-telegram",
+    "messaging-discord",
+    "messaging-slack",
+    "messaging-whatsapp",
+    "messaging-signal",
+    "messaging-email",
+    "messaging-sms",
+    "messaging-matrix",
+    "messaging-mattermost",
+    "messaging-homeassistant",
+    "messaging-webhooks",
+    "voice-mode"
+  ],
+  "keywords": [
+    "messaging gateway",
+    "Telegram",
+    "Discord",
+    "Slack",
+    "WhatsApp",
+    "Signal",
+    "SMS",
+    "Email",
+    "Matrix",
+    "Mattermost",
+    "DM pairing",
+    "allowlist",
+    "home channel",
+    "session management",
+    "background sessions",
+    "service management",
+    "systemd",
+    "launchd"
+  ],
+  "full_text": "# Messaging Gateway\n\nChat with Hermes from Telegram, Discord, Slack, WhatsApp, Signal, SMS, Email, Home Assistant, Mattermost, Matrix, DingTalk, Feishu/Lark, WeCom, Weixin, BlueBubbles (iMessage), QQ, Yuanbao, Microsoft Teams, LINE, or your browser.\n\n## Platform Comparison\n\n| Platform | Voice | Images | Files | Threads | Reactions | Typing | Streaming |\n|----------|:-----:|:------:|:-----:|:-------:|:---------:|:------:|:---------:|\n| Telegram | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |\n| Discord | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |\n| Slack | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |\n| WhatsApp | — | ✅ | ✅ | — | — | ✅ | ✅ |\n| Signal | — | ✅ | ✅ | — | — | ✅ | ✅ |\n| SMS | — | — | — | — | — | — | — |\n| Email | — | ✅ | ✅ | ✅ | — | — | — |\n| Matrix | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |\n| Mattermost | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |\n| Home Assistant | — | — | — | — | — | — | — |\n\n## Quick Setup\n\n```bash\nhermes gateway setup        # Interactive setup for all messaging platforms\nhermes gateway              # Run in foreground\nhermes gateway install      # Install as user service (Linux)\nsudo hermes gateway install --system   # Boot-time system service (Linux)\nhermes gateway start/stop/status\n```\n\n## Chat Commands (Inside Messaging)\n\n| Command | Description |\n|---------|-------------|\n| `/new` or `/reset` | Start fresh conversation |\n| `/model [provider:model]` | Show or change model |\n| `/personality [name]` | Set personality |\n| `/retry` | Retry last message |\n| `/undo` | Remove last exchange |\n| `/status` | Show session info |\n| `/whoami` | Show slash command access (admin/user/unrestricted) |\n| `/stop` | Stop running agent |\n| `/approve` | Approve pending dangerous command |\n| `/deny` | Reject pending dangerous command |\n| `/sethome` | Set this chat as home channel |\n| `/compress` | Manually compress conversation context |\n| `/voice [on|off|tts|join|leave|status]` | Control voice replies |\n| `/rollback [number]` | List or restore filesystem checkpoints |\n| `/background <prompt>` | Run prompt in separate background session |\n| `/reload-mcp` | Reload MCP servers from config |\n| `/update` | Update Hermes Agent |\n| `/help` | Show available commands |\n\n## Session Management\n\nSessions persist until reset. Reset policies:\n- **Daily** (4:00 AM default) or **Idle** (1440 min default) or both\n\n```json\n// ~/.hermes/gateway.json\n{\n  \"reset_by_platform\": {\n    \"telegram\": { \"mode\": \"idle\", \"idle_minutes\": 240 }\n  }\n}\n```\n\n## Security\n\nBy default, the gateway denies all users not in an allowlist or paired via DM.\n\n```bash\nTELEGRAM_ALLOWED_USERS=123456789\nDISCORD_ALLOWED_USERS=123456789012345678\nGATEWAY_ALLOWED_USERS=123456789,987654321  # Cross-platform\nGATEWAY_ALLOW_ALL_USERS=true               # NOT recommended\n```\n\n### DM Pairing (Alternative to Allowlists)\n\nUnknown users receive a one-time pairing code:\n```bash\nhermes pairing approve telegram XKGH5N7P\nhermes pairing list\nhermes pairing revoke telegram 123456789\n```\nCodes expire after 1 hour.\n\n### Slash Command Access Control\n\nSplit users into admins (full slash commands) and regular users (explicit list only). Platform-specific via `allow_admin_from` and `user_allowed_commands`. `/help` and `/whoami` always allowed.\n\n## Interrupting the Agent\n\nSend any message while agent is working to interrupt:\n- In-progress terminal commands killed (SIGTERM → SIGKILL after 1s)\n- Tool calls cancelled (only currently executing one runs)\n- Multiple messages combined into one prompt\n- `/stop` — interrupt without queuing follow-up\n\n## Busy-Input Modes\n\n```yaml\ndisplay:\n  busy_input_mode: steer   # interrupt (default) | queue | steer\n  busy_ack_enabled: true\n```\n\n## Background Sessions\n\n```\n/background Check all servers and report any down\n```\n\nEach `/background` spawns a separate agent with isolated session. Result delivered to same chat when done.\n\n## Service Management (Linux systemd)\n\n```bash\nhermes gateway install\njournalctl --user -u hermes-gateway -f\nsudo loginctl enable-linger $USER\n```\n\n## Service Management (macOS launchd)\n\n```bash\nhermes gateway install\ntail -f ~/.hermes/logs/gateway.log\n```\n"
+}

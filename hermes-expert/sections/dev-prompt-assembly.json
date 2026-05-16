@@ -1,0 +1,79 @@
+{
+  "id": "dev-prompt-assembly",
+  "title": "Prompt Assembly",
+  "source_path": "website/docs/developer-guide/prompt-assembly.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/prompt-assembly",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Explains how Hermes separates cached system prompt state from ephemeral API-call-time additions, the 10-layer prompt assembly order (SOUL.md, memory, skills, context files, etc.), context file priority system, and when to edit prompt_builder.py vs using supported customization surfaces.",
+  "key_concepts": [
+    "cached system prompt",
+    "prompt layers",
+    "SOUL.md",
+    "context files",
+    "AGENTS.md",
+    "HERMES.md",
+    "memory snapshots",
+    "ephemeral additions",
+    "prompt caching",
+    "skills index"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_EPHEMERAL_SYSTEM_PROMPT",
+      "purpose": "Add turn-scoped guidance that doesn't become part of the cached prompt prefix",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "skills.template_vars",
+      "type": "boolean",
+      "default": "true",
+      "description": "Enable/disable ${HERMES_SKILL_DIR} and ${HERMES_SESSION_ID} substitution in SKILL.md",
+      "example": "false"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "load_soul_md simplified",
+      "code": "def load_soul_md() -> Optional[str]:\n    soul_path = get_hermes_home() / \"SOUL.md\"\n    if not soul_path.exists():\n        return None\n    content = soul_path.read_text(encoding=\"utf-8\").strip()\n    content = _scan_context_content(content, \"SOUL.md\")\n    content = _truncate_content(content, \"SOUL.md\")\n    return content"
+    },
+    {
+      "language": "python",
+      "caption": "Context file priority system",
+      "code": "project_context = (\n    _load_hermes_md(cwd_path)\n    or _load_agents_md(cwd_path)\n    or _load_claude_md(cwd_path)\n    or _load_cursorrules(cwd_path)\n)"
+    }
+  ],
+  "gotchas": [
+    "System prompt doesn't change mid-conversation — no cache-breaking mutations except explicit user actions like /model",
+    "SOUL.md is truncated at 20,000 characters",
+    "Context files are security scanned for prompt injection patterns before injection",
+    "Only ONE project context file type is loaded (first match wins)",
+    "Skip_context_files=True in subagent delegation means SOUL.md is not loaded"
+  ],
+  "cross_refs": [
+    "dev-context-compression",
+    "dev-session-storage",
+    "dev-gateway-internals",
+    "dev-agent-loop"
+  ],
+  "keywords": [
+    "prompt assembly",
+    "SOUL.md",
+    "AGENTS.md",
+    "HERMES.md",
+    "CLAUDE.md",
+    "context files",
+    "memory snapshots",
+    "skills index",
+    "prompt caching",
+    "ephemeral prompt",
+    "cached system prompt"
+  ],
+  "full_text": "# Prompt Assembly\n\nHermes deliberately separates:\n- **cached system prompt state**\n- **ephemeral API-call-time additions**\n\nPrimary files: `run_agent.py`, `agent/prompt_builder.py`, `tools/memory_tool.py`\n\n## Cached system prompt layers\n\nThe cached system prompt is assembled in roughly this order:\n\n1. agent identity — `SOUL.md` from `HERMES_HOME` when available, otherwise `DEFAULT_AGENT_IDENTITY`\n2. tool-aware behavior guidance\n3. Honcho static block (when active)\n4. optional system message\n5. frozen MEMORY snapshot\n6. frozen USER profile snapshot\n7. skills index\n8. context files (`AGENTS.md`, `.cursorrules`, `.cursor/rules/*.mdc`)\n9. timestamp / optional session ID\n10. platform hint\n\nWhen `skip_context_files` is set (e.g., subagent delegation), SOUL.md is not loaded.\n\n## How SOUL.md appears in the prompt\n\n```python\n# From agent/prompt_builder.py (simplified)\ndef load_soul_md() -> Optional[str]:\n    soul_path = get_hermes_home() / \"SOUL.md\"\n    if not soul_path.exists():\n        return None\n    content = soul_path.read_text(encoding=\"utf-8\").strip()\n    content = _scan_context_content(content, \"SOUL.md\")  # Security scan\n    content = _truncate_content(content, \"SOUL.md\")       # Cap at 20k chars\n    return content\n```\n\nWhen `load_soul_md()` returns content, it replaces the hardcoded `DEFAULT_AGENT_IDENTITY`. The `build_context_files_prompt()` is called with `skip_soul=True` to prevent SOUL.md from appearing twice.\n\n## How context files are injected\n\n`build_context_files_prompt()` uses a **priority system** — only one project context type is loaded (first match wins):\n\n```python\nproject_context = (\n    _load_hermes_md(cwd_path)       # 1. .hermes.md / HERMES.md (walks to git root)\n    or _load_agents_md(cwd_path)    # 2. AGENTS.md (cwd only)\n    or _load_claude_md(cwd_path)    # 3. CLAUDE.md (cwd only)\n    or _load_cursorrules(cwd_path)  # 4. .cursorrules / .cursor/rules/*.mdc\n)\n```\n\n### Context file discovery details\n\n| Priority | Files | Search scope |\n|----------|-------|-------------|\n| 1 | `.hermes.md`, `HERMES.md` | CWD up to git root |\n| 2 | `AGENTS.md` | CWD only |\n| 3 | `CLAUDE.md` | CWD only |\n| 4 | `.cursorrules`, `.cursor/rules/*.mdc` | CWD only |\n\nAll context files are:\n- **Security scanned** — checked for prompt injection patterns\n- **Truncated** — capped at 20,000 characters using 70/20 head/tail ratio\n- **YAML frontmatter stripped** — `.hermes.md` frontmatter is removed\n\n## API-call-time-only layers\n\nThese are intentionally *not* persisted as part of the cached system prompt:\n- `ephemeral_system_prompt`\n- prefill messages\n- gateway-derived session context overlays\n- later-turn Honcho recall injected into the current-turn user message\n\n## Memory snapshots\n\nLocal memory and user profile data are injected as frozen snapshots at session start. Mid-session writes update disk state but do not mutate the already-built system prompt.\n\n## Why prompt assembly is split this way\n\nThe architecture is intentionally optimized to:\n- preserve provider-side prompt caching\n- avoid mutating history unnecessarily\n- keep memory semantics understandable\n- let gateway/ACP/CLI add context without poisoning persistent prompt state\n\n## Supported prompt customization surfaces\n\n- `~/.hermes/SOUL.md` — replace the built-in default identity block\n- `~/.hermes/MEMORY.md` and `~/.hermes/USER.md` — durable cross-session facts\n- Project context files — inject repo-specific working rules\n- Skills — package reusable workflows\n- Optional system prompt config / API overrides\n- Ephemeral overlays such as `HERMES_EPHEMERAL_SYSTEM_PROMPT`"
+}

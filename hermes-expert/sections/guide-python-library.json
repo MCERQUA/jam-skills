@@ -1,0 +1,90 @@
+{
+  "id": "guide-python-library",
+  "title": "Using Hermes as a Python Library",
+  "source_path": "website/docs/guides/python-library.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/python-library",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "How to import and use Hermes Agent's AIAgent class programmatically in Python scripts, web applications, and automation pipelines, including multi-turn conversations, toolset control, trajectory saving, custom system prompts, and batch processing.",
+  "key_concepts": [
+    "AIAgent",
+    "Python library",
+    "chat()",
+    "run_conversation()",
+    "quiet_mode",
+    "enabled_toolsets",
+    "disabled_toolsets",
+    "conversation_history",
+    "trajectory saving",
+    "ephemeral_system_prompt",
+    "batch processing",
+    "thread safety"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "pip install git+https://github.com/NousResearch/hermes-agent.git",
+      "purpose": "Install Hermes as a Python library"
+    },
+    {
+      "command": "python batch_runner.py --input prompts.jsonl --output results.jsonl",
+      "purpose": "Run batch processing"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Basic usage",
+      "code": "from run_agent import AIAgent\n\nagent = AIAgent(\n    model=\"anthropic/claude-sonnet-4\",\n    quiet_mode=True,\n)\nresponse = agent.chat(\"What is the capital of France?\")\nprint(response)"
+    },
+    {
+      "language": "python",
+      "caption": "Multi-turn conversation",
+      "code": "agent = AIAgent(model=\"anthropic/claude-sonnet-4\", quiet_mode=True)\n\nresult1 = agent.run_conversation(\"My name is Alice\")\nhistory = result1[\"messages\"]\n\nresult2 = agent.run_conversation(\n    \"What's my name?\",\n    conversation_history=history,\n)\nprint(result2[\"final_response\"])"
+    },
+    {
+      "language": "python",
+      "caption": "FastAPI endpoint",
+      "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\nfrom run_agent import AIAgent\n\napp = FastAPI()\n\nclass ChatRequest(BaseModel):\n    message: str\n    model: str = \"anthropic/claude-sonnet-4\"\n\n@app.post(\"/chat\")\nasync def chat(request: ChatRequest):\n    agent = AIAgent(\n        model=request.model,\n        quiet_mode=True,\n        skip_context_files=True,\n        skip_memory=True,\n    )\n    response = agent.chat(request.message)\n    return {\"response\": response}"
+    },
+    {
+      "language": "python",
+      "caption": "Batch processing with ThreadPoolExecutor",
+      "code": "import concurrent.futures\nfrom run_agent import AIAgent\n\ndef process_prompt(prompt):\n    agent = AIAgent(\n        model=\"anthropic/claude-sonnet-4\",\n        quiet_mode=True,\n        skip_memory=True,\n    )\n    return agent.chat(prompt)\n\nwith concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:\n    results = list(executor.map(process_prompt, prompts))"
+    }
+  ],
+  "gotchas": [
+    "Always set quiet_mode=True when embedding Hermes — without it CLI spinners and progress output will clutter your app",
+    "Create a NEW AIAgent instance per thread or task — the agent maintains internal state that is not thread-safe to share",
+    "The model field in AIAgent constructor uses OpenRouter format (provider/model-id)",
+    "ephemeral_system_prompt is NOT saved to trajectory files — good for building specialized agents with clean training data",
+    "Set skip_context_files=True for stateless API endpoints to prevent AGENTS.md files from being loaded",
+    "Set skip_memory=True to disable persistent memory read/write for stateless use"
+  ],
+  "cross_refs": [
+    "configuration",
+    "tools",
+    "skills"
+  ],
+  "keywords": [
+    "Python library",
+    "AIAgent",
+    "programmatic",
+    "chat()",
+    "run_conversation()",
+    "quiet_mode",
+    "toolsets",
+    "trajectory",
+    "ShareGPT",
+    "batch processing",
+    "multi-turn",
+    "FastAPI",
+    "Discord bot",
+    "CI/CD",
+    "thread safety",
+    "stateless"
+  ],
+  "full_text": "# Using Hermes as a Python Library\n\nHermes isn't just a CLI tool. You can import AIAgent directly and use it programmatically in your own Python scripts, web applications, or automation pipelines.\n\n[...full content as read from source...]"
+}

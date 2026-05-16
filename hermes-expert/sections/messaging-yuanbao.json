@@ -1,0 +1,222 @@
+{
+  "id": "messaging-yuanbao",
+  "title": "Yuanbao",
+  "source_path": "website/docs/user-guide/messaging/yuanbao.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/yuanbao",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Connect Hermes to Yuanbao(https://yuanbao.tencent.com/), Tencent's enterprise messaging platform. The adapter uses a WebSocket gateway for real-time message delivery and supports both direct (C2C) and group conversations.",
+  "key_concepts": [
+    "Prerequisites",
+    "Setup",
+    "1. Create a Bot in Yuanbao",
+    "2. Run the Setup Wizard",
+    "3. Configure Environment Variables",
+    "Required",
+    "YUANBAO_BOT_ID=your-bot-id",
+    "YUANBAO_ROUTE_ENV=production"
+  ],
+  "env_vars": [
+    {
+      "name": "YUANBAO_APP_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_APP_SECRET",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_WS_URL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_API_DOMAIN",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_HOME_CHANNEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_HOME_CHANNEL_NAME",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_ALLOWED_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_DM_POLICY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_DM_ALLOW_FROM",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_GROUP_POLICY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "YUANBAO_GROUP_ALLOW_FROM",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_LOG_LEVEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway setup",
+      "purpose": ""
+    },
+    {
+      "command": "hermes gateway",
+      "purpose": ""
+    },
+    {
+      "command": "hermes chat -q \"Send 'Hello from CLI' to yuanbao:group:group_code\"",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/sethome",
+      "purpose": ""
+    },
+    {
+      "command": "/new",
+      "purpose": ""
+    },
+    {
+      "command": "/status",
+      "purpose": ""
+    },
+    {
+      "command": "/help",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "pip install websockets httpx aiofiles\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway setup\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Required\nYUANBAO_APP_ID=your-app-id\nYUANBAO_APP_SECRET=your-app-secret\nYUANBAO_WS_URL=wss://api.yuanbao.example.com/ws\nYUANBAO_API_DOMAIN=https://api.yuanbao.example.com\n\n# Optional: bot account ID (normally obtained automatically from sign-token)\n# YUANBAO_BOT_ID=your-bot-id\n\n# Optional: internal routing environment (e.g. test/staging/production)\n# YUANBAO_ROUTE_ENV=production\n\n# Optional: home channel for cron/notifications (format: direct:<account> or group:<group_code>)\nYUANBAO_HOME_CHANNEL=direct:bot_account_id\nYUANBAO_HOME_CHANNEL_NAME=\"Bot Notifications\"\n\n# Optional: restrict access (legacy, see Access Control below for fine-grained policies)\nYUANBAO_ALLOWED_USERS=user_account_1,user_account_2\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "YUANBAO_HOME_CHANNEL=direct:user_account_id\n# or for a group:\n# YUANBAO_HOME_CHANNEL=group:group_code\nYUANBAO_HOME_CHANNEL_NAME=\"My Bot Updates\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "/cron \"0 9 * * *\" Check server status\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "hello\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "Please analyze this document\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# DM policy: open (default) | allowlist | disabled\nYUANBAO_DM_POLICY=open\n# Comma-separated user IDs allowed to DM the bot (only used when DM_POLICY=allowlist)\nYUANBAO_DM_ALLOW_FROM=user_id_1,user_id_2\n\n# Group policy: open (default) | allowlist | disabled\nYUANBAO_GROUP_POLICY=open\n# Comma-separated group codes allowed (only used when GROUP_POLICY=allowlist)\nYUANBAO_GROUP_ALLOW_FROM=group_code_1,group_code_2\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "platforms:\n  yuanbao:\n    extra:\n      dm_policy: allowlist\n      dm_allow_from: \"user1,user2\"\n      group_policy: open\n      group_allow_from: \"\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "HERMES_LOG_LEVEL=debug hermes gateway\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "/cron \"0 */4 * * *\" Report system health\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "/background Analyze all files in the archive\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes chat -q \"Send 'Hello from CLI' to yuanbao:group:group_code\"\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [
+    "cron",
+    "index",
+    "slash-commands"
+  ],
+  "keywords": [
+    "api",
+    "c2c",
+    "cos",
+    "fine-grained",
+    "gif",
+    "hmac",
+    "jpeg",
+    "keep-alive",
+    "messaging",
+    "mp3",
+    "ogg",
+    "pai",
+    "png",
+    "real-time",
+    "sign-token"
+  ],
+  "full_text": "# Yuanbao\n\n# Yuanbao\n\nConnect Hermes to [Yuanbao](https://yuanbao.tencent.com/), Tencent's enterprise messaging platform. The adapter uses a WebSocket gateway for real-time message delivery and supports both direct (C2C) and group conversations.\n\n:::info\nYuanbao is an enterprise messaging platform primarily used within Tencent and enterprise environments. It uses WebSocket for real-time communication, HMAC-based authentication, and supports rich media including images, files, and voice messages.\n:::\n\n## Prerequisites\n\n- A Yuanbao account with bot creation permissions\n- Yuanbao APP_ID and APP_SECRET (from platform admin)\n- Python packages: `websockets` and `httpx`\n- For media support: `aiofiles`\n\nInstall the required dependencies:\n\n```bash\npip install websockets httpx aiofiles\n```\n\n## Setup\n\n### 1. Create a Bot in Yuanbao\n\n1. Download the Yuanbao app from [https://yuanbao.tencent.com/](https://yuanbao.tencent.com/)\n2. In the app, go to **PAI → My Bot** and create a new bot\n3. After the bot is created, copy the **APP_ID** and **APP_SECRET**\n\n### 2. Run the Setup Wizard\n\nThe easiest way to configure Yuanbao is through the interactive setup:\n\n```bash\nhermes gateway setup\n```\n\nSelect **Yuanbao** when prompted. The wizard will:\n\n1. Ask for your APP_ID\n2. Ask for your APP_SECRET\n3. Save the configuration automatically\n\n:::tip\nThe WebSocket URL and API Domain have sensible defaults built in. You only need to provide APP_ID and APP_SECRET to get started.\n:::\n\n### 3. Configure Environment Variables\n\nAfter initial setup, verify these variables in `~/.hermes/.env`:\n\n```bash\n# Required\nYUANBAO_APP_ID=your-app-id\nYUANBAO_APP_SECRET=your-app-secret\nYUANBAO_WS_URL=wss://api.yuanbao.example.com/ws\nYUANBAO_API_DOMAIN=https://api.yuanbao.example.com\n\n# Optional: bot account ID (normally obtained automatically from sign-token)\n# YUANBAO_BOT_ID=your-bot-id\n\n# Optional: internal routing environment (e.g. test/staging/production)\n# YUANBAO_ROUTE_ENV=production\n\n# Optional: home channel for cron/notifications (format: direct:<account> or group:<group_code>)\nYUANBAO_HOME_CHANNEL=direct:bot_account_id\nYUANBAO_HOME_CHANNEL_NAME=\"Bot Notifications\"\n\n# Optional: restrict access (legacy, see Access Control below for fine-grained policies)\nYUANBAO_ALLOWED_USERS=user_account_1,user_account_2\n```\n\n### 4. Start the Gateway\n\n```bash\nhermes gateway\n```\n\nThe adapter will connect to the Yuanbao WebSocket gateway, authenticate using HMAC signatures, and begin processing messages.\n\n## Features\n\n- **WebSocket gateway** — real-time bidirectional communication\n- **HMAC authentication** — secure request signing with APP_ID/APP_SECRET\n- **C2C messaging** — direct user-to-bot conversations\n- **Group messaging** — conversations in group chats\n- **Media support** — images, files, and voice messages via COS (Cloud Object Storage)\n- **Markdown formatting** — messages are automatically chunked for Yuanbao's size limits\n- **Message deduplication** — prevents duplicate processing of the same message\n- **Heartbeat/keep-alive** — maintains WebSocket connection stability\n- **Typing indicators** — shows \"typing…\" status while the agent processes\n- **Automatic reconnection** — handles WebSocket disconnections with exponential backoff\n- **Group information queries** — retrieve group details and member lists\n- **Sticker/Emoji support** — send TIMFaceElem stickers and emoji in conversations\n- **Auto-sethome** — first user to message the bot is automatically set as the home channel owner\n- **Slow-response notification** — sends a waiting message when the agent takes longer than expected\n\n## Configuration Options\n\n### Chat ID Formats\n\nYuanbao uses prefixed identifiers depending on conversation type:\n\n| Chat Type | Format | Example |\n|-----------|--------|---------|\n| Direct message (C2C) | `direct:<account>` | `direct:user123` |\n| Group message | `group:<group_code>` | `group:grp456` |\n\n### Media Uploads\n\nThe Yuanbao adapter automatically handles media uploads via COS (Tencent Cloud Object Storage):\n\n- **Images**: Supports JPEG, PNG, GIF, WebP\n- **Files**: Supports all common document types\n- **Voice**: Supports WAV, MP3, OGG\n\nMedia URLs are automatically validated and downloaded before upload to prevent SSRF attacks.\n\n## Home Channel\n\nUse the `/sethome` command in any Yuanbao chat (DM or group) to designate it as the **home channel**. Scheduled tasks (cron jobs) deliver their results to this channel.\n\n:::tip Auto-sethome\nIf no home channel is configured, the first user to message the bot will be automatically set as the home channel owner. If the current home channel is a group chat, the first DM will upgrade it to a direct channel.\n:::\n\nYou can also set it manually in `~/.hermes/.env`:\n\n```bash\nYUANBAO_HOME_CHANNEL=direct:user_account_id\n# or for a group:\n# YUANBAO_HOME_CHANNEL=group:group_code\nYUANBAO_HOME_CHANNEL_NAME=\"My Bot Updates\"\n```\n\n### Example: Set Home Channel\n\n1. Start a conversation with the bot in Yuanbao\n2. Send the command: `/sethome`\n3. The bot responds: \"Home channel set to [chat_name] with ID [chat_id]. Cron jobs will deliver to this location.\"\n4. Future cron jobs and notifications will be sent to this channel\n\n### Example: Cron Job Delivery\n\nCreate a cron job:\n\n```bash\n/cron \"0 9 * * *\" Check server status\n```\n\nThe scheduled output will be delivered to your Yuanbao home channel every day at 9 AM.\n\n## Usage Tips\n\n### Starting a Conversation\n\nSend any message to the bot in Yuanbao:\n\n```\nhello\n```\n\nThe bot responds in the same conversation thread.\n\n### Available Commands\n\nAll standard Hermes commands work on Yuanbao:\n\n| Command | Description |\n|---------|-------------|\n| `/new` | Start a fresh conversation |\n| `/model [provider:model]` | Show or change the model |\n| `/sethome` | Set this chat as the home channel |\n| `/status` | Show session info |\n| `/help` | Show available commands |\n\n### Sending Files\n\nTo send a file to the bot, simply attach it directly in the Yuanbao chat. The bot will automatically download and process the file attachment.\n\nYou can also include a message with the attachment:\n\n```\nPlease analyze this document\n```\n\n### Receiving Files\n\nWhen you ask the bot to create or export a file, it sends the file directly to your Yuanbao chat.\n\n## Troubleshooting\n\n### Bot is online but not responding to messages\n\n**Cause**: Authentication failed during WebSocket handshake.\n\n**Fix**:\n1. Verify APP_ID and APP_SECRET are correct\n2. Check that the WebSocket URL is accessible\n3. Ensure the bot account has proper permissions\n4. Review gateway logs: `tail -f ~/.hermes/logs/gateway.log`\n\n### \"Connection refused\" error\n\n**Cause**: WebSocket URL is unreachable or incorrect.\n\n**Fix**:\n1. Verify the WebSocket URL format (should start with `wss://`)\n2. Check network connectivity to the Yuanbao API domain\n3. Confirm firewall allows WebSocket connections\n4. Test URL with: `curl -I https://[YUANBAO_API_DOMAIN]`\n\n### Media uploads fail\n\n**Cause**: COS credentials are invalid or media server is unreachable.\n\n**Fix**:\n1. Verify API_DOMAIN is correct\n2. Check that media upload permissions are enabled for your bot\n3. Ensure the media file is accessible and not corrupted\n4. Check COS bucket configuration with platform admin\n\n### Messages not delivered to home channel\n\n**Cause**: Home channel ID format is incorrect or cron job hasn't triggered.\n\n**Fix**:\n1. Verify YUANBAO_HOME_CHANNEL is in correct format\n2. Test with `/sethome` command to auto-detect correct format\n3. Check cron job schedule with `/status`\n4. Verify bot has send permissions in the target chat\n\n### Frequent disconnections\n\n**Cause**: WebSocket connection is unstable or network is unreliable.\n\n**Fix**:\n1. Check gateway logs for error patterns\n2. Increase heartbeat timeout in connection settings\n3. Ensure stable network connection to Yuanbao API\n4. Consider enabling verbose logging: `HERMES_LOG_LEVEL=debug`\n\n## Access Control\n\nYuanbao supports fine-grained access control for both DM and group conversations:\n\n```bash\n# DM policy: open (default) | allowlist | disabled\nYUANBAO_DM_POLICY=open\n# Comma-separated user IDs allowed to DM the bot (only used when DM_POLICY=allowlist)\nYUANBAO_DM_ALLOW_FROM=user_id_1,user_id_2\n\n# Group policy: open (default) | allowlist | disabled\nYUANBAO_GROUP_POLICY=open\n# Comma-separated group codes allowed (only used when GROUP_POLICY=allowlist)\nYUANBAO_GROUP_ALLOW_FROM=group_code_1,group_code_2\n```\n\nThese can also be set in `config.yaml`:\n\n```yaml\nplatforms:\n  yuanbao:\n    extra:\n      dm_policy: allowlist\n      dm_allow_from: \"user1,user2\"\n      group_policy: open\n      group_allow_from: \"\"\n```\n\n## Advanced Configuration\n\n### Message Chunking\n\nYuanbao has a maximum message size. Hermes automatically chunks large responses with Markdown-aware splitting (respects code fences, tables, and paragraph boundaries).\n\n### Connection Parameters\n\nThe following connection parameters are built into the adapter with sensible defaults:\n\n| Parameter | Default Value | Description |\n|-----------|---------------|-------------|\n| WebSocket connect timeout | 15 seconds | Time to wait for WS handshake |\n| Heartbeat interval | 30 seconds | Ping frequency to keep connection alive |\n| Max reconnect attempts | 100 | Maximum number of reconnection tries |\n| Reconnect backoff | 1s → 60s (exponential) | Wait time between reconnect attempts |\n| Reply heartbeat interval | 2 seconds | RUNNING status send frequency |\n| Send timeout | 30 seconds | Timeout for outbound WS messages |\n\n:::note\nThese values are currently not configurable via environment variables. They are optimized for typical Yuanbao deployments.\n:::\n\n### Verbose Logging\n\nEnable debug logging to troubleshoot connection issues:\n\n```bash\nHERMES_LOG_LEVEL=debug hermes gateway\n```\n\n## Integration with Other Features\n\n### Cron Jobs\n\nSchedule tasks that run on Yuanbao:\n\n```\n/cron \"0 */4 * * *\" Report system health\n```\n\nResults are delivered to your home channel.\n\n### Background Tasks\n\nRun long operations without blocking the conversation:\n\n```\n/background Analyze all files in the archive\n```\n\n### Cross-Platform Messages\n\nSend a message from CLI to Yuanbao:\n\n```bash\nhermes chat -q \"Send 'Hello from CLI' to yuanbao:group:group_code\"\n```\n\n## Related Documentation\n\n- [Messaging Gateway Overview](./index.md)\n- [Slash Commands Reference](/docs/reference/slash-commands.md)\n- [Cron Jobs](/docs/user-guide/features/cron.md)\n- [Background Sessions](/docs/user-guide/cli#background-sessions)\n\n---"
+}

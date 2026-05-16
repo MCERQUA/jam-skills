@@ -1,0 +1,74 @@
+{
+  "id": "dev-tools-runtime",
+  "title": "Tools Runtime",
+  "source_path": "website/docs/developer-guide/tools-runtime.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/tools-runtime",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the tool registration model, auto-discovery via discover_builtin_tools(), check_fn availability checking, toolset resolution, dispatch flow from model tool_call to handler execution, dangerous command approval system, async bridging, and terminal/runtime environments.",
+  "key_concepts": [
+    "ToolRegistry",
+    "registry.register",
+    "discover_builtin_tools",
+    "check_fn",
+    "toolset resolution",
+    "dispatch flow",
+    "DANGEROUS_PATTERNS",
+    "async bridging",
+    "terminal backends",
+    "agent-loop intercepted tools"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "command_allowlist",
+      "type": "list",
+      "default": "[]",
+      "description": "Commands permanently allowed without approval prompts",
+      "example": "[\"rm -rf node_modules/\"]"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Tool registration signature",
+      "code": "registry.register(\n    name=\"terminal\",\n    toolset=\"terminal\",\n    schema={...},\n    handler=handle_terminal,\n    check_fn=check_terminal,\n    requires_env=[\"SOME_VAR\"],\n    is_async=False,\n    description=\"Run commands\",\n    emoji=\"💻\",\n)"
+    },
+    {
+      "language": "text",
+      "caption": "Dispatch flow",
+      "code": "Model response with tool_call\n  → run_agent.py agent loop\n  → model_tools.handle_function_call(name, args, task_id)\n  → [Agent-loop tools?] → handled directly (todo, memory, session_search, delegate_task)\n  → [Plugin pre-hook] → invoke_hook(\"pre_tool_call\", ...)\n  → registry.dispatch(name, args, **kwargs)\n  → Return result string (or JSON error)\n  → [Plugin post-hook] → invoke_hook(\"post_tool_call\", ...)"
+    }
+  ],
+  "gotchas": [
+    "If a name collision occurs across toolsets, a warning is logged and the later registration wins",
+    "check_fn exceptions are treated as unavailable (fail-safe)",
+    "All tool execution returns JSON strings — never unhandled exceptions",
+    "Agent-loop tools (todo, memory, session_search, delegate_task) are intercepted before registry dispatch",
+    "Auto-discovery only matches TOP-LEVEL registry.register() calls — helper modules in tools/ are not imported"
+  ],
+  "cross_refs": [
+    "dev-agent-loop",
+    "dev-adding-tools",
+    "dev-acp-internals",
+    "ref-toolsets"
+  ],
+  "keywords": [
+    "tools runtime",
+    "ToolRegistry",
+    "registry.register",
+    "discover_builtin_tools",
+    "check_fn",
+    "toolset resolution",
+    "dispatch flow",
+    "DANGEROUS_PATTERNS",
+    "async bridging",
+    "terminal backends",
+    "agent-loop tools",
+    "MCP tools",
+    "plugin tools"
+  ],
+  "full_text": "# Tools Runtime\n\nHermes tools are self-registering functions grouped into toolsets and executed through a central registry/dispatch system.\n\nPrimary files: `tools/registry.py`, `model_tools.py`, `toolsets.py`, `tools/terminal_tool.py`, `tools/environments/*`.\n\n## Tool registration model\n\nEach tool module calls `registry.register(...)` at import time. `model_tools.py` is responsible for importing/discovering tool modules and building the schema list used by the model.\n\n### How `registry.register()` works\n\nEvery tool file in `tools/` calls `registry.register()` at module level:\n\n```python\nregistry.register(\n    name=\"terminal\",               # Unique tool name (used in API schemas)\n    toolset=\"terminal\",            # Toolset this tool belongs to\n    schema={...},                  # OpenAI function-calling schema\n    handler=handle_terminal,       # The function that executes when the tool is called\n    check_fn=check_terminal,       # Optional: returns True/False for availability\n    requires_env=[\"SOME_VAR\"],     # Optional: env vars needed\n    is_async=False,\n    description=\"Run commands\",\n    emoji=\"...\",\n)\n```\n\nEach call creates a `ToolEntry` stored in the singleton `ToolRegistry._tools` dict keyed by tool name. If a name collision occurs across toolsets, a warning is logged and the later registration wins.\n\n### Discovery: `discover_builtin_tools()`\n\nWhen `model_tools.py` is imported, it calls `discover_builtin_tools()` from `tools/registry.py`. This function scans every `tools/*.py` file using AST parsing to find modules that contain top-level `registry.register()` calls, then imports them. This auto-discovery means new tool files are picked up automatically — no manual list to maintain.\n\nAfter core tool discovery, MCP tools and plugin tools are also discovered:\n\n1. **MCP tools** — `tools.mcp_tool.discover_mcp_tools()` reads MCP server config\n2. **Plugin tools** — `hermes_cli.plugins.discover_plugins()` loads user/project/pip plugins\n\n## Tool availability checking (`check_fn`)\n\nEach tool can optionally provide a `check_fn` — a callable that returns `True` when the tool is available and `False` otherwise. Typical checks: API key present, service running, binary installed.\n\nWhen `registry.get_definitions()` builds the schema list, it runs each tool's `check_fn()`. Key behaviors:\n- Check results are **cached per-call**\n- Exceptions in `check_fn()` are treated as 'unavailable' (fail-safe)\n\n## Toolset resolution\n\nToolsets are named bundles of tools. Hermes resolves them through: explicit enabled/disabled toolset lists, platform presets (`hermes-cli`, `hermes-telegram`, etc.), dynamic MCP toolsets, curated special-purpose sets like `hermes-acp`.\n\n### How `get_tool_definitions()` filters tools\n\n1. **If `enabled_toolsets` is provided** — only tools from those toolsets are included\n2. **If `disabled_toolsets` is provided** — start with ALL toolsets, then subtract the disabled ones\n3. **If neither** — include all known toolsets\n4. **Registry filtering** — `check_fn` filtering applied, returns OpenAI-format schemas\n5. **Dynamic schema patching** — `execute_code` and `browser_navigate` schemas are dynamically adjusted\n\n### Legacy toolset names\n\nOld toolset names with `_tools` suffixes (e.g., `web_tools`, `terminal_tools`) are mapped to modern tool names via `_LEGACY_TOOLSET_MAP`.\n\n## Dispatch\n\n### Dispatch flow\n\n```\nModel response with tool_call\n    -> run_agent.py agent loop\n    -> model_tools.handle_function_call(name, args, task_id, user_task)\n    -> [Agent-loop tools?] -> handled directly (todo, memory, session_search, delegate_task)\n    -> [Plugin pre-hook] -> invoke_hook('pre_tool_call', ...)\n    -> registry.dispatch(name, args, **kwargs)\n    -> Look up ToolEntry by name\n    -> [Async handler?] -> bridge via _run_async()\n    -> [Sync handler?]  -> call directly\n    -> Return result string (or JSON error)\n    -> [Plugin post-hook] -> invoke_hook('post_tool_call', ...)\n```\n\n### Error wrapping\n\nAll tool execution is wrapped in error handling at two levels: `registry.dispatch()` and `handle_function_call()`. This ensures the model always receives a well-formed JSON string, never an unhandled exception.\n\n### Agent-loop tools\n\nFour tools are intercepted before registry dispatch: `todo`, `memory`, `session_search`, `delegate_task`. Their schemas are still registered (for `get_tool_definitions`), but handlers return a stub error if dispatch reaches them directly.\n\n### Async bridging\n\nWhen a tool handler is async, `_run_async()` bridges it to the sync dispatch path:\n- **CLI path (no running loop)** — uses a persistent event loop to keep cached async clients alive\n- **Gateway path (running loop)** — spins up a disposable thread with `asyncio.run()`\n- **Worker threads (parallel tools)** — uses per-thread persistent loops stored in thread-local storage\n\n## The DANGEROUS_PATTERNS approval flow\n\nThe terminal tool integrates a dangerous-command approval system defined in `tools/approval.py`:\n\n1. **Pattern detection** — `DANGEROUS_PATTERNS` list covers: recursive deletes, filesystem formatting, SQL destructive operations, system config overwrites, service manipulation, remote code execution, fork bombs\n2. **Detection** — before executing any terminal command, `detect_dangerous_command(command)` checks against all patterns\n3. **Approval prompt** — if a match is found: CLI mode asks interactively, Gateway mode sends async approval callback, Smart approval can auto-approve low-risk matches\n4. **Session state** — approvals tracked per-session; once approved, subsequent matches don't re-prompt\n5. **Permanent allowlist** — 'allow permanently' writes the pattern to `config.yaml`'s `command_allowlist`\n\n## Terminal/runtime environments\n\nThe terminal system supports multiple backends: local, docker, ssh, singularity, modal, daytona, vercel_sandbox. Also supports: per-task cwd overrides, background process management, PTY mode, approval callbacks.\n\n## Related docs\n\n- [Toolsets Reference](../reference/toolsets-reference.md)\n- [Built-in Tools Reference](../reference/tools-reference.md)\n- [Agent Loop Internals](./agent-loop.md)\n- [ACP Internals](./acp-internals.md)"
+}

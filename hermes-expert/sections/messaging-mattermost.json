@@ -1,0 +1,130 @@
+{
+  "id": "messaging-mattermost",
+  "title": "Mattermost Integration",
+  "source_path": "user-guide/messaging/mattermost.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/mattermost",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Mattermost integration via REST API v4 and WebSocket, covering bot account creation, team/channel configuration, thread vs flat reply modes, mention behavior, per-channel system prompt overrides, and self-hosted Slack alternative positioning.",
+  "key_concepts": [
+    "Mattermost REST API v4 for sending messages",
+    "WebSocket for real-time message events",
+    "Bot account with personal access token",
+    "Team and channel scoping",
+    "Thread replies vs flat channel posts",
+    "Mention-only mode for channels",
+    "Per-channel system prompt overrides",
+    "Self-hosted alternative to Slack",
+    "Direct message support"
+  ],
+  "env_vars": [
+    {
+      "name": "MATTERMOST_URL",
+      "required": true,
+      "default": null,
+      "description": "Mattermost server URL (e.g. https://mattermost.example.com)"
+    },
+    {
+      "name": "MATTERMOST_TOKEN",
+      "required": true,
+      "default": null,
+      "description": "Personal access token for the bot account"
+    },
+    {
+      "name": "MATTERMOST_TEAM",
+      "required": false,
+      "default": null,
+      "description": "Team name to restrict bot to; if unset bot works across all teams"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway including Mattermost WebSocket listener"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "mattermost.url",
+      "type": "string",
+      "description": "Mattermost server URL"
+    },
+    {
+      "key": "mattermost.token",
+      "type": "string",
+      "description": "Bot account personal access token"
+    },
+    {
+      "key": "mattermost.team",
+      "type": "string",
+      "description": "Team name to restrict bot to"
+    },
+    {
+      "key": "mattermost.allowed_channels",
+      "type": "list[str]",
+      "description": "Channel names or IDs the bot responds in"
+    },
+    {
+      "key": "mattermost.mention_only",
+      "type": "bool",
+      "description": "Only respond when @mentioned (default: true for channels, false for DMs)"
+    },
+    {
+      "key": "mattermost.thread_reply",
+      "type": "bool",
+      "description": "Reply in thread (default: true); false = post to channel root"
+    },
+    {
+      "key": "mattermost.per_channel_prompts",
+      "type": "dict",
+      "description": "Map of channel name/ID to system prompt override"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "title": "Create bot account",
+      "language": "text",
+      "code": "Mattermost > Main Menu > Integrations > Bot Accounts > Add Bot Account\nUsername: hermes-bot, Role: Member\nCopy the personal access token shown after creation"
+    },
+    {
+      "title": "Mattermost config",
+      "language": "yaml",
+      "code": "mattermost:\n  url: \"https://mattermost.example.com\"\n  token: \"${MATTERMOST_TOKEN}\"\n  team: \"my-team\"\n  allowed_channels:\n    - town-square\n    - hermes-ai\n  mention_only: true\n  thread_reply: true"
+    },
+    {
+      "title": "Per-channel prompt override",
+      "language": "yaml",
+      "code": "mattermost:\n  per_channel_prompts:\n    hermes-ai: \"You are a technical assistant.\"\n    support: \"You are a customer support agent.\""
+    }
+  ],
+  "gotchas": [
+    "Bot accounts require System Admin to enable \"Enable Bot Account Creation\" in System Console > Integrations > Bot Accounts",
+    "Personal access tokens must be enabled by System Admin in System Console > Integrations > Integration Management",
+    "WebSocket connection uses /api/v4/websocket; firewall rules must allow WebSocket upgrades on the Mattermost port",
+    "thread_reply: false posts to the channel root which can be noisy in busy channels",
+    "Mention format in Mattermost is @username not @display_name",
+    "Rate limits apply per-user: Mattermost default is 300 requests/minute per user"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-slack",
+    "messaging-discord"
+  ],
+  "keywords": [
+    "mattermost",
+    "rest api",
+    "websocket",
+    "bot account",
+    "personal access token",
+    "team",
+    "channel",
+    "thread reply",
+    "mention only",
+    "per-channel prompts",
+    "self-hosted",
+    "slack alternative",
+    "direct message"
+  ],
+  "full_text": "## Mattermost\n\nConnect Hermes to [Mattermost](https://mattermost.com/) via REST API v4 and WebSocket.\n\n### Setup\n\n#### 1. Enable bot accounts and personal access tokens\n\nIn **System Console > Integrations**:\n- Enable **Bot Account Creation**\n- Enable **Personal Access Tokens** under Integration Management\n\n#### 2. Create a bot account\n\nGo to **Main Menu > Integrations > Bot Accounts > Add Bot Account**:\n- Username: `hermes-bot`, Role: Member\n- Copy the personal access token.\n\n#### 3. Config\n\n```yaml\nmattermost:\n  url: \"https://mattermost.example.com\"\n  token: \"${MATTERMOST_TOKEN}\"\n  team: \"my-team\"\n  allowed_channels:\n    - town-square\n    - hermes-ai\n  mention_only: true\n  thread_reply: true\n```\n\n### Session model\n\nEach Mattermost user gets their own isolated Hermes session. DMs and channel conversations are separate sessions.\n\n### Thread vs flat replies\n\nBy default (`thread_reply: true`), Hermes replies inside a thread. Set `thread_reply: false` to post to the channel root.\n\n### Mention behavior\n\nIn channels, Hermes responds only when @mentioned. In DMs it always responds.\n\n### Per-channel prompts\n\n```yaml\nmattermost:\n  per_channel_prompts:\n    hermes-ai: \"You are a technical assistant.\"\n    support: \"You are a customer support agent.\"\n```\n\n### Direct messages\n\nThe bot accepts DMs from any team member. Use `allowed_channels` with DM channel IDs to restrict further."
+}

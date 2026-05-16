@@ -1,0 +1,55 @@
+{
+  "id": "dev-extending-the-cli",
+  "title": "Extending the CLI",
+  "source_path": "website/docs/developer-guide/extending-the-cli.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/extending-the-cli",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the five extension hooks on HermesCLI for building wrapper CLIs that add custom widgets, keybindings, layout customizations, slash commands, and styles without overriding the main run() method.",
+  "key_concepts": [
+    "HermesCLI subclass",
+    "extension hooks",
+    "_get_extra_tui_widgets",
+    "_register_extra_tui_keybindings",
+    "_build_tui_layout_children",
+    "process_command",
+    "prompt_toolkit",
+    "keybindings"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Wrapper CLI with custom widget and keybinding",
+      "code": "from cli import HermesCLI\nfrom prompt_toolkit.layout import FormattedTextControl, Window\nfrom prompt_toolkit.filters import Condition\n\nclass MyCLI(HermesCLI):\n    def _get_extra_tui_widgets(self):\n        return [Window(FormattedTextControl(lambda: \"My panel\"), height=1,\n                       filter=Condition(lambda: self._panel_visible))]\n\n    def _register_extra_tui_keybindings(self, kb, *, input_area):\n        @kb.add(\"f2\")\n        def _toggle(event): self._panel_visible = not self._panel_visible\n\n    def process_command(self, cmd: str) -> bool:\n        if cmd.strip().lower() == \"/panel\":\n            self._panel_visible = not self._panel_visible\n            return True\n        return super().process_command(cmd)"
+    }
+  ],
+  "gotchas": [
+    "Avoid conflicts with built-in keybindings: Enter, Escape Enter, Ctrl-C, Ctrl-D, Tab",
+    "Call self._invalidate() after state changes to trigger a prompt_toolkit redraw",
+    "Don't override run() unless absolutely necessary — the extension hooks exist to avoid that coupling",
+    "Function keys F2+ and Ctrl-combinations are generally safe for custom bindings",
+    "Extra widgets appear between the spacer and the status bar"
+  ],
+  "cross_refs": [
+    "dev-architecture",
+    "cli"
+  ],
+  "keywords": [
+    "extending CLI",
+    "HermesCLI",
+    "wrapper CLI",
+    "TUI widgets",
+    "keybindings",
+    "prompt_toolkit",
+    "custom slash commands",
+    "_get_extra_tui_widgets",
+    "layout children",
+    "extension hooks",
+    "process_command"
+  ],
+  "full_text": "# Extending the CLI\n\nHermes exposes protected extension hooks on `HermesCLI` so wrapper CLIs can add widgets, keybindings, and layout customizations without overriding the 1000+ line `run()` method.\n\n## Extension points\n\n| Hook | Purpose | Override when... |\n|------|---------|------------------|\n| `_get_extra_tui_widgets()` | Inject widgets into the layout | You need a persistent UI element |\n| `_register_extra_tui_keybindings(kb, *, input_area)` | Add keyboard shortcuts | You need hotkeys |\n| `_build_tui_layout_children(**widgets)` | Full control over widget ordering | You need to reorder or wrap existing widgets |\n| `process_command()` | Add custom slash commands | You need `/mycommand` handling |\n| `_build_tui_style_dict()` | Custom prompt_toolkit styles | You need custom colors |\n\n## Quick start: a wrapper CLI\n\n```python\nfrom cli import HermesCLI\nfrom prompt_toolkit.layout import FormattedTextControl, Window\nfrom prompt_toolkit.filters import Condition\n\nclass MyCLI(HermesCLI):\n\n    def __init__(self, **kwargs):\n        super().__init__(**kwargs)\n        self._panel_visible = False\n\n    def _get_extra_tui_widgets(self):\n        cli_ref = self\n        return [\n            Window(\n                FormattedTextControl(lambda: \"My custom panel content\"),\n                height=1,\n                filter=Condition(lambda: cli_ref._panel_visible),\n            ),\n        ]\n\n    def _register_extra_tui_keybindings(self, kb, *, input_area):\n        cli_ref = self\n\n        @kb.add(\"f2\")\n        def _toggle_panel(event):\n            cli_ref._panel_visible = not cli_ref._panel_visible\n\n    def process_command(self, cmd: str) -> bool:\n        if cmd.strip().lower() == \"/panel\":\n            self._panel_visible = not self._panel_visible\n            return True\n        return super().process_command(cmd)\n\nif __name__ == \"__main__\":\n    cli = MyCLI()\n    cli.run()\n```\n\n## Hook reference\n\n### `_get_extra_tui_widgets()`\n\nReturns a list of prompt_toolkit widgets to insert into the TUI layout. Widgets appear **between the spacer and the status bar**.\n\n```python\ndef _get_extra_tui_widgets(self) -> list:\n    return []  # default: no extra widgets\n```\n\n### `_register_extra_tui_keybindings(kb, *, input_area)`\n\nCalled after Hermes registers its own keybindings and before the layout is built.\n\nParameters:\n- **`kb`** — The `KeyBindings` instance for the prompt_toolkit application\n- **`input_area`** — The main `TextArea` widget\n\n**Avoid conflicts** with built-in keybindings: `Enter`, `Escape Enter`, `Ctrl-C`, `Ctrl-D`, `Tab`. Function keys F2+ and Ctrl-combinations are generally safe.\n\n### `_build_tui_layout_children(**widgets)`\n\nOverride this only when you need full control over widget ordering. The default implementation includes widgets in this order:\n```\nWindow(height=0), sudo_widget, secret_widget, approval_widget, clarify_widget,\nmodel_picker_widget, spinner_widget, spacer, *self._get_extra_tui_widgets(),\nstatus_bar, input_rule_top, image_bar, input_area, input_rule_bot,\nvoice_status_bar, completions_menu\n```\n\n## Layout diagram\n\n1. **Output area** — scrolling conversation history\n2. **Spacer**\n3. **Extra widgets** — from `_get_extra_tui_widgets()`\n4. **Status bar** — model, context %, elapsed time\n5. **Image bar** — attached image count\n6. **Input area** — user prompt\n7. **Voice status** — recording indicator\n8. **Completions menu** — autocomplete suggestions\n\n## Tips\n\n- **Invalidate the display** after state changes: call `self._invalidate()`\n- **Access agent state**: `self.agent`, `self.model`, `self.conversation_history` are available\n- **Don't override `run()`** unless absolutely necessary — the extension hooks exist specifically to avoid that coupling"
+}

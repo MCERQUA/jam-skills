@@ -1,0 +1,222 @@
+{
+  "id": "security",
+  "title": "Security",
+  "source_path": "website/docs/user-guide/security.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/security",
+  "category": "user-guide",
+  "subcategory": "",
+  "summary": "Comprehensive security reference covering command approval modes, hardline blocklist, YOLO mode, user authorization, DM pairing, container isolation, MCP credential filtering, SSRF protection, and context file injection protection.",
+  "key_concepts": [
+    "dangerous command approval",
+    "YOLO mode",
+    "hardline blocklist",
+    "user authorization",
+    "DM pairing",
+    "container isolation",
+    "SSRF protection",
+    "MCP credential filtering",
+    "tirith scanning",
+    "prompt injection protection",
+    "environment passthrough"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_YOLO_MODE",
+      "purpose": "Set to 1 to disable all approval prompts for the session",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_EXEC_ASK",
+      "purpose": "Automatically set to 1 when running the gateway",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TELEGRAM_ALLOWED_USERS",
+      "purpose": "Comma-separated Telegram user IDs allowed to use the bot",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DISCORD_ALLOWED_USERS",
+      "purpose": "Comma-separated Discord user IDs allowed to use the bot",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WHATSAPP_ALLOWED_USERS",
+      "purpose": "Comma-separated WhatsApp identifiers allowed",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GATEWAY_ALLOWED_USERS",
+      "purpose": "Cross-platform allowlist of user IDs",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GATEWAY_ALLOW_ALL_USERS",
+      "purpose": "Set to true to allow all users (use with extreme caution)",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DISCORD_ALLOW_ALL_USERS",
+      "purpose": "Set to true to allow all Discord users",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes --yolo",
+      "purpose": "Start session with all approval prompts bypassed"
+    },
+    {
+      "command": "hermes pairing list",
+      "purpose": "List pending and approved pairing users"
+    },
+    {
+      "command": "hermes pairing approve <platform> <code>",
+      "purpose": "Approve a pairing code"
+    },
+    {
+      "command": "hermes pairing revoke <platform> <user_id>",
+      "purpose": "Revoke user access"
+    },
+    {
+      "command": "hermes pairing clear-pending",
+      "purpose": "Clear all pending pairing codes"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "approvals.mode",
+      "type": "string",
+      "default": "manual",
+      "description": "Approval mode: manual | smart | off",
+      "example": "smart"
+    },
+    {
+      "path": "approvals.timeout",
+      "type": "integer",
+      "default": 60,
+      "description": "Seconds to wait for user approval response",
+      "example": 120
+    },
+    {
+      "path": "command_allowlist",
+      "type": "array",
+      "default": null,
+      "description": "Permanently allowed dangerous command patterns",
+      "example": "[\"rm\", \"systemctl\"]"
+    },
+    {
+      "path": "security.redact_secrets",
+      "type": "boolean",
+      "default": false,
+      "description": "Redact API key patterns in tool output and logs",
+      "example": true
+    },
+    {
+      "path": "security.tirith_enabled",
+      "type": "boolean",
+      "default": true,
+      "description": "Enable Tirith pre-exec security scanning",
+      "example": false
+    },
+    {
+      "path": "security.tirith_fail_open",
+      "type": "boolean",
+      "default": true,
+      "description": "Allow execution when tirith is unavailable",
+      "example": false
+    },
+    {
+      "path": "security.website_blocklist.enabled",
+      "type": "boolean",
+      "default": false,
+      "description": "Enable URL blocking",
+      "example": true
+    },
+    {
+      "path": "security.allow_private_urls",
+      "type": "boolean",
+      "default": false,
+      "description": "Allow web tools to access private/internal URLs",
+      "example": true
+    },
+    {
+      "path": "unauthorized_dm_behavior",
+      "type": "string",
+      "default": "pair",
+      "description": "How to handle unauthorized DMs: pair | ignore",
+      "example": "ignore"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/yolo",
+      "purpose": "Toggle YOLO mode (bypass all approval prompts)"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "Approval mode configuration",
+      "code": "approvals:\n  mode: smart    # manual | smart | off\n  timeout: 60"
+    },
+    {
+      "language": "bash",
+      "caption": "Platform allowlists in .env",
+      "code": "TELEGRAM_ALLOWED_USERS=123456789,987654321\nDISCORD_ALLOWED_USERS=111222333444555666\nGATEWAY_ALLOWED_USERS=123456789"
+    },
+    {
+      "language": "yaml",
+      "caption": "Security configuration",
+      "code": "security:\n  tirith_enabled: true\n  tirith_fail_open: true\n  website_blocklist:\n    enabled: true\n    domains:\n      - \"*.internal.company.com\""
+    },
+    {
+      "language": "yaml",
+      "caption": "Unauthorized DM behavior",
+      "code": "unauthorized_dm_behavior: pair\nwhatsapp:\n  unauthorized_dm_behavior: ignore"
+    },
+    {
+      "language": "bash",
+      "caption": "Securing the .env file",
+      "code": "chmod 600 ~/.hermes/.env"
+    }
+  ],
+  "gotchas": [
+    "YOLO mode is still blocked by the hardline blocklist — some commands cannot be executed regardless",
+    "When no allowlists are configured and GATEWAY_ALLOW_ALL_USERS is not set, ALL users are denied",
+    "Container backends (docker, modal, singularity, etc.) skip dangerous command checks entirely",
+    "MCP subprocesses only receive PATH, HOME, USER, LANG, LC_ALL, TERM, SHELL, TMPDIR + XDG_* by default",
+    "Tirith is silently skipped on Windows — pattern-matching guards still run",
+    "allow_private_urls: true disables SSRF protection for RFC1918/loopback/link-local — only use on trusted machines",
+    "Pairing codes expire after 1 hour; rate limited to 1 request per user per 10 minutes"
+  ],
+  "cross_refs": [
+    "configuration",
+    "docker"
+  ],
+  "keywords": [
+    "security",
+    "command approval",
+    "YOLO mode",
+    "hardline blocklist",
+    "user authorization",
+    "DM pairing",
+    "allowlist",
+    "container isolation",
+    "MCP credentials",
+    "SSRF",
+    "prompt injection",
+    "tirith",
+    "credential filtering",
+    "env passthrough"
+  ],
+  "full_text": "# Security\n\n# Security\n\nHermes Agent is designed with a defense-in-depth security model. This page covers every security boundary — from command approval to container isolation to user authorization on messaging platforms.\n\n## Overview\n\nThe security model has seven layers:\n\n1. **User authorization** — who can talk to the agent (allowlists, DM pairing)\n2. **Dangerous command approval** — human-in-the-loop for destructive operations\n3. **Container isolation** — Docker/Singularity/Modal sandboxing with hardened settings\n4. **MCP credential filtering** — environment variable isolation for MCP subprocesses\n5. **Context file scanning** — prompt injection detection in project files\n6. **Cross-session isolation** — sessions cannot access each other's data\n7. **Input sanitization** — working directory parameters validated against allowlist\n\n## Dangerous Command Approval\n\n### Approval Modes\n\n```yaml\napprovals:\n  mode: manual    # manual | smart | off\n  timeout: 60\n```\n\n| Mode | Behavior |\n|------|----------|\n| **manual** (default) | Always prompt the user for approval |\n| **smart** | Use auxiliary LLM to assess risk. Low-risk auto-approved, risky auto-denied, uncertain escalated |\n| **off** | Disable all approval checks — equivalent to `--yolo` |\n\n### YOLO Mode\n\nBypasses ALL dangerous command approval prompts for the current session:\n\n1. **CLI flag**: `hermes --yolo` or `hermes chat --yolo`\n2. **Slash command**: `/yolo` (toggle on/off)\n3. **Env var**: `HERMES_YOLO_MODE=1`\n\n```\n> /yolo\n  ⚡ YOLO mode ON — all commands auto-approved. Use with caution.\n```\n\n### Hardline Blocklist (Always-On Floor)\n\nAlways blocked, regardless of `--yolo` or `approvals.mode: off`:\n\n| Pattern | Why it's hardline |\n|---|---|\n| `rm -rf /` and obvious variants | Wipes the filesystem root |\n| `:(){ :\\|:& };:` (bash fork bomb) | Pegs the host until reboot |\n| `mkfs.*` on mounted root device | Formats the live system |\n| `dd if=/dev/zero of=/dev/sd*` | Zeroes a physical disk |\n| Piping untrusted URLs to `sh` at rootfs | Remote-code-execution attack vector |\n\n### What Triggers Approval\n\n| Pattern | Description |\n|---------|-------------|\n| `rm -r` / `rm --recursive` | Recursive delete |\n| `chmod 777/666` | World/other-writable permissions |\n| `chown -R root` | Recursive chown to root |\n| `mkfs` | Format filesystem |\n| `dd if=` | Disk copy |\n| `DROP TABLE/DATABASE` | SQL DROP |\n| `DELETE FROM` (without WHERE) | SQL DELETE without WHERE |\n| `> /etc/` | Overwrite system config |\n| `systemctl stop/restart/disable` | Stop/restart system services |\n| `curl ... \\| sh` | Pipe remote content to shell |\n| `bash -c` / `sh -c` | Shell command execution via `-c` flag |\n| `tee` to `~/.ssh/`, `~/.hermes/.env` | Overwrite sensitive file |\n\n:::info Container bypass\nWhen running in `docker`, `singularity`, `modal`, `daytona`, or `vercel_sandbox` backends, dangerous command checks are **skipped** — the container itself is the security boundary.\n:::\n\n### Approval Flow (CLI)\n\n```\n  ⚠️  DANGEROUS COMMAND: recursive delete\n      rm -rf /tmp/old-project\n\n      [o]nce  |  [s]ession  |  [a]lways  |  [d]eny\n\n      Choice [o/s/a/D]:\n```\n\n### Permanent Allowlist\n\n```yaml\ncommand_allowlist:\n  - rm\n  - systemctl\n```\n\n## User Authorization (Gateway)\n\n### Authorization Check Order\n\n1. Per-platform allow-all flag (e.g. `DISCORD_ALLOW_ALL_USERS=true`)\n2. DM pairing approved list\n3. Platform-specific allowlists (e.g. `TELEGRAM_ALLOWED_USERS=12345`)\n4. Global allowlist (`GATEWAY_ALLOWED_USERS=12345`)\n5. Global allow-all (`GATEWAY_ALLOW_ALL_USERS=true`)\n6. Default: **deny**\n\n### Platform Allowlists\n\n```bash\nTELEGRAM_ALLOWED_USERS=123456789,987654321\nDISCORD_ALLOWED_USERS=111222333444555666\nWHATSAPP_ALLOWED_USERS=15551234567\nGATEWAY_ALLOWED_USERS=123456789\nGATEWAY_ALLOW_ALL_USERS=true\n```\n\n### DM Pairing System\n\n1. Unknown user sends a DM → bot replies with 8-character pairing code\n2. Owner runs `hermes pairing approve <platform> <code>`\n3. User is permanently approved\n\nSecurity features:\n- 8-char code from 32-char unambiguous alphabet (no 0/O/1/I)\n- Cryptographic randomness (`secrets.choice()`)\n- 1 hour expiry\n- 1 request per user per 10 minutes rate limit\n- Max 3 pending codes per platform\n- 5 failed attempts → 1-hour lockout\n\n```bash\nhermes pairing list\nhermes pairing approve telegram ABC12DEF\nhermes pairing revoke telegram 123456789\nhermes pairing clear-pending\n```\n\nControl unauthorized DM behavior:\n```yaml\nunauthorized_dm_behavior: pair   # pair | ignore\nwhatsapp:\n  unauthorized_dm_behavior: ignore\n```\n\n## Container Isolation\n\nDocker security hardening applied to every container:\n\n```python\n_SECURITY_ARGS = [\n    \"--cap-drop\", \"ALL\",\n    \"--cap-add\", \"DAC_OVERRIDE\",\n    \"--cap-add\", \"CHOWN\",\n    \"--cap-add\", \"FOWNER\",\n    \"--security-opt\", \"no-new-privileges\",\n    \"--pids-limit\", \"256\",\n    \"--tmpfs\", \"/tmp:rw,nosuid,size=512m\",\n    \"--tmpfs\", \"/var/tmp:rw,noexec,nosuid,size=256m\",\n    \"--tmpfs\", \"/run:rw,noexec,nosuid,size=64m\",\n]\n```\n\n## Terminal Backend Security Comparison\n\n| Backend | Isolation | Dangerous Cmd Check |\n|---------|-----------|-------------------|\n| **local** | None | ✅ Yes |\n| **ssh** | Remote machine | ✅ Yes |\n| **docker** | Container | ❌ Skipped |\n| **singularity** | Container | ❌ Skipped |\n| **modal** | Cloud sandbox | ❌ Skipped |\n\n## Environment Variable Passthrough\n\n**Skill-scoped passthrough (automatic):**\n```yaml\n# In SKILL.md frontmatter\nrequired_environment_variables:\n  - name: TENOR_API_KEY\n    prompt: Tenor API key\n```\n\n**Config-based passthrough (manual):**\n```yaml\nterminal:\n  env_passthrough:\n    - MY_CUSTOM_KEY\n```\n\n**Credential file passthrough:**\n```yaml\n# In SKILL.md frontmatter\nrequired_credential_files:\n  - path: google_token.json\n    description: Google OAuth2 token\n```\n\n## MCP Credential Handling\n\nMCP stdio subprocesses receive a filtered environment:\n- Allowed through: `PATH, HOME, USER, LANG, LC_ALL, TERM, SHELL, TMPDIR` + `XDG_*`\n- All API keys, tokens, secrets are stripped\n- Explicitly defined `env` vars in MCP config pass through\n\n## SSRF Protection\n\nAll URL-capable tools validate URLs before fetching. Blocked:\n- Private networks (RFC 1918): `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`\n- Loopback: `127.0.0.0/8`, `::1`\n- Link-local: `169.254.0.0/16` (includes cloud metadata)\n- CGNAT (RFC 6598): `100.64.0.0/10`\n\nOpt-in to allow private URLs:\n```yaml\nsecurity:\n  allow_private_urls: true   # default: false\n```\n\n## Tirith Pre-Exec Security Scanning\n\n```yaml\nsecurity:\n  tirith_enabled: true\n  tirith_path: \"tirith\"\n  tirith_timeout: 5\n  tirith_fail_open: true\n```\n\nDetects: homograph URL spoofing, pipe-to-interpreter patterns, terminal injection attacks.\n\n## Context File Injection Protection\n\nContext files (AGENTS.md, .cursorrules, SOUL.md) are scanned for:\n- Instructions to ignore prior instructions\n- Hidden HTML comments with suspicious keywords\n- Attempts to read secrets\n- Credential exfiltration via curl\n- Invisible Unicode characters\n\n## Best Practices\n\n1. Set explicit allowlists — never use `GATEWAY_ALLOW_ALL_USERS=true` in production\n2. Use container backend — set `terminal.backend: docker`\n3. Restrict resource limits\n4. Store secrets in `~/.hermes/.env` with proper file permissions: `chmod 600 ~/.hermes/.env`\n5. Enable DM pairing\n6. Review `command_allowlist` periodically\n7. Set `MESSAGING_CWD` appropriately\n8. Run as non-root\n9. Monitor logs in `~/.hermes/logs/`\n10. Keep updated with `hermes update`\n"
+}

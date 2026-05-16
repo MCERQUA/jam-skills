@@ -1,0 +1,98 @@
+{
+  "id": "context-files",
+  "title": "Context Files",
+  "source_path": "website/docs/user-guide/features/context-files.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Hermes Agent automatically discovers and loads context files that shape how it behaves. Some are project-local and discovered from your working directory.",
+  "key_concepts": [
+    "Supported Context Files",
+    "AGENTS.md",
+    "Progressive Subdirectory Discovery",
+    "Example AGENTS.md",
+    "Architecture",
+    "Conventions",
+    "Important Notes",
+    "SOUL.md"
+  ],
+  "env_vars": [
+    {
+      "name": "API_KEY",
+      "purpose": "Referenced in context-files",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/frontend",
+      "purpose": ""
+    },
+    {
+      "command": "/backend",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "",
+      "caption": "",
+      "code": "my-project/\n├── AGENTS.md              ← Loaded at startup (system prompt)\n├── frontend/\n│   └── AGENTS.md          ← Discovered when agent reads frontend/ files\n├── backend/\n│   └── AGENTS.md          ← Discovered when agent reads backend/ files\n└── shared/\n    └── AGENTS.md          ← Discovered when agent reads shared/ files\n"
+    },
+    {
+      "language": "markdown",
+      "caption": "",
+      "code": "# Project Context\n\nThis is a Next.js 14 web application with a Python FastAPI backend.\n\n## Architecture\n- Frontend: Next.js 14 with App Router in `/frontend`\n- Backend: FastAPI in `/backend`, uses SQLAlchemy ORM\n- Database: PostgreSQL 16\n- Deployment: Docker Compose on a Hetzner VPS\n\n## Conventions\n- Use TypeScript strict mode for all frontend code\n- Python code follows PEP 8, use type hints everywhere\n- All API endpoints return JSON with `{data, error, meta}` shape\n- Tests go in `__tests__/` directories (frontend) or `tests/` (backend)\n\n## Important Notes\n- Never modify migration files directly — use Alembic commands\n- The `.env.local` file has real API keys, don't commit it\n- Frontend port is 3000, backend is 8000, DB is 5432\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "# Project Context\n\nThe following project context files have been loaded and should be followed:\n\n## AGENTS.md\n\n[Your AGENTS.md content here]\n\n## .cursorrules\n\n[Your .cursorrules content here]\n\n[Your SOUL.md content here]\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "[BLOCKED: AGENTS.md contained potential prompt injection (prompt_injection). Content not loaded.]\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "[...truncated AGENTS.md: kept 14000+4000 of 25000 chars. Use file tools to read the full file.]\n"
+    },
+    {
+      "language": "markdown",
+      "caption": "",
+      "code": "<!-- frontend/AGENTS.md -->\n# Frontend Context\n\n- Use `pnpm` not `npm` for package management\n- Components go in `src/components/`, pages in `src/app/`\n- Use Tailwind CSS, never inline styles\n- Run tests with `pnpm test`\n"
+    },
+    {
+      "language": "markdown",
+      "caption": "",
+      "code": "<!-- backend/AGENTS.md -->\n# Backend Context\n\n- Use `poetry` for dependency management\n- Run the dev server with `poetry run uvicorn main:app --reload`\n- All endpoints need OpenAPI docstrings\n- Database models are in `models/`, schemas in `schemas/`\n"
+    }
+  ],
+  "gotchas": [
+    "This scanner protects against common injection patterns, but it's not a substitute for reviewing context files in shared repositories. Always validate AGENTS.md content in projects you didn't author."
+  ],
+  "cross_refs": [],
+  "keywords": [
+    ".cursorrules",
+    ".hermes.md",
+    "agents.md",
+    "assembly",
+    "claude.md",
+    "context",
+    "context-files",
+    "files",
+    "hermes.md",
+    "injection",
+    "location:",
+    "npm",
+    "path",
+    "pnpm",
+    "poetry"
+  ],
+  "full_text": "# Context Files\n\n# Context Files\n\nHermes Agent automatically discovers and loads context files that shape how it behaves. Some are project-local and discovered from your working directory. `SOUL.md` is now global to the Hermes instance and is loaded from `HERMES_HOME` only.\n\n## Supported Context Files\n\n| File | Purpose | Discovery |\n|------|---------|-----------| \n| **.hermes.md** / **HERMES.md** | Project instructions (highest priority) | Walks to git root |\n| **AGENTS.md** | Project instructions, conventions, architecture | CWD at startup + subdirectories progressively |\n| **CLAUDE.md** | Claude Code context files (also detected) | CWD at startup + subdirectories progressively |\n| **SOUL.md** | Global personality and tone customization for this Hermes instance | `HERMES_HOME/SOUL.md` only |\n| **.cursorrules** | Cursor IDE coding conventions | CWD only |\n| **.cursor/rules/*.mdc** | Cursor IDE rule modules | CWD only |\n\n:::info Priority system\nOnly **one** project context type is loaded per session (first match wins): `.hermes.md` → `AGENTS.md` → `CLAUDE.md` → `.cursorrules`. **SOUL.md** is always loaded independently as the agent identity (slot #1).\n:::\n\n## AGENTS.md\n\n`AGENTS.md` is the primary project context file. It tells the agent how your project is structured, what conventions to follow, and any special instructions.\n\n### Progressive Subdirectory Discovery\n\nAt session start, Hermes loads the `AGENTS.md` from your working directory into the system prompt. As the agent navigates into subdirectories during the session (via `read_file`, `terminal`, `search_files`, etc.), it **progressively discovers** context files in those directories and injects them into the conversation at the moment they become relevant.\n\n```\nmy-project/\n├── AGENTS.md              ← Loaded at startup (system prompt)\n├── frontend/\n│   └── AGENTS.md          ← Discovered when agent reads frontend/ files\n├── backend/\n│   └── AGENTS.md          ← Discovered when agent reads backend/ files\n└── shared/\n    └── AGENTS.md          ← Discovered when agent reads shared/ files\n```\n\nThis approach has two advantages over loading everything at startup:\n- **No system prompt bloat** — subdirectory hints only appear when needed\n- **Prompt cache preservation** — the system prompt stays stable across turns\n\nEach subdirectory is checked at most once per session. The discovery also walks up parent directories, so reading `backend/src/main.py` will discover `backend/AGENTS.md` even if `backend/src/` has no context file of its own.\n\n:::info\nSubdirectory context files go through the same [security scan](#security-prompt-injection-protection) as startup context files. Malicious files are blocked.\n:::\n\n### Example AGENTS.md\n\n```markdown\n# Project Context\n\nThis is a Next.js 14 web application with a Python FastAPI backend.\n\n## Architecture\n- Frontend: Next.js 14 with App Router in `/frontend`\n- Backend: FastAPI in `/backend`, uses SQLAlchemy ORM\n- Database: PostgreSQL 16\n- Deployment: Docker Compose on a Hetzner VPS\n\n## Conventions\n- Use TypeScript strict mode for all frontend code\n- Python code follows PEP 8, use type hints everywhere\n- All API endpoints return JSON with `{data, error, meta}` shape\n- Tests go in `__tests__/` directories (frontend) or `tests/` (backend)\n\n## Important Notes\n- Never modify migration files directly — use Alembic commands\n- The `.env.local` file has real API keys, don't commit it\n- Frontend port is 3000, backend is 8000, DB is 5432\n```\n\n## SOUL.md\n\n`SOUL.md` controls the agent's personality, tone, and communication style. See the [Personality](/docs/user-guide/features/personality) page for full details.\n\n**Location:**\n\n- `~/.hermes/SOUL.md`\n- or `$HERMES_HOME/SOUL.md` if you run Hermes with a custom home directory\n\nImportant details:\n\n- Hermes seeds a default `SOUL.md` automatically if one does not exist yet\n- Hermes loads `SOUL.md` only from `HERMES_HOME`\n- Hermes does not probe the working directory for `SOUL.md`\n- If the file is empty, nothing from `SOUL.md` is added to the prompt\n- If the file has content, the content is injected verbatim after scanning and truncation\n\n## .cursorrules\n\nHermes is compatible with Cursor IDE's `.cursorrules` file and `.cursor/rules/*.mdc` rule modules. If these files exist in your project root and no higher-priority context file (`.hermes.md`, `AGENTS.md`, or `CLAUDE.md`) is found, they're loaded as the project context.\n\nThis means your existing Cursor conventions automatically apply when using Hermes.\n\n## How Context Files Are Loaded\n\n### At startup (system prompt)\n\nContext files are loaded by `build_context_files_prompt()` in `agent/prompt_builder.py`:\n\n1. **Scan working directory** — checks for `.hermes.md` → `AGENTS.md` → `CLAUDE.md` → `.cursorrules` (first match wins)\n2. **Content is read** — each file is read as UTF-8 text\n3. **Security scan** — content is checked for prompt injection patterns\n4. **Truncation** — files exceeding 20,000 characters are head/tail truncated (70% head, 20% tail, with a marker in the middle)\n5. **Assembly** — all sections are combined under a `# Project Context` header\n6. **Injection** — the assembled content is added to the system prompt\n\n### During the session (progressive discovery)\n\n`SubdirectoryHintTracker` in `agent/subdirectory_hints.py` watches tool call arguments for file paths:\n\n1. **Path extraction** — after each tool call, file paths are extracted from arguments (`path`, `workdir`, shell commands)\n2. **Ancestor walk** — the directory and up to 5 parent directories are checked (stopping at already-visited directories)\n3. **Hint loading** — if an `AGENTS.md`, `CLAUDE.md`, or `.cursorrules` is found, it's loaded (first match per directory)\n4. **Security scan** — same prompt injection scan as startup files\n5. **Truncation** — capped at 8,000 characters per file\n6. **Injection** — appended to the tool result, so the model sees it in context naturally\n\nThe final prompt section looks roughly like:\n\n```text\n# Project Context\n\nThe following project context files have been loaded and should be followed:\n\n## AGENTS.md\n\n[Your AGENTS.md content here]\n\n## .cursorrules\n\n[Your .cursorrules content here]\n\n[Your SOUL.md content here]\n```\n\nNotice that SOUL content is inserted directly, without extra wrapper text.\n\n## Security: Prompt Injection Protection\n\nAll context files are scanned for potential prompt injection before being included. The scanner checks for:\n\n- **Instruction override attempts**: \"ignore previous instructions\", \"disregard your rules\"\n- **Deception patterns**: \"do not tell the user\"\n- **System prompt overrides**: \"system prompt override\"\n- **Hidden HTML comments**: `<!-- ignore instructions -->`\n- **Hidden div elements**: `<div style=\"display:none\">`\n- **Credential exfiltration**: `curl ... $API_KEY`\n- **Secret file access**: `cat .env`, `cat credentials`\n- **Invisible characters**: zero-width spaces, bidirectional overrides, word joiners\n\nIf any threat pattern is detected, the file is blocked:\n\n```\n[BLOCKED: AGENTS.md contained potential prompt injection (prompt_injection). Content not loaded.]\n```\n\n:::warning\nThis scanner protects against common injection patterns, but it's not a substitute for reviewing context files in shared repositories. Always validate AGENTS.md content in projects you didn't author.\n:::\n\n## Size Limits\n\n| Limit | Value |\n|-------|-------|\n| Max chars per file | 20,000 (~7,000 tokens) |\n| Head truncation ratio | 70% |\n| Tail truncation ratio | 20% |\n| Truncation marker | 10% (shows char counts and suggests using file tools) |\n\nWhen a file exceeds 20,000 characters, the truncation message reads:\n\n```\n[...truncated AGENTS.md: kept 14000+4000 of 25000 chars. Use file tools to read the full file.]\n```\n\n## Tips for Effective Context Files\n\n:::tip Best practices for AGENTS.md\n1. **Keep it concise** — stay well under 20K chars; the agent reads it every turn\n2. **Structure with headers** — use `##` sections for architecture, conventions, important notes\n3. **Include concrete examples** — show preferred code patterns, API shapes, naming conventions\n4. **Mention what NOT to do** — \"never modify migration files directly\"\n5. **List key paths and ports** — the agent uses these for terminal commands\n6. **Update as the project evolves** — stale context is worse than no context\n:::\n\n### Per-Subdirectory Context\n\nFor monorepos, put subdirectory-specific instructions in nested AGENTS.md files:\n\n```markdown\n<!-- frontend/AGENTS.md -->\n# Frontend Context\n\n- Use `pnpm` not `npm` for package management\n- Components go in `src/components/`, pages in `src/app/`\n- Use Tailwind CSS, never inline styles\n- Run tests with `pnpm test`\n```\n\n```markdown\n<!-- backend/AGENTS.md -->\n# Backend Context\n\n- Use `poetry` for dependency management\n- Run the dev server with `poetry run uvicorn main:app --reload`\n- All endpoints need OpenAPI docstrings\n- Database models are in `models/`, schemas in `schemas/`\n```\n\n---"
+}

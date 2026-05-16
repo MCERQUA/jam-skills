@@ -1,0 +1,104 @@
+{
+  "id": "dev-provider-runtime",
+  "title": "Provider Runtime Resolution",
+  "source_path": "website/docs/developer-guide/provider-runtime.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/provider-runtime",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the shared provider runtime resolver used across CLI, gateway, cron, ACP, and auxiliary calls — covering resolution precedence, supported provider families, API modes, fallback model activation, and auxiliary model routing.",
+  "key_concepts": [
+    "provider resolution",
+    "API modes",
+    "resolution precedence",
+    "fallback model",
+    "auxiliary model routing",
+    "credential pools",
+    "ProviderProfile",
+    "runtime_provider"
+  ],
+  "env_vars": [
+    {
+      "name": "OPENROUTER_API_KEY",
+      "purpose": "API key for OpenRouter provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "AI_GATEWAY_API_KEY",
+      "purpose": "API key for Vercel AI Gateway",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "purpose": "API key for OpenAI / custom endpoints",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "ANTHROPIC_API_KEY",
+      "purpose": "API key for native Anthropic provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_INFERENCE_PROVIDER",
+      "purpose": "Override active provider for a run",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_INFERENCE_MODEL",
+      "purpose": "Override active model for a run",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "model.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Default inference provider",
+      "example": "openrouter"
+    },
+    {
+      "path": "fallback_providers",
+      "type": "list",
+      "default": "[]",
+      "description": "Ordered list of (provider, model) fallback entries",
+      "example": "[{provider: anthropic, model: claude-3-5-haiku}]"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [],
+  "gotchas": [
+    "OPENROUTER_API_KEY is only sent to openrouter.ai endpoints — never leaks to custom endpoints",
+    "Fallback is one-shot — once activated sets _fallback_activated=True, won't fire again",
+    "Subagent delegation does NOT inherit parent's fallback config",
+    "Cron jobs DO support fallback"
+  ],
+  "cross_refs": [
+    "dev-agent-loop",
+    "dev-acp-internals",
+    "dev-context-compression",
+    "dev-adding-providers",
+    "dev-model-provider-plugin"
+  ],
+  "keywords": [
+    "provider resolution",
+    "API mode",
+    "fallback model",
+    "auxiliary routing",
+    "OpenRouter",
+    "Anthropic",
+    "credential pool",
+    "runtime provider",
+    "provider families",
+    "chat_completions",
+    "anthropic_messages",
+    "codex_responses"
+  ],
+  "full_text": "# Provider Runtime Resolution\n\nHermes has a shared provider runtime resolver used across: CLI, gateway, cron jobs, ACP, and auxiliary model calls.\n\nPrimary implementation:\n- `hermes_cli/runtime_provider.py` — credential resolution\n- `hermes_cli/auth.py` — provider registry\n- `hermes_cli/model_switch.py` — shared `/model` switch pipeline\n- `agent/auxiliary_client.py` — auxiliary model routing\n- `providers/` — ABC + registry entry points\n\n## Resolution precedence\n\n1. explicit CLI/runtime request\n2. `config.yaml` model/provider config\n3. environment variables\n4. provider-specific defaults or auto resolution\n\n## Providers\n\nCurrent provider families include:\n- AI Gateway (Vercel), OpenRouter, Nous Portal, OpenAI Codex\n- Copilot / Copilot ACP, Anthropic (native)\n- Google / Gemini, Alibaba / DashScope, DeepSeek, Z.AI\n- Kimi / Moonshot, MiniMax, Kilo Code, Hugging Face\n- OpenCode Zen / OpenCode Go, AWS Bedrock, Azure Foundry\n- NVIDIA NIM, xAI (Grok), Arcee, GMI Cloud, StepFun\n- Qwen OAuth, Xiaomi, Ollama Cloud, LM Studio, Tencent TokenHub\n- Custom (any OpenAI-compatible endpoint)\n\n## Native Anthropic path\n\nWhen provider resolution selects `anthropic`, Hermes uses:\n- `api_mode = anthropic_messages`\n- the native Anthropic Messages API\n- `agent/anthropic_adapter.py` for translation\n\nClaude Code credentials treated as preferred source when they include refreshable auth.\n\n## OpenAI Codex path\n\nCodex uses a separate Responses API path:\n- `api_mode = codex_responses`\n- dedicated credential resolution and auth store support\n\n## Auxiliary model routing\n\nAuxiliary tasks (vision, web extraction summarization, context compression, session search, memory flushes) can use their own provider/model routing.\n\nWhen auxiliary task configured with provider `main`, Hermes resolves through the same shared runtime path as normal chat.\n\n## Fallback models\n\nHermes supports a configured fallback provider chain. The legacy single-pair `fallback_model` dict is still accepted (migrated on first write).\n\n### How it works internally\n\n1. **Storage**: `AIAgent.__init__` stores `fallback_model` dict\n2. **Trigger points**: `_try_activate_fallback()` called after:\n   - max retries on invalid API responses\n   - non-retryable client errors (HTTP 401, 403, 404)\n   - max retries on transient errors (HTTP 429, 500, 502, 503)\n3. **Activation flow**: Calls `resolve_provider_client()`, swaps `self.model`, `self.provider`, `self.base_url`, `self.api_mode`, `self.client` in-place\n4. Sets `_fallback_activated = True` — prevents firing again\n\nCron jobs **do** support fallback: `run_job()` reads `fallback_providers` from `config.yaml`."
+}

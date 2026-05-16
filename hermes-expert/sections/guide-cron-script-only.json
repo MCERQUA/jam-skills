@@ -1,0 +1,138 @@
+{
+  "id": "guide-cron-script-only",
+  "title": "Script-Only Cron Jobs (No LLM)",
+  "source_path": "website/docs/guides/cron-script-only.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/cron-script-only",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Sometimes you already know exactly what message you want to send. You don't need an agent to reason about it — you just need a script to run on a timer, and its output (if any) to land in Telegram / Discord / Slack / Signal. Hermes calls this **no-agent mode**. It's the cron system minus the LLM.",
+  "key_concepts": [
+    "When to Use It",
+    "Create One from Chat",
+    "Example transcript",
+    "What the agent decides for you",
+    "Managing watchdogs from chat",
+    "Create One from the CLI",
+    "How Script Output Maps to Delivery",
+    "Script Rules"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes cron create \"every 5m\" \\",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron list",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron run <job_id>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron create \"every 5m\"",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron create \"every 2h\"",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron create \"0 9 * * *\"",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron create \"30m\"",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron resume <job_id>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron edit <job_id> --schedule \"every 10m\"",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron edit <job_id> --agent",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron edit <job_id> --no-agent --script …",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron remove <job_id>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron create \"*/15 * * * *\" \\",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "",
+      "caption": "",
+      "code": "┌──────────────────┐          ┌──────────────────┐\n   │ scheduler tick   │  every   │ run script       │\n   │ (every N minutes)│ ──────▶ │ (bash or python) │\n   └──────────────────┘          └──────────────────┘\n                                          │\n                                          │ stdout\n                                          ▼\n                                 ┌──────────────────┐\n                                 │ delivery router  │\n                                 │ (telegram/disc…) │\n                                 └──────────────────┘"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# 1. Write the check script\nwrite_file(\n    path=\"~/.hermes/scripts/memory-watchdog.sh\",\n    content='''#!/usr/bin/env bash\nram_pct=$(free | awk '/^Mem:/ {printf \"%d\", $3 * 100 / $2}')\nif [ \"$ram_pct\" -ge 85 ]; then\n  echo \"RAM ${ram_pct}% on $(hostname)\"\nfi\n# Empty stdout = silent tick; no message sent.\n''',\n)\n\n# 2. Schedule it — no_agent=True skips the LLM on every tick\ncronjob(\n    action=\"create\",\n    schedule=\"every 5m\",\n    script=\"memory-watchdog.sh\",\n    no_agent=True,\n    deliver=\"telegram\",\n    name=\"memory-watchdog\",\n)"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# 1. Write your script\ncat > ~/.hermes/scripts/memory-watchdog.sh <<'EOF'\n#!/usr/bin/env bash\n# Alert when RAM usage is over 85%. Silent otherwise.\nRAM_PCT=$(free | awk '/^Mem:/ {printf \"%d\", $3 * 100 / $2}')\nif [ \"$RAM_PCT\" -ge 85 ]; then\n  echo \"⚠ RAM ${RAM_PCT}% on $(hostname)\"\nfi\n# Empty stdout = silent run; no message sent.\nEOF\nchmod +x ~/.hermes/scripts/memory-watchdog.sh\n\n# 2. Schedule it\nhermes cron create \"every 5m\" \\\n  --no-agent \\\n  --script memory-watchdog.sh \\\n  --deliver telegram \\\n  --name \"memory-watchdog\"\n\n# 3. Verify\nhermes cron list\nhermes cron run <job_id>    # fire it once to test"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron create \"every 5m\"        # interval\nhermes cron create \"every 2h\"\nhermes cron create \"0 9 * * *\"       # standard cron: 9am daily\nhermes cron create \"30m\"             # one-shot: run once in 30 minutes"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "--deliver telegram                       # platform home channel\n--deliver telegram:-1001234567890        # specific chat\n--deliver telegram:-1001234567890:17585  # specific Telegram forum topic\n--deliver discord:#ops\n--deliver slack:#engineering\n--deliver signal:+15551234567\n--deliver local                          # just save to ~/.hermes/cron/output/"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron list                                    # see all jobs\nhermes cron pause <job_id>                          # stop firing, keep definition\nhermes cron resume <job_id>\nhermes cron edit <job_id> --schedule \"every 10m\"    # adjust cadence\nhermes cron edit <job_id> --agent                   # flip to LLM mode\nhermes cron edit <job_id> --no-agent --script …     # flip back\nhermes cron remove <job_id>                         # delete it"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "cat > ~/.hermes/scripts/disk-alert.sh <<'EOF'\n#!/usr/bin/env bash\n# Alert when / or /home is over 90% full.\nTHRESHOLD=90\ndf -h / /home 2>/dev/null | awk -v t=\"$THRESHOLD\" '\n  NR > 1 && $5+0 >= t {\n    printf \"⚠ Disk %s full on %s\\n\", $5, $6\n  }\n'\nEOF\nchmod +x ~/.hermes/scripts/disk-alert.sh\n\nhermes cron create \"*/15 * * * *\" \\\n  --no-agent \\\n  --script disk-alert.sh \\\n  --deliver telegram \\\n  --name \"disk-alert\""
+    }
+  ],
+  "gotchas": [
+    "From that point on every tick is free: the scheduler runs the script, pipes its stdout to Telegram if non-empty, and never touches a model.",
+    "You don't have to specify `--no-agent` yourself. Just describe the behavior.",
+    "We intentionally do NOT honour `#!/...` shebangs — keeping the interpreter set explicit and small reduces the surface the scheduler trusts.",
+    "| `cronjob --no-agent` (this page) | Your script on Hermes' schedule | Recurring watchdogs / alerts / metrics that don't need reasoning |"
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "agent",
+    "alert",
+    "api",
+    "bash",
+    "chat",
+    "check",
+    "command",
+    "comparison",
+    "config",
+    "create",
+    "cron",
+    "decides",
+    "delivery",
+    "disk",
+    "editing"
+  ],
+  "full_text": "# Script-Only Cron Jobs (No LLM)\n\n# Script-Only Cron Jobs\n\nSometimes you already know exactly what message you want to send. You don't need an agent to reason about it — you just need a script to run on a timer, and its output (if any) to land in Telegram / Discord / Slack / Signal.\n\nHermes calls this **no-agent mode**. It's the cron system minus the LLM.\n\n```\n   ┌──────────────────┐          ┌──────────────────┐\n   │ scheduler tick   │  every   │ run script       │\n   │ (every N minutes)│ ──────▶ │ (bash or python) │\n   └──────────────────┘          └──────────────────┘\n                                          │\n                                          │ stdout\n                                          ▼\n                                 ┌──────────────────┐\n                                 │ delivery router  │\n                                 │ (telegram/disc…) │\n                                 └──────────────────┘\n```\n\n- **No LLM call.** Zero tokens, zero agent loop, zero model spend.\n- **Script is the job.** The script decides whether to alert. Emit output → message gets sent. Emit nothing → silent tick.\n- **Bash or Python.** `.sh` / `.bash` files run under `/bin/bash`; any other extension runs under the current Python interpreter. Anything in `~/.hermes/scripts/` is accepted.\n- **Same scheduler.** Lives in `cronjob` alongside LLM jobs — pausing, resuming, listing, logs, and delivery targeting all work the same way.\n\n## When to Use It\n\nUse no-agent mode for:\n\n- **Memory / disk / GPU watchdogs.** Run every 5 minutes, alert only when a threshold is breached.\n- **CI hooks.** Deploy finished → post the commit SHA. Build failed → send the last 100 lines of the log.\n- **Periodic metrics.** \"Daily Stripe revenue at 9am\" as a simple API call + pretty-print.\n- **External event pollers.** Check an API, alert on state change.\n- **Heartbeats.** Ping a dashboard every N minutes to prove the host is alive.\n\nUse a normal (LLM-driven) cron job when you need the agent to **decide** what to say — summarize a long document, pick interesting items from a feed, draft a human-friendly message. The no-agent path is for cases where the script's stdout already IS the message.\n\n## Create One from Chat\n\nThe real win of no-agent mode is that the agent itself can set up the watchdog for you — no editor, no shell, no remembering CLI flags. You describe what you want, Hermes writes the script, schedules it, and tells you when it'll fire.\n\n### Example transcript\n\n> **You:** ping me on telegram if RAM is over 85% every 5 minutes\n>\n> **Hermes:** *(writes `~/.hermes/scripts/memory-watchdog.sh`, then calls `cronjob(...)` with `no_agent=true`)*\n>\n> Set up. Runs every 5 min, alerts Telegram only when RAM is over 85%. Script: `memory-watchdog.sh`. Job ID: `abc123`.\n\nUnder the hood, the agent makes two tool calls:\n\n```python\n# 1. Write the check script\nwrite_file(\n    path=\"~/.hermes/scripts/memory-watchdog.sh\",\n    content='''#!/usr/bin/env bash\nram_pct=$(free | awk '/^Mem:/ {printf \"%d\", $3 * 100 / $2}')\nif [ \"$ram_pct\" -ge 85 ]; then\n  echo \"RAM ${ram_pct}% on $(hostname)\"\nfi\n# Empty stdout = silent tick; no message sent.\n''',\n)\n\n# 2. Schedule it — no_agent=True skips the LLM on every tick\ncronjob(\n    action=\"create\",\n    schedule=\"every 5m\",\n    script=\"memory-watchdog.sh\",\n    no_agent=True,\n    deliver=\"telegram\",\n    name=\"memory-watchdog\",\n)\n```\n\nFrom that point on every tick is free: the scheduler runs the script, pipes its stdout to Telegram if non-empty, and never touches a model.\n\n### What the agent decides for you\n\nWhen you phrase a request like \"alert me when X\" or \"every N minutes check Y and tell me if Z\", Hermes' `cronjob` tool description tells it to reach for `no_agent=True` whenever the message content is fully determined by the script. It falls back to the normal LLM-driven path when the request needs reasoning (*\"summarize the new issues\"*, *\"pick the most interesting headlines\"*, *\"draft a friendly reminder\"*).\n\nYou don't have to specify `--no-agent` yourself. Just describe the behavior.\n\n### Managing watchdogs from chat\n\nThe agent can pause, resume, edit, and remove jobs the same way it creates them:\n\n> **You:** stop the memory watchdog for tonight\n>\n> **Hermes:** *(calls `cronjob(action='pause', job_id='abc123')`)*\n>\n> Paused. Resume with \"turn it back on\" or via `hermes cron resume abc123`.\n\n> **You:** change it to every 15 minutes\n>\n> **Hermes:** *(calls `cronjob(action='update', job_id='abc123', schedule='every 15m')`)*\n\nThe full lifecycle (create / list / update / pause / resume / run-now / remove) is available to the agent without you learning any CLI commands.\n\n## Create One from the CLI\n\nPrefer the shell? The CLI path gives you the same result with three commands:\n\n```bash\n# 1. Write your script\ncat > ~/.hermes/scripts/memory-watchdog.sh <<'EOF'\n#!/usr/bin/env bash\n# Alert when RAM usage is over 85%. Silent otherwise.\nRAM_PCT=$(free | awk '/^Mem:/ {printf \"%d\", $3 * 100 / $2}')\nif [ \"$RAM_PCT\" -ge 85 ]; then\n  echo \"⚠ RAM ${RAM_PCT}% on $(hostname)\"\nfi\n# Empty stdout = silent run; no message sent.\nEOF\nchmod +x ~/.hermes/scripts/memory-watchdog.sh\n\n# 2. Schedule it\nhermes cron create \"every 5m\" \\\n  --no-agent \\\n  --script memory-watchdog.sh \\\n  --deliver telegram \\\n  --name \"memory-watchdog\"\n\n# 3. Verify\nhermes cron list\nhermes cron run <job_id>    # fire it once to test\n```\n\nThat's the whole thing. No prompt, no skill, no model.\n\n\n## How Script Output Maps to Delivery\n\n| Script behavior | Result |\n|-----------------|--------|\n| Exit 0, non-empty stdout | stdout is delivered verbatim |\n| Exit 0, empty stdout | Silent tick — no delivery |\n| Exit 0, stdout contains `{\"wakeAgent\": false}` on the last line | Silent tick (shared gate with LLM jobs) |\n| Non-zero exit code | Error alert is delivered (so a broken watchdog doesn't fail silently) |\n| Script timeout | Error alert is delivered |\n\nThe \"silent when empty\" behavior is the key to the classic watchdog pattern: the script is free to run every minute, but the channel only sees a message when something actually needs attention.\n\n## Script Rules\n\nScripts must live in `~/.hermes/scripts/`. This is enforced at both job-creation time and run time — absolute paths, `~/` expansion, and path-traversal patterns (`../`) are rejected. The same directory is shared with the pre-check script gate used by LLM jobs.\n\nInterpreter choice is by file extension:\n\n| Extension | Interpreter |\n|-----------|-------------|\n| `.sh`, `.bash` | `/bin/bash` |\n| anything else | `sys.executable` (current Python) |\n\nWe intentionally do NOT honour `#!/...` shebangs — keeping the interpreter set explicit and small reduces the surface the scheduler trusts.\n\n## Schedule Syntax\n\nSame as all other cron jobs:\n\n```bash\nhermes cron create \"every 5m\"        # interval\nhermes cron create \"every 2h\"\nhermes cron create \"0 9 * * *\"       # standard cron: 9am daily\nhermes cron create \"30m\"             # one-shot: run once in 30 minutes\n```\n\nSee the [cron feature reference](/docs/user-guide/features/cron) for the full syntax.\n\n## Delivery Targets\n\n`--deliver` accepts everything the gateway knows about. Some common shapes:\n\n```bash\n--deliver telegram                       # platform home channel\n--deliver telegram:-1001234567890        # specific chat\n--deliver telegram:-1001234567890:17585  # specific Telegram forum topic\n--deliver discord:#ops\n--deliver slack:#engineering\n--deliver signal:+15551234567\n--deliver local                          # just save to ~/.hermes/cron/output/\n```\n\nNo running gateway is required at script-run time for bot-token platforms (Telegram, Discord, Slack, Signal, SMS, WhatsApp) — the tool calls each platform's REST endpoint directly using the credentials already in `~/.hermes/.env` / `~/.hermes/config.yaml`.\n\n## Editing and Lifecycle\n\n```bash\nhermes cron list                                    # see all jobs\nhermes cron pause <job_id>                          # stop firing, keep definition\nhermes cron resume <job_id>\nhermes cron edit <job_id> --schedule \"every 10m\"    # adjust cadence\nhermes cron edit <job_id> --agent                   # flip to LLM mode\nhermes cron edit <job_id> --no-agent --script …     # flip back\nhermes cron remove <job_id>                         # delete it\n```\n\nEverything that works on LLM jobs (pause, resume, manual trigger, delivery target changes) works on no-agent jobs too.\n\n## Worked Example: Disk Space Alert\n\n```bash\ncat > ~/.hermes/scripts/disk-alert.sh <<'EOF'\n#!/usr/bin/env bash\n# Alert when / or /home is over 90% full.\nTHRESHOLD=90\ndf -h / /home 2>/dev/null | awk -v t=\"$THRESHOLD\" '\n  NR > 1 && $5+0 >= t {\n    printf \"⚠ Disk %s full on %s\\n\", $5, $6\n  }\n'\nEOF\nchmod +x ~/.hermes/scripts/disk-alert.sh\n\nhermes cron create \"*/15 * * * *\" \\\n  --no-agent \\\n  --script disk-alert.sh \\\n  --deliver telegram \\\n  --name \"disk-alert\"\n```\n\nSilent when both filesystems are under 90%; fires exactly one line per over-threshold filesystem when one fills up.\n\n## Comparison with Other Patterns\n\n| Approach | What runs | When to use |\n|----------|-----------|-------------|\n| `cronjob --no-agent` (this page) | Your script on Hermes' schedule | Recurring watchdogs / alerts / metrics that don't need reasoning |\n| `cronjob` (default, LLM) | Agent with optional pre-check script | When the message content requires reasoning over data |\n| OS cron + `curl` to a [webhook subscription](/docs/user-guide/messaging/webhooks) | Your script on the OS schedule | When Hermes might be unhealthy (the thing you're monitoring) |\n\nFor critical system-health watchdogs that must fire *even when the gateway is down*, use OS-level cron with a plain `curl` to a Hermes webhook subscription (or any external alerting endpoint) — those run as independent OS processes and don't depend on Hermes being up. The in-gateway scheduler is the right choice when the thing being monitored is external.\n\n## Related\n\n- [Automate Anything with Cron](/docs/guides/automate-with-cron) — LLM-driven cron patterns.\n- [Scheduled Tasks (Cron) reference](/docs/user-guide/features/cron) — full schedule syntax, lifecycle, delivery routing.\n- [Webhook Subscriptions](/docs/user-guide/messaging/webhooks) — fire-and-forget HTTP entry points for external schedulers.\n- [Gateway Internals](/docs/developer-guide/gateway-internals) — delivery-router internals.\n\n---"
+}

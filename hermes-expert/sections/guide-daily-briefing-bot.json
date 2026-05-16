@@ -1,0 +1,110 @@
+{
+  "id": "guide-daily-briefing-bot",
+  "title": "Tutorial: Daily Briefing Bot",
+  "source_path": "website/docs/guides/daily-briefing-bot.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/daily-briefing-bot",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Step-by-step tutorial for building a personal automated morning briefing bot that uses web search, cron scheduling, and delegation to research topics and deliver a formatted summary to Telegram or Discord each morning.",
+  "key_concepts": [
+    "cron jobs",
+    "daily briefing",
+    "web search",
+    "delegation",
+    "self-contained prompts",
+    "[SILENT] trick",
+    "schedule expressions",
+    "messaging delivery",
+    "parallel research"
+  ],
+  "env_vars": [
+    {
+      "name": "FIRECRAWL_API_KEY",
+      "purpose": "Web search for briefing content",
+      "required": true,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway install",
+      "purpose": "Install gateway as background service for cron execution"
+    },
+    {
+      "command": "hermes cron list",
+      "purpose": "List all scheduled jobs"
+    },
+    {
+      "command": "hermes cron status",
+      "purpose": "Check if scheduler is running"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/cron add <schedule> <prompt>",
+      "purpose": "Create a cron job from chat"
+    },
+    {
+      "command": "/cron list",
+      "purpose": "List scheduled jobs"
+    },
+    {
+      "command": "/cron remove <id>",
+      "purpose": "Remove a scheduled job"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "Natural language cron creation",
+      "code": "Every morning at 8am, search the web for the latest news about AI agents\nand open source LLMs. Summarize the top 3 stories in a concise briefing\nwith links. Use a friendly, professional tone. Deliver to telegram."
+    },
+    {
+      "language": "bash",
+      "caption": "CLI cron add command",
+      "code": "/cron add \"0 8 * * *\" \"Search the web for the latest news about AI agents and open source LLMs. Find at least 5 recent articles from the past 24 hours. Summarize the top 3 most important stories in a concise daily briefing format. For each story include: a clear headline, a 2-sentence summary, and the source URL. Use a friendly, professional tone. Format with emoji bullet points.\""
+    },
+    {
+      "language": "text",
+      "caption": "Delegation for parallel research",
+      "code": "/cron add \"0 8 * * *\" \"Create a morning briefing by delegating research to sub-agents. Delegate three parallel tasks:\n\n1. Delegate: Search for the top 2 AI/ML news stories from the past 24 hours with links\n2. Delegate: Search for the top 2 cryptocurrency news stories from the past 24 hours with links\n3. Delegate: Search for the top 2 space exploration news stories from the past 24 hours with links\n\nCollect all results and combine them into a single clean briefing.\""
+    },
+    {
+      "language": "text",
+      "caption": "Weekday-only schedule",
+      "code": "/cron add \"0 8 * * 1-5\" \"Search for the latest AI and tech news...\""
+    }
+  ],
+  "gotchas": [
+    "Cron jobs run in completely fresh sessions with NO memory of previous conversations — prompts must be entirely self-contained",
+    "The [SILENT] trick: if agent's final response contains [SILENT], delivery is suppressed — use for monitoring jobs to avoid spam",
+    "Include all context directly in the prompt: URLs, topics, format preferences, delivery instructions",
+    "Gateway must be running for cron jobs to execute — install as a service with hermes gateway install",
+    "Natural language like 'daily at 9am' is not supported for schedules — use cron expressions like '0 9 * * *'"
+  ],
+  "cross_refs": [
+    "cron",
+    "delegation",
+    "messaging-overview",
+    "memory",
+    "tips"
+  ],
+  "keywords": [
+    "cron",
+    "scheduling",
+    "daily briefing",
+    "automation",
+    "web search",
+    "delegation",
+    "Telegram",
+    "Discord",
+    "self-contained prompts",
+    "[SILENT]",
+    "parallel research",
+    "morning briefing",
+    "gateway",
+    "delivery"
+  ],
+  "full_text": "# Tutorial: Build a Daily Briefing Bot\n\nIn this tutorial, you'll build a personal briefing bot that wakes up every morning, researches topics you care about, summarizes the findings, and delivers a concise briefing straight to your Telegram or Discord.\n\n[...full content as read from source...]"
+}

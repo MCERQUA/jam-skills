@@ -1,0 +1,138 @@
+{
+  "id": "messaging-dingtalk",
+  "title": "DingTalk",
+  "source_path": "website/docs/user-guide/messaging/dingtalk.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/dingtalk",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Hermes Agent integrates with DingTalk (钉钉) as a chatbot, letting you chat with your AI assistant through direct messages or group chats. The bot connects via DingTalk's Stream Mode — a long-lived WebSocket connection that requires no public URL or webhook server — and replies using markdown-formatted messages through DingTalk's session webhook API.",
+  "key_concepts": [
+    "DingTalk Setup",
+    "How Hermes Behaves",
+    "Session Model in DingTalk",
+    "Prerequisites",
+    "Step 1: Create a DingTalk App",
+    "Step 2: Enable the Robot Capability",
+    "Step 3: Find Your DingTalk User ID",
+    "Step 4: Configure Hermes Agent"
+  ],
+  "env_vars": [
+    {
+      "name": "DINGTALK_CLIENT_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DINGTALK_CLIENT_SECRET",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DINGTALK_ALLOWED_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway setup",
+      "purpose": ""
+    },
+    {
+      "command": "hermes gateway",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "group_sessions_per_user: true\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "group_sessions_per_user: false\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "pip install \"hermes-agent[dingtalk]\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "pip install dingtalk-stream httpx alibabacloud-dingtalk\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway setup\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Required\nDINGTALK_CLIENT_ID=your-app-key\nDINGTALK_CLIENT_SECRET=your-app-secret\n\n# Security: restrict who can interact with the bot\nDINGTALK_ALLOWED_USERS=user-id-1\n\n# Multiple allowed users (comma-separated)\n# DINGTALK_ALLOWED_USERS=user-id-1,user-id-2\n\n# Optional: group-chat gating (mirrors Slack/Telegram/Discord/WhatsApp)\n# DINGTALK_REQUIRE_MENTION=true\n# DINGTALK_FREE_RESPONSE_CHATS=cidABC==,cidDEF==\n# DINGTALK_MENTION_PATTERNS=^小马\n# DINGTALK_HOME_CHANNEL=cidXXXX==\n# DINGTALK_ALLOW_ALL_USERS=true\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "group_sessions_per_user: true\n\ngateway:\n  platforms:\n    dingtalk:\n      extra:\n        # Require @mention in groups before the bot replies (parity with Slack/Telegram/Discord).\n        # DMs ignore this — the bot always replies in 1:1 chats.\n        require_mention: true\n\n        # Per-platform allowlist. When set, only these DingTalk user IDs can interact with the bot\n        # (same semantics as DINGTALK_ALLOWED_USERS, but scoped here instead of in .env).\n        allowed_users:\n          - user-id-1\n          - user-id-2\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "platforms:\n  dingtalk:\n    enabled: true\n    extra:\n      card_template_id: \"your-card-template-id\"\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "display:\n  platforms:\n    dingtalk:\n      show_reasoning: false   # Show model reasoning/thinking in replies\n      streaming: true         # Enable streaming responses (works with AI Cards)\n      tool_progress: all      # Show tool execution progress (all/new/off)\n      interim_assistant_messages: true  # Show intermediate commentary messages\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "display:\n  platforms:\n    dingtalk:\n      tool_progress: off\n      interim_assistant_messages: false\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "pip install dingtalk-stream httpx\n"
+    }
+  ],
+  "gotchas": [
+    "[Credentials shown only once]\nThe Client Secret is only displayed once when you create the app. If you lose it, you'll need to regenerate it. Never share these credentials publicly or commit them to Git.",
+    "Always set `DINGTALK_ALLOWED_USERS` to restrict who can interact with the bot. Without it, the gateway denies all users by default as a safety measure. Only add User IDs of people you trust — authorized users have full access to the agent's capabilities, including tool use and system access."
+  ],
+  "cross_refs": [
+    "security"
+  ],
+  "keywords": [
+    "alibabacloud-dingtalk",
+    "api",
+    "comma-separated",
+    "developer-console",
+    "dingtalk",
+    "dingtalk-stream",
+    "group-chat",
+    "hermes-agent",
+    "http",
+    "long-lived",
+    "markdown-formatted",
+    "messaging",
+    "nat",
+    "open-dev",
+    "real-time"
+  ],
+  "full_text": "# DingTalk\n\n# DingTalk Setup\n\nHermes Agent integrates with DingTalk (钉钉) as a chatbot, letting you chat with your AI assistant through direct messages or group chats. The bot connects via DingTalk's Stream Mode — a long-lived WebSocket connection that requires no public URL or webhook server — and replies using markdown-formatted messages through DingTalk's session webhook API.\n\nBefore setup, here's the part most people want to know: how Hermes behaves once it's in your DingTalk workspace.\n\n## How Hermes Behaves\n\n| Context | Behavior |\n|---------|----------|\n| **DMs (1:1 chat)** | Hermes responds to every message. No `@mention` needed. Each DM has its own session. |\n| **Group chats** | Hermes responds when you `@mention` it. Without a mention, Hermes ignores the message. |\n| **Shared groups with multiple users** | By default, Hermes isolates session history per user inside the group. Two people talking in the same group do not share one transcript unless you explicitly disable that. |\n\n### Session Model in DingTalk\n\nBy default:\n\n- each DM gets its own session\n- each user in a shared group chat gets their own session inside that group\n\nThis is controlled by `config.yaml`:\n\n```yaml\ngroup_sessions_per_user: true\n```\n\nSet it to `false` only if you explicitly want one shared conversation for the entire group:\n\n```yaml\ngroup_sessions_per_user: false\n```\n\nThis guide walks you through the full setup process — from creating your DingTalk bot to sending your first message.\n\n## Prerequisites\n\nInstall the required Python packages:\n\n```bash\npip install \"hermes-agent[dingtalk]\"\n```\n\nOr individually:\n\n```bash\npip install dingtalk-stream httpx alibabacloud-dingtalk\n```\n\n- `dingtalk-stream` — DingTalk's official SDK for Stream Mode (WebSocket-based real-time messaging)\n- `httpx` — async HTTP client used for sending replies via session webhooks\n- `alibabacloud-dingtalk` — DingTalk OpenAPI SDK for AI Cards, emoji reactions, and media downloads\n\n## Step 1: Create a DingTalk App\n\n1. Go to the [DingTalk Developer Console](https://open-dev.dingtalk.com/).\n2. Log in with your DingTalk admin account.\n3. Click **Application Development** → **Custom Apps** → **Create App via H5 Micro-App** (or **Robot** depending on your console version).\n4. Fill in:\n   - **App Name**: e.g., `Hermes Agent`\n   - **Description**: optional\n5. After creating, navigate to **Credentials & Basic Info** to find your **Client ID** (AppKey) and **Client Secret** (AppSecret). Copy both.\n\n:::warning[Credentials shown only once]\nThe Client Secret is only displayed once when you create the app. If you lose it, you'll need to regenerate it. Never share these credentials publicly or commit them to Git.\n:::\n\n## Step 2: Enable the Robot Capability\n\n1. In your app's settings page, go to **Add Capability** → **Robot**.\n2. Enable the robot capability.\n3. Under **Message Reception Mode**, select **Stream Mode** (recommended — no public URL needed).\n\n:::tip\nStream Mode is the recommended setup. It uses a long-lived WebSocket connection initiated from your machine, so you don't need a public IP, domain name, or webhook endpoint. This works behind NAT, firewalls, and on local machines.\n:::\n\n## Step 3: Find Your DingTalk User ID\n\nHermes Agent uses your DingTalk User ID to control who can interact with the bot. DingTalk User IDs are alphanumeric strings set by your organization's admin.\n\nTo find yours:\n\n1. Ask your DingTalk organization admin — User IDs are configured in the DingTalk admin console under **Contacts** → **Members**.\n2. Alternatively, the bot logs the `sender_id` for each incoming message. Start the gateway, send the bot a message, then check the logs for your ID.\n\n## Step 4: Configure Hermes Agent\n\n### Option A: Interactive Setup (Recommended)\n\nRun the guided setup command:\n\n```bash\nhermes gateway setup\n```\n\nSelect **DingTalk** when prompted. The setup wizard can authorize via one of two paths:\n\n- **QR-code device flow (recommended).** Scan the QR that prints in your terminal with the DingTalk mobile app — your Client ID and Client Secret are returned automatically and written to `~/.hermes/.env`. No developer-console trip needed.\n- **Manual paste.** If you already have credentials (or QR scanning isn't convenient), paste your Client ID, Client Secret, and allowed user IDs when prompted.\n\n:::note openClaw branding disclosure\nBecause DingTalk's `verification_uri_complete` is hardcoded to the openClaw identity at the API layer, the QR currently authorizes under an `openClaw` source string until Alibaba / DingTalk-Real-AI registers a Hermes-specific template server-side. This is purely how DingTalk presents the consent screen — the bot you create is fully yours and private to your tenant.\n:::\n\n### Option B: Manual Configuration\n\nAdd the following to your `~/.hermes/.env` file:\n\n```bash\n# Required\nDINGTALK_CLIENT_ID=your-app-key\nDINGTALK_CLIENT_SECRET=your-app-secret\n\n# Security: restrict who can interact with the bot\nDINGTALK_ALLOWED_USERS=user-id-1\n\n# Multiple allowed users (comma-separated)\n# DINGTALK_ALLOWED_USERS=user-id-1,user-id-2\n\n# Optional: group-chat gating (mirrors Slack/Telegram/Discord/WhatsApp)\n# DINGTALK_REQUIRE_MENTION=true\n# DINGTALK_FREE_RESPONSE_CHATS=cidABC==,cidDEF==\n# DINGTALK_MENTION_PATTERNS=^小马\n# DINGTALK_HOME_CHANNEL=cidXXXX==\n# DINGTALK_ALLOW_ALL_USERS=true\n```\n\nOptional behavior settings in `~/.hermes/config.yaml`:\n\n```yaml\ngroup_sessions_per_user: true\n\ngateway:\n  platforms:\n    dingtalk:\n      extra:\n        # Require @mention in groups before the bot replies (parity with Slack/Telegram/Discord).\n        # DMs ignore this — the bot always replies in 1:1 chats.\n        require_mention: true\n\n        # Per-platform allowlist. When set, only these DingTalk user IDs can interact with the bot\n        # (same semantics as DINGTALK_ALLOWED_USERS, but scoped here instead of in .env).\n        allowed_users:\n          - user-id-1\n          - user-id-2\n```\n\n- `group_sessions_per_user: true` keeps each participant's context isolated inside shared group chats\n- `require_mention: true` prevents the bot from responding to every group message — it only answers when someone @-mentions it\n- `allowed_users` under `dingtalk.extra` is an alternative to `DINGTALK_ALLOWED_USERS`; if both are set, they're merged\n\n### Start the Gateway\n\nOnce configured, start the DingTalk gateway:\n\n```bash\nhermes gateway\n```\n\nThe bot should connect to DingTalk's Stream Mode within a few seconds. Send it a message — either a DM or in a group where it's been added — to test.\n\n:::tip\nYou can run `hermes gateway` in the background or as a systemd service for persistent operation. See the deployment docs for details.\n:::\n\n## Features\n\n### AI Cards\n\nHermes can reply using DingTalk AI Cards instead of plain markdown messages. Cards provide a richer, more structured display and support streaming updates as the agent generates its response.\n\nTo enable AI Cards, configure a card template ID in `config.yaml`:\n\n```yaml\nplatforms:\n  dingtalk:\n    enabled: true\n    extra:\n      card_template_id: \"your-card-template-id\"\n```\n\nYou can find your card template ID in the DingTalk Developer Console under your app's AI Card settings. When AI Cards are enabled, all replies are sent as cards with streaming text updates.\n\n### Emoji Reactions\n\nHermes automatically adds emoji reactions to your messages to show processing status:\n\n- 🤔Thinking — added when the bot starts processing your message\n- 🥳Done — added when the response is complete (replaces the Thinking reaction)\n\nThese reactions work in both DMs and group chats.\n\n### Display Settings\n\nYou can customize DingTalk's display behavior independently from other platforms:\n\n```yaml\ndisplay:\n  platforms:\n    dingtalk:\n      show_reasoning: false   # Show model reasoning/thinking in replies\n      streaming: true         # Enable streaming responses (works with AI Cards)\n      tool_progress: all      # Show tool execution progress (all/new/off)\n      interim_assistant_messages: true  # Show intermediate commentary messages\n```\n\nTo disable tool progress and intermediate messages for a cleaner experience:\n\n```yaml\ndisplay:\n  platforms:\n    dingtalk:\n      tool_progress: off\n      interim_assistant_messages: false\n```\n\n## Troubleshooting\n\n### Bot is not responding to messages\n\n**Cause**: The robot capability isn't enabled, or `DINGTALK_ALLOWED_USERS` doesn't include your User ID.\n\n**Fix**: Verify the robot capability is enabled in your app settings and that Stream Mode is selected. Check that your User ID is in `DINGTALK_ALLOWED_USERS`. Restart the gateway.\n\n### \"dingtalk-stream not installed\" error\n\n**Cause**: The `dingtalk-stream` Python package is not installed.\n\n**Fix**: Install it:\n\n```bash\npip install dingtalk-stream httpx\n```\n\n### \"DINGTALK_CLIENT_ID and DINGTALK_CLIENT_SECRET required\"\n\n**Cause**: The credentials aren't set in your environment or `.env` file.\n\n**Fix**: Verify `DINGTALK_CLIENT_ID` and `DINGTALK_CLIENT_SECRET` are set correctly in `~/.hermes/.env`. The Client ID is your AppKey, and the Client Secret is your AppSecret from the DingTalk Developer Console.\n\n### Stream disconnects / reconnection loops\n\n**Cause**: Network instability, DingTalk platform maintenance, or credential issues.\n\n**Fix**: The adapter automatically reconnects with exponential backoff (2s → 5s → 10s → 30s → 60s). Check that your credentials are valid and your app hasn't been deactivated. Verify your network allows outbound WebSocket connections.\n\n### Bot is offline\n\n**Cause**: The Hermes gateway isn't running, or it failed to connect.\n\n**Fix**: Check that `hermes gateway` is running. Look at the terminal output for error messages. Common issues: wrong credentials, app deactivated, `dingtalk-stream` or `httpx` not installed.\n\n### \"No session_webhook available\"\n\n**Cause**: The bot tried to reply but doesn't have a session webhook URL. This typically happens if the webhook expired or the bot was restarted between receiving the message and sending the reply.\n\n**Fix**: Send a new message to the bot — each incoming message provides a fresh session webhook for replies. This is a normal DingTalk limitation; the bot can only reply to messages it has received recently.\n\n## Security\n\n:::warning\nAlways set `DINGTALK_ALLOWED_USERS` to restrict who can interact with the bot. Without it, the gateway denies all users by default as a safety measure. Only add User IDs of people you trust — authorized users have full access to the agent's capabilities, including tool use and system access.\n:::\n\nFor more information on securing your Hermes Agent deployment, see the [Security Guide](../security.md).\n\n## Notes\n\n- **Stream Mode**: No public URL, domain name, or webhook server needed. The connection is initiated from your machine via WebSocket, so it works behind NAT and firewalls.\n- **AI Cards**: Optionally reply with rich AI Cards instead of plain markdown. Configure via `card_template_id`.\n- **Emoji Reactions**: Automatic 🤔Thinking/🥳Done reactions for processing status.\n- **Markdown responses**: Replies are formatted in DingTalk's markdown format for rich text display.\n- **Media support**: Images and files in incoming messages are automatically resolved and can be processed by vision tools.\n- **Message deduplication**: The adapter deduplicates messages with a 5-minute window to prevent processing the same message twice.\n- **Auto-reconnection**: If the stream connection drops, the adapter automatically reconnects with exponential backoff.\n- **Message length limit**: Responses are capped at 20,000 characters per message. Longer responses are truncated.\n\n---"
+}

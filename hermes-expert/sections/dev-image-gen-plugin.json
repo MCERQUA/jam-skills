@@ -1,0 +1,82 @@
+{
+  "id": "dev-image-gen-plugin",
+  "title": "Image Generation Provider Plugins",
+  "source_path": "website/docs/developer-guide/image-gen-provider-plugin.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/image-gen-provider-plugin",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Guide for building image generation provider plugins using the ImageGenProvider ABC, covering discovery, directory structure, required generate() method, success_response/error_response format, base64 vs URL handling, user overrides, and distribution via pip.",
+  "key_concepts": [
+    "ImageGenProvider ABC",
+    "generate method",
+    "image_gen registry",
+    "success_response",
+    "error_response",
+    "save_b64_image",
+    "plugin discovery",
+    "user overrides",
+    "kind: backend"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes tools",
+      "purpose": "Select active image generation provider"
+    },
+    {
+      "command": "hermes -z \"Generate an image of a corgi in a spacesuit\"",
+      "purpose": "Test image generation after plugin setup"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "image_gen.provider",
+      "type": "string",
+      "default": "",
+      "description": "Active image generation provider name",
+      "example": "openai"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Minimal ImageGenProvider plugin",
+      "code": "from agent.image_gen_provider import ImageGenProvider, success_response, error_response\n\nclass MyBackendImageGenProvider(ImageGenProvider):\n    @property\n    def name(self) -> str:\n        return \"my-backend\"\n\n    def is_available(self) -> bool:\n        return bool(os.environ.get(\"MY_BACKEND_API_KEY\"))\n\n    def generate(self, prompt, aspect_ratio=\"landscape\", **kwargs):\n        # ... call API ...\n        return success_response(\n            image=\"https://cdn/img.png\",\n            model=\"my-model\",\n            prompt=prompt,\n            aspect_ratio=aspect_ratio,\n            provider=self.name,\n        )\n\ndef register(ctx):\n    ctx.register_image_gen_provider(MyBackendImageGenProvider())"
+    },
+    {
+      "language": "yaml",
+      "caption": "plugin.yaml",
+      "code": "name: my-backend\nversion: 1.0.0\ndescription: My image backend\nkind: backend\nrequires_env:\n  - MY_BACKEND_API_KEY"
+    }
+  ],
+  "gotchas": [
+    "generate() must return dict built via success_response() or error_response() — don't hand-roll the dict",
+    "For base64 output, use save_b64_image() to write under $HERMES_HOME/cache/images/ — never store in memory",
+    "User plugins at ~/.hermes/plugins/image_gen/<name>/ override bundled plugins of the same name (last-writer-wins)",
+    "kind: backend in plugin.yaml routes the plugin to the image-gen registration path"
+  ],
+  "cross_refs": [
+    "dev-memory-provider-plugin",
+    "dev-context-engine-plugin",
+    "dev-model-provider-plugin",
+    "guide-build-plugin",
+    "image-generation"
+  ],
+  "keywords": [
+    "image generation plugin",
+    "ImageGenProvider",
+    "generate method",
+    "success_response",
+    "error_response",
+    "save_b64_image",
+    "plugin discovery",
+    "image_gen registry",
+    "kind: backend",
+    "user override",
+    "DALL-E",
+    "Flux",
+    "Replicate"
+  ],
+  "full_text": "# Building an Image Generation Provider Plugin\n\nImage-gen provider plugins register a backend that services every `image_generate` tool call — DALL-E, gpt-image, Grok, Flux, Imagen, Stable Diffusion, fal, Replicate, a local ComfyUI rig, or anything else. Built-in providers (OpenAI, OpenAI-Codex, xAI) all ship as plugins. You can add a new one, or override a bundled one, by dropping a directory into `plugins/image_gen/<name>/`.\n\n## How discovery works\n\nHermes scans for image-gen backends in three places:\n\n1. **Bundled** — `<repo>/plugins/image_gen/<name>/` (auto-loaded with `kind: backend`, always available)\n2. **User** — `~/.hermes/plugins/image_gen/<name>/` (opt-in via `plugins.enabled`)\n3. **Pip** — packages declaring a `hermes_agent.plugins` entry point\n\nEach plugin's `register(ctx)` function calls `ctx.register_image_gen_provider(...)` — that puts it into the registry in `agent/image_gen_registry.py`. The active provider is picked by `image_gen.provider` in `config.yaml`.\n\n## Directory structure\n\n```\nplugins/image_gen/my-backend/\n__init__.py      # ImageGenProvider subclass + register()\nplugin.yaml      # Manifest with kind: backend\n```\n\n## The ImageGenProvider ABC\n\nSubclass `agent.image_gen_provider.ImageGenProvider`. Required members: `name` property and `generate()` method.\n\nKey members to override: `name` (stable id), `display_name` (human label), `is_available()` (gate for missing creds/deps), `list_models()` (catalog for picker), `default_model()` (fallback when no model configured), `get_setup_schema()` (picker metadata + env-var prompts), `generate(prompt, aspect_ratio, **kwargs)` (the call).\n\n## plugin.yaml\n\n```yaml\nname: my-backend\nversion: 1.0.0\ndescription: My image backend\nauthor: Your Name\nkind: backend\nrequires_env:\n  - MY_BACKEND_API_KEY\n```\n\n`kind: backend` routes the plugin to the image-gen registration path. `requires_env` is prompted during `hermes plugins install`.\n\n## Response format\n\n`generate()` must return a dict built via `success_response()` or `error_response()` from `agent/image_gen_provider.py`.\n\n**Success:** `image` (url-or-absolute-path), `model`, `prompt`, `aspect_ratio` (`landscape`/`square`/`portrait`), `provider`, `extra` (optional).\n\n**Error:** `error` (human-readable message), `error_type` (`provider_error`/`invalid_input`/exception class name), `provider`, `model`, `prompt`, `aspect_ratio`.\n\n## Handling base64 vs URL output\n\nSome backends return image URLs (fal, Replicate); others return base64 payloads (OpenAI gpt-image-2). For the base64 case, use `save_b64_image()` — it writes to `$HERMES_HOME/cache/images/<prefix>_<timestamp>_<uuid>.<ext>` and returns the absolute `Path`. Pass that path (as `str`) as `image=` in `success_response()`.\n\n## User overrides\n\nDrop a user plugin at `~/.hermes/plugins/image_gen/<name>/` with the same `name` property as a bundled one and enable it via `hermes plugins enable <name>` — the registry is last-writer-wins, so your version replaces the built-in.\n\n## Testing\n\n```bash\nexport HERMES_HOME=/tmp/hermes-imggen-test\nmkdir -p $HERMES_HOME/plugins/image_gen/my-backend\nexport MY_BACKEND_API_KEY=your-test-key\nhermes plugins enable my-backend\nhermes -z 'Generate an image of a corgi in a spacesuit'\n```\n\n## Reference implementations\n\n- **`plugins/image_gen/openai/__init__.py`** — gpt-image-2 at low/medium/high tiers as three virtual model IDs sharing one API model\n- **`plugins/image_gen/xai/__init__.py`** — Grok Imagine via xAI\n- **`plugins/image_gen/openai-codex/__init__.py`** — Codex-style Responses API variant\n\n## Distribute via pip\n\n```toml\n# pyproject.toml\n[project.entry-points.\"hermes_agent.plugins\"]\nmy-backend-imggen = \"my_backend_imggen_package\"\n```\n\n## Related pages\n\n- [Image Generation](/docs/user-guide/features/image-generation)\n- [Plugins overview](/docs/user-guide/features/plugins)\n- [Build a Hermes Plugin](/docs/guides/build-a-hermes-plugin)"
+}

@@ -1,0 +1,461 @@
+{
+  "id": "hooks",
+  "title": "Event Hooks",
+  "source_path": "website/docs/user-guide/features/hooks.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Hermes has three hook systems that run custom code at key lifecycle points: All three systems are non-blocking — errors in any hook are caught and logged, never crashing the agent.",
+  "key_concepts": [
+    "Gateway Event Hooks",
+    "Creating a Hook",
+    "Available Events",
+    "Examples",
+    "Tutorial: BOOT.md — Run a Startup Checklist on Every Gateway Boot",
+    "How It Works",
+    "Plugin Hooks",
+    "Quick reference"
+  ],
+  "env_vars": [
+    {
+      "name": "BOT_TOKEN",
+      "purpose": "Referenced in hooks",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TELEGRAM_BOT_TOKEN",
+      "purpose": "Referenced in hooks",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "CHAT_ID",
+      "purpose": "Referenced in hooks",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WEBHOOK_URL",
+      "purpose": "Referenced in hooks",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "MEMORY_API",
+      "purpose": "Referenced in hooks",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "handler.py",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "model_tools.py",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "run_agent.py",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "cli.py",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "event.text",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "plugin.yaml",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "config.yaml",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/new",
+      "purpose": ""
+    },
+    {
+      "command": "/reset",
+      "purpose": ""
+    },
+    {
+      "command": "/empty",
+      "purpose": ""
+    },
+    {
+      "command": "/stop",
+      "purpose": ""
+    },
+    {
+      "command": "/exit",
+      "purpose": ""
+    },
+    {
+      "command": "/clear",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "",
+      "code": "~/.hermes/hooks/\n└── my-hook/\n    ├── HOOK.yaml      # Declares which events to listen for\n    └── handler.py     # Python handler function\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "name: my-hook\ndescription: Log all agent activity to a file\nevents:\n  - agent:start\n  - agent:end\n  - agent:step\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import json\nfrom datetime import datetime\nfrom pathlib import Path\n\nLOG_FILE = Path.home() / \".hermes\" / \"hooks\" / \"my-hook\" / \"activity.log\"\n\nasync def handle(event_type: str, context: dict):\n    \"\"\"Called for each subscribed event. Must be named 'handle'.\"\"\"\n    entry = {\n        \"timestamp\": datetime.now().isoformat(),\n        \"event\": event_type,\n        **context,\n    }\n    with open(LOG_FILE, \"a\") as f:\n        f.write(json.dumps(entry) + \"\\n\")\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# ~/.hermes/hooks/long-task-alert/HOOK.yaml\nname: long-task-alert\ndescription: Alert when agent is taking many steps\nevents:\n  - agent:step\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# ~/.hermes/hooks/long-task-alert/handler.py\nimport os\nimport httpx\n\nTHRESHOLD = 10\nBOT_TOKEN = os.getenv(\"TELEGRAM_BOT_TOKEN\")\nCHAT_ID = os.getenv(\"TELEGRAM_HOME_CHANNEL\")\n\nasync def handle(event_type: str, context: dict):\n    iteration = context.get(\"iteration\", 0)\n    if iteration == THRESHOLD and BOT_TOKEN and CHAT_ID:\n        tools = \", \".join(context.get(\"tool_names\", []))\n        text = f\"⚠️ Agent has been running for {iteration} steps. Last tools: {tools}\"\n        async with httpx.AsyncClient() as client:\n            await client.post(\n                f\"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage\",\n                json={\"chat_id\": CHAT_ID, \"text\": text},\n            )\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# ~/.hermes/hooks/command-logger/HOOK.yaml\nname: command-logger\ndescription: Log slash command usage\nevents:\n  - command:*\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# ~/.hermes/hooks/command-logger/handler.py\nimport json\nfrom datetime import datetime\nfrom pathlib import Path\n\nLOG = Path.home() / \".hermes\" / \"logs\" / \"command_usage.jsonl\"\n\ndef handle(event_type: str, context: dict):\n    LOG.parent.mkdir(parents=True, exist_ok=True)\n    entry = {\n        \"ts\": datetime.now().isoformat(),\n        \"command\": context.get(\"command\"),\n        \"args\": context.get(\"args\"),\n        \"platform\": context.get(\"platform\"),\n        \"user\": context.get(\"user_id\"),\n    }\n    with open(LOG, \"a\") as f:\n        f.write(json.dumps(entry) + \"\\n\")\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# ~/.hermes/hooks/session-webhook/HOOK.yaml\nname: session-webhook\ndescription: Notify external service on new sessions\nevents:\n  - session:start\n  - session:reset\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# ~/.hermes/hooks/session-webhook/handler.py\nimport httpx\n\nWEBHOOK_URL = \"https://your-service.example.com/hermes-events\"\n\nasync def handle(event_type: str, context: dict):\n    async with httpx.AsyncClient() as client:\n        await client.post(WEBHOOK_URL, json={\n            \"event\": event_type,\n            **context,\n        }, timeout=5)\n"
+    },
+    {
+      "language": "markdown",
+      "caption": "",
+      "code": "# Startup Checklist\n\n1. Run `hermes cron list` and check if any scheduled jobs failed overnight.\n2. If any failed, send a summary to Discord #ops using the `send_message` tool.\n3. Check if `/opt/app/deploy.log` has any ERROR lines from the last 24 hours. If yes, summarize them and include in the same Discord message.\n4. If nothing went wrong, reply with only `[SILENT]` so no message is sent.\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "~/.hermes/hooks/boot-md/\n├── HOOK.yaml\n└── handler.py\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "name: boot-md\ndescription: Run ~/.hermes/BOOT.md on gateway startup\nevents:\n  - gateway:startup\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "\"\"\"Run ~/.hermes/BOOT.md on every gateway startup.\"\"\"\n\nimport logging\nimport threading\nfrom pathlib import Path\n\nlogger = logging.getLogger(\"hooks.boot-md\")\n\nBOOT_FILE = Path.home() / \".hermes\" / \"BOOT.md\"\n\n\ndef _build_prompt(content: str) -> str:\n    return (\n        \"You are running a startup boot checklist. Follow the instructions \"\n        \"below exactly.\\n\\n\"\n        \"---\\n\"\n        f\"{content}\\n\"\n        \"---\\n\\n\"\n        \"Execute each instruction. Use the send_message tool to deliver any \"\n        \"messages to platforms like Discord or Slack.\\n\"\n        \"If nothing needs attention and there is nothing to report, reply \"\n        \"with ONLY: [SILENT]\"\n    )\n\n\ndef _run_boot_agent(content: str) -> None:\n    \"\"\"Spawn a one-shot agent and execute the checklist.\n\n    Uses the gateway's resolved model and runtime credentials so this works\n    against custom endpoints, aggregators, and OAuth-based providers alike.\n    \"\"\"\n    try:\n        from gateway.run import _resolve_gateway_model, _resolve_runtime_agent_kwargs\n        from run_agent import AIAgent\n\n        agent = AIAgent(\n            model=_resolve_gateway_model(),\n            **_resolve_runtime_agent_kwargs(),\n            platform=\"gateway\",\n            quiet_mode=True,\n            skip_context_files=True,\n            skip_memory=True,\n            max_iterations=20,\n        )\n        result = agent.run_conversation(_build_prompt(content))\n        response = result.get(\"final_response\", \"\")\n        if response and \"[SILENT]\" not in response:\n            logger.info(\"boot-md completed: %s\", response[:200])\n        else:\n            logger.info(\"boot-md completed (nothing to report)\")\n    except Exception as e:\n        logger.error(\"boot-md agent failed: %s\", e)\n\n\nasync def handle(event_type: str, context: dict) -> None:\n    if not BOOT_FILE.exists():\n        return\n    content = BOOT_FILE.read_text(encoding=\"utf-8\").strip()\n    if not content:\n        return\n\n    logger.info(\"Running BOOT.md (%d chars)\", len(content))\n\n    # Background thread so gateway startup isn't blocked on a full agent turn.\n    thread = threading.Thread(\n        target=_run_boot_agent,\n        args=(content,),\n        name=\"boot-md\",\n        daemon=True,\n    )\n    thread.start()\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway restart\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes logs --follow --level INFO | grep boot-md\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def register(ctx):\n    ctx.register_hook(\"pre_tool_call\", my_tool_observer)\n    ctx.register_hook(\"post_tool_call\", my_tool_logger)\n    ctx.register_hook(\"pre_llm_call\", my_memory_callback)\n    ctx.register_hook(\"post_llm_call\", my_sync_callback)\n    ctx.register_hook(\"on_session_start\", my_init_callback)\n    ctx.register_hook(\"on_session_end\", my_cleanup_callback)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(tool_name: str, args: dict, task_id: str, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "return {\"action\": \"block\", \"message\": \"Reason the tool call was blocked\"}\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import json, logging\nfrom datetime import datetime\n\nlogger = logging.getLogger(__name__)\n\ndef audit_tool_call(tool_name, args, task_id, **kwargs):\n    logger.info(\"TOOL_CALL session=%s tool=%s args=%s\",\n                task_id, tool_name, json.dumps(args)[:200])\n\ndef register(ctx):\n    ctx.register_hook(\"pre_tool_call\", audit_tool_call)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "DANGEROUS = {\"terminal\", \"write_file\", \"patch\"}\n\ndef warn_dangerous(tool_name, **kwargs):\n    if tool_name in DANGEROUS:\n        print(f\"⚠ Executing potentially dangerous tool: {tool_name}\")\n\ndef register(ctx):\n    ctx.register_hook(\"pre_tool_call\", warn_dangerous)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(tool_name: str, args: dict, result: str, task_id: str,\n                duration_ms: int, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "from collections import Counter, defaultdict\nimport json\n\n_tool_counts = Counter()\n_error_counts = Counter()\n_latency_ms = defaultdict(list)\n\ndef track_metrics(tool_name, result, duration_ms=0, **kwargs):\n    _tool_counts[tool_name] += 1\n    _latency_ms[tool_name].append(duration_ms)\n    try:\n        parsed = json.loads(result)\n        if \"error\" in parsed:\n            _error_counts[tool_name] += 1\n    except (json.JSONDecodeError, TypeError):\n        pass\n\ndef register(ctx):\n    ctx.register_hook(\"post_tool_call\", track_metrics)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(session_id: str, user_message: str, conversation_history: list,\n                is_first_turn: bool, model: str, platform: str, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# Inject context\nreturn {\"context\": \"Recalled memories:\\n- User likes Python\\n- Working on hermes-agent\"}\n\n# Plain string (equivalent)\nreturn \"Recalled memories:\\n- User likes Python\"\n\n# No injection\nreturn None\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import httpx\n\nMEMORY_API = \"https://your-memory-api.example.com\"\n\ndef recall(session_id, user_message, is_first_turn, **kwargs):\n    try:\n        resp = httpx.post(f\"{MEMORY_API}/recall\", json={\n            \"session_id\": session_id,\n            \"query\": user_message,\n        }, timeout=3)\n        memories = resp.json().get(\"results\", [])\n        if not memories:\n            return None\n        text = \"Recalled context:\\n\" + \"\\n\".join(f\"- {m['text']}\" for m in memories)\n        return {\"context\": text}\n    except Exception:\n        return None\n\ndef register(ctx):\n    ctx.register_hook(\"pre_llm_call\", recall)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "POLICY = \"Never execute commands that delete files without explicit user confirmation.\"\n\ndef guardrails(**kwargs):\n    return {\"context\": POLICY}\n\ndef register(ctx):\n    ctx.register_hook(\"pre_llm_call\", guardrails)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(session_id: str, user_message: str, assistant_response: str,\n                conversation_history: list, model: str, platform: str, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import httpx\n\nMEMORY_API = \"https://your-memory-api.example.com\"\n\ndef sync_memory(session_id, user_message, assistant_response, **kwargs):\n    try:\n        httpx.post(f\"{MEMORY_API}/store\", json={\n            \"session_id\": session_id,\n            \"user\": user_message,\n            \"assistant\": assistant_response,\n        }, timeout=5)\n    except Exception:\n        pass  # best-effort\n\ndef register(ctx):\n    ctx.register_hook(\"post_llm_call\", sync_memory)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import logging\nlogger = logging.getLogger(__name__)\n\ndef log_response_length(session_id, assistant_response, model, **kwargs):\n    logger.info(\"RESPONSE session=%s model=%s chars=%d\",\n                session_id, model, len(assistant_response or \"\"))\n\ndef register(ctx):\n    ctx.register_hook(\"post_llm_call\", log_response_length)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(session_id: str, model: str, platform: str, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "_session_caches = {}\n\ndef init_session(session_id, model, platform, **kwargs):\n    _session_caches[session_id] = {\n        \"model\": model,\n        \"platform\": platform,\n        \"tool_calls\": 0,\n        \"started\": __import__(\"datetime\").datetime.now().isoformat(),\n    }\n\ndef register(ctx):\n    ctx.register_hook(\"on_session_start\", init_session)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(session_id: str, completed: bool, interrupted: bool,\n                model: str, platform: str, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "_session_caches = {}\n\ndef cleanup_session(session_id, completed, interrupted, **kwargs):\n    cache = _session_caches.pop(session_id, None)\n    if cache:\n        # Flush accumulated data to disk or external service\n        status = \"completed\" if completed else (\"interrupted\" if interrupted else \"failed\")\n        print(f\"Session {session_id} ended: {status}, {cache['tool_calls']} tool calls\")\n\ndef register(ctx):\n    ctx.register_hook(\"on_session_end\", cleanup_session)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import time, logging\nlogger = logging.getLogger(__name__)\n\n_start_times = {}\n\ndef on_start(session_id, **kwargs):\n    _start_times[session_id] = time.time()\n\ndef on_end(session_id, completed, interrupted, **kwargs):\n    start = _start_times.pop(session_id, None)\n    if start:\n        duration = time.time() - start\n        logger.info(\"SESSION_DURATION session=%s seconds=%.1f completed=%s interrupted=%s\",\n                     session_id, duration, completed, interrupted)\n\ndef register(ctx):\n    ctx.register_hook(\"on_session_start\", on_start)\n    ctx.register_hook(\"on_session_end\", on_end)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(session_id: str | None, platform: str, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(session_id: str, platform: str, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(parent_session_id: str, child_role: str | None,\n                child_summary: str | None, child_status: str,\n                duration_ms: int, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import logging\nlogger = logging.getLogger(__name__)\n\ndef log_subagent(parent_session_id, child_role, child_status, duration_ms, **kwargs):\n    logger.info(\n        \"SUBAGENT parent=%s role=%s status=%s duration_ms=%d\",\n        parent_session_id, child_role, child_status, duration_ms,\n    )\n\ndef register(ctx):\n    ctx.register_hook(\"subagent_stop\", log_subagent)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(event, gateway, session_store, **kwargs):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def deny_unauthorized_dms(event, **kwargs):\n    src = event.source\n    if src.chat_type == \"dm\" and not _is_approved_user(src.user_id):\n        return {\"action\": \"skip\", \"reason\": \"unauthorized-dm\"}\n    return None\n\ndef register(ctx):\n    ctx.register_hook(\"pre_gateway_dispatch\", deny_unauthorized_dms)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "_buffers = {}\n\ndef buffer_or_rewrite(event, **kwargs):\n    key = (event.source.platform, event.source.chat_id)\n    buf = _buffers.setdefault(key, [])\n    if _bot_mentioned(event.text):\n        combined = \"\\n\".join(buf + [event.text])\n        buf.clear()\n        return {\"action\": \"rewrite\", \"text\": combined}\n    buf.append(event.text)\n    return {\"action\": \"skip\", \"reason\": \"ambient-buffered\"}\n\ndef register(ctx):\n    ctx.register_hook(\"pre_gateway_dispatch\", buffer_or_rewrite)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(\n    command: str,\n    description: str,\n    pattern_key: str,\n    pattern_keys: list[str],\n    session_key: str,\n    surface: str,\n    **kwargs,\n):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import subprocess\n\ndef notify_approval(command, description, session_key, **kwargs):\n    title = \"Hermes needs approval\"\n    body = f\"{description}: {command[:80]}\"\n    subprocess.Popen([\n        \"osascript\", \"-e\",\n        f'display notification \"{body}\" with title \"{title}\"',\n    ])\n\ndef register(ctx):\n    ctx.register_hook(\"pre_approval_request\", notify_approval)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(\n    command: str,\n    description: str,\n    pattern_key: str,\n    pattern_keys: list[str],\n    session_key: str,\n    surface: str,\n    choice: str,\n    **kwargs,\n):\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def log_decision(command, choice, session_key, **kwargs):\n    logger.info(\"approval %s: %s for session %s\", choice, command[:60], session_key)\n\ndef register(ctx):\n    ctx.register_hook(\"post_approval_response\", log_decision)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(\n    tool_name: str,\n    arguments: dict,\n    result: str,\n    task_id: str | None,\n    **kwargs,\n) -> str | None:\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import re\nSECRET = re.compile(r\"sk-[A-Za-z0-9]{32,}\")\n\ndef redact_secrets(tool_name, result, **kwargs):\n    if SECRET.search(result):\n        return SECRET.sub(\"[REDACTED]\", result)\n    return None\n\ndef register(ctx):\n    ctx.register_hook(\"transform_tool_result\", redact_secrets)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(\n    command: str,\n    output: str,\n    exit_code: int,\n    cwd: str,\n    task_id: str | None,\n    **kwargs,\n) -> str | None:\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def summarize_find(command, output, **kwargs):\n    if command.startswith(\"find \") and len(output) > 50_000:\n        lines = output.count(\"\\n\")\n        head = \"\\n\".join(output.splitlines()[:40])\n        return f\"{head}\\n\\n[summary: {lines} paths total, showing first 40]\"\n    return None\n\ndef register(ctx):\n    ctx.register_hook(\"transform_terminal_output\", summarize_find)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "def my_callback(\n    response_text: str,\n    session_id: str,\n    model: str,\n    platform: str,\n    **kwargs,\n) -> str | None:\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "import os, re\n\ndef spongebob(response_text, **kwargs):\n    if os.environ.get(\"SPONGEBOB_MODE\") != \"on\":\n        return None  # pass through unchanged\n    return re.sub(r\"!\", \"!! Tartar sauce!\", response_text)\n\ndef register(ctx):\n    ctx.register_hook(\"transform_llm_output\", spongebob)\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "hooks:\n  <event_name>:                  # Must be in VALID_HOOKS\n    - matcher: \"<regex>\"         # Optional; used for pre/post_tool_call only\n      command: \"<shell command>\" # Required; runs via shlex.split, shell=False\n      timeout: <seconds>         # Optional; default 60, capped at 300\n\nhooks_auto_accept: false         # See \"Consent model\" below\n"
+    },
+    {
+      "language": "json",
+      "caption": "",
+      "code": "{\n  \"hook_event_name\": \"pre_tool_call\",\n  \"tool_name\":       \"terminal\",\n  \"tool_input\":      {\"command\": \"rm -rf /\"},\n  \"session_id\":      \"sess_abc123\",\n  \"cwd\":             \"/home/user/project\",\n  \"extra\":           {\"task_id\": \"...\", \"tool_call_id\": \"...\"}\n}\n"
+    },
+    {
+      "language": "jsonc",
+      "caption": "",
+      "code": "// Block a pre_tool_call (both shapes accepted; normalised internally):\n{\"decision\": \"block\", \"reason\":  \"Forbidden: rm -rf\"}   // Claude-Code style\n{\"action\":   \"block\", \"message\": \"Forbidden: rm -rf\"}   // Hermes-canonical\n\n// Inject context for pre_llm_call:\n{\"context\": \"Today is Friday, 2026-04-17\"}\n\n// Silent no-op — any empty / non-matching output is fine:\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# ~/.hermes/config.yaml\nhooks:\n  post_tool_call:\n    - matcher: \"write_file|patch\"\n      command: \"~/.hermes/agent-hooks/auto-format.sh\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "#!/usr/bin/env bash\n# ~/.hermes/agent-hooks/auto-format.sh\npayload=\"$(cat -)\"\npath=$(echo \"$payload\" | jq -r '.tool_input.path // empty')\n[[ \"$path\" == *.py ]] && command -v black >/dev/null && black \"$path\" 2>/dev/null\nprintf '{}\\n'\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "hooks:\n  pre_tool_call:\n    - matcher: \"terminal\"\n      command: \"~/.hermes/agent-hooks/block-rm-rf.sh\"\n      timeout: 5\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "#!/usr/bin/env bash\n# ~/.hermes/agent-hooks/block-rm-rf.sh\npayload=\"$(cat -)\"\ncmd=$(echo \"$payload\" | jq -r '.tool_input.command // empty')\nif echo \"$cmd\" | grep -qE 'rm[[:space:]]+-rf?[[:space:]]+/'; then\n  printf '{\"decision\": \"block\", \"reason\": \"blocked: rm -rf / is not permitted\"}\\n'\nelse\n  printf '{}\\n'\nfi\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "hooks:\n  pre_llm_call:\n    - command: \"~/.hermes/agent-hooks/inject-cwd-context.sh\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "#!/usr/bin/env bash\n# ~/.hermes/agent-hooks/inject-cwd-context.sh\ncat - >/dev/null   # discard stdin payload\nif status=$(git status --porcelain 2>/dev/null) && [[ -n \"$status\" ]]; then\n  jq --null-input --arg s \"$status\" \\\n     '{context: (\"Uncommitted changes in cwd:\\n\" + $s)}'\nelse\n  printf '{}\\n'\nfi\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "hooks:\n  subagent_stop:\n    - command: \"~/.hermes/agent-hooks/log-orchestration.sh\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "#!/usr/bin/env bash\n# ~/.hermes/agent-hooks/log-orchestration.sh\nlog=~/.hermes/logs/orchestration.log\njq -c '{ts: now, parent: .session_id, extra: .extra}' < /dev/stdin >> \"$log\"\nprintf '{}\\n'\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "`cli.py`",
+    "`run_agent.py`",
+    "after",
+    "args",
+    "arguments",
+    "assistant_response",
+    "before",
+    "block",
+    "bool",
+    "child_role",
+    "child_status",
+    "child_summary",
+    "choice",
+    "cli",
+    "command"
+  ],
+  "full_text": "# Event Hooks\n\n# Event Hooks\n\nHermes has three hook systems that run custom code at key lifecycle points:\n\n| System | Registered via | Runs in | Use case |\n|--------|---------------|---------|----------|\n| **[Gateway hooks](#gateway-event-hooks)** | `HOOK.yaml` + `handler.py` in `~/.hermes/hooks/` | Gateway only | Logging, alerts, webhooks |\n| **[Plugin hooks](#plugin-hooks)** | `ctx.register_hook()` in a [plugin](/docs/user-guide/features/plugins) | CLI + Gateway | Tool interception, metrics, guardrails |\n| **[Shell hooks](#shell-hooks)** | `hooks:` block in `~/.hermes/config.yaml` pointing at shell scripts | CLI + Gateway | Drop-in scripts for blocking, auto-formatting, context injection |\n\nAll three systems are non-blocking — errors in any hook are caught and logged, never crashing the agent.\n\n## Gateway Event Hooks\n\nGateway hooks fire automatically during gateway operation (Telegram, Discord, Slack, WhatsApp, Teams) without blocking the main agent pipeline.\n\n### Creating a Hook\n\nEach hook is a directory under `~/.hermes/hooks/` containing two files:\n\n```text\n~/.hermes/hooks/\n└── my-hook/\n    ├── HOOK.yaml      # Declares which events to listen for\n    └── handler.py     # Python handler function\n```\n\n#### HOOK.yaml\n\n```yaml\nname: my-hook\ndescription: Log all agent activity to a file\nevents:\n  - agent:start\n  - agent:end\n  - agent:step\n```\n\nThe `events` list determines which events trigger your handler. You can subscribe to any combination of events, including wildcards like `command:*`.\n\n#### handler.py\n\n```python\nimport json\nfrom datetime import datetime\nfrom pathlib import Path\n\nLOG_FILE = Path.home() / \".hermes\" / \"hooks\" / \"my-hook\" / \"activity.log\"\n\nasync def handle(event_type: str, context: dict):\n    \"\"\"Called for each subscribed event. Must be named 'handle'.\"\"\"\n    entry = {\n        \"timestamp\": datetime.now().isoformat(),\n        \"event\": event_type,\n        **context,\n    }\n    with open(LOG_FILE, \"a\") as f:\n        f.write(json.dumps(entry) + \"\\n\")\n```\n\n**Handler rules:**\n- Must be named `handle`\n- Receives `event_type` (string) and `context` (dict)\n- Can be `async def` or regular `def` — both work\n- Errors are caught and logged, never crashing the agent\n\n### Available Events\n\n| Event | When it fires | Context keys |\n|-------|---------------|--------------|\n| `gateway:startup` | Gateway process starts | `platforms` (list of active platform names) |\n| `session:start` | New messaging session created | `platform`, `user_id`, `session_id`, `session_key` |\n| `session:end` | Session ended (before reset) | `platform`, `user_id`, `session_key` |\n| `session:reset` | User ran `/new` or `/reset` | `platform`, `user_id`, `session_key` |\n| `agent:start` | Agent begins processing a message | `platform`, `user_id`, `session_id`, `message` |\n| `agent:step` | Each iteration of the tool-calling loop | `platform`, `user_id`, `session_id`, `iteration`, `tool_names` |\n| `agent:end` | Agent finishes processing | `platform`, `user_id`, `session_id`, `message`, `response` |\n| `command:*` | Any slash command executed | `platform`, `user_id`, `command`, `args` |\n\n#### Wildcard Matching\n\nHandlers registered for `command:*` fire for any `command:` event (`command:model`, `command:reset`, etc.). Monitor all slash commands with a single subscription.\n\n### Examples\n\n#### Telegram Alert on Long Tasks\n\nSend yourself a message when the agent takes more than 10 steps:\n\n```yaml\n# ~/.hermes/hooks/long-task-alert/HOOK.yaml\nname: long-task-alert\ndescription: Alert when agent is taking many steps\nevents:\n  - agent:step\n```\n\n```python\n# ~/.hermes/hooks/long-task-alert/handler.py\nimport os\nimport httpx\n\nTHRESHOLD = 10\nBOT_TOKEN = os.getenv(\"TELEGRAM_BOT_TOKEN\")\nCHAT_ID = os.getenv(\"TELEGRAM_HOME_CHANNEL\")\n\nasync def handle(event_type: str, context: dict):\n    iteration = context.get(\"iteration\", 0)\n    if iteration == THRESHOLD and BOT_TOKEN and CHAT_ID:\n        tools = \", \".join(context.get(\"tool_names\", []))\n        text = f\"⚠️ Agent has been running for {iteration} steps. Last tools: {tools}\"\n        async with httpx.AsyncClient() as client:\n            await client.post(\n                f\"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage\",\n                json={\"chat_id\": CHAT_ID, \"text\": text},\n            )\n```\n\n#### Command Usage Logger\n\nTrack which slash commands are used:\n\n```yaml\n# ~/.hermes/hooks/command-logger/HOOK.yaml\nname: command-logger\ndescription: Log slash command usage\nevents:\n  - command:*\n```\n\n```python\n# ~/.hermes/hooks/command-logger/handler.py\nimport json\nfrom datetime import datetime\nfrom pathlib import Path\n\nLOG = Path.home() / \".hermes\" / \"logs\" / \"command_usage.jsonl\"\n\ndef handle(event_type: str, context: dict):\n    LOG.parent.mkdir(parents=True, exist_ok=True)\n    entry = {\n        \"ts\": datetime.now().isoformat(),\n        \"command\": context.get(\"command\"),\n        \"args\": context.get(\"args\"),\n        \"platform\": context.get(\"platform\"),\n        \"user\": context.get(\"user_id\"),\n    }\n    with open(LOG, \"a\") as f:\n        f.write(json.dumps(entry) + \"\\n\")\n```\n\n#### Session Start Webhook\n\nPOST to an external service on new sessions:\n\n```yaml\n# ~/.hermes/hooks/session-webhook/HOOK.yaml\nname: session-webhook\ndescription: Notify external service on new sessions\nevents:\n  - session:start\n  - session:reset\n```\n\n```python\n# ~/.hermes/hooks/session-webhook/handler.py\nimport httpx\n\nWEBHOOK_URL = \"https://your-service.example.com/hermes-events\"\n\nasync def handle(event_type: str, context: dict):\n    async with httpx.AsyncClient() as client:\n        await client.post(WEBHOOK_URL, json={\n            \"event\": event_type,\n            **context,\n        }, timeout=5)\n```\n\n### Tutorial: BOOT.md — Run a Startup Checklist on Every Gateway Boot\n\nA popular pattern from the community: drop a Markdown checklist at `~/.hermes/BOOT.md`, and have the agent run it once every time the gateway starts. Useful for \"on every boot, check overnight cron failures and ping me on Discord if anything failed,\" or \"summarize the last 24h of deploy.log and post it to Slack #ops.\"\n\nThis tutorial shows how to build it yourself as a user-defined hook. Hermes does not ship a built-in BOOT.md hook — you wire up exactly the behavior you want.\n\n#### What we're building\n\n1. A file at `~/.hermes/BOOT.md` with natural-language startup instructions.\n2. A gateway hook that fires on `gateway:startup`, spawns a one-shot agent with your gateway's resolved model/credentials, and runs the BOOT.md instructions.\n3. A `[SILENT]` convention so the agent can opt out of sending a message when there's nothing to report.\n\n#### Step 1: Write your checklist\n\nCreate `~/.hermes/BOOT.md`. Write it as if you were giving instructions to a human assistant:\n\n```markdown\n# Startup Checklist\n\n1. Run `hermes cron list` and check if any scheduled jobs failed overnight.\n2. If any failed, send a summary to Discord #ops using the `send_message` tool.\n3. Check if `/opt/app/deploy.log` has any ERROR lines from the last 24 hours. If yes, summarize them and include in the same Discord message.\n4. If nothing went wrong, reply with only `[SILENT]` so no message is sent.\n```\n\nThe agent sees this as part of its prompt, so anything you can describe in plain language works — tool calls, shell commands, sending messages, summarizing files.\n\n#### Step 2: Create the hook\n\n```text\n~/.hermes/hooks/boot-md/\n├── HOOK.yaml\n└── handler.py\n```\n\n**`~/.hermes/hooks/boot-md/HOOK.yaml`**\n\n```yaml\nname: boot-md\ndescription: Run ~/.hermes/BOOT.md on gateway startup\nevents:\n  - gateway:startup\n```\n\n**`~/.hermes/hooks/boot-md/handler.py`**\n\n```python\n\"\"\"Run ~/.hermes/BOOT.md on every gateway startup.\"\"\"\n\nimport logging\nimport threading\nfrom pathlib import Path\n\nlogger = logging.getLogger(\"hooks.boot-md\")\n\nBOOT_FILE = Path.home() / \".hermes\" / \"BOOT.md\"\n\n\ndef _build_prompt(content: str) -> str:\n    return (\n        \"You are running a startup boot checklist. Follow the instructions \"\n        \"below exactly.\\n\\n\"\n        \"---\\n\"\n        f\"{content}\\n\"\n        \"---\\n\\n\"\n        \"Execute each instruction. Use the send_message tool to deliver any \"\n        \"messages to platforms like Discord or Slack.\\n\"\n        \"If nothing needs attention and there is nothing to report, reply \"\n        \"with ONLY: [SILENT]\"\n    )\n\n\ndef _run_boot_agent(content: str) -> None:\n    \"\"\"Spawn a one-shot agent and execute the checklist.\n\n    Uses the gateway's resolved model and runtime credentials so this works\n    against custom endpoints, aggregators, and OAuth-based providers alike.\n    \"\"\"\n    try:\n        from gateway.run import _resolve_gateway_model, _resolve_runtime_agent_kwargs\n        from run_agent import AIAgent\n\n        agent = AIAgent(\n            model=_resolve_gateway_model(),\n            **_resolve_runtime_agent_kwargs(),\n            platform=\"gateway\",\n            quiet_mode=True,\n            skip_context_files=True,\n            skip_memory=True,\n            max_iterations=20,\n        )\n        result = agent.run_conversation(_build_prompt(content))\n        response = result.get(\"final_response\", \"\")\n        if response and \"[SILENT]\" not in response:\n            logger.info(\"boot-md completed: %s\", response[:200])\n        else:\n            logger.info(\"boot-md completed (nothing to report)\")\n    except Exception as e:\n        logger.error(\"boot-md agent failed: %s\", e)\n\n\nasync def handle(event_type: str, context: dict) -> None:\n    if not BOOT_FILE.exists():\n        return\n    content = BOOT_FILE.read_text(encoding=\"utf-8\").strip()\n    if not content:\n        return\n\n    logger.info(\"Running BOOT.md (%d chars)\", len(content))\n\n    # Background thread so gateway startup isn't blocked on a full agent turn.\n    thread = threading.Thread(\n        target=_run_boot_agent,\n        args=(content,),\n        name=\"boot-md\",\n        daemon=True,\n    )\n    thread.start()\n```\n\nThe two key lines:\n\n- `_resolve_gateway_model()` reads the gateway's currently-configured model.\n- `_resolve_runtime_agent_kwargs()` resolves provider credentials the same way a normal gateway turn does — including API keys, base URLs, OAuth tokens, and credential pools.\n\nWithout these, a bare `AIAgent()` falls back to built-in defaults and will 401 against any non-default endpoint.\n\n#### Step 3: Test it\n\nRestart the gateway:\n\n```bash\nhermes gateway restart\n```\n\nWatch the logs:\n\n```bash\nhermes logs --follow --level INFO | grep boot-md\n```\n\nYou should see `Running BOOT.md (N chars)` followed by either `boot-md completed: ...` (summary of what the agent did) or `boot-md completed (nothing to report)` when the agent replied `[SILENT]`.\n\nDelete `~/.hermes/BOOT.md` to disable the checklist — the hook stays loaded but silently skips when the file isn't there.\n\n#### Extending the pattern\n\n- **Schedule-aware checklists:** key off `datetime.now().weekday()` inside BOOT.md's instructions (\"if it's Monday, also check the weekly deploy log\"). The instructions are free-form text, so anything the agent can reason about is fair game.\n- **Multiple checklists:** point the hook at a different file (`STARTUP.md`, `MORNING.md`, etc.) and register separate hook directories for each.\n- **Non-agent variant:** if you don't need a full agent loop, skip `AIAgent` entirely and have the handler post a fixed notification directly via `httpx`. Cheaper, faster, and has no provider dependency.\n\n#### Why this isn't a built-in\n\nAn earlier version of Hermes shipped this as a built-in hook and silently spawned an agent with bare defaults on every gateway boot. That surprised users with custom endpoints and made the feature invisible to users who didn't know it was running. Keeping it as a documented pattern — built by you, in your hooks directory — means you see exactly what it does and opt in by writing the files.\n\n### How It Works\n\n1. On gateway startup, `HookRegistry.discover_and_load()` scans `~/.hermes/hooks/`\n2. Each subdirectory with `HOOK.yaml` + `handler.py` is loaded dynamically\n3. Handlers are registered for their declared events\n4. At each lifecycle point, `hooks.emit()` fires all matching handlers\n5. Errors in any handler are caught and logged — a broken hook never crashes the agent\n\n:::info\nGateway hooks only fire in the **gateway** (Telegram, Discord, Slack, WhatsApp, Teams). The CLI does not load gateway hooks. For hooks that work everywhere, use [plugin hooks](#plugin-hooks).\n:::\n\n## Plugin Hooks\n\n[Plugins](/docs/user-guide/features/plugins) can register hooks that fire in **both CLI and gateway** sessions. These are registered programmatically via `ctx.register_hook()` in your plugin's `register()` function.\n\n```python\ndef register(ctx):\n    ctx.register_hook(\"pre_tool_call\", my_tool_observer)\n    ctx.register_hook(\"post_tool_call\", my_tool_logger)\n    ctx.register_hook(\"pre_llm_call\", my_memory_callback)\n    ctx.register_hook(\"post_llm_call\", my_sync_callback)\n    ctx.register_hook(\"on_session_start\", my_init_callback)\n    ctx.register_hook(\"on_session_end\", my_cleanup_callback)\n```\n\n**General rules for all hooks:**\n\n- Callbacks receive **keyword arguments**. Always accept `**kwargs` for forward compatibility — new parameters may be added in future versions without breaking your plugin.\n- If a callback **crashes**, it's logged and skipped. Other hooks and the agent continue normally. A misbehaving plugin can never break the agent.\n- Two hooks' return values affect behavior: [`pre_tool_call`](#pre_tool_call) can **block** the tool, and [`pre_llm_call`](#pre_llm_call) can **inject context** into the LLM call. All other hooks are fire-and-forget observers.\n\n### Quick reference\n\n| Hook | Fires when | Returns |\n|------|-----------|---------|\n| [`pre_tool_call`](#pre_tool_call) | Before any tool executes | `{\"action\": \"block\", \"message\": str}` to veto the call |\n| [`post_tool_call`](#post_tool_call) | After any tool returns | ignored |\n| [`pre_llm_call`](#pre_llm_call) | Once per turn, before the tool-calling loop | `{\"context\": str}` to prepend context to the user message |\n| [`post_llm_call`](#post_llm_call) | Once per turn, after the tool-calling loop | ignored |\n| [`on_session_start`](#on_session_start) | New session created (first turn only) | ignored |\n| [`on_session_end`](#on_session_end) | Session ends | ignored |\n| [`on_session_finalize`](#on_session_finalize) | CLI/gateway tears down an active session (flush, save, stats) | ignored |\n| [`on_session_reset`](#on_session_reset) | Gateway swaps in a fresh session key (e.g. `/new`, `/reset`) | ignored |\n| [`subagent_stop`](#subagent_stop) | A `delegate_task` child has exited | ignored |\n| [`pre_gateway_dispatch`](#pre_gateway_dispatch) | Gateway received a user message, before auth + dispatch | `{\"action\": \"skip\" \\| \"rewrite\" \\| \"allow\", ...}` to influence flow |\n| [`pre_approval_request`](#pre_approval_request) | Dangerous command needs user approval, before the prompt/notification is sent | ignored |\n| [`post_approval_response`](#post_approval_response) | User responded to an approval prompt (or it timed out) | ignored |\n| [`transform_tool_result`](#transform_tool_result) | After any tool returns, before the result is handed back to the model | `str` to replace the result, `None` to leave unchanged |\n| [`transform_terminal_output`](#transform_terminal_output) | Inside the `terminal` tool, before truncation/ANSI-strip/redact | `str` to replace the raw output, `None` to leave unchanged |\n| [`transform_llm_output`](#transform_llm_output) | After the tool-calling loop completes, before the final response is delivered | `str` to replace the response text, `None`/empty to leave unchanged |\n\n---\n\n### `pre_tool_call`\n\nFires **immediately before** every tool execution — built-in tools and plugin tools alike.\n\n**Callback signature:**\n\n```python\ndef my_callback(tool_name: str, args: dict, task_id: str, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `tool_name` | `str` | Name of the tool about to execute (e.g. `\"terminal\"`, `\"web_search\"`, `\"read_file\"`) |\n| `args` | `dict` | The arguments the model passed to the tool |\n| `task_id` | `str` | Session/task identifier. Empty string if not set. |\n\n**Fires:** In `model_tools.py`, inside `handle_function_call()`, before the tool's handler runs. Fires once per tool call — if the model calls 3 tools in parallel, this fires 3 times.\n\n**Return value — veto the call:**\n\n```python\nreturn {\"action\": \"block\", \"message\": \"Reason the tool call was blocked\"}\n```\n\nThe agent short-circuits the tool with `message` as the error returned to the model. The first matching block directive wins (Python plugins registered first, then shell hooks). Any other return value is ignored, so existing observer-only callbacks keep working unchanged.\n\n**Use cases:** Logging, audit trails, tool call counters, blocking dangerous operations, rate limiting, per-user policy enforcement.\n\n**Example — tool call audit log:**\n\n```python\nimport json, logging\nfrom datetime import datetime\n\nlogger = logging.getLogger(__name__)\n\ndef audit_tool_call(tool_name, args, task_id, **kwargs):\n    logger.info(\"TOOL_CALL session=%s tool=%s args=%s\",\n                task_id, tool_name, json.dumps(args)[:200])\n\ndef register(ctx):\n    ctx.register_hook(\"pre_tool_call\", audit_tool_call)\n```\n\n**Example — warn on dangerous tools:**\n\n```python\nDANGEROUS = {\"terminal\", \"write_file\", \"patch\"}\n\ndef warn_dangerous(tool_name, **kwargs):\n    if tool_name in DANGEROUS:\n        print(f\"⚠ Executing potentially dangerous tool: {tool_name}\")\n\ndef register(ctx):\n    ctx.register_hook(\"pre_tool_call\", warn_dangerous)\n```\n\n---\n\n### `post_tool_call`\n\nFires **immediately after** every tool execution returns.\n\n**Callback signature:**\n\n```python\ndef my_callback(tool_name: str, args: dict, result: str, task_id: str,\n                duration_ms: int, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `tool_name` | `str` | Name of the tool that just executed |\n| `args` | `dict` | The arguments the model passed to the tool |\n| `result` | `str` | The tool's return value (always a JSON string) |\n| `task_id` | `str` | Session/task identifier. Empty string if not set. |\n| `duration_ms` | `int` | How long the tool's dispatch took, in milliseconds (measured with `time.monotonic()` around `registry.dispatch()`). |\n\n**Fires:** In `model_tools.py`, inside `handle_function_call()`, after the tool's handler returns. Fires once per tool call. Does **not** fire if the tool raised an unhandled exception (the error is caught and returned as an error JSON string instead, and `post_tool_call` fires with that error string as `result`).\n\n**Return value:** Ignored.\n\n**Use cases:** Logging tool results, metrics collection, tracking tool success/failure rates, latency dashboards, per-tool budget alerts, sending notifications when specific tools complete.\n\n**Example — track tool usage metrics:**\n\n```python\nfrom collections import Counter, defaultdict\nimport json\n\n_tool_counts = Counter()\n_error_counts = Counter()\n_latency_ms = defaultdict(list)\n\ndef track_metrics(tool_name, result, duration_ms=0, **kwargs):\n    _tool_counts[tool_name] += 1\n    _latency_ms[tool_name].append(duration_ms)\n    try:\n        parsed = json.loads(result)\n        if \"error\" in parsed:\n            _error_counts[tool_name] += 1\n    except (json.JSONDecodeError, TypeError):\n        pass\n\ndef register(ctx):\n    ctx.register_hook(\"post_tool_call\", track_metrics)\n```\n\n---\n\n### `pre_llm_call`\n\nFires **once per turn**, before the tool-calling loop begins. This is the **only hook whose return value is used** — it can inject context into the current turn's user message.\n\n**Callback signature:**\n\n```python\ndef my_callback(session_id: str, user_message: str, conversation_history: list,\n                is_first_turn: bool, model: str, platform: str, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `session_id` | `str` | Unique identifier for the current session |\n| `user_message` | `str` | The user's original message for this turn (before any skill injection) |\n| `conversation_history` | `list` | Copy of the full message list (OpenAI format: `[{\"role\": \"user\", \"content\": \"...\"}]`) |\n| `is_first_turn` | `bool` | `True` if this is the first turn of a new session, `False` on subsequent turns |\n| `model` | `str` | The model identifier (e.g. `\"anthropic/claude-sonnet-4.6\"`) |\n| `platform` | `str` | Where the session is running: `\"cli\"`, `\"telegram\"`, `\"discord\"`, etc. |\n\n**Fires:** In `run_agent.py`, inside `run_conversation()`, after context compression but before the main `while` loop. Fires once per `run_conversation()` call (i.e. once per user turn), not once per API call within the tool loop.\n\n**Return value:** If the callback returns a dict with a `\"context\"` key, or a plain non-empty string, the text is appended to the current turn's user message. Return `None` for no injection.\n\n```python\n# Inject context\nreturn {\"context\": \"Recalled memories:\\n- User likes Python\\n- Working on hermes-agent\"}\n\n# Plain string (equivalent)\nreturn \"Recalled memories:\\n- User likes Python\"\n\n# No injection\nreturn None\n```\n\n**Where context is injected:** Always the **user message**, never the system prompt. This preserves the prompt cache — the system prompt stays identical across turns, so cached tokens are reused. The system prompt is Hermes's territory (model guidance, tool enforcement, personality, skills). Plugins contribute context alongside the user's input.\n\nAll injected context is **ephemeral** — added at API call time only. The original user message in the conversation history is never mutated, and nothing is persisted to the session database.\n\nWhen **multiple plugins** return context, their outputs are joined with double newlines in plugin discovery order (alphabetical by directory name).\n\n**Use cases:** Memory recall, RAG context injection, guardrails, per-turn analytics.\n\n**Example — memory recall:**\n\n```python\nimport httpx\n\nMEMORY_API = \"https://your-memory-api.example.com\"\n\ndef recall(session_id, user_message, is_first_turn, **kwargs):\n    try:\n        resp = httpx.post(f\"{MEMORY_API}/recall\", json={\n            \"session_id\": session_id,\n            \"query\": user_message,\n        }, timeout=3)\n        memories = resp.json().get(\"results\", [])\n        if not memories:\n            return None\n        text = \"Recalled context:\\n\" + \"\\n\".join(f\"- {m['text']}\" for m in memories)\n        return {\"context\": text}\n    except Exception:\n        return None\n\ndef register(ctx):\n    ctx.register_hook(\"pre_llm_call\", recall)\n```\n\n**Example — guardrails:**\n\n```python\nPOLICY = \"Never execute commands that delete files without explicit user confirmation.\"\n\ndef guardrails(**kwargs):\n    return {\"context\": POLICY}\n\ndef register(ctx):\n    ctx.register_hook(\"pre_llm_call\", guardrails)\n```\n\n---\n\n### `post_llm_call`\n\nFires **once per turn**, after the tool-calling loop completes and the agent has produced a final response. Only fires on **successful** turns — does not fire if the turn was interrupted.\n\n**Callback signature:**\n\n```python\ndef my_callback(session_id: str, user_message: str, assistant_response: str,\n                conversation_history: list, model: str, platform: str, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `session_id` | `str` | Unique identifier for the current session |\n| `user_message` | `str` | The user's original message for this turn |\n| `assistant_response` | `str` | The agent's final text response for this turn |\n| `conversation_history` | `list` | Copy of the full message list after the turn completed |\n| `model` | `str` | The model identifier |\n| `platform` | `str` | Where the session is running |\n\n**Fires:** In `run_agent.py`, inside `run_conversation()`, after the tool loop exits with a final response. Guarded by `if final_response and not interrupted` — so it does **not** fire when the user interrupts mid-turn or the agent hits the iteration limit without producing a response.\n\n**Return value:** Ignored.\n\n**Use cases:** Syncing conversation data to an external memory system, computing response quality metrics, logging turn summaries, triggering follow-up actions.\n\n**Example — sync to external memory:**\n\n```python\nimport httpx\n\nMEMORY_API = \"https://your-memory-api.example.com\"\n\ndef sync_memory(session_id, user_message, assistant_response, **kwargs):\n    try:\n        httpx.post(f\"{MEMORY_API}/store\", json={\n            \"session_id\": session_id,\n            \"user\": user_message,\n            \"assistant\": assistant_response,\n        }, timeout=5)\n    except Exception:\n        pass  # best-effort\n\ndef register(ctx):\n    ctx.register_hook(\"post_llm_call\", sync_memory)\n```\n\n**Example — track response lengths:**\n\n```python\nimport logging\nlogger = logging.getLogger(__name__)\n\ndef log_response_length(session_id, assistant_response, model, **kwargs):\n    logger.info(\"RESPONSE session=%s model=%s chars=%d\",\n                session_id, model, len(assistant_response or \"\"))\n\ndef register(ctx):\n    ctx.register_hook(\"post_llm_call\", log_response_length)\n```\n\n---\n\n### `on_session_start`\n\nFires **once** when a brand-new session is created. Does **not** fire on session continuation (when the user sends a second message in an existing session).\n\n**Callback signature:**\n\n```python\ndef my_callback(session_id: str, model: str, platform: str, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `session_id` | `str` | Unique identifier for the new session |\n| `model` | `str` | The model identifier |\n| `platform` | `str` | Where the session is running |\n\n**Fires:** In `run_agent.py`, inside `run_conversation()`, during the first turn of a new session — specifically after the system prompt is built but before the tool loop starts. The check is `if not conversation_history` (no prior messages = new session).\n\n**Return value:** Ignored.\n\n**Use cases:** Initializing session-scoped state, warming caches, registering the session with an external service, logging session starts.\n\n**Example — initialize a session cache:**\n\n```python\n_session_caches = {}\n\ndef init_session(session_id, model, platform, **kwargs):\n    _session_caches[session_id] = {\n        \"model\": model,\n        \"platform\": platform,\n        \"tool_calls\": 0,\n        \"started\": __import__(\"datetime\").datetime.now().isoformat(),\n    }\n\ndef register(ctx):\n    ctx.register_hook(\"on_session_start\", init_session)\n```\n\n---\n\n### `on_session_end`\n\nFires at the **very end** of every `run_conversation()` call, regardless of outcome. Also fires from the CLI's exit handler if the agent was mid-turn when the user quit.\n\n**Callback signature:**\n\n```python\ndef my_callback(session_id: str, completed: bool, interrupted: bool,\n                model: str, platform: str, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `session_id` | `str` | Unique identifier for the session |\n| `completed` | `bool` | `True` if the agent produced a final response, `False` otherwise |\n| `interrupted` | `bool` | `True` if the turn was interrupted (user sent new message, `/stop`, or quit) |\n| `model` | `str` | The model identifier |\n| `platform` | `str` | Where the session is running |\n\n**Fires:** In two places:\n1. **`run_agent.py`** — at the end of every `run_conversation()` call, after all cleanup. Always fires, even if the turn errored.\n2. **`cli.py`** — in the CLI's atexit handler, but **only** if the agent was mid-turn (`_agent_running=True`) when the exit occurred. This catches Ctrl+C and `/exit` during processing. In this case, `completed=False` and `interrupted=True`.\n\n**Return value:** Ignored.\n\n**Use cases:** Flushing buffers, closing connections, persisting session state, logging session duration, cleanup of resources initialized in `on_session_start`.\n\n**Example — flush and cleanup:**\n\n```python\n_session_caches = {}\n\ndef cleanup_session(session_id, completed, interrupted, **kwargs):\n    cache = _session_caches.pop(session_id, None)\n    if cache:\n        # Flush accumulated data to disk or external service\n        status = \"completed\" if completed else (\"interrupted\" if interrupted else \"failed\")\n        print(f\"Session {session_id} ended: {status}, {cache['tool_calls']} tool calls\")\n\ndef register(ctx):\n    ctx.register_hook(\"on_session_end\", cleanup_session)\n```\n\n**Example — session duration tracking:**\n\n```python\nimport time, logging\nlogger = logging.getLogger(__name__)\n\n_start_times = {}\n\ndef on_start(session_id, **kwargs):\n    _start_times[session_id] = time.time()\n\ndef on_end(session_id, completed, interrupted, **kwargs):\n    start = _start_times.pop(session_id, None)\n    if start:\n        duration = time.time() - start\n        logger.info(\"SESSION_DURATION session=%s seconds=%.1f completed=%s interrupted=%s\",\n                     session_id, duration, completed, interrupted)\n\ndef register(ctx):\n    ctx.register_hook(\"on_session_start\", on_start)\n    ctx.register_hook(\"on_session_end\", on_end)\n```\n\n---\n\n### `on_session_finalize`\n\nFires when the CLI or gateway **tears down** an active session — for example, when the user runs `/new`, the gateway GC'd an idle session, or the CLI quit with an active agent. This is the last chance to flush state tied to the outgoing session before its identity is gone.\n\n**Callback signature:**\n\n```python\ndef my_callback(session_id: str | None, platform: str, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `session_id` | `str` or `None` | The outgoing session ID. May be `None` if no active session existed. |\n| `platform` | `str` | `\"cli\"` or the messaging platform name (`\"telegram\"`, `\"discord\"`, etc.). |\n\n**Fires:** In `cli.py` (on `/new` / CLI exit) and `gateway/run.py` (when a session is reset or GC'd). Always paired with `on_session_reset` on the gateway side.\n\n**Return value:** Ignored.\n\n**Use cases:** Persist final session metrics before the session ID is discarded, close per-session resources, emit a final telemetry event, drain queued writes.\n\n---\n\n### `on_session_reset`\n\nFires when the gateway **swaps in a new session key** for an active chat — the user invoked `/new`, `/reset`, `/clear`, or the adapter picked a fresh session after an idle window. This lets plugins react to the fact that conversation state has been wiped without waiting for the next `on_session_start`.\n\n**Callback signature:**\n\n```python\ndef my_callback(session_id: str, platform: str, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `session_id` | `str` | The new session's ID (already rotated to the fresh value). |\n| `platform` | `str` | The messaging platform name. |\n\n**Fires:** In `gateway/run.py`, immediately after the new session key is allocated but before the next inbound message is processed. On the gateway, the order is: `on_session_finalize(old_id)` → swap → `on_session_reset(new_id)` → `on_session_start(new_id)` on the first inbound turn.\n\n**Return value:** Ignored.\n\n**Use cases:** Reset per-session caches keyed by `session_id`, emit \"session rotated\" analytics, prime a fresh state bucket.\n\n---\n\nSee the **[Build a Plugin guide](/docs/guides/build-a-hermes-plugin)** for the full walkthrough including tool schemas, handlers, and advanced hook patterns.\n\n---\n\n### `subagent_stop`\n\nFires **once per child agent** after `delegate_task` finishes. Whether you delegated a single task or a batch of three, this hook fires once for each child, serialised on the parent thread.\n\n**Callback signature:**\n\n```python\ndef my_callback(parent_session_id: str, child_role: str | None,\n                child_summary: str | None, child_status: str,\n                duration_ms: int, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `parent_session_id` | `str` | Session ID of the delegating parent agent |\n| `child_role` | `str \\| None` | Orchestrator role tag set on the child (`None` if the feature isn't enabled) |\n| `child_summary` | `str \\| None` | The final response the child returned to the parent |\n| `child_status` | `str` | `\"completed\"`, `\"failed\"`, `\"interrupted\"`, or `\"error\"` |\n| `duration_ms` | `int` | Wall-clock time spent running the child, in milliseconds |\n\n**Fires:** In `tools/delegate_tool.py`, after `ThreadPoolExecutor.as_completed()` drains all child futures. Firing is marshalled to the parent thread so hook authors don't have to reason about concurrent callback execution.\n\n**Return value:** Ignored.\n\n**Use cases:** Logging orchestration activity, accumulating child durations for billing, writing post-delegation audit records.\n\n**Example — log orchestrator activity:**\n\n```python\nimport logging\nlogger = logging.getLogger(__name__)\n\ndef log_subagent(parent_session_id, child_role, child_status, duration_ms, **kwargs):\n    logger.info(\n        \"SUBAGENT parent=%s role=%s status=%s duration_ms=%d\",\n        parent_session_id, child_role, child_status, duration_ms,\n    )\n\ndef register(ctx):\n    ctx.register_hook(\"subagent_stop\", log_subagent)\n```\n\n:::info\nWith heavy delegation (e.g. orchestrator roles × 5 leaves × nested depth), `subagent_stop` fires many times per turn. Keep your callback fast; push expensive work to a background queue.\n:::\n\n---\n\n### `pre_gateway_dispatch`\n\nFires **once per incoming `MessageEvent`** in the gateway, after the internal-event guard but **before** auth/pairing and agent dispatch. This is the interception point for gateway-level message-flow policies (listen-only windows, human handover, per-chat routing, etc.) that don't fit cleanly into any single platform adapter.\n\n**Callback signature:**\n\n```python\ndef my_callback(event, gateway, session_store, **kwargs):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `event` | `MessageEvent` | The normalized inbound message (has `.text`, `.source`, `.message_id`, `.internal`, etc.). |\n| `gateway` | `GatewayRunner` | The active gateway runner, so plugins can call `gateway.adapters[platform].send(...)` for side-channel replies (owner notifications, etc.). |\n| `session_store` | `SessionStore` | For silent transcript ingestion via `session_store.append_to_transcript(...)`. |\n\n**Fires:** In `gateway/run.py`, inside `GatewayRunner._handle_message()`, immediately after `is_internal` is computed. **Internal events skip the hook entirely** (they are system-generated — background-process completions, etc. — and must not be gate-kept by user-facing policy).\n\n**Return value:** `None` or a dict. The first recognized action dict wins; remaining plugin results are ignored. Exceptions in plugin callbacks are caught and logged; the gateway always falls through to normal dispatch on error.\n\n| Return | Effect |\n|--------|--------|\n| `{\"action\": \"skip\", \"reason\": \"...\"}` | Drop the message — no agent reply, no pairing flow, no auth. Plugin is assumed to have handled it (e.g. silent-ingested into the transcript). |\n| `{\"action\": \"rewrite\", \"text\": \"new text\"}` | Replace `event.text`, then continue normal dispatch with the modified event. Useful for collapsing buffered ambient messages into a single prompt. |\n| `{\"action\": \"allow\"}` / `None` | Normal dispatch — runs the full auth / pairing / agent-loop chain. |\n\n**Use cases:** Listen-only group chats (only respond when tagged; buffer ambient messages into context); human handover (silent-ingest customer messages while owner handles the chat manually); per-profile rate limiting; policy-driven routing.\n\n**Example — drop unauthorized DMs silently without triggering the pairing code:**\n\n```python\ndef deny_unauthorized_dms(event, **kwargs):\n    src = event.source\n    if src.chat_type == \"dm\" and not _is_approved_user(src.user_id):\n        return {\"action\": \"skip\", \"reason\": \"unauthorized-dm\"}\n    return None\n\ndef register(ctx):\n    ctx.register_hook(\"pre_gateway_dispatch\", deny_unauthorized_dms)\n```\n\n**Example — rewrite an ambient-message buffer into a single prompt on mention:**\n\n```python\n_buffers = {}\n\ndef buffer_or_rewrite(event, **kwargs):\n    key = (event.source.platform, event.source.chat_id)\n    buf = _buffers.setdefault(key, [])\n    if _bot_mentioned(event.text):\n        combined = \"\\n\".join(buf + [event.text])\n        buf.clear()\n        return {\"action\": \"rewrite\", \"text\": combined}\n    buf.append(event.text)\n    return {\"action\": \"skip\", \"reason\": \"ambient-buffered\"}\n\ndef register(ctx):\n    ctx.register_hook(\"pre_gateway_dispatch\", buffer_or_rewrite)\n```\n\n---\n\n### `pre_approval_request`\n\nFires **immediately before** an approval request is shown to the user — covers every surface: interactive CLI, the Ink TUI, gateway platforms (Telegram, Discord, Slack, WhatsApp, Matrix, etc.), and ACP clients (VS Code, Zed, JetBrains).\n\nThis is the right place to wire a custom notifier — for example, a macOS menu-bar app that pops an allow/deny notification, or an audit log that records every approval request with context.\n\n**Callback signature:**\n\n```python\ndef my_callback(\n    command: str,\n    description: str,\n    pattern_key: str,\n    pattern_keys: list[str],\n    session_key: str,\n    surface: str,\n    **kwargs,\n):\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `command` | `str` | The shell command awaiting approval |\n| `description` | `str` | Human-readable reason(s) the command is flagged (combined when multiple patterns match) |\n| `pattern_key` | `str` | Primary pattern key that triggered the approval (e.g. `\"rm_rf\"`, `\"sudo\"`) |\n| `pattern_keys` | `list[str]` | All pattern keys that matched |\n| `session_key` | `str` | Session identifier, useful for scoping notifications per-chat |\n| `surface` | `str` | `\"cli\"` for interactive CLI/TUI prompts, `\"gateway\"` for async platform approvals |\n\n**Return value:** ignored. Hooks here are observer-only; they cannot veto or pre-answer the approval. Use [`pre_tool_call`](#pre_tool_call) to block a tool before it reaches the approval system.\n\n**Use cases:** Desktop notifications, push alerts, audit logging, Slack webhooks, escalation routing, metrics.\n\n**Example — desktop notification on macOS:**\n\n```python\nimport subprocess\n\ndef notify_approval(command, description, session_key, **kwargs):\n    title = \"Hermes needs approval\"\n    body = f\"{description}: {command[:80]}\"\n    subprocess.Popen([\n        \"osascript\", \"-e\",\n        f'display notification \"{body}\" with title \"{title}\"',\n    ])\n\ndef register(ctx):\n    ctx.register_hook(\"pre_approval_request\", notify_approval)\n```\n\n---\n\n### `post_approval_response`\n\nFires **after** the user responds to an approval prompt (or the prompt times out).\n\n**Callback signature:**\n\n```python\ndef my_callback(\n    command: str,\n    description: str,\n    pattern_key: str,\n    pattern_keys: list[str],\n    session_key: str,\n    surface: str,\n    choice: str,\n    **kwargs,\n):\n```\n\nSame kwargs as `pre_approval_request`, plus:\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `choice` | `str` | One of `\"once\"`, `\"session\"`, `\"always\"`, `\"deny\"`, or `\"timeout\"` |\n\n**Return value:** ignored.\n\n**Use cases:** Close the matching desktop notification, record the final decision in an audit log, update metrics, roll forward a rate limiter.\n\n```python\ndef log_decision(command, choice, session_key, **kwargs):\n    logger.info(\"approval %s: %s for session %s\", choice, command[:60], session_key)\n\ndef register(ctx):\n    ctx.register_hook(\"post_approval_response\", log_decision)\n```\n\n---\n\n### `transform_tool_result`\n\nFires **after** a tool returns and **before** the result is appended to the conversation. Lets a plugin rewrite ANY tool's result string — not just terminal output — before the model sees it.\n\n**Callback signature:**\n\n```python\ndef my_callback(\n    tool_name: str,\n    arguments: dict,\n    result: str,\n    task_id: str | None,\n    **kwargs,\n) -> str | None:\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `tool_name` | `str` | Tool that produced the result (`read_file`, `web_extract`, `delegate_task`, …). |\n| `arguments` | `dict` | Arguments the model called the tool with. |\n| `result` | `str` | The tool's raw result string, post-truncation and post-ANSI-strip. |\n| `task_id` | `str \\| None` | Task/session ID when running inside RL/benchmark environments. |\n\n**Return value:** `str` to replace the result (the returned string is what the model sees), `None` to leave it unchanged.\n\n**Use cases:** Redact organization-specific PII from `web_extract` output, wrap long JSON tool responses in a summary header, inject retrieval-augmented hints into `read_file` results, rewrite `delegate_task` subagent reports into a project-specific schema.\n\n```python\nimport re\nSECRET = re.compile(r\"sk-[A-Za-z0-9]{32,}\")\n\ndef redact_secrets(tool_name, result, **kwargs):\n    if SECRET.search(result):\n        return SECRET.sub(\"[REDACTED]\", result)\n    return None\n\ndef register(ctx):\n    ctx.register_hook(\"transform_tool_result\", redact_secrets)\n```\n\nApplies to every tool. For terminal-only rewriting see `transform_terminal_output` below — it's narrower and runs earlier in the pipeline (pre-truncation, pre-redaction).\n\n---\n\n### `transform_terminal_output`\n\nFires inside the `terminal` tool's foreground-output pipeline, **before** the default 50 KB truncation, ANSI strip, and secret redaction. Lets plugins rewrite the raw stdout/stderr of a shell command before any downstream processing touches it.\n\n**Callback signature:**\n\n```python\ndef my_callback(\n    command: str,\n    output: str,\n    exit_code: int,\n    cwd: str,\n    task_id: str | None,\n    **kwargs,\n) -> str | None:\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `command` | `str` | The shell command that produced the output. |\n| `output` | `str` | Raw combined stdout/stderr (may be very large — truncation happens after the hook). |\n| `exit_code` | `int` | Process exit code. |\n| `cwd` | `str` | Working directory the command ran in. |\n\n**Return value:** `str` to replace the output, `None` to leave it unchanged.\n\n**Use cases:** Inject summaries for commands that produce massive output (`du -ah`, `find`, `tree`), tag output with a project-specific marker so downstream hooks know how to handle it, strip timing noise that flaps between runs and defeats prompt caching.\n\n```python\ndef summarize_find(command, output, **kwargs):\n    if command.startswith(\"find \") and len(output) > 50_000:\n        lines = output.count(\"\\n\")\n        head = \"\\n\".join(output.splitlines()[:40])\n        return f\"{head}\\n\\n[summary: {lines} paths total, showing first 40]\"\n    return None\n\ndef register(ctx):\n    ctx.register_hook(\"transform_terminal_output\", summarize_find)\n```\n\nPairs well with `transform_tool_result` (which covers every other tool).\n\n---\n\n### `transform_llm_output`\n\nFires **once per turn** after the tool-calling loop completes and the model has produced a final response, **before** that response is delivered to the user (CLI, gateway, or programmatic caller). Lets a plugin rewrite the assistant's final text using classical-programming methods — no extra inference tokens burned on SOUL flavor text or a skill-driven transform.\n\n**Callback signature:**\n\n```python\ndef my_callback(\n    response_text: str,\n    session_id: str,\n    model: str,\n    platform: str,\n    **kwargs,\n) -> str | None:\n```\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `response_text` | `str` | The assistant's final response text for this turn. |\n| `session_id` | `str` | Session ID for this conversation (may be empty for one-shot runs). |\n| `model` | `str` | Model name that produced the response (e.g. `anthropic/claude-sonnet-4.6`). |\n| `platform` | `str` | Delivery platform (`cli`, `telegram`, `discord`, …; empty when unset). |\n\n**Return value:** Non-empty `str` to replace the response text, `None` or empty string to leave it unchanged. **First non-empty string wins** when multiple plugins register — mirroring `transform_tool_result`.\n\n**Use cases:** Apply a personality/vocabulary transform (pirate-speak, Spongebob), redact user-specific identifiers from the final text, append a project-specific signature footer, enforce a house style guide without burning tokens on SOUL instructions.\n\n```python\nimport os, re\n\ndef spongebob(response_text, **kwargs):\n    if os.environ.get(\"SPONGEBOB_MODE\") != \"on\":\n        return None  # pass through unchanged\n    return re.sub(r\"!\", \"!! Tartar sauce!\", response_text)\n\ndef register(ctx):\n    ctx.register_hook(\"transform_llm_output\", spongebob)\n```\n\nThe hook is guarded on a non-empty, non-interrupted response — it will not fire on stop-button interrupts or empty turns. Exceptions are logged as warnings and do not break agent execution.\n\n---\n\n## Shell Hooks\n\nDeclare shell-script hooks in your `cli-config.yaml` and Hermes will run them as subprocesses whenever the corresponding plugin-hook event fires — in both CLI and gateway sessions. No Python plugin authoring required.\n\nUse shell hooks when you want a drop-in, single-file script (Bash, Python, anything with a shebang) to:\n\n- **Block a tool call** — reject dangerous `terminal` commands, enforce per-directory policies, require approval for destructive `write_file` / `patch` operations.\n- **Run after a tool call** — auto-format Python or TypeScript files that the agent just wrote, log API calls, trigger a CI workflow.\n- **Inject context into the next LLM turn** — prepend `git status` output, the current weekday, or retrieved documents to the user message (see [`pre_llm_call`](#pre_llm_call)).\n- **Observe lifecycle events** — write a log line when a subagent completes (`subagent_stop`) or a session starts (`on_session_start`).\n\nShell hooks are registered by calling `agent.shell_hooks.register_from_config(cfg)` at both CLI startup (`hermes_cli/main.py`) and gateway startup (`gateway/run.py`). They compose naturally with Python plugin hooks — both flow through the same dispatcher.\n\n### Comparison at a glance\n\n| Dimension | Shell hooks | [Plugin hooks](#plugin-hooks) | [Gateway hooks](#gateway-event-hooks) |\n|-----------|-------------|-------------------------------|---------------------------------------|\n| Declared in | `hooks:` block in `~/.hermes/config.yaml` | `register()` in a `plugin.yaml` plugin | `HOOK.yaml` + `handler.py` directory |\n| Lives under | `~/.hermes/agent-hooks/` (by convention) | `~/.hermes/plugins/<name>/` | `~/.hermes/hooks/<name>/` |\n| Language | Any (Bash, Python, Go binary, …) | Python only | Python only |\n| Runs in | CLI + Gateway | CLI + Gateway | Gateway only |\n| Events | `VALID_HOOKS` (incl. `subagent_stop`) | `VALID_HOOKS` | Gateway lifecycle (`gateway:startup`, `agent:*`, `command:*`) |\n| Can block a tool call | Yes (`pre_tool_call`) | Yes (`pre_tool_call`) | No |\n| Can inject LLM context | Yes (`pre_llm_call`) | Yes (`pre_llm_call`) | No |\n| Consent | First-use prompt per `(event, command)` pair | Implicit (Python plugin trust) | Implicit (dir trust) |\n| Inter-process isolation | Yes (subprocess) | No (in-process) | No (in-process) |\n\n### Configuration schema\n\n```yaml\nhooks:\n  <event_name>:                  # Must be in VALID_HOOKS\n    - matcher: \"<regex>\"         # Optional; used for pre/post_tool_call only\n      command: \"<shell command>\" # Required; runs via shlex.split, shell=False\n      timeout: <seconds>         # Optional; default 60, capped at 300\n\nhooks_auto_accept: false         # See \"Consent model\" below\n```\n\nEvent names must be one of the [plugin hook events](#plugin-hooks); typos produce a \"Did you mean X?\" warning and are skipped. Unknown keys inside a single entry are ignored; missing `command` is a skip-with-warning. `timeout > 300` is clamped with a warning.\n\n### JSON wire protocol\n\nEach time the event fires, Hermes spawns a subprocess for every matching hook (matcher permitting), pipes a JSON payload to **stdin**, and reads **stdout** back as JSON.\n\n**stdin — payload the script receives:**\n\n```json\n{\n  \"hook_event_name\": \"pre_tool_call\",\n  \"tool_name\":       \"terminal\",\n  \"tool_input\":      {\"command\": \"rm -rf /\"},\n  \"session_id\":      \"sess_abc123\",\n  \"cwd\":             \"/home/user/project\",\n  \"extra\":           {\"task_id\": \"...\", \"tool_call_id\": \"...\"}\n}\n```\n\n`tool_name` and `tool_input` are `null` for non-tool events (`pre_llm_call`, `subagent_stop`, session lifecycle). The `extra` dict carries all event-specific kwargs (`user_message`, `conversation_history`, `child_role`, `duration_ms`, …). Unserialisable values are stringified rather than omitted.\n\n**stdout — optional response:**\n\n```jsonc\n// Block a pre_tool_call (both shapes accepted; normalised internally):\n{\"decision\": \"block\", \"reason\":  \"Forbidden: rm -rf\"}   // Claude-Code style\n{\"action\":   \"block\", \"message\": \"Forbidden: rm -rf\"}   // Hermes-canonical\n\n// Inject context for pre_llm_call:\n{\"context\": \"Today is Friday, 2026-04-17\"}\n\n// Silent no-op — any empty / non-matching output is fine:\n```\n\nMalformed JSON, non-zero exit codes, and timeouts log a warning but never abort the agent loop.\n\n### Worked examples\n\n#### 1. Auto-format Python files after every write\n\n```yaml\n# ~/.hermes/config.yaml\nhooks:\n  post_tool_call:\n    - matcher: \"write_file|patch\"\n      command: \"~/.hermes/agent-hooks/auto-format.sh\"\n```\n\n```bash\n#!/usr/bin/env bash\n# ~/.hermes/agent-hooks/auto-format.sh\npayload=\"$(cat -)\"\npath=$(echo \"$payload\" | jq -r '.tool_input.path // empty')\n[[ \"$path\" == *.py ]] && command -v black >/dev/null && black \"$path\" 2>/dev/null\nprintf '{}\\n'\n```\n\nThe agent's in-context view of the file is **not** re-read automatically — the reformat only affects the file on disk. Subsequent `read_file` calls pick up the formatted version.\n\n#### 2. Block destructive `terminal` commands\n\n```yaml\nhooks:\n  pre_tool_call:\n    - matcher: \"terminal\"\n      command: \"~/.hermes/agent-hooks/block-rm-rf.sh\"\n      timeout: 5\n```\n\n```bash\n#!/usr/bin/env bash\n# ~/.hermes/agent-hooks/block-rm-rf.sh\npayload=\"$(cat -)\"\ncmd=$(echo \"$payload\" | jq -r '.tool_input.command // empty')\nif echo \"$cmd\" | grep -qE 'rm[[:space:]]+-rf?[[:space:]]+/'; then\n  printf '{\"decision\": \"block\", \"reason\": \"blocked: rm -rf / is not permitted\"}\\n'\nelse\n  printf '{}\\n'\nfi\n```\n\n#### 3. Inject `git status` into every turn (Claude-Code `UserPromptSubmit` equivalent)\n\n```yaml\nhooks:\n  pre_llm_call:\n    - command: \"~/.hermes/agent-hooks/inject-cwd-context.sh\"\n```\n\n```bash\n#!/usr/bin/env bash\n# ~/.hermes/agent-hooks/inject-cwd-context.sh\ncat - >/dev/null   # discard stdin payload\nif status=$(git status --porcelain 2>/dev/null) && [[ -n \"$status\" ]]; then\n  jq --null-input --arg s \"$status\" \\\n     '{context: (\"Uncommitted changes in cwd:\\n\" + $s)}'\nelse\n  printf '{}\\n'\nfi\n```\n\nClaude Code's `UserPromptSubmit` event is intentionally not a separate Hermes event — `pre_llm_call` fires at the same place and already supports context injection. Use it here.\n\n#### 4. Log every subagent completion\n\n```yaml\nhooks:\n  subagent_stop:\n    - command: \"~/.hermes/agent-hooks/log-orchestration.sh\"\n```\n\n```bash\n#!/usr/bin/env bash\n# ~/.hermes/agent-hooks/log-orchestration.sh\nlog=~/.hermes/logs/orchestration.log\njq -c '{ts: now, parent: .session_id, extra: .extra}' < /dev/stdin >> \"$log\"\nprintf '{}\\n'\n```\n\n### Consent model\n\nEach unique `(event, command)` pair prompts the user for approval the first time Hermes sees it, then persists the decision to `~/.hermes/shell-hooks-allowlist.json`. Subsequent runs (CLI or gateway) skip the prompt.\n\nThree escape hatches bypass the interactive prompt — any one is sufficient:\n\n1. `--accept-hooks` flag on the CLI (e.g. `hermes --accept-hooks chat`)\n2. `HERMES_ACCEPT_HOOKS=1` environment variable\n3. `hooks_auto_accept: true` in `cli-config.yaml`\n\nNon-TTY runs (gateway, cron, CI) need one of these three — otherwise any newly-added hook silently stays un-registered and logs a warning.\n\n**Script edits are silently trusted.** The allowlist keys on the exact command string, not the script's hash, so editing the script on disk does not invalidate consent. `hermes hooks doctor` flags mtime drift so you can spot edits and decide whether to re-approve.\n\n### The `hermes hooks` CLI\n\n| Command | What it does |\n|---------|--------------|\n| `hermes hooks list` | Dump configured hooks with matcher, timeout, and consent status |\n| `hermes hooks test <event> [--for-tool X] [--payload-file F]` | Fire every matching hook against a synthetic payload and print the parsed response |\n| `hermes hooks revoke <command>` | Remove every allowlist entry matching `<command>` (takes effect on next restart) |\n| `hermes hooks doctor` | For every configured hook: check exec bit, allowlist status, mtime drift, JSON output validity, and rough execution time |\n\n### Security\n\nShell hooks run with **your full user credentials** — same trust boundary as a cron entry or a shell alias. Treat the `hooks:` block in `config.yaml` as privileged configuration:\n\n- Only reference scripts you wrote or fully reviewed.\n- Keep scripts inside `~/.hermes/agent-hooks/` so the path is easy to audit.\n- Re-run `hermes hooks doctor` after you pull a shared config to spot newly-added hooks before they register.\n- If your config.yaml is version-controlled across a team, review PRs that change the `hooks:` section the same way you'd review CI config.\n\n### Ordering and precedence\n\nBoth Python plugin hooks and shell hooks flow through the same `invoke_hook()` dispatcher. Python plugins are registered first (`discover_and_load()`), shell hooks second (`register_from_config()`), so Python `pre_tool_call` block decisions take precedence in tie cases. The first valid block wins — the aggregator returns as soon as any callback produces `{\"action\": \"block\", \"message\": str}` with a non-empty message.\n\n---"
+}

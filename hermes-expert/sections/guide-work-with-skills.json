@@ -1,0 +1,131 @@
+{
+  "id": "guide-work-with-skills",
+  "title": "Working with Skills",
+  "source_path": "website/docs/guides/work-with-skills.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/work-with-skills",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Practical guide to using, installing, creating, and managing Hermes skills — on-demand knowledge documents that teach Hermes how to handle specific tasks — covering progressive disclosure loading, the Skills Hub, plugin-provided skills, and the skills-vs-memory decision.",
+  "key_concepts": [
+    "skills",
+    "skills_list()",
+    "skill_view()",
+    "progressive disclosure",
+    "Skills Hub",
+    "slash commands",
+    "SKILL.md",
+    "plugin skills",
+    "skill config",
+    "memory vs skills",
+    "per-platform management"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes skills list",
+      "purpose": "List all installed skills"
+    },
+    {
+      "command": "hermes skills install official/research/arxiv",
+      "purpose": "Install an official optional skill"
+    },
+    {
+      "command": "hermes skills install https://example.com/SKILL.md",
+      "purpose": "Install a skill from a URL"
+    },
+    {
+      "command": "hermes skills config <skill>",
+      "purpose": "Configure skill-specific settings"
+    },
+    {
+      "command": "hermes config get skills.config",
+      "purpose": "View all skill config values"
+    },
+    {
+      "command": "hermes skills",
+      "purpose": "Open interactive per-platform skill TUI"
+    },
+    {
+      "command": "hermes skills tap add <repo>",
+      "purpose": "Add a custom skill tap from a GitHub repo"
+    },
+    {
+      "command": "hermes skills search <keyword>",
+      "purpose": "Search installed and hub skills"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "skills.config.<skill>.<key>",
+      "type": "any",
+      "default": null,
+      "description": "Per-skill configuration values prompted on first load",
+      "example": "tenor.api_key: abc123"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/skills",
+      "purpose": "Browse available skills in session"
+    },
+    {
+      "command": "/skills search <keyword>",
+      "purpose": "Search skills by keyword"
+    },
+    {
+      "command": "/skills browse",
+      "purpose": "Browse official optional skills hub"
+    },
+    {
+      "command": "/skills install <path>",
+      "purpose": "Install a skill from hub or URL"
+    },
+    {
+      "command": "/<skill-name>",
+      "purpose": "Load and activate a skill by its name"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "markdown",
+      "caption": "SKILL.md frontmatter",
+      "code": "---\nname: my-skill\ndescription: Brief description of what this skill does\nversion: 1.0.0\nmetadata:\n  hermes:\n    tags: [my-tag, automation]\n    category: my-category\n---\n\n# My Skill\n\n## When to Use\nUse this skill when the user asks about [specific topic].\n\n## Procedure\n1. First, check if [prerequisite] is available\n2. Run `command --with-flags`\n\n## Pitfalls\n- Common failure: [description]. Fix: [solution]"
+    },
+    {
+      "language": "bash",
+      "caption": "Create and test a custom skill",
+      "code": "mkdir -p ~/.hermes/skills/my-category/my-skill\n# create SKILL.md\nhermes chat -q \"/my-skill help me with the thing\""
+    }
+  ],
+  "gotchas": [
+    "Installed skills take effect in new sessions — use /reset or --now flag for immediate availability in current session",
+    "Plugin skills are NOT listed in the system prompt skills index — they must be loaded explicitly by qualified name",
+    "Skills are zero tokens until loaded — they use progressive disclosure (skills_list → skill_view)",
+    "Memory is for facts (what things are); skills are for procedures (how to do things) — use the right one",
+    "The agent can create and update skills using skill_manage — let it save complex workflows for reuse"
+  ],
+  "cross_refs": [
+    "skills",
+    "guide-build-plugin",
+    "memory",
+    "dev-creating-skills"
+  ],
+  "keywords": [
+    "skills",
+    "SKILL.md",
+    "skills hub",
+    "optional skills",
+    "slash commands",
+    "progressive disclosure",
+    "skill_view",
+    "plugin skills",
+    "namespace",
+    "per-platform",
+    "skill config",
+    "custom skill",
+    "tap",
+    "memory vs skills",
+    "workflow"
+  ],
+  "full_text": "# Working with Skills\n\nSkills are on-demand knowledge documents that teach Hermes how to handle specific tasks. This guide walks you through using them day to day.\n\n[...full content as read from source...]"
+}

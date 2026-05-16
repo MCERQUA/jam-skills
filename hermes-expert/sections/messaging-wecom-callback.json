@@ -1,0 +1,132 @@
+{
+  "id": "messaging-wecom-callback",
+  "title": "user-guide/messaging/wecom-callback.md",
+  "source_path": "website/docs/user-guide/messaging/wecom-callback.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/wecom-callback",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Connect Hermes to WeCom (Enterprise WeChat) as a self-built enterprise application using the callback/webhook model.",
+  "key_concepts": [
+    "WeCom Callback (Self-Built App)",
+    "How It Works",
+    "Prerequisites",
+    "Setup",
+    "1. Create a Self-Built App in WeCom",
+    "2. Configure Environment Variables",
+    "Optional",
+    "3. Start the Gateway"
+  ],
+  "env_vars": [
+    {
+      "name": "WECOM_CALLBACK_CORP_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_CALLBACK_CORP_SECRET",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_CALLBACK_AGENT_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_CALLBACK_TOKEN",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_CALLBACK_ENCODING_AES_KEY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_CALLBACK_HOST",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_CALLBACK_PORT",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_CALLBACK_ALLOWED_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_CALLBACK_ALLOW_ALL_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/health",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "WECOM_CALLBACK_CORP_ID=your-corp-id\nWECOM_CALLBACK_CORP_SECRET=your-corp-secret\nWECOM_CALLBACK_AGENT_ID=1000002\nWECOM_CALLBACK_TOKEN=your-callback-token\nWECOM_CALLBACK_ENCODING_AES_KEY=your-43-char-aes-key\n\n# Optional\nWECOM_CALLBACK_HOST=0.0.0.0\nWECOM_CALLBACK_PORT=8645\nWECOM_CALLBACK_ALLOWED_USERS=user1,user2\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "platforms:\n  wecom_callback:\n    enabled: true\n    extra:\n      host: \"0.0.0.0\"\n      port: 8645\n      apps:\n        - name: \"dept-a\"\n          corp_id: \"ww_corp_a\"\n          corp_secret: \"secret-a\"\n          agent_id: \"1000002\"\n          token: \"token-a\"\n          encoding_aes_key: \"key-a-43-chars...\"\n        - name: \"dept-b\"\n          corp_id: \"ww_corp_b\"\n          corp_secret: \"secret-b\"\n          agent_id: \"1000003\"\n          token: \"token-b\"\n          encoding_aes_key: \"key-b-43-chars...\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Allowlist specific users\nWECOM_CALLBACK_ALLOWED_USERS=zhangsan,lisi,wangwu\n\n# Or allow all users\nWECOM_CALLBACK_ALLOW_ALL_USERS=true\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [
+    "wecom"
+  ],
+  "keywords": [
+    "aes",
+    "api",
+    "bot-style",
+    "callback",
+    "char-aes-key",
+    "first-class",
+    "get",
+    "http",
+    "messaging",
+    "multi-corp",
+    "post",
+    "self-built",
+    "url",
+    "user-guide",
+    "user-guide/messaging/wecom-callback.md"
+  ],
+  "full_text": "# user-guide/messaging/wecom-callback.md\n\n# WeCom Callback (Self-Built App)\n\nConnect Hermes to WeCom (Enterprise WeChat) as a self-built enterprise application using the callback/webhook model.\n\n:::info WeCom Bot vs WeCom Callback\nHermes supports two WeCom integration modes:\n- **[WeCom Bot](wecom.md)** — bot-style, connects via WebSocket. Simpler setup, works in group chats.\n- **WeCom Callback** (this page) — self-built app, receives encrypted XML callbacks. Shows as a first-class app in users' WeCom sidebar. Supports multi-corp routing.\n:::\n\n## How It Works\n\n1. You register a self-built application in the WeCom Admin Console\n2. WeCom pushes encrypted XML to your HTTP callback endpoint\n3. Hermes decrypts the message, queues it for the agent\n4. Immediately acknowledges (silent — nothing displayed to the user)\n5. The agent processes the request (typically 3–30 minutes)\n6. The reply is delivered proactively via the WeCom `message/send` API\n\n## Prerequisites\n\n- A WeCom enterprise account with admin access\n- `aiohttp` and `httpx` Python packages (included in the default install)\n- A publicly reachable server for the callback URL (or a tunnel like ngrok)\n\n## Setup\n\n### 1. Create a Self-Built App in WeCom\n\n1. Go to [WeCom Admin Console](https://work.weixin.qq.com/) → **Applications** → **Create App**\n2. Note your **Corp ID** (shown at the top of the admin console)\n3. In the app settings, create a **Corp Secret**\n4. Note the **Agent ID** from the app's overview page\n5. Under **Receive Messages**, configure the callback URL:\n   - URL: `http://YOUR_PUBLIC_IP:8645/wecom/callback`\n   - Token: Generate a random token (WeCom provides one)\n   - EncodingAESKey: Generate a key (WeCom provides one)\n\n### 2. Configure Environment Variables\n\nAdd to your `.env` file:\n\n```bash\nWECOM_CALLBACK_CORP_ID=your-corp-id\nWECOM_CALLBACK_CORP_SECRET=your-corp-secret\nWECOM_CALLBACK_AGENT_ID=1000002\nWECOM_CALLBACK_TOKEN=your-callback-token\nWECOM_CALLBACK_ENCODING_AES_KEY=your-43-char-aes-key\n\n# Optional\nWECOM_CALLBACK_HOST=0.0.0.0\nWECOM_CALLBACK_PORT=8645\nWECOM_CALLBACK_ALLOWED_USERS=user1,user2\n```\n\n### 3. Start the Gateway\n\n```bash\nhermes gateway\n```\n\n(Use `hermes gateway start` only after `hermes gateway install` has registered the systemd/launchd service.)\n\nThe callback adapter starts an HTTP server on the configured port. WeCom will verify the callback URL via a GET request, then begin sending messages via POST.\n\n## Configuration Reference\n\nSet these in `config.yaml` under `platforms.wecom_callback.extra`, or use environment variables:\n\n| Setting | Default | Description |\n|---------|---------|-------------|\n| `corp_id` | — | WeCom enterprise Corp ID (required) |\n| `corp_secret` | — | Corp secret for the self-built app (required) |\n| `agent_id` | — | Agent ID of the self-built app (required) |\n| `token` | — | Callback verification token (required) |\n| `encoding_aes_key` | — | 43-character AES key for callback encryption (required) |\n| `host` | `0.0.0.0` | Bind address for the HTTP callback server |\n| `port` | `8645` | Port for the HTTP callback server |\n| `path` | `/wecom/callback` | URL path for the callback endpoint |\n\n## Multi-App Routing\n\nFor enterprises running multiple self-built apps (e.g., across different departments or subsidiaries), configure the `apps` list in `config.yaml`:\n\n```yaml\nplatforms:\n  wecom_callback:\n    enabled: true\n    extra:\n      host: \"0.0.0.0\"\n      port: 8645\n      apps:\n        - name: \"dept-a\"\n          corp_id: \"ww_corp_a\"\n          corp_secret: \"secret-a\"\n          agent_id: \"1000002\"\n          token: \"token-a\"\n          encoding_aes_key: \"key-a-43-chars...\"\n        - name: \"dept-b\"\n          corp_id: \"ww_corp_b\"\n          corp_secret: \"secret-b\"\n          agent_id: \"1000003\"\n          token: \"token-b\"\n          encoding_aes_key: \"key-b-43-chars...\"\n```\n\nUsers are scoped by `corp_id:user_id` to prevent cross-corp collisions. When a user sends a message, the adapter records which app (corp) they belong to and routes replies through the correct app's access token.\n\n## Access Control\n\nRestrict which users can interact with the app:\n\n```bash\n# Allowlist specific users\nWECOM_CALLBACK_ALLOWED_USERS=zhangsan,lisi,wangwu\n\n# Or allow all users\nWECOM_CALLBACK_ALLOW_ALL_USERS=true\n```\n\n## Endpoints\n\nThe adapter exposes:\n\n| Method | Path | Purpose |\n|--------|------|---------|\n| GET | `/wecom/callback` | URL verification handshake (WeCom sends this during setup) |\n| POST | `/wecom/callback` | Encrypted message callback (WeCom sends user messages here) |\n| GET | `/health` | Health check — returns `{\"status\": \"ok\"}` |\n\n## Encryption\n\nAll callback payloads are encrypted with AES-CBC using the EncodingAESKey. The adapter handles:\n\n- **Inbound**: Decrypt XML payload, verify SHA1 signature\n- **Outbound**: Replies sent via proactive API (not encrypted callback response)\n\nThe crypto implementation is compatible with Tencent's official WXBizMsgCrypt SDK.\n\n## Limitations\n\n- **No streaming** — replies arrive as complete messages after the agent finishes\n- **No typing indicators** — the callback model doesn't support typing status\n- **Text only** — currently supports text messages for input; image/file/voice input not yet implemented. The agent is aware of outbound media capabilities via the WeCom platform hint (images, documents, video, voice).\n- **Response latency** — agent sessions take 3–30 minutes; users see the reply when processing completes\n\n---"
+}

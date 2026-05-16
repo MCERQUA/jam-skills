@@ -1,0 +1,155 @@
+{
+  "id": "tips",
+  "title": "Tips & Best Practices",
+  "source_path": "website/docs/guides/tips.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/tips",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "A collection of practical quick-wins for getting the best results from Hermes Agent, covering prompt writing, CLI power user features, context file usage, memory vs. skills, performance optimization, messaging tips, and security practices.",
+  "key_concepts": [
+    "prompt engineering",
+    "context files",
+    "AGENTS.md",
+    "SOUL.md",
+    "memory management",
+    "skills",
+    "performance",
+    "prompt caching",
+    "delegation",
+    "security",
+    "messaging tips"
+  ],
+  "env_vars": [
+    {
+      "name": "TERMINAL_BACKEND",
+      "purpose": "Use Docker for container isolation",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TERMINAL_DOCKER_IMAGE",
+      "purpose": "Docker image for sandbox terminal",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TELEGRAM_ALLOWED_USERS",
+      "purpose": "Allowlist of Telegram user IDs",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DISCORD_ALLOWED_USERS",
+      "purpose": "Allowlist of Discord user IDs",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GATEWAY_ALLOWED_USERS",
+      "purpose": "Cross-platform user allowlist",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes -c",
+      "purpose": "Resume last session with full conversation history"
+    },
+    {
+      "command": "hermes -r <title>",
+      "purpose": "Resume session by title"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/skills",
+      "purpose": "Browse available skills"
+    },
+    {
+      "command": "/compress",
+      "purpose": "Summarize conversation history to reduce tokens"
+    },
+    {
+      "command": "/usage",
+      "purpose": "Check token consumption"
+    },
+    {
+      "command": "/insights",
+      "purpose": "Usage patterns over the last 30 days"
+    },
+    {
+      "command": "/verbose",
+      "purpose": "Cycle through tool output display modes: off → new → all → verbose"
+    },
+    {
+      "command": "/sethome",
+      "purpose": "Set the home channel for cron job delivery"
+    },
+    {
+      "command": "/title <name>",
+      "purpose": "Name the current session"
+    },
+    {
+      "command": "/model",
+      "purpose": "Switch models mid-session"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "markdown",
+      "caption": "AGENTS.md example",
+      "code": "# Project Context\n- This is a FastAPI backend with SQLAlchemy ORM\n- Always use async/await for database operations\n- Tests go in tests/ and use pytest-asyncio\n- Never commit .env files"
+    },
+    {
+      "language": "markdown",
+      "caption": "SOUL.md example",
+      "code": "# Soul\nYou are a senior backend engineer. Be terse and direct.\nSkip explanations unless asked. Prefer one-liners over verbose solutions.\nAlways consider error handling and edge cases."
+    },
+    {
+      "language": "bash",
+      "caption": "Docker terminal backend",
+      "code": "# In your .env:\nTERMINAL_BACKEND=docker\nTERMINAL_DOCKER_IMAGE=hermes-sandbox:latest"
+    },
+    {
+      "language": "bash",
+      "caption": "User allowlists",
+      "code": "TELEGRAM_ALLOWED_USERS=123456789,987654321\nDISCORD_ALLOWED_USERS=123456789012345678"
+    }
+  ],
+  "gotchas": [
+    "Memory changes are written to disk immediately but won't appear in the system prompt until the next session starts",
+    "Don't break the prompt cache: keep context files and memory stable across turns to benefit from cache hits",
+    "Never set GATEWAY_ALLOW_ALL_USERS=true on a bot with terminal access",
+    "When running in a container backend, dangerous command checks are skipped — the container IS the security boundary",
+    "On Windows, open files with explicit encoding='utf-8' to avoid UnicodeEncodeError with non-Latin text",
+    "/verbose 'all' is great for watching agent work; 'off' is cleanest for simple Q&A"
+  ],
+  "cross_refs": [
+    "context-files",
+    "memory",
+    "skills",
+    "personality",
+    "configuration"
+  ],
+  "keywords": [
+    "tips",
+    "best practices",
+    "AGENTS.md",
+    "SOUL.md",
+    "context files",
+    "memory",
+    "skills",
+    "prompt caching",
+    "delegation",
+    "execute_code",
+    "security",
+    "allowlist",
+    "Docker sandbox",
+    "resume session",
+    "token management",
+    "/compress"
+  ],
+  "full_text": "# Tips & Best Practices\n\nA quick-wins collection of practical tips that make you immediately more effective with Hermes Agent.\n\n[...full content as read from source...]"
+}

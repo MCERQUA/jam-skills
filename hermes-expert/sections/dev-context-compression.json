@@ -1,0 +1,103 @@
+{
+  "id": "dev-context-compression",
+  "title": "Context Compression and Caching",
+  "source_path": "website/docs/developer-guide/context-compression-and-caching.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/context-compression-and-caching",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the dual compression system (gateway hygiene at 85% threshold and agent ContextCompressor at 50% threshold), the 4-phase compression algorithm, Anthropic prompt caching strategy, and the pluggable ContextEngine ABC.",
+  "key_concepts": [
+    "dual compression",
+    "ContextCompressor",
+    "gateway session hygiene",
+    "prompt caching",
+    "ContextEngine ABC",
+    "compression threshold",
+    "compression algorithm",
+    "cache breakpoints"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "compression.enabled",
+      "type": "boolean",
+      "default": "true",
+      "description": "Enable/disable compression",
+      "example": "true"
+    },
+    {
+      "path": "compression.threshold",
+      "type": "float",
+      "default": "0.50",
+      "description": "Fraction of context window at which compression triggers",
+      "example": "0.50"
+    },
+    {
+      "path": "compression.target_ratio",
+      "type": "float",
+      "default": "0.20",
+      "description": "How much of threshold to keep as tail",
+      "example": "0.20"
+    },
+    {
+      "path": "compression.protect_last_n",
+      "type": "integer",
+      "default": "20",
+      "description": "Minimum protected tail messages",
+      "example": "20"
+    },
+    {
+      "path": "context.engine",
+      "type": "string",
+      "default": "compressor",
+      "description": "Active context engine — 'compressor' or a plugin name",
+      "example": "lcm"
+    },
+    {
+      "path": "prompt_caching.cache_ttl",
+      "type": "string",
+      "default": "5m",
+      "description": "Prompt cache TTL — '5m' or '1h'",
+      "example": "1h"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "Compression configuration",
+      "code": "compression:\n  enabled: true\n  threshold: 0.50\n  target_ratio: 0.20\n  protect_last_n: 20\nauxiliary:\n  compression:\n    model: null\n    provider: auto\n    base_url: null"
+    },
+    {
+      "language": "yaml",
+      "caption": "Context engine selection",
+      "code": "context:\n  engine: \"compressor\"  # default built-in\n  # engine: \"lcm\"       # plugin engine"
+    }
+  ],
+  "gotchas": [
+    "Summary model must have a context window at least as large as the main model — smaller model causes silent context loss",
+    "Intermediate context-pressure warnings were removed because they caused models to give up prematurely",
+    "Gateway hygiene threshold (85%) is intentionally higher than agent compressor (50%) — setting them equal caused premature compression",
+    "After compression the cache is invalidated for the compressed region but the system prompt cache survives"
+  ],
+  "cross_refs": [
+    "dev-context-engine-plugin",
+    "dev-agent-loop",
+    "dev-prompt-assembly",
+    "dev-session-storage"
+  ],
+  "keywords": [
+    "context compression",
+    "prompt caching",
+    "ContextCompressor",
+    "ContextEngine",
+    "dual compression",
+    "Anthropic caching",
+    "cache breakpoints",
+    "compression threshold",
+    "session hygiene",
+    "LCM"
+  ],
+  "full_text": "# Context Compression and Caching\n\nHermes Agent uses a dual compression system and Anthropic prompt caching to manage context window usage efficiently across long conversations.\n\nSource files: `agent/context_engine.py` (ABC), `agent/context_compressor.py` (default engine), `agent/prompt_caching.py`, `gateway/run.py`, `run_agent.py`\n\n## Pluggable Context Engine\n\nContext management is built on the `ContextEngine` ABC (`agent/context_engine.py`). The built-in `ContextCompressor` is the default implementation, but plugins can replace it.\n\n```yaml\ncontext:\n  engine: \"compressor\"    # default — built-in lossy summarization\n  engine: \"lcm\"           # example — plugin providing lossless context\n```\n\nPlugin engines are **never auto-activated** — the user must explicitly set `context.engine`.\n\n## Dual Compression System\n\n```\n                 ┌──────────────────────────┐\nIncoming message │   Gateway Session Hygiene │  Fires at 85% of context\n────────────────►│   (pre-agent, rough est.) │  Safety net for large sessions\n                 └─────────────┬────────────┘\n                               │\n                               ▼\n                 ┌──────────────────────────┐\n                 │   Agent ContextCompressor │  Fires at 50% of context (default)\n                 │   (in-loop, real tokens)  │  Normal context management\n                 └──────────────────────────┘\n```\n\n## Configuration\n\n```yaml\ncompression:\n  enabled: true              # Enable/disable compression (default: true)\n  threshold: 0.50            # Fraction of context window (default: 0.50)\n  target_ratio: 0.20         # How much of threshold to keep as tail (default: 0.20)\n  protect_last_n: 20         # Minimum protected tail messages (default: 20)\n\nauxiliary:\n  compression:\n    model: null              # Override model for summaries (default: auto-detect)\n    provider: auto           # Provider for summarization\n    base_url: null           # Custom endpoint\n```\n\n## Compression Algorithm\n\nThe `ContextCompressor.compress()` method follows a 4-phase algorithm:\n\n### Phase 1: Prune Old Tool Results (cheap, no LLM call)\n\nOld tool results (>200 chars) outside the protected tail are replaced with:\n```\n[Old tool output cleared to save context space]\n```\n\n### Phase 2: Determine Boundaries\n\n```\n[0..2]  ← protect_first_n (system + first exchange)\n[3..N]  ← middle turns → SUMMARIZED\n[N..end] ← tail (by token budget OR protect_last_n)\n```\n\nBoundaries aligned to avoid splitting tool_call/tool_result groups.\n\n### Phase 3: Generate Structured Summary\n\nThe middle turns are summarized using the auxiliary LLM with a structured template:\n\n```\n## Goal\n[What the user is trying to accomplish]\n## Constraints & Preferences\n[User preferences, coding style, constraints]\n## Progress\n### Done / In Progress / Blocked\n## Key Decisions\n## Relevant Files\n## Next Steps\n## Critical Context\n[Specific values, error messages, configuration details]\n```\n\n:::warning The summary model must have a context window **at least as large** as the main agent model.:::\n\n### Phase 4: Assemble Compressed Messages\n\n1. Head messages (with a note appended to system prompt on first compression)\n2. Summary message (role chosen to avoid consecutive same-role violations)\n3. Tail messages (unmodified)\n\nOrphaned tool_call/tool_result pairs cleaned up by `_sanitize_tool_pairs()`.\n\n### Iterative Re-compression\n\nOn subsequent compressions, the previous summary is passed to the LLM with instructions to **update** it rather than summarize from scratch.\n\n## Prompt Caching (Anthropic)\n\nSource: `agent/prompt_caching.py`\n\nReduces input token costs by ~75% on multi-turn conversations using Anthropic's `cache_control` breakpoints.\n\n### Strategy: system_and_3\n\n```\nBreakpoint 1: System prompt           (stable across all turns)\nBreakpoint 2: 3rd-to-last non-system message\nBreakpoint 3: 2nd-to-last non-system message\nBreakpoint 4: Last non-system message\n```\n\nPrompt caching is automatically enabled when:\n- The model is an Anthropic Claude model\n- The provider supports `cache_control`\n\n```yaml\n# config.yaml\nprompt_caching:\n  cache_ttl: \"5m\"   # must be \"5m\" or \"1h\"\n```"
+}

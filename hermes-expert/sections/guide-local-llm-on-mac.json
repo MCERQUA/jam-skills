@@ -1,0 +1,112 @@
+{
+  "id": "guide-local-llm-on-mac",
+  "title": "Run Local LLMs on Mac",
+  "source_path": "website/docs/guides/local-llm-on-mac.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/local-llm-on-mac",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Step-by-step guide for running local LLM servers on macOS with an OpenAI-compatible API using either llama.cpp (fastest time-to-first-token via Metal) or MLX via omlx (fastest token generation), then connecting Hermes to the local endpoint.",
+  "key_concepts": [
+    "llama.cpp",
+    "MLX",
+    "omlx",
+    "Apple Silicon",
+    "GGUF",
+    "quantization",
+    "KV cache",
+    "Metal GPU",
+    "local models",
+    "Q4_K_M",
+    "context length",
+    "streaming timeout"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_STREAM_READ_TIMEOUT",
+      "purpose": "Override stream read timeout for slow local inference (default 120s, auto-raised to 1800s for local)",
+      "required": false,
+      "default": "120"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "brew install llama.cpp",
+      "purpose": "Install llama.cpp on macOS"
+    },
+    {
+      "command": "huggingface-cli download <repo> <file>",
+      "purpose": "Download GGUF model from Hugging Face"
+    },
+    {
+      "command": "llama-server -m ~/models/model.gguf -ngl 99 -c 131072 -fa on --cache-type-k q4_0 --cache-type-v q4_0",
+      "purpose": "Start llama-server with optimal Mac settings"
+    },
+    {
+      "command": "ollama ps",
+      "purpose": "Verify Ollama context setting (CONTEXT column)"
+    },
+    {
+      "command": "hermes model",
+      "purpose": "Connect Hermes to custom local endpoint"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "model.base_url",
+      "type": "string",
+      "default": null,
+      "description": "Local model server URL",
+      "example": "http://localhost:8080/v1"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Start llama-server with quantized KV cache",
+      "code": "llama-server -m ~/models/Qwen3.5-9B-Q4_K_M.gguf \\\n  -ngl 99 \\\n  -c 131072 \\\n  -np 1 \\\n  -fa on \\\n  --cache-type-k q4_0 \\\n  --cache-type-v q4_0 \\\n  --host 0.0.0.0"
+    },
+    {
+      "language": "bash",
+      "caption": "Test local server",
+      "code": "curl -s http://localhost:8080/v1/chat/completions \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"model\": \"Qwen3.5-9B-Q4_K_M.gguf\",\n    \"messages\": [{\"role\": \"user\", \"content\": \"Hello!\"}],\n    \"max_tokens\": 50\n  }' | jq .choices[0].message.content"
+    },
+    {
+      "language": "bash",
+      "caption": "Download GGUF model",
+      "code": "brew install huggingface-cli\nhuggingface-cli download unsloth/Qwen3.5-9B-GGUF Qwen3.5-9B-Q4_K_M.gguf --local-dir ~/models"
+    }
+  ],
+  "gotchas": [
+    "llama.cpp defaults to very low context on <24GB VRAM machines — always set -c explicitly",
+    "q4_0 KV cache quantization cuts memory usage by ~75% vs f16 — essential for 8-16GB Macs",
+    "With -np (parallel slots) > 1, total context is divided among slots — keep at 1 for single-user use",
+    "Intel Macs work with llama.cpp but without Metal GPU acceleration — significantly slower",
+    "Hermes auto-detects local endpoints and relaxes stream timeouts to 1800s — no config needed for most setups",
+    "omlx serves on port 8000 by default; llama-server serves on port 8080"
+  ],
+  "cross_refs": [
+    "providers",
+    "configuration"
+  ],
+  "keywords": [
+    "Mac",
+    "macOS",
+    "Apple Silicon",
+    "local LLM",
+    "llama.cpp",
+    "MLX",
+    "omlx",
+    "GGUF",
+    "quantization",
+    "Q4_K_M",
+    "Metal",
+    "KV cache",
+    "context length",
+    "offline",
+    "privacy",
+    "Qwen",
+    "local inference"
+  ],
+  "full_text": "# Run Local LLMs on Mac\n\nThis guide walks you through running a local LLM server on macOS with an OpenAI-compatible API.\n\n[...full content as read from source...]"
+}

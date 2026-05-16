@@ -1,0 +1,131 @@
+{
+  "id": "guide-build-plugin",
+  "title": "Build a Hermes Plugin",
+  "source_path": "website/docs/guides/build-a-hermes-plugin.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/build-a-hermes-plugin",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Complete step-by-step guide for building a Hermes plugin with custom tools, lifecycle hooks, slash commands, CLI subcommands, bundled skills, and data files, covering plugin.yaml manifest, tool schemas, handler functions, and the registration API.",
+  "key_concepts": [
+    "plugin system",
+    "plugin.yaml manifest",
+    "tool schemas",
+    "tool handlers",
+    "register(ctx)",
+    "ctx.register_tool",
+    "ctx.register_hook",
+    "ctx.register_command",
+    "ctx.register_cli_command",
+    "ctx.dispatch_tool",
+    "pre_llm_call injection",
+    "pip distribution",
+    "NixOS"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_PLUGINS_DEBUG",
+      "purpose": "Enable verbose plugin discovery logging on stderr",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes plugins enable <name>",
+      "purpose": "Enable a discovered plugin"
+    },
+    {
+      "command": "hermes plugins list",
+      "purpose": "List all discovered plugins and their status"
+    },
+    {
+      "command": "hermes plugins install",
+      "purpose": "Install a plugin and prompt for missing env vars"
+    },
+    {
+      "command": "HERMES_PLUGINS_DEBUG=1 hermes plugins list",
+      "purpose": "Debug plugin discovery with verbose output"
+    },
+    {
+      "command": "hermes logs --level WARNING | grep -i plugin",
+      "purpose": "Check plugin logs"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/plugins",
+      "purpose": "Show loaded plugins and their tool/hook counts"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "plugin.yaml manifest",
+      "code": "name: calculator\nversion: 1.0.0\ndescription: Math calculator — evaluate expressions and convert units\nprovides_tools:\n  - calculate\n  - unit_convert\nprovides_hooks:\n  - post_tool_call\nrequires_env:\n  - name: WEATHER_API_KEY\n    description: \"API key for OpenWeather\"\n    url: \"https://openweathermap.org/api\"\n    secret: true"
+    },
+    {
+      "language": "python",
+      "caption": "Tool schema definition",
+      "code": "CALCULATE = {\n    \"name\": \"calculate\",\n    \"description\": \"Evaluate a mathematical expression and return the result.\",\n    \"parameters\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"expression\": {\n                \"type\": \"string\",\n                \"description\": \"Math expression to evaluate (e.g., '2**10', 'sqrt(144)')\",\n            },\n        },\n        \"required\": [\"expression\"],\n    },\n}"
+    },
+    {
+      "language": "python",
+      "caption": "Tool handler function",
+      "code": "def calculate(args: dict, **kwargs) -> str:\n    expression = args.get(\"expression\", \"\").strip()\n    try:\n        result = eval(expression, {\"__builtins__\": {}}, _SAFE_MATH)\n        return json.dumps({\"expression\": expression, \"result\": result})\n    except Exception as e:\n        return json.dumps({\"expression\": expression, \"error\": f\"Invalid: {e}\"})"
+    },
+    {
+      "language": "python",
+      "caption": "Plugin registration",
+      "code": "def register(ctx):\n    ctx.register_tool(name=\"calculate\", toolset=\"calculator\",\n                      schema=schemas.CALCULATE, handler=tools.calculate)\n    ctx.register_hook(\"post_tool_call\", _on_post_tool_call)\n    ctx.register_command(\"mystatus\", handler=_handle_status, description=\"Show plugin status\")"
+    },
+    {
+      "language": "python",
+      "caption": "pre_llm_call context injection",
+      "code": "def recall_context(session_id, user_message, is_first_turn, **kwargs):\n    \"\"\"Returns context injected into user message for this turn.\"\"\"\n    try:\n        memories = fetch_memories(session_id, user_message)\n        if not memories:\n            return None\n        text = \"Recalled context:\\n\" + \"\\n\".join(f\"- {m}\" for m in memories)\n        return {\"context\": text}\n    except Exception:\n        return None"
+    },
+    {
+      "language": "toml",
+      "caption": "pip distribution entry point",
+      "code": "[project.entry-points.\"hermes_agent.plugins\"]\nmy-plugin = \"my_plugin_package\""
+    }
+  ],
+  "gotchas": [
+    "Handlers MUST return a JSON string — never a dict or other type",
+    "Handlers MUST accept **kwargs for forward compatibility — missing this breaks if Hermes passes extra context",
+    "Handlers should never raise exceptions — catch all and return error JSON",
+    "Plugin directory layout: ~/.hermes/plugins/<plugin-name>/plugin.yaml (max one level of category nesting)",
+    "Plugins are opt-in — run hermes plugins enable <name> before they appear in the banner",
+    "pre_llm_call context is injected into the user message (not system prompt) to preserve prompt cache",
+    "Built-in slash commands (help, model, new, etc.) cannot be overridden — registration is silently rejected",
+    "override=True is required to replace a built-in tool — explicit opt-in prevents accidental overwrites"
+  ],
+  "cross_refs": [
+    "plugins",
+    "hooks",
+    "skills",
+    "mcp",
+    "dev-adding-providers",
+    "dev-adding-platform-adapters",
+    "dev-memory-provider-plugin"
+  ],
+  "keywords": [
+    "plugin",
+    "plugin.yaml",
+    "register(ctx)",
+    "tool handler",
+    "tool schema",
+    "hooks",
+    "pre_llm_call",
+    "post_tool_call",
+    "slash commands",
+    "CLI commands",
+    "context injection",
+    "bundled skills",
+    "requires_env",
+    "pip distribution",
+    "NixOS",
+    "override"
+  ],
+  "full_text": "# Build a Hermes Plugin\n\nThis guide walks through building a complete Hermes plugin from scratch. By the end you'll have a working plugin with multiple tools, lifecycle hooks, shipped data files, and a bundled skill.\n\n[...full content as read from source...]"
+}

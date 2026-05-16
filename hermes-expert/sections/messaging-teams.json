@@ -1,0 +1,196 @@
+{
+  "id": "messaging-teams",
+  "title": "Microsoft Teams",
+  "source_path": "website/docs/user-guide/messaging/teams.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/teams",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Connect Hermes Agent to Microsoft Teams as a bot. Unlike Slack's Socket Mode, Teams delivers messages by calling a public HTTPS webhook, so your instance needs a publicly reachable endpoint — either a dev tunnel (local dev) or a real domain (production).",
+  "key_concepts": [
+    "Microsoft Teams Setup",
+    "How the Bot Responds",
+    "Step 1: Install the Teams CLI",
+    "Step 2: Expose the Webhook Port",
+    "devtunnel (Microsoft)",
+    "ngrok",
+    "cloudflared",
+    "Step 3: Create the Bot"
+  ],
+  "env_vars": [
+    {
+      "name": "TEAMS_ALLOWED_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TEAMS_PORT",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "CLIENT_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "CLIENT_SECRET",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TENANT_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TEAMS_CLIENT_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TEAMS_CLIENT_SECRET",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TEAMS_TENANT_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_UID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TEAMS_ALLOW_ALL_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TEAMS_HOME_CHANNEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TEAMS_HOME_CHANNEL_NAME",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "ANTHROPIC_API_KEY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/approve",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "npm install -g @microsoft/teams.cli@preview\nteams login\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "teams status --verbose\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# devtunnel (Microsoft)\ndevtunnel create hermes-bot --allow-anonymous\ndevtunnel port create hermes-bot -p 3978 --protocol https  # replace 3978 with TEAMS_PORT if changed\ndevtunnel host hermes-bot\n\n# ngrok\nngrok http 3978  # replace 3978 with TEAMS_PORT if changed\n\n# cloudflared\ncloudflared tunnel --url http://localhost:3978  # replace 3978 with TEAMS_PORT if changed\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "teams app create \\\n  --name \"Hermes\" \\\n  --endpoint \"https://<your-tunnel-url>/api/messages\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Required\nTEAMS_CLIENT_ID=<your-client-id>\nTEAMS_CLIENT_SECRET=<your-client-secret>\nTEAMS_TENANT_ID=<your-tenant-id>\n\n# Restrict access to specific users (recommended)\n# Use AAD object IDs from `teams status --verbose`\nTEAMS_ALLOWED_USERS=<your-aad-object-id>\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "HERMES_UID=$(id -u) HERMES_GID=$(id -g) docker compose up -d gateway\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "curl http://localhost:3978/health   # should return: ok\ndocker logs -f hermes\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "[teams] Webhook server listening on 0.0.0.0:3978/api/messages\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "teams app get <teamsAppId> --install-link\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "platforms:\n  teams:\n    enabled: true\n    extra:\n      client_id: \"your-client-id\"\n      client_secret: \"your-secret\"\n      tenant_id: \"your-tenant-id\"\n      port: 3978\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "platforms:\n  teams:\n    enabled: true\n    extra:\n      # existing bot config (client_id, client_secret, tenant_id, port) ...\n\n      # Meeting summary delivery (only used when the teams_pipeline plugin is enabled)\n      delivery_mode: \"graph\"       # or \"incoming_webhook\"\n      # For delivery_mode: graph — pick ONE of:\n      chat_id: \"19:meeting_...\"    # post into a Teams chat\n      # team_id: \"...\"             # OR post into a channel\n      # channel_id: \"...\"\n      # access_token: \"...\"        # optional; falls back to MSGRAPH_* app credentials\n      # For delivery_mode: incoming_webhook:\n      # incoming_webhook_url: \"https://outlook.office.com/webhook/...\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "teams app create \\\n  --name \"Hermes\" \\\n  --endpoint \"https://your-domain.com/api/messages\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "teams app update --id <teamsAppId> --endpoint \"https://your-domain.com/api/messages\"\n"
+    }
+  ],
+  "gotchas": [
+    "**Always set `TEAMS_ALLOWED_USERS`** with the AAD object IDs of authorized users. Without this, anyone who can find or install your bot can interact with it.\n\nTreat `TEAMS_CLIENT_SECRET` like a password — rotate it periodically via the Azure portal or Teams CLI."
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "aad",
+    "allow-anonymous",
+    "cli",
+    "hermes-bot",
+    "https",
+    "install-link",
+    "messaging",
+    "microsoft",
+    "microsoft-graph-app-registration",
+    "msgraph-webhook",
+    "one",
+    "production-deployment",
+    "teams",
+    "teams-meetings",
+    "url"
+  ],
+  "full_text": "# Microsoft Teams\n\n# Microsoft Teams Setup\n\nConnect Hermes Agent to Microsoft Teams as a bot. Unlike Slack's Socket Mode, Teams delivers messages by calling a **public HTTPS webhook**, so your instance needs a publicly reachable endpoint — either a dev tunnel (local dev) or a real domain (production).\n\nNeed meeting summaries from Microsoft Graph events rather than normal bot conversations? Use the dedicated setup page: [Teams Meetings](/docs/user-guide/messaging/teams-meetings).\n\n## How the Bot Responds\n\n| Context | Behavior |\n|---------|----------|\n| **Personal chat (DM)** | Bot responds to every message. No @mention needed. |\n| **Group chat** | Bot only responds when @mentioned. |\n| **Channel** | Bot only responds when @mentioned. |\n\nTeams delivers @mentions as regular messages with `<at>BotName</at>` tags, which Hermes strips automatically before processing.\n\n---\n\n## Step 1: Install the Teams CLI\n\nThe `@microsoft/teams.cli` automates bot registration — no Azure portal needed.\n\n```bash\nnpm install -g @microsoft/teams.cli@preview\nteams login\n```\n\nTo verify your login and find your own AAD object ID (needed for `TEAMS_ALLOWED_USERS`):\n\n```bash\nteams status --verbose\n```\n\n---\n\n## Step 2: Expose the Webhook Port\n\nTeams cannot deliver messages to `localhost`. For local development, use any tunnel tool to get a public HTTPS URL. The default port is `3978` — change it with `TEAMS_PORT` if needed.\n\n```bash\n# devtunnel (Microsoft)\ndevtunnel create hermes-bot --allow-anonymous\ndevtunnel port create hermes-bot -p 3978 --protocol https  # replace 3978 with TEAMS_PORT if changed\ndevtunnel host hermes-bot\n\n# ngrok\nngrok http 3978  # replace 3978 with TEAMS_PORT if changed\n\n# cloudflared\ncloudflared tunnel --url http://localhost:3978  # replace 3978 with TEAMS_PORT if changed\n```\n\nCopy the `https://` URL from the output — you'll use it in the next step. Leave the tunnel running while developing.\n\nFor production, point your bot's endpoint at your server's public domain instead (see [Production Deployment](#production-deployment)).\n\n---\n\n## Step 3: Create the Bot\n\n```bash\nteams app create \\\n  --name \"Hermes\" \\\n  --endpoint \"https://<your-tunnel-url>/api/messages\"\n```\n\nThe CLI outputs your `CLIENT_ID`, `CLIENT_SECRET`, and `TENANT_ID`, plus an install link for Step 6. Save the client secret — it won't be shown again.\n\n---\n\n## Step 4: Configure Environment Variables\n\nAdd to `~/.hermes/.env`:\n\n```bash\n# Required\nTEAMS_CLIENT_ID=<your-client-id>\nTEAMS_CLIENT_SECRET=<your-client-secret>\nTEAMS_TENANT_ID=<your-tenant-id>\n\n# Restrict access to specific users (recommended)\n# Use AAD object IDs from `teams status --verbose`\nTEAMS_ALLOWED_USERS=<your-aad-object-id>\n```\n\n---\n\n## Step 5: Start the Gateway\n\n```bash\nHERMES_UID=$(id -u) HERMES_GID=$(id -g) docker compose up -d gateway\n```\n\nThis starts the gateway. The default webhook port is `3978` (override with `TEAMS_PORT`). Check that it's running:\n\n```bash\ncurl http://localhost:3978/health   # should return: ok\ndocker logs -f hermes\n```\n\nLook for:\n```\n[teams] Webhook server listening on 0.0.0.0:3978/api/messages\n```\n\n---\n\n## Step 6: Install the App in Teams\n\n```bash\nteams app get <teamsAppId> --install-link\n```\n\nOpen the printed link in your browser — it opens directly in the Teams client. After installing, send a direct message to your bot — it's ready.\n\n---\n\n## Configuration Reference\n\n### Environment Variables\n\n| Variable | Description |\n|----------|-------------|\n| `TEAMS_CLIENT_ID` | Azure AD App (client) ID |\n| `TEAMS_CLIENT_SECRET` | Azure AD client secret |\n| `TEAMS_TENANT_ID` | Azure AD tenant ID |\n| `TEAMS_ALLOWED_USERS` | Comma-separated AAD object IDs allowed to use the bot |\n| `TEAMS_ALLOW_ALL_USERS` | Set `true` to skip the allowlist and allow anyone |\n| `TEAMS_HOME_CHANNEL` | Conversation ID for cron/proactive message delivery |\n| `TEAMS_HOME_CHANNEL_NAME` | Display name for the home channel |\n| `TEAMS_PORT` | Webhook port (default: `3978`) |\n\n### config.yaml\n\nAlternatively, configure via `~/.hermes/config.yaml`:\n\n```yaml\nplatforms:\n  teams:\n    enabled: true\n    extra:\n      client_id: \"your-client-id\"\n      client_secret: \"your-secret\"\n      tenant_id: \"your-tenant-id\"\n      port: 3978\n```\n\n---\n\n## Features\n\n### Interactive Approval Cards\n\nWhen the agent needs to run a potentially dangerous command, it sends an Adaptive Card with four buttons instead of asking you to type `/approve`:\n\n- **Allow Once** — approve this specific command\n- **Allow Session** — approve this pattern for the rest of the session\n- **Always Allow** — permanently approve this pattern\n- **Deny** — reject the command\n\nClicking a button resolves the approval inline and replaces the card with the decision.\n\n### Meeting Summary Delivery (Teams Meeting Pipeline)\n\nWhen the [Teams meeting pipeline plugin](/docs/user-guide/messaging/msgraph-webhook) is enabled, this adapter also handles outbound delivery of meeting summaries — one Teams integration surface, not two. After a meeting's transcript is summarized, the writer posts the summary into your chosen Teams target.\n\nPipeline summary delivery is configured under the `teams` platform entry alongside the bot config:\n\n```yaml\nplatforms:\n  teams:\n    enabled: true\n    extra:\n      # existing bot config (client_id, client_secret, tenant_id, port) ...\n\n      # Meeting summary delivery (only used when the teams_pipeline plugin is enabled)\n      delivery_mode: \"graph\"       # or \"incoming_webhook\"\n      # For delivery_mode: graph — pick ONE of:\n      chat_id: \"19:meeting_...\"    # post into a Teams chat\n      # team_id: \"...\"             # OR post into a channel\n      # channel_id: \"...\"\n      # access_token: \"...\"        # optional; falls back to MSGRAPH_* app credentials\n      # For delivery_mode: incoming_webhook:\n      # incoming_webhook_url: \"https://outlook.office.com/webhook/...\"\n```\n\n| Mode | Use when | Trade-off |\n|------|----------|-----------|\n| `incoming_webhook` | Simple \"post a summary into this channel\" with a static Teams-generated URL. | No reply threading, no reactions, shows as the webhook's configured identity. |\n| `graph` | Threaded channel posts or 1:1/group chat posts under the bot's identity via Microsoft Graph. | Requires the [Graph app registration](/docs/guides/microsoft-graph-app-registration) with `ChannelMessage.Send` (channel) or `Chat.ReadWrite.All` (chat) application permissions. |\n\nIf the `teams_pipeline` plugin is **not** enabled, these settings are inert — they only wire up when the pipeline runtime binds to the Graph webhook ingress.\n\n---\n\n## Production Deployment\n\nFor a permanent server, skip devtunnel and register your bot with your server's public HTTPS endpoint:\n\n```bash\nteams app create \\\n  --name \"Hermes\" \\\n  --endpoint \"https://your-domain.com/api/messages\"\n```\n\nIf you've already created the bot and just need to update the endpoint:\n\n```bash\nteams app update --id <teamsAppId> --endpoint \"https://your-domain.com/api/messages\"\n```\n\nMake sure your configured port (`TEAMS_PORT`, default `3978`) is reachable from the internet and that your TLS certificate is valid — Teams rejects self-signed certificates.\n\n---\n\n## Troubleshooting\n\n| Problem | Solution |\n|---------|----------|\n| `health` endpoint works but bot doesn't respond | Check that your tunnel is still running and the bot's messaging endpoint matches the tunnel URL |\n| `KeyError: 'teams'` in logs | Restart the container — this is fixed in the current version |\n| Bot responds with auth errors | Verify `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, and `TEAMS_TENANT_ID` are all set correctly |\n| `No inference provider configured` | Check that `ANTHROPIC_API_KEY` (or another provider key) is set in `~/.hermes/.env` |\n| Bot receives messages but ignores them | Your AAD object ID may not be in `TEAMS_ALLOWED_USERS`. Run `teams status --verbose` to find it |\n| Tunnel URL changes on restart | devtunnel URLs are persistent if you use a named tunnel (`devtunnel create hermes-bot`). ngrok and cloudflared generate a new URL each run unless you have a paid plan — update the bot endpoint with `teams app update` when it changes |\n| Teams shows \"This bot is not responding\" | The webhook returned an error. Check `docker logs hermes` for tracebacks |\n| `[teams] Failed to connect` in logs | The SDK failed to authenticate. Double-check your credentials and that the tenant ID matches the account you used in `teams login` |\n\n---\n\n## Security\n\n:::warning\n**Always set `TEAMS_ALLOWED_USERS`** with the AAD object IDs of authorized users. Without this, anyone who can find or install your bot can interact with it.\n\nTreat `TEAMS_CLIENT_SECRET` like a password — rotate it periodically via the Azure portal or Teams CLI.\n:::\n\n- Store credentials in `~/.hermes/.env` with permissions `600` (`chmod 600 ~/.hermes/.env`)\n- The bot only accepts messages from users in `TEAMS_ALLOWED_USERS`; unauthorized messages are silently dropped\n- Your public endpoint (`/api/messages`) is authenticated by the Teams Bot Framework — requests without valid JWTs are rejected\n\n## Related Docs\n\n- [Teams Meetings](/docs/user-guide/messaging/teams-meetings)\n- [Operate the Teams Meeting Pipeline](/docs/guides/operate-teams-meeting-pipeline)\n\n---"
+}

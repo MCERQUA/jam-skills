@@ -1,0 +1,77 @@
+{
+  "id": "dev-adding-providers",
+  "title": "Adding Providers",
+  "source_path": "website/docs/developer-guide/adding-providers.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/adding-providers",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Comprehensive guide for adding a new inference provider to Hermes, covering two paths (OpenAI-compatible plugin vs. native provider), file checklists, auth.py, models.py, runtime_provider.py, main.py wiring, auxiliary client defaults, and common pitfalls.",
+  "key_concepts": [
+    "provider plugin",
+    "ProviderProfile",
+    "PROVIDER_REGISTRY",
+    "api_mode",
+    "auth.py",
+    "runtime_provider.py",
+    "models.py",
+    "native adapter",
+    "fast path vs full path"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes model",
+      "purpose": "Verify a new provider appears in the interactive model selection"
+    },
+    {
+      "command": "hermes setup",
+      "purpose": "Verify the provider appears in the setup wizard"
+    },
+    {
+      "command": "pytest tests/test_runtime_provider_resolution.py tests/test_cli_provider_resolution.py -n0 -q",
+      "purpose": "Run provider-related tests"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Minimal model-provider plugin",
+      "code": "# plugins/model-providers/acme/__init__.py\nfrom providers import register_provider\nfrom providers.base import ProviderProfile\n\nregister_provider(ProviderProfile(\n    name=\"acme-inference\",\n    aliases=(\"acme\",),\n    env_vars=(\"ACME_API_KEY\",),\n    base_url=\"https://api.acme.example.com/v1\",\n    auth_type=\"api_key\",\n))"
+    },
+    {
+      "language": "bash",
+      "caption": "Live smoke test",
+      "code": "source venv/bin/activate\npython -m hermes_cli.main chat -q \"Say hello\" --provider your-provider --model your-model"
+    }
+  ],
+  "gotchas": [
+    "Adding provider to auth.py but not model parsing causes credentials to work while /model and provider:model inputs fail",
+    "config[\"model\"] can be a string or a dict — normalize both forms",
+    "Never assume a built-in provider is required — if service is just OpenAI-compatible, custom provider may suffice",
+    "Forgetting auxiliary paths means summarization, memory flushes, or vision helpers fail silently",
+    "hermes_cli/setup.py does NOT need changes — it delegates to select_provider_and_model() in main.py"
+  ],
+  "cross_refs": [
+    "dev-provider-runtime",
+    "dev-model-provider-plugin",
+    "dev-architecture",
+    "dev-contributing"
+  ],
+  "keywords": [
+    "adding providers",
+    "ProviderProfile",
+    "PROVIDER_REGISTRY",
+    "model-provider plugin",
+    "api_mode",
+    "auth.py",
+    "runtime_provider.py",
+    "OpenAI-compatible",
+    "native adapter",
+    "fast path",
+    "OAuth",
+    "auxiliary client"
+  ],
+  "full_text": "# Adding Providers\n\nHermes can already talk to any OpenAI-compatible endpoint through the custom provider path. Do not add a built-in provider unless you want first-class UX for that service:\n- provider-specific auth or token refresh\n- a curated model catalog\n- setup / `hermes model` menu entries\n- provider aliases for `provider:model` syntax\n- a non-OpenAI API shape that needs an adapter\n\n## Fast path: Simple API-key providers\n\nAll you need is a plugin directory under `plugins/model-providers/<your-provider>/` containing:\n- `__init__.py` — calls `register_provider(profile)` at module-level\n- `plugin.yaml` — manifest (name, kind: model-provider, version, description)\n\nWhen you add a plugin and it calls `register_provider()`, the following wire up automatically:\n1. `PROVIDER_REGISTRY` entry in `auth.py`\n2. `api_mode` set to `chat_completions`\n3. `base_url` sourced from the config or the declared env var\n4. `env_vars` checked in priority order for the API key\n5. `fallback_models` list registered\n6. `--provider` CLI flag accepts the provider id\n7. `hermes model` menu includes the provider\n8. `hermes setup` wizard delegates automatically\n9. `provider:model` alias syntax works\n10. Runtime resolver returns correct `base_url` and `api_key`\n11. `HERMES_INFERENCE_PROVIDER` env-var override accepts the provider id\n12. Fallback model activation can switch into the provider cleanly\n\n## Full path: OAuth and complex providers\n\nUse the full checklist below when your provider needs:\n- OAuth or token refresh\n- A non-OpenAI API shape that requires a new adapter\n- Custom endpoint detection or multi-region probing\n- A curated static model catalog or live `/models` fetch\n\n### File checklist (Required for every built-in provider)\n\n1. `hermes_cli/auth.py`\n2. `hermes_cli/models.py`\n3. `hermes_cli/runtime_provider.py`\n4. `hermes_cli/main.py`\n5. `agent/auxiliary_client.py`\n6. `agent/model_metadata.py`\n7. tests\n8. user-facing docs under `website/docs/`\n\n### Additional for native / non-OpenAI providers\n\n9. `agent/<provider>_adapter.py`\n10. `run_agent.py`\n11. `pyproject.toml` if a provider SDK is required\n\n## Common pitfalls\n\n1. Adding the provider to auth but not to model parsing\n2. Forgetting that `config[\"model\"]` can be a string or a dict\n3. Assuming a built-in provider is required (maybe a custom provider suffices)\n4. Forgetting auxiliary paths (summarization, memory flushes, vision)\n5. Native-provider branches hiding in `run_agent.py` — search for `api_mode` and `self.client.`\n6. Sending OpenRouter-only knobs to other providers\n7. Updating `hermes model` but not `hermes setup`\n\n## Good search targets while implementing\n\n- `PROVIDER_REGISTRY`, `_PROVIDER_ALIASES`, `_PROVIDER_MODELS`\n- `resolve_runtime_provider`, `_model_flow_`, `select_provider_and_model`\n- `api_mode`, `_API_KEY_PROVIDER_AUX_MODELS`, `self.client.`"
+}

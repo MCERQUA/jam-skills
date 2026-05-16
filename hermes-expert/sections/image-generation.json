@@ -1,0 +1,104 @@
+{
+  "id": "image-generation",
+  "title": "Image Generation",
+  "source_path": "website/docs/user-guide/features/image-generation.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/image-generation",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Generates images from text prompts via FAL.ai with nine selectable models ranging from sub-second fast generators to SOTA typography and photorealism models; model selection, aspect ratios, and upscaling are all configurable.",
+  "key_concepts": [
+    "FAL.ai",
+    "text-to-image",
+    "model selection",
+    "aspect ratios",
+    "Clarity Upscaler",
+    "Nous Portal Tool Gateway",
+    "MEDIA: tags",
+    "image delivery"
+  ],
+  "env_vars": [
+    {
+      "name": "FAL_KEY",
+      "purpose": "FAL.ai API key for direct image generation",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "FAL_IMAGE_MODEL",
+      "purpose": "Override active image model via environment",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "IMAGE_TOOLS_DEBUG",
+      "purpose": "Enable debug logging for image generation",
+      "required": false,
+      "default": "false"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes tools",
+      "purpose": "Navigate to Image Generation to pick model and backend"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "image_gen.model",
+      "type": "string",
+      "default": "fal-ai/flux-2/klein/9b",
+      "description": "Active image generation model",
+      "example": "fal-ai/flux-2-pro"
+    },
+    {
+      "path": "image_gen.use_gateway",
+      "type": "bool",
+      "default": "false",
+      "description": "Use Nous Portal Tool Gateway instead of direct FAL credentials",
+      "example": "true"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Set FAL API key",
+      "code": "# ~/.hermes/.env\nFAL_KEY=your-fal-api-key"
+    },
+    {
+      "language": "yaml",
+      "caption": "Model config",
+      "code": "image_gen:\n  model: fal-ai/flux-2/klein/9b\n  use_gateway: false"
+    },
+    {
+      "language": "bash",
+      "caption": "Enable debug logging",
+      "code": "export IMAGE_TOOLS_DEBUG=true"
+    }
+  ],
+  "gotchas": [
+    "FAL URLs expire after hours/days — save locally if needed",
+    "GPT-Image quality is pinned to `medium` on Nous Portal; cannot select low/high tiers",
+    "Upscaling only runs for `fal-ai/flux-2-pro` (backward compat); all other models skip it",
+    "Unsupported model parameters are silently dropped via `supports` filter",
+    "GPT Image 2 uses 4:3 presets instead of 16:9 (minimum pixel count constraint)"
+  ],
+  "cross_refs": [
+    "tool-gateway"
+  ],
+  "keywords": [
+    "image generation",
+    "FAL.ai",
+    "text-to-image",
+    "FLUX",
+    "Ideogram",
+    "Recraft",
+    "GPT Image",
+    "aspect ratio",
+    "upscaling",
+    "Clarity Upscaler",
+    "MEDIA tag",
+    "Nous Portal"
+  ],
+  "full_text": "# Image Generation\n\nHermes Agent generates images from text prompts via FAL.ai. Nine models are supported out of the box.\n\n## Supported Models\n\n| Model | Speed | Strengths | Price |\n|---|---|---|---|\n| `fal-ai/flux-2/klein/9b` (default) | <1s | Fast, crisp text | $0.006/MP |\n| `fal-ai/flux-2-pro` | ~6s | Studio photorealism | $0.03/MP |\n| `fal-ai/z-image/turbo` | ~2s | Bilingual EN/CN, 6B params | $0.005/MP |\n| `fal-ai/nano-banana-pro` | ~8s | Gemini 3 Pro, reasoning depth | $0.15/image |\n| `fal-ai/gpt-image-1.5` | ~15s | Prompt adherence | $0.034/image |\n| `fal-ai/gpt-image-2` | ~20s | SOTA text rendering + CJK | $0.04-0.06/image |\n| `fal-ai/ideogram/v3` | ~5s | Best typography | $0.03-0.09/image |\n| `fal-ai/recraft/v4/pro/text-to-image` | ~8s | Design/brand systems | $0.25/image |\n| `fal-ai/qwen-image` | ~12s | LLM-based, complex text | $0.02/MP |\n\n## Setup\n\n```bash\n# ~/.hermes/.env\nFAL_KEY=your-fal-api-key\n```\n\nOr use Nous Portal subscription (no FAL key needed; uses Tool Gateway).\n\n```bash\nhermes tools   # Navigate to Image Generation to pick model\n```\n\nConfig saved to:\n```yaml\nimage_gen:\n  model: fal-ai/flux-2/klein/9b\n  use_gateway: false\n```\n\n## Aspect Ratios\n\n| Agent input | flux/z-image/qwen/recraft/ideogram | nano-banana-pro | gpt-image-1.5 |\n|---|---|---|---|\n| `landscape` | `landscape_16_9` | `16:9` | `1536x1024` |\n| `square` | `square_hd` | `1:1` | `1024x1024` |\n| `portrait` | `portrait_16_9` | `9:16` | `1024x1536` |\n\n## Automatic Upscaling\n\nOnly `fal-ai/flux-2-pro` is upscaled (2x via FAL Clarity Upscaler). All other models skip upscaling.\n\n## Platform Delivery\n\n| Platform | Delivery |\n|---|---|\n| CLI | Image URL as markdown `![](url)` |\n| Telegram | Photo message with prompt as caption |\n| Discord | Embedded in message |\n| WhatsApp | Media message |\n\n## Debugging\n\n```bash\nexport IMAGE_TOOLS_DEBUG=true\n# Logs to ./logs/image_tools_debug_<session_id>.json\n```\n\n## Limitations\n\n- Text-to-image only (no inpainting, img2img)\n- FAL URLs expire after hours/days\n- Per-model param constraints silently enforced via `supports` filter\n- GPT-Image quality pinned to `medium` on Nous Portal (predictable billing)\n"
+}

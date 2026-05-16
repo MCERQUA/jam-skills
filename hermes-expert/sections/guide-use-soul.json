@@ -1,0 +1,91 @@
+{
+  "id": "guide-use-soul",
+  "title": "Use SOUL.md with Hermes",
+  "source_path": "website/docs/guides/use-soul-with-hermes.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/use-soul-with-hermes",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "How to use SOUL.md to define the primary identity and personality for your Hermes instance — tone, communication style, and behavioral defaults — vs. AGENTS.md which handles project-specific instructions.",
+  "key_concepts": [
+    "SOUL.md",
+    "agent identity",
+    "personality",
+    "AGENTS.md distinction",
+    "prompt injection",
+    "global personality",
+    "first-run seeding",
+    "system prompt slot #1"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_HOME",
+      "purpose": "Custom Hermes home directory (SOUL.md lives at $HERMES_HOME/SOUL.md)",
+      "required": false,
+      "default": "~/.hermes"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "nano ~/.hermes/SOUL.md",
+      "purpose": "Edit the global SOUL.md file"
+    },
+    {
+      "command": "vim ~/.hermes/SOUL.md",
+      "purpose": "Edit SOUL.md in vim"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/personality",
+      "purpose": "Temporarily override personality for the current session"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "markdown",
+      "caption": "Pragmatic engineer persona",
+      "code": "You are a pragmatic senior engineer.\nYou care more about correctness and operational reality than sounding impressive.\n\n## Style\n- Be direct\n- Be concise unless complexity requires depth\n- Say when something is a bad idea\n- Prefer practical tradeoffs over idealized abstractions\n\n## Avoid\n- Sycophancy\n- Hype language\n- Overexplaining obvious things"
+    },
+    {
+      "language": "markdown",
+      "caption": "Research partner persona",
+      "code": "You are a thoughtful research collaborator.\nYou are curious, honest about uncertainty, and excited by unusual ideas.\n\n## Style\n- Explore possibilities without pretending certainty\n- Distinguish speculation from evidence\n- Ask clarifying questions when the idea space is underspecified"
+    },
+    {
+      "language": "markdown",
+      "caption": "Suggested SOUL.md structure",
+      "code": "# Identity\nWho Hermes is.\n\n# Style\nHow Hermes should sound.\n\n# Avoid\nWhat Hermes should not do.\n\n# Defaults\nHow Hermes should behave when ambiguity appears."
+    }
+  ],
+  "gotchas": [
+    "Hermes seeds a starter SOUL.md automatically if one doesn't exist — but won't overwrite an existing file",
+    "SOUL.md replaces the built-in default identity entirely (slot #1 in system prompt)",
+    "SOUL.md is scanned for prompt-injection patterns and may be truncated if too long",
+    "Restart Hermes or start a new session after editing SOUL.md for changes to take effect",
+    "A /personality overlay can dominate SOUL.md — check if one is active when debugging personality issues",
+    "Put tone/style in SOUL.md; put project conventions, file paths, commands in AGENTS.md"
+  ],
+  "cross_refs": [
+    "personality",
+    "context-files",
+    "configuration",
+    "tips"
+  ],
+  "keywords": [
+    "SOUL.md",
+    "identity",
+    "personality",
+    "tone",
+    "communication style",
+    "agent persona",
+    "system prompt",
+    "AGENTS.md",
+    "global personality",
+    "injection scan",
+    "/personality",
+    "first-run",
+    "HERMES_HOME"
+  ],
+  "full_text": "# Use SOUL.md with Hermes\n\nSOUL.md is the primary identity for your Hermes instance. It's the first thing in the system prompt — it defines who the agent is, how it speaks, and what it avoids.\n\n[...full content as read from source...]"
+}

@@ -1,0 +1,68 @@
+{
+  "id": "dev-programmatic-integration",
+  "title": "Programmatic Integration",
+  "source_path": "website/docs/developer-guide/programmatic-integration.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/programmatic-integration",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the three protocols for driving Hermes from external programs: ACP (JSON-RPC stdio for IDE clients), TUI Gateway JSON-RPC (custom hosts with full feature access), and the OpenAI-compatible API server (HTTP+SSE for web frontends and curl-driven automation).",
+  "key_concepts": [
+    "ACP protocol",
+    "TUI gateway JSON-RPC",
+    "API server",
+    "OpenAI-compatible HTTP",
+    "model hot-swapping",
+    "session management",
+    "Pi-style RPC mapping",
+    "SSE streaming"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes acp",
+      "purpose": "Serve ACP on stdio for IDE integration"
+    },
+    {
+      "command": "hermes acp --bootstrap",
+      "purpose": "Print IDE install snippet"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "",
+      "caption": "TUI gateway method catalog",
+      "code": "prompt.submit  prompt.background  session.steer\nsession.create  session.list  session.interrupt\nsession.history  session.compress  session.branch\nclarify.respond  sudo.respond  approval.respond\nconfig.set / config.get  commands.catalog"
+    },
+    {
+      "language": "",
+      "caption": "API server endpoints",
+      "code": "POST /v1/chat/completions   OpenAI Chat Completions (SSE)\nPOST /v1/responses          OpenAI Responses API (stateful)\nPOST /v1/runs               Start a run, returns run_id (202)\nGET  /v1/runs/{id}/events   SSE event stream\nPOST /v1/runs/{id}/approval Resolve pending approval\nGET  /health"
+    }
+  ],
+  "gotchas": [
+    "Hermes does not have a --mode rpc flag — use ACP, TUI gateway, or API server as appropriate",
+    "For Python in-process embed without a subprocess — import run_agent.AIAgent directly"
+  ],
+  "cross_refs": [
+    "dev-acp-internals",
+    "dev-agent-loop",
+    "api-server"
+  ],
+  "keywords": [
+    "programmatic integration",
+    "ACP",
+    "TUI gateway",
+    "JSON-RPC",
+    "API server",
+    "OpenAI-compatible",
+    "SSE",
+    "model hot-swapping",
+    "IDE plugin",
+    "Open WebUI",
+    "session management",
+    "stdio"
+  ],
+  "full_text": "# Programmatic Integration\n\nHermes ships three protocols for driving the agent from external programs — IDE plugins, custom UIs, CI pipelines, embedded sub-agents.\n\n| Protocol | Transport | Best for |\n|----------|-----------|----------|\n| **ACP** | JSON-RPC over stdio | IDE clients (VS Code, Zed, JetBrains) that speak Agent Client Protocol |\n| **TUI gateway** | JSON-RPC over stdio (or WebSocket) | Custom hosts that want fine-grained control of sessions, slash commands, approvals, and streaming events |\n| **API server** | HTTP + Server-Sent Events | OpenAI-compatible frontends (Open WebUI, LobeChat, LibreChat) and language-agnostic web clients |\n\nAll three drive the same `AIAgent` core. They differ only in wire format and which set of features they expose.\n\n## ACP (Agent Client Protocol)\n\n`hermes acp` starts a stdio JSON-RPC server speaking ACP. Used in production by VS Code (Zed Industries' ACP extension), Zed, and any JetBrains IDE with an ACP plugin.\n\nCapabilities exposed: session creation, prompt submission, streaming agent message chunks, tool-call events, permission requests, session fork, cancel, and authentication. Tool output is rendered into ACP `Diff`/`ToolCall` content blocks the IDE understands.\n\nFull lifecycle, event bridge, and approval flow: [ACP Internals](./acp-internals).\n\n```bash\nhermes acp                  # serve ACP on stdio\nhermes acp --bootstrap      # print install snippet for an ACP-capable IDE\n```\n\n## TUI Gateway JSON-RPC\n\n`tui_gateway/server.py` is the protocol the Ink TUI (`hermes --tui`) and the embedded dashboard PTY bridge talk to. Any external host can speak the same protocol over stdio (or WebSocket via `tui_gateway/ws.py`).\n\n### Method catalog (selected)\n\n```\nprompt.submit           prompt.background       session.steer\nsession.create          session.list            session.interrupt\nsession.history         session.compress        session.branch\nsession.title           session.usage           session.status\nclarify.respond         sudo.respond            secret.respond\napproval.respond        config.set / config.get commands.catalog\ncommand.resolve         command.dispatch        cli.exec\nreload.mcp              reload.env              process.stop\ndelegation.status       subagent.interrupt      spawn_tree.save / list / load\nterminal.resize         clipboard.paste         image.attach\n```\n\n### Events streamed back\n\n`message.delta`, `message.complete`, `tool.start`, `tool.progress`, `tool.complete`, `approval.request`, `clarify.request`, `sudo.request`, `secret.request`, `gateway.ready`, plus session lifecycle and error events.\n\n### Pi-style RPC mapping\n\n| Pi command | Hermes equivalent |\n|------------|-------------------|\n| `prompt` | `prompt.submit` (or ACP `session/prompt`) |\n| `steer` | `session.steer` |\n| `follow_up` | `prompt.submit` queued after current turn |\n| `abort` | `session.interrupt` |\n| `set_model` | `command.dispatch` for `/model <provider:model>` |\n| `compact` | `session.compress` |\n| `get_state` | `session.status` |\n| `get_messages` | `session.history` |\n| `switch_session` | `session.resume` |\n| `fork` | `session.branch` |\n| `ui_request` / `ui_response` | `clarify.respond` / `sudo.respond` / `secret.respond` / `approval.respond` |\n\n## OpenAI-Compatible API Server\n\n`gateway/platforms/api_server.py` exposes hermes over HTTP for any client that already speaks the OpenAI format.\n\nEndpoints:\n\n```\nPOST /v1/chat/completions        OpenAI Chat Completions (streaming via SSE)\nPOST /v1/responses               OpenAI Responses API (stateful)\nPOST /v1/runs                    Start a run, returns run_id (202)\nGET  /v1/runs/{id}               Run status\nGET  /v1/runs/{id}/events        SSE stream of lifecycle events\nPOST /v1/runs/{id}/approval      Resolve a pending approval\nPOST /v1/runs/{id}/stop          Interrupt the run\nGET  /v1/capabilities            Machine-readable feature flags\nGET  /v1/models                  Lists hermes-agent\nGET  /health, /health/detailed\n```\n\n## Which one should I use?\n\n- **IDE already speaks ACP** → ACP.\n- **Custom desktop/web/TUI host wanting every Hermes feature** → TUI gateway JSON-RPC.\n- **OpenAI-compatible frontend or curl-driven automation** → API server.\n- **Python in-process embed without a subprocess** → import `run_agent.AIAgent` directly. See [Agent Loop](./agent-loop).\n\n## Model hot-swapping\n\nMid-session model switching works on every surface via the `/model` slash command under the hood:\n\n- **CLI / TUI:** `/model claude-sonnet-4` or `/model openrouter:anthropic/claude-sonnet-4.6`\n- **TUI gateway RPC:** `command.dispatch` with `{\"command\": \"/model claude-sonnet-4\"}`\n- **ACP:** the IDE sends the slash command as a prompt\n- **API server:** include a `model` field in the request body or set `X-Hermes-Model`\n\n## A note on `--mode rpc`\n\nHermes does not have a `--mode rpc` flag. The three protocols above already cover the use cases."
+}

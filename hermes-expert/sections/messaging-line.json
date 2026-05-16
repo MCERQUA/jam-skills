@@ -1,0 +1,182 @@
+{
+  "id": "messaging-line",
+  "title": "LINE",
+  "source_path": "website/docs/user-guide/messaging/line.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/line",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Run Hermes Agent as a LINE(https://line.me/) bot via the official LINE Messaging API. The adapter lives as a bundled platform plugin under plugins/platforms/line/ — no core edits, just enable it like any other platform.",
+  "key_concepts": [
+    "LINE Setup",
+    "How the bot responds",
+    "Step 1: Create a LINE Messaging API channel",
+    "Step 2: Expose the webhook port",
+    "ngrok (good for dev)",
+    "devtunnel",
+    "Step 3: Configure Hermes",
+    "Step 4: Set the webhook URL"
+  ],
+  "env_vars": [
+    {
+      "name": "LINE_PORT",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_CHANNEL_ACCESS_TOKEN",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_CHANNEL_SECRET",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_ALLOWED_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_ALLOWED_GROUPS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_ALLOWED_ROOMS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_PUBLIC_URL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_SLOW_RESPONSE_THRESHOLD",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_HOME_CHANNEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_HOST",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_ALLOW_ALL_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_PENDING_TEXT",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_BUTTON_LABEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_DELIVERED_TEXT",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "LINE_INTERRUPTED_TEXT",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/stop",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Cloudflare Tunnel (recommended for production — fixed hostname)\ncloudflared tunnel --url http://localhost:8646\n\n# ngrok (good for dev)\nngrok http 8646\n\n# devtunnel\ndevtunnel create hermes-line --allow-anonymous\ndevtunnel port create hermes-line -p 8646 --protocol https\ndevtunnel host hermes-line\n"
+    },
+    {
+      "language": "env",
+      "caption": "",
+      "code": "LINE_CHANNEL_ACCESS_TOKEN=YOUR_LONG_LIVED_TOKEN\nLINE_CHANNEL_SECRET=YOUR_CHANNEL_SECRET\n\n# Allowlist — at least one of these (or LINE_ALLOW_ALL_USERS=true for dev)\nLINE_ALLOWED_USERS=U1234567890abcdef...           # comma-separated U-prefixed IDs\nLINE_ALLOWED_GROUPS=C1234567890abcdef...          # optional group IDs\nLINE_ALLOWED_ROOMS=R1234567890abcdef...           # optional room IDs\n\n# Required for image / audio / video sends — the public HTTPS base URL\n# the tunnel resolves to.  Without it, send_image/voice/video will refuse.\nLINE_PUBLIC_URL=https://my-tunnel.example.com\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "gateway:\n  platforms:\n    line:\n      enabled: true\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "LINE: webhook listening on 0.0.0.0:8646/line/webhook (public: https://my-tunnel.example.com)\n"
+    },
+    {
+      "language": "env",
+      "caption": "",
+      "code": "LINE_SLOW_RESPONSE_THRESHOLD=0\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# ~/.hermes/config.yaml\ndisplay:\n  interim_assistant_messages: false\n  platforms:\n    line:\n      tool_progress: off\n"
+    },
+    {
+      "language": "env",
+      "caption": "",
+      "code": "LINE_HOME_CHANNEL=Uxxxxxxxxxxxxxxxxxxxx     # default delivery target\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "allow-anonymous",
+    "api",
+    "bundled-plugin",
+    "comma-separated",
+    "hermes-line",
+    "https",
+    "line",
+    "long-lived",
+    "messaging",
+    "single-use",
+    "url"
+  ],
+  "full_text": "# LINE\n\n# LINE Setup\n\nRun Hermes Agent as a [LINE](https://line.me/) bot via the official LINE Messaging API. The adapter lives as a bundled platform plugin under `plugins/platforms/line/` — no core edits, just enable it like any other platform.\n\nLINE is the dominant messaging app in Japan, Taiwan, and Thailand. If your users live there, this is how they reach you.\n\n## How the bot responds\n\n| Context | Behavior |\n|---------|----------|\n| **1:1 chat** (`U` IDs) | Responds to every message |\n| **Group chat** (`C` IDs) | Responds when the group is on the allowlist |\n| **Multi-user room** (`R` IDs) | Responds when the room is on the allowlist |\n\nInbound text, images, audio, video, files, stickers, and locations are all handled. Outbound text uses the **free reply token first** (single-use, ~60s window) and falls back to the metered Push API when the token has expired.\n\n---\n\n## Step 1: Create a LINE Messaging API channel\n\n1. Go to the [LINE Developers Console](https://developers.line.biz/console/).\n2. Create a Provider, then under it a **Messaging API** channel.\n3. From the channel's **Basic settings** tab, copy the **Channel secret**.\n4. From the **Messaging API** tab, scroll to **Channel access token (long-lived)** and click **Issue**. Copy the token.\n5. In the **Messaging API** tab, also disable **Auto-reply messages** and **Greeting messages** so they don't fight your bot's replies.\n\n---\n\n## Step 2: Expose the webhook port\n\nLINE delivers webhooks over public HTTPS. The default port is `8646` — override with `LINE_PORT` if needed.\n\n```bash\n# Cloudflare Tunnel (recommended for production — fixed hostname)\ncloudflared tunnel --url http://localhost:8646\n\n# ngrok (good for dev)\nngrok http 8646\n\n# devtunnel\ndevtunnel create hermes-line --allow-anonymous\ndevtunnel port create hermes-line -p 8646 --protocol https\ndevtunnel host hermes-line\n```\n\nCopy the `https://...` URL — you'll set it as the webhook URL below. **Leave the tunnel running** while testing. For production, set up a fixed Cloudflare named tunnel so the webhook URL doesn't change on restart.\n\n---\n\n## Step 3: Configure Hermes\n\nAdd to `~/.hermes/.env`:\n\n```env\nLINE_CHANNEL_ACCESS_TOKEN=YOUR_LONG_LIVED_TOKEN\nLINE_CHANNEL_SECRET=YOUR_CHANNEL_SECRET\n\n# Allowlist — at least one of these (or LINE_ALLOW_ALL_USERS=true for dev)\nLINE_ALLOWED_USERS=U1234567890abcdef...           # comma-separated U-prefixed IDs\nLINE_ALLOWED_GROUPS=C1234567890abcdef...          # optional group IDs\nLINE_ALLOWED_ROOMS=R1234567890abcdef...           # optional room IDs\n\n# Required for image / audio / video sends — the public HTTPS base URL\n# the tunnel resolves to.  Without it, send_image/voice/video will refuse.\nLINE_PUBLIC_URL=https://my-tunnel.example.com\n```\n\nThen in `~/.hermes/config.yaml`:\n\n```yaml\ngateway:\n  platforms:\n    line:\n      enabled: true\n```\n\nThat's enough — the bundled-plugin scan in `gateway/config.py` automatically picks up `plugins/platforms/line/`. No `Platform.LINE` enum edit, no `_create_adapter` registration.\n\n---\n\n## Step 4: Set the webhook URL\n\nBack in the LINE console:\n\n1. Open your channel → **Messaging API** tab.\n2. Under **Webhook settings** → **Webhook URL**, paste `https://<your-tunnel>/line/webhook` (note the `/line/webhook` path — the adapter listens there).\n3. Click **Verify**. LINE pings the URL; you should see a 200.\n4. Toggle **Use webhook** to **On**.\n\n---\n\n## Step 5: Run the gateway\n\n```bash\nhermes gateway\n```\n\nThe agent log shows:\n\n```\nLINE: webhook listening on 0.0.0.0:8646/line/webhook (public: https://my-tunnel.example.com)\n```\n\nAdd the bot as a friend from the LINE app (scan the QR in the channel's **Messaging API** tab) and send it a message.\n\n---\n\n## Slow LLM responses\n\nLINE's reply token is single-use and expires roughly 60 seconds after the inbound event. Slow LLMs can't reply in time, which would normally force a paid Push API call.\n\nWhen the LLM is still running past `LINE_SLOW_RESPONSE_THRESHOLD` seconds (default `45`), the adapter consumes the original reply token to send a **Template Buttons** bubble:\n\n> 🤔 Still thinking. Tap below to fetch the answer when it's ready.\n>\n> [ Get answer ]\n\nThe user taps **Get answer** when convenient — that postback delivers a *fresh* reply token, which the adapter uses to send the cached answer (still free).\n\nState machine: `PENDING → READY → DELIVERED`, plus `ERROR` for cancelled runs (the orphan PENDING resolves to \"Run was interrupted before completion.\" after `/stop` so the persistent button doesn't loop).\n\nTo disable the postback button and always Push-fallback instead:\n\n```env\nLINE_SLOW_RESPONSE_THRESHOLD=0\n```\n\nFor the postback flow to fire reliably, suppress chatter that would consume the reply token before the threshold:\n\n```yaml\n# ~/.hermes/config.yaml\ndisplay:\n  interim_assistant_messages: false\n  platforms:\n    line:\n      tool_progress: off\n```\n\n---\n\n## Cron / notification delivery\n\n```env\nLINE_HOME_CHANNEL=Uxxxxxxxxxxxxxxxxxxxx     # default delivery target\n```\n\nCron jobs with `deliver: line` route to `LINE_HOME_CHANNEL`. The adapter ships a standalone Push-only sender so cron jobs work even when cron runs in a separate process from the gateway.\n\n---\n\n## Environment variable reference\n\n| Variable | Required | Default | Description |\n|---|---|---|---|\n| `LINE_CHANNEL_ACCESS_TOKEN` | yes | — | Long-lived channel access token |\n| `LINE_CHANNEL_SECRET` | yes | — | Channel secret (HMAC-SHA256 webhook verification) |\n| `LINE_HOST` | no | `0.0.0.0` | Webhook bind host |\n| `LINE_PORT` | no | `8646` | Webhook bind port |\n| `LINE_PUBLIC_URL` | for media | — | Public HTTPS base URL; required for image/voice/video sends |\n| `LINE_ALLOWED_USERS` | one of | — | Comma-separated user IDs (U-prefixed) |\n| `LINE_ALLOWED_GROUPS` | one of | — | Comma-separated group IDs (C-prefixed) |\n| `LINE_ALLOWED_ROOMS` | one of | — | Comma-separated room IDs (R-prefixed) |\n| `LINE_ALLOW_ALL_USERS` | dev only | `false` | Skip allowlist entirely |\n| `LINE_HOME_CHANNEL` | no | — | Default cron / notification delivery target |\n| `LINE_SLOW_RESPONSE_THRESHOLD` | no | `45` | Seconds before the postback button fires (`0` = disabled) |\n| `LINE_PENDING_TEXT` | no | \"🤔 Still thinking…\" | Bubble text shown alongside the postback button |\n| `LINE_BUTTON_LABEL` | no | \"Get answer\" | Button label |\n| `LINE_DELIVERED_TEXT` | no | \"Already replied ✅\" | Reply when an already-delivered button is tapped again |\n| `LINE_INTERRUPTED_TEXT` | no | \"Run was interrupted before completion.\" | Reply when a `/stop` orphan button is tapped |\n\n---\n\n## Troubleshooting\n\n**\"invalid signature\" on webhook verify.** The `Channel secret` was copied wrong, or your tunnel rewrote the request body. Verify with `curl -i https://<tunnel>/line/webhook/health` first — that should return `{\"status\":\"ok\",\"platform\":\"line\"}`.\n\n**Bot receives nothing in groups.** Check `LINE_ALLOWED_GROUPS` includes the `C...` group ID. To find a group ID, send a test message and grep `~/.hermes/logs/gateway.log` for `LINE: rejecting unauthorized source` — the rejected source dict has the IDs.\n\n**`send_image` fails with \"LINE_PUBLIC_URL must be set\".** LINE's Messaging API does not accept binary uploads — images, audio, and video must be reachable HTTPS URLs. Set `LINE_PUBLIC_URL` to the tunnel's public hostname and the adapter will serve files from `/line/media/<token>/<filename>` automatically.\n\n**Postback button never appears.** Either the LLM responded faster than `LINE_SLOW_RESPONSE_THRESHOLD`, or another bubble (tool-progress, streaming) consumed the reply token first. See the suppression block under \"Slow LLM responses\".\n\n**\"already in use by another profile\".** The same channel access token is bound to another running Hermes profile. Stop the other gateway or use a separate channel.\n\n---\n\n## Limitations\n\n* **Single bubble per chunk.** Each LINE text bubble is capped at 5000 characters, and at most 5 bubbles are sent per Reply/Push call. Longer responses are truncated with an ellipsis.\n* **No native message editing.** LINE has no edit-message API — streaming responses always send fresh bubbles, never edit prior ones.\n* **No Markdown rendering.** Bold (`**`), italics (`*`), code fences, and headings render as literal characters. The adapter strips them before sending; URLs are preserved (`[label](url)` becomes `label (url)`).\n* **Loading indicator is DM-only.** LINE rejects the chat/loading API for groups and rooms, so the typing indicator only shows in 1:1 chats.\n\n---"
+}

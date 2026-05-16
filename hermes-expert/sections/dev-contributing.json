@@ -1,0 +1,95 @@
+{
+  "id": "dev-contributing",
+  "title": "Contributing",
+  "source_path": "website/docs/developer-guide/contributing.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/contributing",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Guide for setting up a development environment, understanding code style, cross-platform compatibility rules, and the pull request process for contributing to Hermes Agent.",
+  "key_concepts": [
+    "development setup",
+    "cross-platform compatibility",
+    "pull request process",
+    "conventional commits",
+    "security considerations",
+    "code style"
+  ],
+  "env_vars": [
+    {
+      "name": "OPENROUTER_API_KEY",
+      "purpose": "LLM provider key for development/testing",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes doctor",
+      "purpose": "Verify development environment is correctly configured"
+    },
+    {
+      "command": "hermes chat -q \"Hello\"",
+      "purpose": "Quick smoke test after setup"
+    },
+    {
+      "command": "pytest tests/ -v",
+      "purpose": "Run the full test suite"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Clone and install",
+      "code": "git clone --recurse-submodules https://github.com/NousResearch/hermes-agent.git\ncd hermes-agent\nuv venv venv --python 3.11\nexport VIRTUAL_ENV=\"$(pwd)/venv\"\nuv pip install -e \".[all,dev]\"\nnpm install"
+    },
+    {
+      "language": "bash",
+      "caption": "Configure for development",
+      "code": "mkdir -p ~/.hermes/{cron,sessions,logs,memories,skills}\ncp cli-config.yaml.example ~/.hermes/config.yaml\ntouch ~/.hermes/.env\necho 'OPENROUTER_API_KEY=sk-or-v1-your-key' >> ~/.hermes/.env"
+    },
+    {
+      "language": "python",
+      "caption": "termios fallback pattern",
+      "code": "try:\n    from simple_term_menu import TerminalMenu\n    menu = TerminalMenu(options)\n    idx = menu.show()\nexcept (ImportError, NotImplementedError):\n    for i, opt in enumerate(options):\n        print(f\"  {i+1}. {opt}\")\n    idx = int(input(\"Choice: \")) - 1"
+    },
+    {
+      "language": "python",
+      "caption": "Cross-platform process management",
+      "code": "import platform\nif platform.system() != \"Windows\":\n    kwargs[\"preexec_fn\"] = os.setsid"
+    },
+    {
+      "language": "",
+      "caption": "Commit message format",
+      "code": "<type>(<scope>): <description>"
+    }
+  ],
+  "gotchas": [
+    "Never add unguarded signal.SIGKILL references — not defined on Windows",
+    "Catch OSError alongside ProcessLookupError on os.kill() probes on Windows",
+    "Always open files with explicit encoding='utf-8'",
+    "Use pathlib.Path / os.path.join — never manually concat with '/'",
+    "Never hardcode ~/.hermes — use get_hermes_home() from hermes_constants"
+  ],
+  "cross_refs": [
+    "dev-architecture",
+    "dev-adding-tools",
+    "dev-adding-providers",
+    "dev-creating-skills",
+    "guide-build-plugin"
+  ],
+  "keywords": [
+    "contributing",
+    "pull request",
+    "development setup",
+    "code style",
+    "cross-platform",
+    "security",
+    "conventional commits",
+    "uv",
+    "pytest",
+    "Windows compatibility"
+  ],
+  "full_text": "# Contributing\n\nThank you for contributing to Hermes Agent! This guide covers setting up your dev environment, understanding the codebase, and getting your PR merged.\n\n## Contribution Priorities\n\nWe value contributions in this order:\n\n1. **Bug fixes** — crashes, incorrect behavior, data loss\n2. **Cross-platform compatibility** — macOS, different Linux distros, WSL2\n3. **Security hardening** — shell injection, prompt injection, path traversal\n4. **Performance and robustness** — retry logic, error handling, graceful degradation\n5. **New skills** — broadly useful ones (see [Creating Skills](creating-skills.md))\n6. **New tools** — rarely needed; most capabilities should be skills\n7. **Documentation** — fixes, clarifications, new examples\n\n## Common contribution paths\n\n- Building a custom/local tool without modifying Hermes core? Start with [Build a Hermes Plugin](../guides/build-a-hermes-plugin.md)\n- Building a new built-in core tool for Hermes itself? Start with [Adding Tools](./adding-tools.md)\n- Building a new skill? Start with [Creating Skills](./creating-skills.md)\n- Building a new inference provider? Start with [Adding Providers](./adding-providers.md)\n\n## Development Setup\n\n### Prerequisites\n\n| Requirement | Notes |\n|-------------|-------|\n| **Git** | With `--recurse-submodules` support, and the `git-lfs` extension installed |\n| **Python 3.11+** | uv will install it if missing |\n| **uv** | Fast Python package manager ([install](https://docs.astral.sh/uv/)) |\n| **Node.js 20+** | Optional — needed for browser tools and WhatsApp bridge |\n\n### Clone and Install\n\n```bash\ngit clone --recurse-submodules https://github.com/NousResearch/hermes-agent.git\ncd hermes-agent\nuv venv venv --python 3.11\nexport VIRTUAL_ENV=\"$(pwd)/venv\"\nuv pip install -e \".[all,dev]\"\nnpm install  # Optional: browser tools\n```\n\n### Configure for Development\n\n```bash\nmkdir -p ~/.hermes/{cron,sessions,logs,memories,skills}\ncp cli-config.yaml.example ~/.hermes/config.yaml\ntouch ~/.hermes/.env\necho 'OPENROUTER_API_KEY=sk-or-v1-your-key' >> ~/.hermes/.env\n```\n\n### Run\n\n```bash\nmkdir -p ~/.local/bin\nln -sf \"$(pwd)/venv/bin/hermes\" ~/.local/bin/hermes\nhermes doctor\nhermes chat -q \"Hello\"\n```\n\n### Run Tests\n\n```bash\npytest tests/ -v\n```\n\n## Code Style\n\n- **PEP 8** with practical exceptions (no strict line length enforcement)\n- **Comments**: Only when explaining non-obvious intent, trade-offs, or API quirks\n- **Error handling**: Catch specific exceptions. Use `logger.warning()`/`logger.error()` with `exc_info=True` for unexpected errors\n- **Cross-platform**: Never assume Unix (see below)\n- **Profile-safe paths**: Never hardcode `~/.hermes` — use `get_hermes_home()` from `hermes_constants`\n\n## Cross-Platform Compatibility\n\nHermes officially supports **Linux, macOS, WSL2, and native Windows (early beta — via PowerShell install)**.\n\nKey rules:\n- Don't add unguarded `signal.SIGKILL` references (not defined on Windows)\n- Catch `OSError` alongside `ProcessLookupError` on `os.kill(pid, 0)` probes\n- Don't force the terminal to POSIX semantics\n- Open files with an explicit `encoding=\"utf-8\"`\n- Use `pathlib.Path` / `os.path.join` — never manually concat with `/`\n\n## Security Considerations\n\n| Layer | Implementation |\n|-------|---------------|\n| **Sudo password piping** | Uses `shlex.quote()` to prevent shell injection |\n| **Dangerous command detection** | Regex patterns in `tools/approval.py` with user approval flow |\n| **Cron prompt injection** | Scanner blocks instruction-override patterns |\n| **Write deny list** | Protected paths resolved via `os.path.realpath()` to prevent symlink bypass |\n| **Skills guard** | Security scanner for hub-installed skills |\n| **Code execution sandbox** | Child process runs with API keys stripped |\n| **Container hardening** | Docker: all capabilities dropped, no privilege escalation, PID limits |\n\n## Pull Request Process\n\n### Branch Naming\n\n```\nfix/description        # Bug fixes\nfeat/description       # New features\ndocs/description       # Documentation\ntest/description       # Tests\nrefactor/description   # Code restructuring\n```\n\n### Commit Messages\n\nWe use [Conventional Commits](https://www.conventionalcommits.org/):\n\n```\n<type>(<scope>): <description>\n```\n\nScopes: `cli`, `gateway`, `tools`, `skills`, `agent`, `install`, `whatsapp`, `security`\n\n## Reporting Issues\n\n- Use [GitHub Issues](https://github.com/NousResearch/hermes-agent/issues)\n- Include: OS, Python version, Hermes version (`hermes version`), full error traceback\n\n## Community\n\n- **Discord**: [discord.gg/NousResearch](https://discord.gg/NousResearch)\n- **GitHub Discussions**: For design proposals and architecture discussions\n- **Skills Hub**: Upload specialized skills and share with the community\n\n## License\n\nBy contributing, you agree that your contributions will be licensed under the [MIT License](https://github.com/NousResearch/hermes-agent/blob/main/LICENSE)."
+}

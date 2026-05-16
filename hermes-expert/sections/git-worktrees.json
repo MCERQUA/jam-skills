@@ -1,0 +1,114 @@
+{
+  "id": "git-worktrees",
+  "title": "Git Worktrees",
+  "source_path": "website/docs/user-guide/git-worktrees.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/git-worktrees",
+  "category": "user-guide",
+  "subcategory": "",
+  "summary": "Explains how to use Git worktrees with Hermes to run multiple agents in parallel on the same repo without interference, including the automatic -w worktree mode.",
+  "key_concepts": [
+    "git worktrees",
+    "parallel agents",
+    "isolated branches",
+    "automatic worktree mode",
+    ".worktreeinclude",
+    "checkpoint isolation",
+    "hermes -w"
+  ],
+  "env_vars": [
+    {
+      "name": "MESSAGING_CWD",
+      "purpose": "Working directory for gateway sessions (relevant for worktree setup)",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes -w",
+      "purpose": "Run in an automatically-created isolated git worktree"
+    },
+    {
+      "command": "hermes -w -q \"Fix issue #123\"",
+      "purpose": "Single query in an auto-created worktree"
+    },
+    {
+      "command": "git worktree add ../repo-feature feature/branch",
+      "purpose": "Manually create a git worktree"
+    },
+    {
+      "command": "git worktree remove ../repo-feature",
+      "purpose": "Remove a git worktree"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "worktree",
+      "type": "boolean",
+      "default": false,
+      "description": "Always create an auto worktree (same as hermes -w flag)",
+      "example": true
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/rollback",
+      "purpose": "List checkpoints in current worktree"
+    },
+    {
+      "command": "/rollback <N>",
+      "purpose": "Restore to checkpoint N in current worktree"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Create and use a manual worktree",
+      "code": "cd /path/to/your/repo\ngit worktree add ../repo-feature feature/hermes-experiment\ncd ../repo-feature\nhermes"
+    },
+    {
+      "language": "bash",
+      "caption": "Parallel agents in separate worktrees",
+      "code": "git worktree add ../repo-experiment-a feature/hermes-a\ngit worktree add ../repo-experiment-b feature/hermes-b\n# Terminal 1: cd ../repo-experiment-a && hermes\n# Terminal 2: cd ../repo-experiment-b && hermes"
+    },
+    {
+      "language": "bash",
+      "caption": "Automatic worktree mode",
+      "code": "hermes -w\nhermes -w -q \"Fix issue #123\""
+    },
+    {
+      "language": "yaml",
+      "caption": "Always enable worktree mode in config",
+      "code": "worktree: true"
+    },
+    {
+      "language": "text",
+      "caption": ".worktreeinclude — files to copy into worktrees",
+      "code": ".env\n.venv/\nnode_modules/"
+    }
+  ],
+  "gotchas": [
+    "git worktree remove refuses to remove a worktree with uncommitted changes unless --force is used",
+    "Removing a worktree does NOT delete the branch — use git branch -d separately",
+    "Checkpoint data in ~/.hermes/checkpoints/ is not automatically pruned when worktrees are removed",
+    "Avoid running Hermes from the bare repo root when using worktrees — each agent should be in its own worktree directory"
+  ],
+  "cross_refs": [
+    "cli",
+    "checkpoints-and-rollback",
+    "configuration"
+  ],
+  "keywords": [
+    "git worktrees",
+    "parallel agents",
+    "isolated branches",
+    "hermes -w",
+    "automatic worktree",
+    ".worktreeinclude",
+    "checkpoint",
+    "rollback",
+    "multi-agent",
+    "concurrent agents"
+  ],
+  "full_text": "# Git Worktrees\n\n# Git Worktrees\n\nHermes Agent is often used on large, long-lived repositories. When you want to:\n\n- Run **multiple agents in parallel** on the same project, or\n- Keep experimental refactors isolated from your main branch,\n\nGit **worktrees** are the safest way to give each agent its own checkout without duplicating the entire repository.\n\n## Why Use Worktrees with Hermes?\n\nHermes treats the **current working directory** as the project root:\n\n- CLI: the directory where you run `hermes` or `hermes chat`\n- Messaging gateways: the directory set by `MESSAGING_CWD`\n\nIf you run multiple agents in the **same checkout**, their changes can interfere:\n\n- One agent may delete or rewrite files the other is using\n- Harder to understand which changes belong to which experiment\n\nWith worktrees, each agent gets:\n\n- Its **own branch and working directory**\n- Its **own Checkpoint Manager history** for `/rollback`\n\n## Quick Start: Creating a Worktree\n\n```bash\n# From the main repo root\ncd /path/to/your/repo\n\n# Create a new branch and worktree in ../repo-feature\ngit worktree add ../repo-feature feature/hermes-experiment\n\ncd ../repo-feature\nhermes\n```\n\n## Running Multiple Agents in Parallel\n\n```bash\ncd /path/to/your/repo\n\ngit worktree add ../repo-experiment-a feature/hermes-a\ngit worktree add ../repo-experiment-b feature/hermes-b\n```\n\nIn separate terminals:\n\n```bash\n# Terminal 1\ncd ../repo-experiment-a\nhermes\n\n# Terminal 2\ncd ../repo-experiment-b\nhermes\n```\n\nEach Hermes process:\n- Works on its own branch\n- Writes checkpoints under a different shadow repo hash\n- Can use `/rollback` independently\n\n## Cleaning Up Worktrees Safely\n\n```bash\ncd /path/to/your/repo\n\n# Remove the worktree directory and its reference\ngit worktree remove ../repo-feature\n```\n\nNotes:\n- `git worktree remove` refuses to remove a worktree with uncommitted changes unless forced\n- Removing a worktree does NOT automatically delete the branch\n- Hermes checkpoint data under `~/.hermes/checkpoints/` is not automatically pruned\n\n## Best Practices\n\n- **One worktree per Hermes experiment**\n- **Name branches after the experiment** — e.g. `feature/hermes-refactor-tests`\n- **Commit frequently** — use checkpoints as a safety net between commits\n- **Avoid running Hermes from the bare repo root when using worktrees**\n\n## Using `hermes -w` (Automatic Worktree Mode)\n\n```bash\ncd /path/to/your/repo\nhermes -w\n```\n\nHermes will:\n- Create a temporary worktree under `.worktrees/` inside your repo\n- Check out an isolated branch (e.g. `hermes/hermes-<hash>`)\n- Run the full CLI session inside that worktree\n\nCombined with a single query:\n\n```bash\nhermes -w -q \"Fix issue #123\"\n```\n\nFor parallel agents, open multiple terminals and run `hermes -w` in each — every invocation gets its own worktree and branch automatically.\n\nYou can also list gitignored files to copy into worktrees via `.worktreeinclude` in your repo root:\n\n```\n# .worktreeinclude\n.env\n.venv/\nnode_modules/\n```\n\nOr enable globally in config:\n\n```yaml\nworktree: true    # Always create a worktree (same as hermes -w)\n```\n\n## Putting It All Together\n\n- Use **git worktrees** to give each session its own clean checkout\n- Use **branches** to capture high-level history of experiments\n- Use **checkpoints + `/rollback`** to recover from mistakes inside each worktree\n\nThis combination gives you:\n- Strong guarantees different agents don't step on each other\n- Fast iteration with easy recovery from bad edits\n- Clean, reviewable pull requests\n"
+}

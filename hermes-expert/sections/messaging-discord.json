@@ -1,0 +1,176 @@
+{
+  "id": "messaging-discord",
+  "title": "Discord Integration",
+  "source_path": "user-guide/messaging/discord.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/discord",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Discord bot integration covering Developer Portal setup, privileged intents, per-user session isolation, slash command ACL via allow_admin_from, auto-threading, forum channels, media handling, history backfill, and mention control.",
+  "key_concepts": [
+    "Discord Developer Portal bot creation",
+    "Privileged intents: MESSAGE_CONTENT, GUILD_MEMBERS, PRESENCE",
+    "Per-user session isolation (each Discord user gets own session)",
+    "Slash command ACL via allow_admin_from role/user lists",
+    "Auto-threading: bot creates a thread for each conversation",
+    "Forum channel support as separate sessions",
+    "Media attachments: images forwarded to vision pipeline",
+    "History backfill on thread resume",
+    "Mention control: respond only when mentioned or in DM",
+    "RBAC via Discord roles mapped to command permissions"
+  ],
+  "env_vars": [
+    {
+      "name": "DISCORD_BOT_TOKEN",
+      "required": true,
+      "default": null,
+      "description": "Bot token from Discord Developer Portal"
+    },
+    {
+      "name": "DISCORD_GUILD_ID",
+      "required": false,
+      "default": null,
+      "description": "Guild ID to restrict bot to a single server; if unset bot works on all servers"
+    },
+    {
+      "name": "DISCORD_ALLOWED_CHANNELS",
+      "required": false,
+      "default": null,
+      "description": "Comma-separated channel IDs the bot will respond in"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway including Discord listener"
+    },
+    {
+      "command": "/reset",
+      "description": "Reset current Discord session conversation history"
+    },
+    {
+      "command": "/help",
+      "description": "Show available slash commands"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "discord.token",
+      "type": "string",
+      "description": "Bot token (overrides DISCORD_BOT_TOKEN)"
+    },
+    {
+      "key": "discord.guild_id",
+      "type": "int",
+      "description": "Restrict to single guild"
+    },
+    {
+      "key": "discord.allowed_channels",
+      "type": "list[int]",
+      "description": "List of channel IDs bot responds in"
+    },
+    {
+      "key": "discord.auto_thread",
+      "type": "bool",
+      "description": "Automatically create threads for conversations (default: true)"
+    },
+    {
+      "key": "discord.mention_only",
+      "type": "bool",
+      "description": "Only respond when bot is @mentioned (default: false for DMs, true for channels)"
+    },
+    {
+      "key": "discord.allow_admin_from",
+      "type": "list[str]",
+      "description": "Role names or user IDs that can use admin slash commands"
+    },
+    {
+      "key": "discord.per_channel_prompts",
+      "type": "dict",
+      "description": "Map of channel_id to system prompt override"
+    },
+    {
+      "key": "discord.history_backfill",
+      "type": "int",
+      "description": "Number of messages to backfill when resuming a thread (default: 20)"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/reset",
+      "platforms": [
+        "discord"
+      ],
+      "description": "Reset the current session conversation history"
+    },
+    {
+      "command": "/help",
+      "platforms": [
+        "discord"
+      ],
+      "description": "List available commands"
+    },
+    {
+      "command": "/model",
+      "platforms": [
+        "discord"
+      ],
+      "description": "Switch LLM model for current session (admin only)"
+    }
+  ],
+  "code_examples": [
+    {
+      "title": "Minimal Discord config",
+      "language": "yaml",
+      "code": "discord:\n  token: \"\"\n  guild_id: 1234567890123456789\n  allowed_channels:\n    - 9876543210987654321"
+    },
+    {
+      "title": "RBAC admin config",
+      "language": "yaml",
+      "code": "discord:\n  token: \"\"\n  allow_admin_from:\n    - \"Admin\"        # role name\n    - \"Moderator\"    # role name\n    - \"123456789\"    # specific user ID"
+    },
+    {
+      "title": "Auto-threading disabled",
+      "language": "yaml",
+      "code": "discord:\n  token: \"\"\n  auto_thread: false\n  mention_only: true"
+    },
+    {
+      "title": "Per-channel prompt",
+      "language": "yaml",
+      "code": "discord:\n  per_channel_prompts:\n    \"9876543210987654321\": \"You are a coding assistant. Only discuss programming topics.\""
+    }
+  ],
+  "gotchas": [
+    "MESSAGE_CONTENT privileged intent must be enabled in Developer Portal or the bot cannot read message text",
+    "Slash commands must be registered with Discord API; hermes gateway does this automatically on startup but may take up to 1 hour to propagate globally",
+    "Auto-threading creates a new thread per conversation which can clutter channels; disable with auto_thread: false",
+    "Discord rate limits apply: 5 requests/second per guild, 50/second globally",
+    "Bot needs Manage Threads permission to create and manage auto-threads",
+    "Forum channels require bot to have permission to create posts in the forum",
+    "History backfill re-reads thread messages on resume; large threads slow startup",
+    "Voice channel support requires PyNaCl and ffmpeg installed"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-telegram",
+    "voice-mode",
+    "vision"
+  ],
+  "keywords": [
+    "discord",
+    "bot",
+    "developer portal",
+    "privileged intents",
+    "message content intent",
+    "auto-threading",
+    "slash commands",
+    "rbac",
+    "allow_admin_from",
+    "forum channels",
+    "per-user sessions",
+    "mention only",
+    "history backfill",
+    "guild",
+    "voice channels"
+  ],
+  "full_text": "## Discord\n\nConnect Hermes to Discord via the official bot API.\n\n### Setup\n\n1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create a new application.\n2. Under **Bot**, create a bot user and copy the token.\n3. Under **Bot \u2192 Privileged Gateway Intents**, enable:\n   - **MESSAGE_CONTENT** (required to read messages)\n   - **SERVER MEMBERS** (required for role-based ACL)\n4. Under **OAuth2 \u2192 URL Generator**, select scopes  and , then the required bot permissions (Send Messages, Create Public Threads, Manage Threads, Read Message History, Add Reactions).\n5. Invite the bot to your server using the generated URL.\n\n### Minimal config\n\n```yaml\ndiscord:\n  token: \"\"\n  guild_id: 1234567890123456789\n  allowed_channels:\n    - 9876543210987654321\n```\n\n### Session model\n\nEach Discord user gets their own isolated Hermes session. DMs and channel conversations are separate sessions. When  (default), each new channel conversation spawns a thread \u2014 subsequent messages in that thread continue the same session.\n\n### Slash command ACL\n\nRestrict admin commands (like ) to specific roles or users:\n\n```yaml\ndiscord:\n  allow_admin_from:\n    - \"Admin\"       # role name\n    - \"Moderator\"   # role name\n    - \"123456789\"   # specific user ID\n```\n\n### Auto-threading\n\nBy default, when a user sends a message in a channel (not a DM), Hermes creates a thread to keep conversations organized. Disable with:\n\n```yaml\ndiscord:\n  auto_thread: false\n```\n\n### Forum channels\n\nForum channel posts are treated as individual sessions. Each post is a separate conversation with its own history.\n\n### Mention control\n\nIn channels, the bot only responds when mentioned by default. In DMs it always responds. Override:\n\n```yaml\ndiscord:\n  mention_only: false  # respond to all messages in allowed_channels\n```\n\n### Media and vision\n\nImage attachments are automatically forwarded to the vision pipeline if the active model supports it. Audio attachments are transcribed via the configured STT provider.\n\n### History backfill\n\nWhen a user resumes a thread, Hermes backfills recent messages for context:\n\n```yaml\ndiscord:\n  history_backfill: 20  # number of messages (default: 20)\n```\n\n### Per-channel prompts\n\n```yaml\ndiscord:\n  per_channel_prompts:\n    \"9876543210987654321\": \"You are a coding assistant. Stay on topic.\"\n```\n\n### Voice channels\n\nHermes can join Discord voice channels and perform STT/TTS. Requires  and  installed. See [Voice Mode](voice-mode.md) for full voice channel setup."
+}

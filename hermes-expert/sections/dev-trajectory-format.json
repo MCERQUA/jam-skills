@@ -1,0 +1,75 @@
+{
+  "id": "dev-trajectory-format",
+  "title": "Trajectory Format",
+  "source_path": "website/docs/developer-guide/trajectory-format.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/trajectory-format",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the ShareGPT-compatible JSONL trajectory format used for training data, debugging, and RL datasets, covering file naming convention, two JSONL entry variants, conversations array format, normalization rules for reasoning content and tool calls, loading utilities, and how to control trajectory saving.",
+  "key_concepts": [
+    "trajectory format",
+    "ShareGPT",
+    "JSONL",
+    "conversations array",
+    "tool call normalization",
+    "reasoning normalization",
+    "batch runner format",
+    "tool_stats",
+    "training data"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "agent.save_trajectories",
+      "type": "boolean",
+      "default": "false",
+      "description": "Enable trajectory saving to JSONL files",
+      "example": "true"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "json",
+      "caption": "Trajectory JSONL entry (CLI format)",
+      "code": "{\n  \"conversations\": [\n    {\"from\": \"system\", \"value\": \"...\"},\n    {\"from\": \"human\", \"value\": \"What Python version is installed?\"},\n    {\"from\": \"gpt\", \"value\": \"<think>\\n...\\n</think>\\n<tool_call>\\n{\\\"name\\\": \\\"terminal\\\", ...}\\n</tool_call>\"},\n    {\"from\": \"tool\", \"value\": \"<tool_response>\\n{...}\\n</tool_response>\"},\n    {\"from\": \"gpt\", \"value\": \"<think>\\n</think>\\nPython 3.11.6 is installed.\"}\n  ],\n  \"timestamp\": \"2026-03-30T14:22:31.456789\",\n  \"model\": \"anthropic/claude-sonnet-4.6\",\n  \"completed\": true\n}"
+    },
+    {
+      "language": "python",
+      "caption": "Load trajectories",
+      "code": "import json\n\ndef load_trajectories(path: str):\n    entries = []\n    with open(path, \"r\", encoding=\"utf-8\") as f:\n        for line in f:\n            if line.strip():\n                entries.append(json.loads(line))\n    return entries\n\nsuccessful = [e for e in load_trajectories(\"trajectory_samples.jsonl\") if e.get(\"completed\")]"
+    },
+    {
+      "language": "python",
+      "caption": "Load via HuggingFace datasets",
+      "code": "from datasets import load_dataset\nds = load_dataset(\"json\", data_files=\"trajectory_samples.jsonl\")"
+    }
+  ],
+  "gotchas": [
+    "Batch runner always saves trajectories — trajectory saving is optional for CLI (config.yaml agent.save_trajectories)",
+    "Samples with zero reasoning across all turns are automatically discarded by batch runner",
+    "Every gpt turn is guaranteed to have a <think> block — empty block inserted if no reasoning produced",
+    "The system message is generated at save time (not taken from the conversation)",
+    "tool_stats are normalized to include ALL possible tools with zero defaults for consistent HuggingFace Arrow schema"
+  ],
+  "cross_refs": [
+    "dev-agent-loop",
+    "dev-architecture"
+  ],
+  "keywords": [
+    "trajectory format",
+    "ShareGPT",
+    "JSONL",
+    "training data",
+    "conversations array",
+    "tool call normalization",
+    "reasoning normalization",
+    "batch runner",
+    "tool_stats",
+    "HuggingFace datasets",
+    "RL datasets",
+    "think blocks"
+  ],
+  "full_text": "# Trajectory Format\n\nHermes Agent saves conversation trajectories in ShareGPT-compatible JSONL format for use as training data, debugging artifacts, and reinforcement learning datasets.\n\nSource files: `agent/trajectory.py`, `run_agent.py` (search for `_save_trajectory`), `batch_runner.py`.\n\n## File Naming Convention\n\n| File | When |\n|------|------|\n| `trajectory_samples.jsonl` | Conversations that completed successfully (`completed=True`) |\n| `failed_trajectories.jsonl` | Conversations that failed or were interrupted (`completed=False`) |\n\nThe batch runner writes to a custom output file per batch (e.g., `batch_001_output.jsonl`) with additional metadata fields.\n\n## JSONL Entry Format\n\nEach line in the file is a self-contained JSON object. Two variants:\n\n### CLI/Interactive Format\n\n```json\n{\n  \"conversations\": [ ... ],\n  \"timestamp\": \"2026-03-30T14:22:31.456789\",\n  \"model\": \"anthropic/claude-sonnet-4.6\",\n  \"completed\": true\n}\n```\n\n### Batch Runner Format\n\nAdditional fields: `prompt_index`, `metadata`, `partial`, `api_calls`, `toolsets_used`, `tool_stats`, `tool_error_counts`.\n\nThe `tool_stats` and `tool_error_counts` dictionaries are normalized to include ALL possible tools (from `model_tools.TOOL_TO_TOOLSET_MAP`) with zero defaults, ensuring consistent schema across entries for HuggingFace dataset loading.\n\n## Conversations Array (ShareGPT Format)\n\n| API Role | ShareGPT `from` |\n|----------|-----------------|\n| system | `'system'` |\n| user | `'human'` |\n| assistant | `'gpt'` |\n| tool | `'tool'` |\n\n## Normalization Rules\n\n### Reasoning Content Markup\n\nThe trajectory converter normalizes ALL reasoning into `<think>` tags, regardless of how the model originally produced it:\n\n1. **Native thinking tokens** (`msg['reasoning']` field from providers like Anthropic, OpenAI o-series): Wrapped as `<think>\\n{reasoning}\\n</think>\\n` and prepended before the content.\n2. **REASONING_SCRATCHPAD XML**: `<REASONING_SCRATCHPAD>` tags are converted to `<think>` via `convert_scratchpad_to_think()`.\n3. **Empty think blocks**: Every `gpt` turn is guaranteed to have a `<think>` block. If no reasoning was produced, an empty block is inserted.\n\n### Tool Call Normalization\n\nTool calls from the API format are converted to XML-wrapped JSON:\n\n```\n<tool_call>\n{\"name\": \"terminal\", \"arguments\": {\"command\": \"ls -la\"}}\n</tool_call>\n```\n\nArguments are parsed from JSON strings back to objects (not double-encoded). Multiple tool calls in one assistant turn produce multiple `<tool_call>` blocks in a single `gpt` message.\n\n### Tool Response Normalization\n\nAll tool results following an assistant message are grouped into a single `tool` turn with XML-wrapped JSON responses.\n\n### System Message\n\nThe system message is generated at save time (not taken from the conversation). It follows the Hermes function-calling prompt template with: preamble, `<tools>` XML block, FunctionCall schema reference, `<tool_call>` example.\n\n## Loading Trajectories\n\n```python\nimport json\n\ndef load_trajectories(path: str):\n    entries = []\n    with open(path, 'r', encoding='utf-8') as f:\n        for line in f:\n            line = line.strip()\n            if line:\n                entries.append(json.loads(line))\n    return entries\n\n# Filter to successful completions only\nsuccessful = [e for e in load_trajectories('trajectory_samples.jsonl')\n              if e.get('completed')]\n```\n\n### Loading for HuggingFace Datasets\n\n```python\nfrom datasets import load_dataset\nds = load_dataset('json', data_files='trajectory_samples.jsonl')\n```\n\n## Controlling Trajectory Saving\n\n```yaml\n# config.yaml\nagent:\n  save_trajectories: true  # default: false\n```\n\nOr via the `--save-trajectories` flag. When `save_trajectories=True`, the `_save_trajectory()` method is called at the end of each conversation turn.\n\nThe batch runner always saves trajectories. Samples with zero reasoning across all turns are automatically discarded by the batch runner to avoid polluting training data with non-reasoning examples."
+}

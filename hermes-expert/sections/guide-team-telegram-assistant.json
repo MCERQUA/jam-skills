@@ -1,0 +1,187 @@
+{
+  "id": "guide-team-telegram-assistant",
+  "title": "Tutorial: Team Telegram Assistant",
+  "source_path": "website/docs/guides/team-telegram-assistant.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/team-telegram-assistant",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Complete walkthrough for setting up a Telegram bot powered by Hermes Agent for multiple team members, covering BotFather setup, gateway configuration, team access via static allowlists or DM pairing, scheduled tasks, and production hardening.",
+  "key_concepts": [
+    "Telegram bot",
+    "BotFather",
+    "team access",
+    "DM pairing",
+    "allowlist",
+    "home channel",
+    "gateway service",
+    "SOUL.md",
+    "AGENTS.md",
+    "scheduled tasks",
+    "Docker safety"
+  ],
+  "env_vars": [
+    {
+      "name": "TELEGRAM_BOT_TOKEN",
+      "purpose": "Telegram bot token from BotFather",
+      "required": true,
+      "default": null
+    },
+    {
+      "name": "TELEGRAM_ALLOWED_USERS",
+      "purpose": "Comma-separated numeric Telegram user IDs",
+      "required": true,
+      "default": null
+    },
+    {
+      "name": "TELEGRAM_HOME_CHANNEL",
+      "purpose": "Telegram channel ID for cron delivery",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TELEGRAM_HOME_CHANNEL_NAME",
+      "purpose": "Display name for home channel",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TERMINAL_BACKEND",
+      "purpose": "Set to docker for container isolation",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TERMINAL_DOCKER_IMAGE",
+      "purpose": "Docker image for sandboxed terminal",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway setup",
+      "purpose": "Interactive gateway setup wizard"
+    },
+    {
+      "command": "hermes gateway",
+      "purpose": "Start gateway in foreground"
+    },
+    {
+      "command": "hermes gateway install",
+      "purpose": "Install gateway as background service"
+    },
+    {
+      "command": "hermes gateway start",
+      "purpose": "Start gateway service"
+    },
+    {
+      "command": "hermes gateway stop",
+      "purpose": "Stop gateway service"
+    },
+    {
+      "command": "hermes gateway status",
+      "purpose": "Check gateway status"
+    },
+    {
+      "command": "hermes pairing approve telegram <code>",
+      "purpose": "Approve a team member's pairing request"
+    },
+    {
+      "command": "hermes pairing list",
+      "purpose": "List all pending and approved users"
+    },
+    {
+      "command": "hermes pairing revoke telegram <user_id>",
+      "purpose": "Revoke a user's access"
+    },
+    {
+      "command": "hermes pairing clear-pending",
+      "purpose": "Clear expired pending codes"
+    },
+    {
+      "command": "hermes cron list",
+      "purpose": "View all scheduled jobs"
+    },
+    {
+      "command": "hermes cron status",
+      "purpose": "Check if scheduler is running"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "display.tool_progress",
+      "type": "string",
+      "default": "new",
+      "description": "Tool activity visibility: off | new | all | verbose",
+      "example": "new"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/sethome",
+      "purpose": "Set the home channel for cron delivery"
+    },
+    {
+      "command": "/verbose",
+      "purpose": "Change tool progress display mode"
+    },
+    {
+      "command": "/cron list",
+      "purpose": "List scheduled jobs"
+    },
+    {
+      "command": "/cron remove <id>",
+      "purpose": "Remove a job"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Manual gateway config",
+      "code": "TELEGRAM_BOT_TOKEN=7123456789:AAH1bGci...\nTELEGRAM_ALLOWED_USERS=123456789"
+    },
+    {
+      "language": "bash",
+      "caption": "Linux service management",
+      "code": "hermes gateway start\nhermes gateway stop\njournalctl --user -u hermes-gateway -f\nsudo loginctl enable-linger $USER"
+    },
+    {
+      "language": "yaml",
+      "caption": "Docker terminal backend config",
+      "code": "terminal:\n  backend: docker\n  container_cpu: 1\n  container_memory: 5120\n  container_persistent: true"
+    }
+  ],
+  "gotchas": [
+    "Never set GATEWAY_ALLOW_ALL_USERS=true on a bot with terminal access",
+    "Telegram user IDs are permanent numbers (like 123456789), NOT @usernames which can change",
+    "Pairing codes expire after 1 hour; after 5 failed approval attempts, platform enters 1-hour lockout",
+    "On macOS, launchd plist captures PATH at install time — re-run hermes gateway install after installing new tools",
+    "Cron job prompts must be completely self-contained — no memory of prior conversations"
+  ],
+  "cross_refs": [
+    "messaging-telegram",
+    "cron",
+    "security",
+    "messaging-overview",
+    "personality",
+    "context-files"
+  ],
+  "keywords": [
+    "Telegram",
+    "bot",
+    "BotFather",
+    "team",
+    "multi-user",
+    "DM pairing",
+    "allowlist",
+    "gateway",
+    "systemd",
+    "launchd",
+    "home channel",
+    "scheduled tasks",
+    "SOUL.md",
+    "Docker sandbox",
+    "production"
+  ],
+  "full_text": "# Set Up a Team Telegram Assistant\n\nThis tutorial walks you through setting up a Telegram bot powered by Hermes Agent that multiple team members can use.\n\n[...full content as read from source...]"
+}

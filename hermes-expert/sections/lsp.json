@@ -1,0 +1,70 @@
+{
+  "id": "lsp",
+  "title": "LSP — Semantic Diagnostics",
+  "source_path": "website/docs/user-guide/features/lsp.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/lsp",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Hermes runs full language servers — pyright, gopls, rust-analyzer, typescript-language-server, clangd, and ~20 more — as background subprocesses and feeds their semantic diagnostics into the post-write lint check used by write_file and patch. When the agent edits a file, it sees exactly the errors that edit introduced — not just syntax errors, but type errors, undefined names, missing imports, and",
+  "key_concepts": [
+    "Language Server Protocol (LSP)",
+    "When LSP runs",
+    "Supported languages",
+    "CLI",
+    "Configuration",
+    "config.yaml",
+    "Per-server keys",
+    "Installation locations"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "",
+      "caption": "",
+      "code": "{\n  \"bytes_written\": 42,\n  \"dirs_created\": false,\n  \"lint\": {\"status\": \"ok\", \"output\": \"\"},\n  \"lsp_diagnostics\": \"LSP diagnostics introduced by this edit:\\n<diagnostics file=\\\"/path/to/foo.py\\\">\\nERROR [42:5] Cannot find name 'foo' [reportUndefinedVariable] (Pyright)\\nERROR [50:1] Argument of type \\\"str\\\" is not assignable to \\\"int\\\" [reportArgumentType] (Pyright)\\n</diagnostics>\"\n}\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "hermes lsp status          # service state + per-server install status\nhermes lsp list            # registry, optionally --installed-only\nhermes lsp install <id>    # eagerly install one server\nhermes lsp install-all     # try every server with a known recipe\nhermes lsp restart         # tear down running clients\nhermes lsp which <id>      # print resolved binary path\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# config.yaml\nlsp:\n  # Master toggle. Disabling skips the entire subsystem — no servers\n  # spawn, no background event loop runs.\n  enabled: true\n\n  # How long to wait for diagnostics after each write.\n  wait_mode: document      # \"document\" or \"full\"\n  wait_timeout: 5.0\n\n  # How to handle missing server binaries.\n  #   auto    — install via npm/pip/go install into <HERMES_HOME>/lsp/bin\n  #   manual  — only use binaries already on PATH\n  install_strategy: auto\n\n  # Per-server overrides (all optional).\n  servers:\n    pyright:\n      disabled: false\n      command: [\"/abs/path/to/pyright-langserver\", \"--stdio\"]\n      env: { PYRIGHT_LOG_LEVEL: \"info\" }\n      initialization_options:\n        python:\n          analysis:\n            typeCheckingMode: \"strict\"\n    typescript:\n      disabled: true       # skip TS even when its extensions match\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "lsp:\n  servers:\n    rust-analyzer:\n      disabled: true\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "apt install shellcheck      # Debian / Ubuntu\nbrew install shellcheck     # macOS\nscoop install shellcheck    # Windows\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "bash-language-server",
+    "diagnostics",
+    "jsx",
+    "language-server",
+    "llvm",
+    "lsp",
+    "post-write",
+    "project-wide",
+    "pyright-langserver",
+    "rust-analyzer",
+    "self-contained",
+    "semantic",
+    "svelte-language-server",
+    "syntax-check",
+    "syntax-clean"
+  ],
+  "full_text": "# LSP — Semantic Diagnostics\n\n# Language Server Protocol (LSP)\n\nHermes runs full language servers — pyright, gopls, rust-analyzer,\ntypescript-language-server, clangd, and ~20 more — as background\nsubprocesses and feeds their semantic diagnostics into the post-write\nlint check used by `write_file` and `patch`. When the agent edits a\nfile, it sees exactly the errors that edit introduced — not just\nsyntax errors, but **type errors, undefined names, missing imports,\nand project-wide semantic issues** the language server detects.\n\nThis is the same architecture top-tier coding agents use. Hermes\nships it self-contained: no editor host required, no plugins to\ninstall, no separate daemon to manage.\n\n## When LSP runs\n\nLSP is gated on **git workspace detection**. When the agent's working\ndirectory (or the file being edited) is inside a git repository, LSP\nruns against that workspace. When neither is in a git repo, LSP\nstays dormant — useful for messaging gateways where the cwd is the\nuser's home directory and there's no project to diagnose.\n\nThe check is layered: in-process syntax check first (microseconds),\nthen LSP diagnostics second when syntax is clean. A flaky or missing\nlanguage server can never break a write — every LSP failure path\nfalls back silently to the syntax-only result.\n\nConcretely, on every successful `write_file` or `patch`:\n\n1. Hermes captures a baseline of current diagnostics for the file.\n2. Performs the write.\n3. Re-queries the language server, filters out diagnostics that were\n   already in the baseline, and surfaces only the new ones.\n\nThe agent sees output like:\n\n```\n{\n  \"bytes_written\": 42,\n  \"dirs_created\": false,\n  \"lint\": {\"status\": \"ok\", \"output\": \"\"},\n  \"lsp_diagnostics\": \"LSP diagnostics introduced by this edit:\\n<diagnostics file=\\\"/path/to/foo.py\\\">\\nERROR [42:5] Cannot find name 'foo' [reportUndefinedVariable] (Pyright)\\nERROR [50:1] Argument of type \\\"str\\\" is not assignable to \\\"int\\\" [reportArgumentType] (Pyright)\\n</diagnostics>\"\n}\n```\n\nThe `lint` field carries the syntax-check result (microsecond\nin-process parse via `ast.parse`, `json.loads`, etc.); the\n`lsp_diagnostics` field carries the semantic diagnostics from the\nreal language server. Two channels, independent signals — the\nagent sees a syntax-clean file with semantic problems as\n``lint: ok`` plus a populated ``lsp_diagnostics``.\n\n## Supported languages\n\n| Language | Server | Auto-install |\n|----------|--------|--------------|\n| Python | `pyright-langserver` | npm |\n| TypeScript / JavaScript / JSX / TSX | `typescript-language-server` | npm |\n| Vue | `@vue/language-server` | npm |\n| Svelte | `svelte-language-server` | npm |\n| Astro | `@astrojs/language-server` | npm |\n| Go | `gopls` | `go install` |\n| Rust | `rust-analyzer` | manual (rustup) |\n| C / C++ | `clangd` | manual (LLVM) |\n| Bash / Zsh | `bash-language-server` | npm |\n| YAML | `yaml-language-server` | npm |\n| Lua | `lua-language-server` | manual (GitHub releases) |\n| PHP | `intelephense` | npm |\n| OCaml | `ocaml-lsp` | manual (opam) |\n| Dockerfile | `dockerfile-language-server-nodejs` | npm |\n| Terraform | `terraform-ls` | manual |\n| Dart | `dart language-server` | manual (dart sdk) |\n| Haskell | `haskell-language-server` | manual (ghcup) |\n| Julia | `julia` + LanguageServer.jl | manual |\n| Clojure | `clojure-lsp` | manual |\n| Nix | `nixd` | manual |\n| Zig | `zls` | manual |\n| Gleam | `gleam lsp` | manual (gleam install) |\n| Elixir | `elixir-ls` | manual |\n| Prisma | `prisma language-server` | manual |\n| Kotlin | `kotlin-language-server` | manual |\n| Java | `jdtls` | manual |\n\nFor \"manual\" entries, install the server through whatever toolchain\nmanager makes sense for that language (rustup, ghcup, opam, brew,\n…). Hermes auto-detects the binary on PATH or in\n`<HERMES_HOME>/lsp/bin/`.\n\nA few servers are installed alongside a peer dependency that npm\nwon't auto-pull. The current case is `typescript-language-server`,\nwhich requires the `typescript` SDK importable from the same\n`node_modules` tree — Hermes installs both packages together when you\nrun `hermes lsp install typescript` or auto-install fires on first\nuse.\n\n## CLI\n\n```\nhermes lsp status          # service state + per-server install status\nhermes lsp list            # registry, optionally --installed-only\nhermes lsp install <id>    # eagerly install one server\nhermes lsp install-all     # try every server with a known recipe\nhermes lsp restart         # tear down running clients\nhermes lsp which <id>      # print resolved binary path\n```\n\n`hermes lsp status` is the best starting point — it shows which\nlanguages will get semantic diagnostics today and which need a\nbinary installed.\n\n## Configuration\n\nThe defaults work for typical setups; nothing to set if the binaries\nare on PATH.\n\n```yaml\n# config.yaml\nlsp:\n  # Master toggle. Disabling skips the entire subsystem — no servers\n  # spawn, no background event loop runs.\n  enabled: true\n\n  # How long to wait for diagnostics after each write.\n  wait_mode: document      # \"document\" or \"full\"\n  wait_timeout: 5.0\n\n  # How to handle missing server binaries.\n  #   auto    — install via npm/pip/go install into <HERMES_HOME>/lsp/bin\n  #   manual  — only use binaries already on PATH\n  install_strategy: auto\n\n  # Per-server overrides (all optional).\n  servers:\n    pyright:\n      disabled: false\n      command: [\"/abs/path/to/pyright-langserver\", \"--stdio\"]\n      env: { PYRIGHT_LOG_LEVEL: \"info\" }\n      initialization_options:\n        python:\n          analysis:\n            typeCheckingMode: \"strict\"\n    typescript:\n      disabled: true       # skip TS even when its extensions match\n```\n\n### Per-server keys\n\n* `disabled: true` — skip this server entirely even when its\n  extensions match a file.\n* `command: [bin, ...args]` — pin a custom binary path. Bypasses\n  auto-install.\n* `env: {KEY: value}` — extra env vars passed to the spawned process.\n* `initialization_options: {...}` — merged into the LSP\n  `initializationOptions` payload sent in the `initialize`\n  handshake. Server-specific; consult the language server's docs.\n\n## Installation locations\n\nWhen `install_strategy: auto`, Hermes installs binaries into\n`<HERMES_HOME>/lsp/bin/`. NPM packages land in\n`<HERMES_HOME>/lsp/node_modules/` with bin symlinks one level up.\nGo binaries come from `go install` with `GOBIN` pointed at the\nstaging dir.\n\nNothing is ever installed to `/usr/local/`, `~/.local/`, or any other\nshared location — the staging dir is fully Hermes-owned and is\nremoved when you reset the profile.\n\n## Performance characteristics\n\nLSP servers are **lazy-spawned** on first use. Editing a Python file\nin a project that's never seen `.py` traffic spawns pyright; the\nspawn takes 1-3 seconds for most servers (rust-analyzer can take 10+\non a cold project). Subsequent edits in the same workspace re-use\nthe running server.\n\nThe LSP layer adds a few milliseconds to clean writes when no\ndiagnostics are emitted. When diagnostics are emitted, the wait\nbudget is `wait_timeout` seconds — typically the server responds in\ntens of milliseconds for pyright/tsserver and a few seconds for\nrust-analyzer mid-indexing.\n\nServers are kept alive for the life of the Hermes process. There's\nno idle-timeout reaper — the cost of restarting the server's index\non every write would be far higher than holding the daemon.\n\n## Disabling\n\nSet `lsp.enabled: false` in `config.yaml` to disable the entire\nsubsystem. The post-write check falls back to the in-process syntax\ncheck (`ast.parse` for Python, `json.loads` for JSON, etc.) which\nships unchanged from earlier versions.\n\nTo disable a single language without disabling the whole layer:\n\n```yaml\nlsp:\n  servers:\n    rust-analyzer:\n      disabled: true\n```\n\n## Troubleshooting\n\n**`hermes lsp status` shows a server as \"missing\"**\n\nThe binary isn't on PATH and isn't in `<HERMES_HOME>/lsp/bin/`. Run\n`hermes lsp install <server_id>` to attempt an auto-install, or\ninstall the binary manually through the language's normal toolchain.\n\n**`Backend warnings` section in `hermes lsp status`**\n\nSome servers ship as thin wrappers around an external CLI for actual\ndiagnostics — they spawn cleanly and accept requests but never emit\nerrors when the sidecar binary is missing. The most common case is\n`bash-language-server`, which delegates diagnostics to `shellcheck`.\nWhen `hermes lsp status` shows a `Backend warnings` section, install\nthe named tool through your OS package manager:\n\n```\napt install shellcheck      # Debian / Ubuntu\nbrew install shellcheck     # macOS\nscoop install shellcheck    # Windows\n```\n\nThe same warning is logged once at server spawn time in\n`~/.hermes/logs/agent.log`.\n\n**Server starts but never returns diagnostics**\n\nCheck `~/.hermes/logs/agent.log` for `[agent.lsp.client]` entries —\nboth stderr from the language server and protocol errors land\nthere. Some servers (rust-analyzer especially) need to finish a\nproject-wide index before they emit per-file diagnostics; the first\nedit after server start may complete with no diagnostics, with\nsubsequent edits picking them up.\n\n**Server crashed**\n\nA crashed server is added to the broken-set and won't be retried for\nthe rest of the session. Run `hermes lsp restart` to clear the set;\nthe next edit re-spawns.\n\n**Editing a file outside any git repo**\n\nBy design, LSP only runs inside a git repository. If the project isn't\nyet initialized, run `git init` to enable LSP diagnostics. Otherwise the\nin-process syntax-only fallback applies.\n\n---"
+}

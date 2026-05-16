@@ -1,0 +1,174 @@
+{
+  "id": "messaging-email",
+  "title": "Email Integration",
+  "source_path": "user-guide/messaging/email.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/email",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Email integration via IMAP (receive) and SMTP (send), covering Gmail app password setup, email threading headers, attachment handling, poll interval configuration, and anti-spam filtering by sender allowlist.",
+  "key_concepts": [
+    "IMAP for receiving emails",
+    "SMTP for sending replies",
+    "Gmail app passwords for 2FA accounts",
+    "Email threading via In-Reply-To and References headers",
+    "Attachment handling: images to vision, text files to context",
+    "Poll interval for new messages",
+    "Sender allowlist for anti-spam",
+    "Folder/mailbox targeting",
+    "Reply-to threading to maintain conversation",
+    "HTML vs plain text email body handling"
+  ],
+  "env_vars": [
+    {
+      "name": "EMAIL_IMAP_HOST",
+      "required": true,
+      "default": null,
+      "description": "IMAP server hostname (e.g. imap.gmail.com)"
+    },
+    {
+      "name": "EMAIL_IMAP_PORT",
+      "required": false,
+      "default": "993",
+      "description": "IMAP port (default: 993 for IMAPS)"
+    },
+    {
+      "name": "EMAIL_SMTP_HOST",
+      "required": true,
+      "default": null,
+      "description": "SMTP server hostname (e.g. smtp.gmail.com)"
+    },
+    {
+      "name": "EMAIL_SMTP_PORT",
+      "required": false,
+      "default": "587",
+      "description": "SMTP port (default: 587 for STARTTLS)"
+    },
+    {
+      "name": "EMAIL_USERNAME",
+      "required": true,
+      "default": null,
+      "description": "Email account username/address"
+    },
+    {
+      "name": "EMAIL_PASSWORD",
+      "required": true,
+      "default": null,
+      "description": "Email password or app password"
+    },
+    {
+      "name": "EMAIL_ALLOWED_SENDERS",
+      "required": false,
+      "default": null,
+      "description": "Comma-separated email addresses allowed to interact"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway including email IMAP listener"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "email.imap_host",
+      "type": "string",
+      "description": "IMAP server hostname"
+    },
+    {
+      "key": "email.imap_port",
+      "type": "int",
+      "description": "IMAP port (default: 993)"
+    },
+    {
+      "key": "email.smtp_host",
+      "type": "string",
+      "description": "SMTP server hostname"
+    },
+    {
+      "key": "email.smtp_port",
+      "type": "int",
+      "description": "SMTP port (default: 587)"
+    },
+    {
+      "key": "email.username",
+      "type": "string",
+      "description": "Email account address"
+    },
+    {
+      "key": "email.password",
+      "type": "string",
+      "description": "Password or app password"
+    },
+    {
+      "key": "email.mailbox",
+      "type": "string",
+      "description": "IMAP mailbox/folder to monitor (default: INBOX)"
+    },
+    {
+      "key": "email.poll_interval",
+      "type": "int",
+      "description": "Seconds between IMAP polls (default: 30)"
+    },
+    {
+      "key": "email.allowed_senders",
+      "type": "list[str]",
+      "description": "Allowed sender email addresses"
+    },
+    {
+      "key": "email.mark_seen",
+      "type": "bool",
+      "description": "Mark processed emails as seen (default: true)"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "title": "Gmail config with app password",
+      "language": "yaml",
+      "code": "email:\n  imap_host: imap.gmail.com\n  imap_port: 993\n  smtp_host: smtp.gmail.com\n  smtp_port: 587\n  username: \"myaddress@gmail.com\"\n  password: \"\"  # 16-char app password, not account password\n  allowed_senders:\n    - \"trusted@example.com\""
+    },
+    {
+      "title": "Custom mailbox and poll interval",
+      "language": "yaml",
+      "code": "email:\n  mailbox: \"Hermes\"\n  poll_interval: 60  # check every 60 seconds\n  mark_seen: true"
+    },
+    {
+      "title": "Gmail app password setup",
+      "language": "text",
+      "code": "# Gmail > Google Account > Security > 2-Step Verification > App passwords\n# Select app: Mail, device: Other (Hermes)\n# Copy the 16-character password (no spaces)"
+    }
+  ],
+  "gotchas": [
+    "Gmail requires an App Password (not your account password) when 2-Step Verification is enabled; regular password will fail",
+    "IMAP IDLE is not used; Hermes polls at poll_interval; there is inherent latency vs real-time platforms",
+    "mark_seen: true is required to avoid re-processing the same email on next poll; set false only for debugging",
+    "HTML email bodies are stripped to plain text before passing to the LLM; complex HTML layout is lost",
+    "Threading relies on proper In-Reply-To / References headers; broken threading in client apps can fork the conversation",
+    "Large attachments may hit memory limits; consider setting a max attachment size in email server settings",
+    "Sender allowlist uses exact email address matching; wildcards not supported"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-sms",
+    "vision"
+  ],
+  "keywords": [
+    "email",
+    "imap",
+    "smtp",
+    "gmail",
+    "app password",
+    "threading",
+    "in-reply-to",
+    "references",
+    "attachments",
+    "poll interval",
+    "allowed senders",
+    "mailbox",
+    "inbox",
+    "mark seen",
+    "html email",
+    "plain text"
+  ],
+  "full_text": "## Email\n\nConnect Hermes to an email account via IMAP (receive) and SMTP (send).\n\n### Gmail setup\n\nGmail requires an App Password when 2-Step Verification is enabled:\n\n1. Go to **Google Account \u2192 Security \u2192 2-Step Verification \u2192 App passwords**.\n2. Select app: **Mail**, device: **Other** (type Hermes).\n3. Copy the 16-character password (no spaces).\n\nUse this as your  \u2014 **not** your Google account password.\n\n### Config\n\n```yaml\nemail:\n  imap_host: imap.gmail.com\n  imap_port: 993\n  smtp_host: smtp.gmail.com\n  smtp_port: 587\n  username: \"myaddress@gmail.com\"\n  password: \"\"\n  allowed_senders:\n    - \"trusted@example.com\"\n```\n\nStart the gateway:\n\n```bash\nhermes gateway\n```\n\nHermes polls the INBOX every 30 seconds (configurable via ).\n\n### Email threading\n\nHermes maintains conversation context using email threading headers (, ). Replies stay in the same thread and carry forward conversation history.\n\n### Attachments\n\n- **Images** \u2014 forwarded to the vision pipeline if the active model supports vision.\n- **Text files** (.txt, .md, .csv, .json) \u2014 content injected into the message context.\n- **Other files** \u2014 filename and size noted but content not extracted.\n\n### Custom mailbox\n\nMonitor a specific folder instead of INBOX:\n\n```yaml\nemail:\n  mailbox: \"Hermes\"\n  poll_interval: 60\n```\n\n### Allowlist\n\nOnly respond to emails from specific senders:\n\n```yaml\nemail:\n  allowed_senders:\n    - \"boss@company.com\"\n    - \"client@example.com\"\n```\n\nEmails from non-allowed senders are ignored (not bounced).\n\n### Mark as seen\n\nBy default, processed emails are marked as seen to prevent re-processing:\n\n```yaml\nemail:\n  mark_seen: true  # default\n```\n\nSet  only for debugging \u2014 emails will be reprocessed every poll cycle."
+}

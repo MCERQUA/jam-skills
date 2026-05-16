@@ -1,0 +1,109 @@
+{
+  "id": "provider-routing",
+  "title": "Provider Routing",
+  "source_path": "website/docs/user-guide/features/provider-routing.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/provider-routing",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "How to configure fine-grained control over which underlying providers handle OpenRouter requests in Hermes, including sorting by cost/speed/quality, provider whitelists/blacklists, explicit ordering, parameter requirements, and data collection policies.",
+  "key_concepts": [
+    "provider routing",
+    "OpenRouter",
+    "sort strategies",
+    "provider whitelist",
+    "provider blacklist",
+    "explicit ordering",
+    "require_parameters",
+    "data collection"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "provider_routing.sort",
+      "type": "string",
+      "default": "price",
+      "description": "Sort providers by: price | throughput | latency",
+      "example": "throughput"
+    },
+    {
+      "path": "provider_routing.only",
+      "type": "list",
+      "default": null,
+      "description": "Whitelist: only use these providers",
+      "example": "[\"Anthropic\", \"Google\"]"
+    },
+    {
+      "path": "provider_routing.ignore",
+      "type": "list",
+      "default": null,
+      "description": "Blacklist: never use these providers",
+      "example": "[\"Together\", \"DeepInfra\"]"
+    },
+    {
+      "path": "provider_routing.order",
+      "type": "list",
+      "default": null,
+      "description": "Explicit priority order; unlisted providers are fallbacks",
+      "example": "[\"Anthropic\", \"Google\", \"AWS Bedrock\"]"
+    },
+    {
+      "path": "provider_routing.require_parameters",
+      "type": "boolean",
+      "default": false,
+      "description": "Only route to providers that support all request parameters",
+      "example": "true"
+    },
+    {
+      "path": "provider_routing.data_collection",
+      "type": "string",
+      "default": null,
+      "description": "Control data collection: allow | deny",
+      "example": "deny"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "Full provider routing config",
+      "code": "provider_routing:\n  sort: \"price\"\n  only: []\n  ignore: []\n  order: []\n  require_parameters: false\n  data_collection: null"
+    },
+    {
+      "language": "yaml",
+      "caption": "Privacy-focused config",
+      "code": "provider_routing:\n  ignore:\n    - \"Together\"\n    - \"Lepton\"\n  data_collection: \"deny\""
+    },
+    {
+      "language": "yaml",
+      "caption": "Preferred order with fallbacks",
+      "code": "provider_routing:\n  order:\n    - \"Anthropic\"\n    - \"Google\"\n  require_parameters: true"
+    }
+  ],
+  "gotchas": [
+    "Provider routing only applies when using OpenRouter — has no effect with direct provider connections",
+    "Append :nitro to any model name for throughput sorting (e.g., anthropic/claude-sonnet-4:nitro)",
+    "Append :floor to any model name for price sorting",
+    "Provider routing controls sub-providers within OpenRouter; for cross-provider failover use fallback-providers"
+  ],
+  "cross_refs": [
+    "integrations-overview",
+    "providers",
+    "fallback-providers"
+  ],
+  "keywords": [
+    "provider routing",
+    "OpenRouter",
+    "sort",
+    "price",
+    "throughput",
+    "latency",
+    "whitelist",
+    "blacklist",
+    "data collection",
+    "require_parameters",
+    "provider order",
+    "cost optimization"
+  ],
+  "full_text": "# Provider Routing\n\nWhen using OpenRouter as your LLM provider, Hermes Agent supports provider routing — fine-grained control over which underlying AI providers handle your requests.\n\n[...full content as read from source...]"
+}

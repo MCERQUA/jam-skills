@@ -1,0 +1,160 @@
+{
+  "id": "messaging-webhooks",
+  "title": "Webhooks Integration",
+  "source_path": "user-guide/messaging/webhooks.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/webhooks",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Webhooks integration covering HMAC signature validation for GitHub/GitLab/generic sources, route configuration with prompt templates, direct delivery mode (deliver_only, zero LLM tokens), dynamic subscriptions, rate limiting, and idempotency via event ID deduplication.",
+  "key_concepts": [
+    "Webhook routes: map incoming webhooks to Hermes sessions",
+    "HMAC signature validation: GitHub (sha256), GitLab (X-Gitlab-Token), generic",
+    "Prompt templates with webhook payload variable substitution",
+    "Direct delivery mode (deliver_only): forward payloads without LLM processing",
+    "Dynamic subscriptions: POST /webhooks/subscribe to add routes at runtime",
+    "Rate limiting per route (requests/minute)",
+    "Idempotency via X-Webhook-ID / X-GitHub-Delivery deduplication",
+    "Payload filtering: only process events matching field conditions",
+    "Outgoing webhooks: Hermes can POST to external URLs on events",
+    "Multi-destination fan-out: one inbound webhook triggers multiple sessions"
+  ],
+  "env_vars": [
+    {
+      "name": "WEBHOOK_SECRET",
+      "required": false,
+      "default": null,
+      "description": "Default HMAC secret for generic webhook signature validation"
+    },
+    {
+      "name": "WEBHOOK_BASE_URL",
+      "required": false,
+      "default": null,
+      "description": "Public base URL for webhook endpoints (used in subscription responses)"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway; webhook routes are registered at /webhooks/<route_name>"
+    },
+    {
+      "command": "POST /webhooks/subscribe",
+      "description": "Dynamically register a new webhook route at runtime"
+    },
+    {
+      "command": "GET /webhooks/routes",
+      "description": "List all registered webhook routes"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "webhooks.routes",
+      "type": "list[dict]",
+      "description": "List of webhook route configurations"
+    },
+    {
+      "key": "webhooks.routes[].name",
+      "type": "string",
+      "description": "Route name; endpoint becomes /webhooks/<name>"
+    },
+    {
+      "key": "webhooks.routes[].secret",
+      "type": "string",
+      "description": "HMAC secret for this route"
+    },
+    {
+      "key": "webhooks.routes[].signature_type",
+      "type": "string",
+      "description": "Signature type: github, gitlab, generic (default: generic)"
+    },
+    {
+      "key": "webhooks.routes[].prompt_template",
+      "type": "string",
+      "description": "Jinja2 template for LLM prompt; payload fields available as variables"
+    },
+    {
+      "key": "webhooks.routes[].deliver_only",
+      "type": "bool",
+      "description": "Forward payload to session without LLM processing (zero tokens)"
+    },
+    {
+      "key": "webhooks.routes[].rate_limit",
+      "type": "int",
+      "description": "Max requests per minute for this route (default: no limit)"
+    },
+    {
+      "key": "webhooks.routes[].filter",
+      "type": "dict",
+      "description": "Field conditions to filter which payloads are processed"
+    },
+    {
+      "key": "webhooks.routes[].destinations",
+      "type": "list[str]",
+      "description": "Session IDs or platform channels to fan-out to"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "title": "GitHub webhook route",
+      "language": "yaml",
+      "code": "webhooks:\n  routes:\n    - name: github-pr\n      secret: \"${GITHUB_WEBHOOK_SECRET}\"\n      signature_type: github\n      filter:\n        action: [\"opened\", \"synchronize\", \"closed\"]\n      prompt_template: |\n        GitHub PR #{{ number }} {{ action }}:\n        Title: {{ pull_request.title }}\n        Author: {{ pull_request.user.login }}\n        URL: {{ pull_request.html_url }}\n        Summarize this PR event and suggest any action items."
+    },
+    {
+      "title": "Direct delivery mode (zero LLM tokens)",
+      "language": "yaml",
+      "code": "webhooks:\n  routes:\n    - name: monitoring-alerts\n      secret: \"${ALERT_SECRET}\"\n      deliver_only: true  # payload forwarded as-is, no LLM call\n      destinations:\n        - \"telegram:@myusername\""
+    },
+    {
+      "title": "Dynamic subscription at runtime",
+      "language": "bash",
+      "code": "curl -X POST http://localhost:8100/webhooks/subscribe \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"name\": \"my-hook\", \"secret\": \"mysecret\", \"destination\": \"telegram:@myusername\"}'"
+    },
+    {
+      "title": "GitLab webhook route",
+      "language": "yaml",
+      "code": "webhooks:\n  routes:\n    - name: gitlab-ci\n      secret: \"${GITLAB_TOKEN}\"\n      signature_type: gitlab\n      filter:\n        object_kind: [\"pipeline\"]\n      prompt_template: \"GitLab pipeline {{ object_attributes.status }} for {{ project.name }}. Analyze.\""
+    },
+    {
+      "title": "Rate limiting",
+      "language": "yaml",
+      "code": "webhooks:\n  routes:\n    - name: noisy-sensor\n      secret: \"${SENSOR_SECRET}\"\n      rate_limit: 10  # max 10 requests/minute; extras dropped"
+    }
+  ],
+  "gotchas": [
+    "deliver_only routes forward the raw JSON payload to the destination session; the payload appears as the \"user message\" \u2014 no LLM call is made and no tokens are consumed",
+    "HMAC signature validation order: github uses sha256 with \"sha256=\" prefix; gitlab uses plain token in X-Gitlab-Token header; generic uses sha256 without prefix",
+    "Prompt templates use Jinja2 syntax; access nested payload fields with dot notation ({{ pull_request.user.login }})",
+    "filter conditions use exact string matching or array membership; complex filtering (regex, range) requires a custom route handler",
+    "Idempotency deduplication checks X-Webhook-ID or X-GitHub-Delivery headers; duplicate event IDs within 5 minutes are dropped",
+    "Dynamic subscriptions via POST /webhooks/subscribe are not persisted; routes are lost on gateway restart unless also in config",
+    "Multi-destination fan-out sends the same prompt to each destination in parallel; ensure each destination has an active session"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-homeassistant",
+    "messaging-sms"
+  ],
+  "keywords": [
+    "webhooks",
+    "hmac",
+    "signature validation",
+    "github",
+    "gitlab",
+    "generic",
+    "prompt template",
+    "jinja2",
+    "deliver only",
+    "zero tokens",
+    "dynamic subscription",
+    "rate limiting",
+    "idempotency",
+    "deduplication",
+    "fan-out",
+    "payload filter",
+    "outgoing webhooks",
+    "x-webhook-id",
+    "x-github-delivery"
+  ],
+  "full_text": "## Webhooks\n\nReceive webhooks from external services (GitHub, GitLab, monitoring tools, IoT devices, etc.) and route them to Hermes sessions.\n\n### Route configuration\n\n```yaml\nwebhooks:\n  routes:\n    - name: github-pr\n      secret: \"${GITHUB_WEBHOOK_SECRET}\"\n      signature_type: github\n      filter:\n        action: [\"opened\", \"synchronize\", \"closed\"]\n      prompt_template: |\n        GitHub PR #{{ number }} {{ action }}:\n        Title: {{ pull_request.title }}\n        Author: {{ pull_request.user.login }}\n        Summarize and suggest action items.\n```\n\nEach route registers an endpoint at `/webhooks/<name>`.\n\n### Signature types\n\n| Type | Header | Format |\n|------|--------|--------|\n| `github` | `X-Hub-Signature-256` | `sha256=<hex>` |\n| `gitlab` | `X-Gitlab-Token` | plain token |\n| `generic` | `X-Webhook-Signature` | `sha256=<hex>` |\n\n### Prompt templates\n\nTemplates use Jinja2 syntax. Access any webhook payload field as a variable:\n\n```\n{{ pull_request.title }}      \u2014 nested field\n{{ action }}                  \u2014 top-level field\n{{ commits | length }}        \u2014 Jinja2 filter\n```\n\n### Direct delivery mode\n\nFor high-frequency events where you want zero LLM processing:\n\n```yaml\n- name: monitoring-alerts\n  deliver_only: true\n  destinations:\n    - \"telegram:@myusername\"\n```\n\nThe raw JSON payload is forwarded to each destination session as the message body. No LLM call, no token cost.\n\n### Payload filtering\n\nOnly process events matching specific field values:\n\n```yaml\nfilter:\n  action: [\"opened\", \"closed\"]   # array = \"any of\"\n  object_kind: pipeline          # string = exact match\n```\n\nEvents not matching the filter are acknowledged (HTTP 200) but silently dropped.\n\n### Rate limiting\n\n```yaml\n- name: noisy-sensor\n  rate_limit: 10  # max 10 requests/minute\n```\n\nExcess requests receive HTTP 429.\n\n### Idempotency\n\nHermes deduplicates on `X-GitHub-Delivery` or `X-Webhook-ID` headers. Duplicate event IDs within 5 minutes are acknowledged but not processed.\n\n### Dynamic subscriptions\n\nRegister routes at runtime without restarting the gateway:\n\n```bash\ncurl -X POST http://localhost:8100/webhooks/subscribe \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"name\": \"my-hook\", \"secret\": \"mysecret\", \"destination\": \"telegram:@myusername\"}'\n```\n\n**Note:** Dynamic routes are in-memory only. Persist them in config for survival across restarts.\n\n### Fan-out\n\nOne inbound webhook can trigger multiple destinations:\n\n```yaml\n- name: alerts\n  destinations:\n    - \"telegram:@myusername\"\n    - \"slack:C0123456789\"\n    - \"discord:9876543210\"\n```\n\nAll destinations receive the same processed response in parallel."
+}

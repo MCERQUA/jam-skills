@@ -1,0 +1,98 @@
+{
+  "id": "dev-plugin-llm-access",
+  "title": "Plugin LLM Access",
+  "source_path": "website/docs/developer-guide/plugin-llm-access.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/plugin-llm-access",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents ctx.llm, the API for plugins to make out-of-band LLM calls using the host's credentials, covering complete(), complete_structured(), async variants (acomplete/acomplete_structured), structured output with JSON schema, trust gate configuration, and result attributes.",
+  "key_concepts": [
+    "ctx.llm",
+    "complete",
+    "complete_structured",
+    "acomplete",
+    "PluginLlmCompleteResult",
+    "PluginLlmStructuredResult",
+    "trust gate",
+    "json_schema",
+    "purpose audit string",
+    "host-owned credentials"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "plugins.entries.<plugin-id>.llm.allow_provider_override",
+      "type": "boolean",
+      "default": "false",
+      "description": "Allow plugin to specify a different provider",
+      "example": "true"
+    },
+    {
+      "path": "plugins.entries.<plugin-id>.llm.allow_model_override",
+      "type": "boolean",
+      "default": "false",
+      "description": "Allow plugin to specify a different model",
+      "example": "true"
+    },
+    {
+      "path": "plugins.entries.<plugin-id>.llm.allowed_providers",
+      "type": "list",
+      "default": "[]",
+      "description": "Allowlist of providers the plugin may use",
+      "example": "[openrouter, anthropic]"
+    },
+    {
+      "path": "plugins.entries.<plugin-id>.llm.allowed_models",
+      "type": "list",
+      "default": "[]",
+      "description": "Allowlist of models the plugin may use",
+      "example": "[openai/gpt-4o-mini]"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Minimal LLM call from a plugin",
+      "code": "result = ctx.llm.complete(messages=[{\"role\": \"user\", \"content\": \"ping\"}])\nreturn result.text"
+    },
+    {
+      "language": "python",
+      "caption": "Structured output with JSON schema",
+      "code": "result = ctx.llm.complete_structured(\n    instructions=\"Score this support reply for urgency (0-1).\",\n    input=[{\"type\": \"text\", \"text\": message_body}],\n    json_schema=TRIAGE_SCHEMA,\n    purpose=\"support.triage\",\n    temperature=0.0,\n    max_tokens=128,\n)\nif result.parsed[\"urgency\"] > 0.8:\n    await dispatch_to_oncall(result.parsed[\"category\"], message_body)"
+    },
+    {
+      "language": "python",
+      "caption": "Async variant",
+      "code": "result = await ctx.llm.acomplete(messages=...)\nresult = await ctx.llm.acomplete_structured(instructions=..., input=...)"
+    }
+  ],
+  "gotchas": [
+    "Default posture is fail-closed — provider= and model= arguments raise PluginLlmTrustError without operator opt-in",
+    "Granting allow_model_override does NOT also grant allow_provider_override — each is independently gated",
+    "Every call runs against the user's paid provider — don't loop on complete() for every gateway message without considering token spend",
+    "complete_structured() raises ValueError on empty inputs and schema-validation failure",
+    "result.content_type == 'text' means parsing or validation failed — inspect result.text for raw response"
+  ],
+  "cross_refs": [
+    "dev-provider-runtime",
+    "guide-build-plugin"
+  ],
+  "keywords": [
+    "plugin LLM access",
+    "ctx.llm",
+    "complete",
+    "complete_structured",
+    "acomplete",
+    "structured output",
+    "JSON schema",
+    "trust gate",
+    "PluginLlmCompleteResult",
+    "host credentials",
+    "purpose audit",
+    "async plugin",
+    "out-of-band LLM"
+  ],
+  "full_text": "# Plugin LLM Access\n\n`ctx.llm` is the supported way for a plugin to make an LLM call. Chat completion, structured extraction, sync, async, with or without images — same surface, same trust gate, same host-owned credentials.\n\nPlugins reach for this when they need to do something that involves the model but isn't part of the agent's conversation. A hook that rewrites a tool error, a gateway adapter that translates an inbound message, a slash command that summarises a long paste, a scheduled job that scores yesterday's activity.\n\n## The smallest possible call\n\n```python\nresult = ctx.llm.complete(messages=[{\"role\": \"user\", \"content\": \"ping\"}])\nreturn result.text\n```\n\nNo keys, no provider config, no SDK initialisation. The plugin runs against whatever provider and model the user is currently using.\n\n## Structured output\n\n```python\nresult = ctx.llm.complete_structured(\n    instructions=\"Score this support reply for urgency (0-1) and pick a category.\",\n    input=[{\"type\": \"text\", \"text\": message_body}],\n    json_schema=TRIAGE_SCHEMA,\n    purpose=\"support.triage\",\n    temperature=0.0,\n    max_tokens=128,\n)\n\nif result.parsed[\"urgency\"] > 0.8:\n    await dispatch_to_oncall(result.parsed[\"category\"], message_body)\n```\n\nThe host requests JSON output from the provider, parses it locally as a fallback, validates against your schema if `jsonschema` is installed, and hands back a Python object on `result.parsed`.\n\n## What this lane gives you\n\n- **One call, four shapes.** `complete()` for chat, `complete_structured()` for typed JSON, `acomplete()` and `acomplete_structured()` for asyncio.\n- **Host-owned credentials.** OAuth tokens, refresh flows, the credential pool — every credential concept Hermes already has applies. The plugin never sees a token.\n- **Bounded.** Single sync or async call. No streaming, no tool loops, no conversation state to manage.\n- **Fail-closed trust.** A plugin you've never configured cannot pick its own provider, model, agent, or stored credential.\n\n## API surface\n\n`ctx.llm` is an instance of `agent.plugin_llm.PluginLlm`.\n\n### `complete()`\n\n```python\nresult = ctx.llm.complete(\n    messages=[{\"role\": \"user\", \"content\": \"Hi\"}],\n    provider=None,         # optional, gated\n    model=None,            # optional, gated\n    temperature=None,\n    max_tokens=None,\n    timeout=None,\n    agent_id=None,\n    profile=None,\n    purpose=\"optional-audit-string\",\n)\n```\n\n`provider=` and `model=` without operator opt-in raises `PluginLlmTrustError`.\n\n### `complete_structured()`\n\n```python\nresult = ctx.llm.complete_structured(\n    instructions=\"What you want extracted.\",\n    input=[\n        {\"type\": \"text\",  \"text\": \"...\"},\n        {\"type\": \"image\", \"data\": b\"...\", \"mime_type\": \"image/png\"},\n        {\"type\": \"image\", \"url\":  \"https://...\"},\n    ],\n    json_schema={...},     # optional — triggers parsed result + validation\n    json_mode=False,\n    schema_name=None,\n    system_prompt=None,\n    provider=None,\n    model=None,\n    temperature=None,\n    max_tokens=None,\n    timeout=None,\n)\n```\n\nWhen `json_schema` or `json_mode=True` is supplied, the host requests JSON output, parses locally as a fallback, and validates against your schema.\n\n### Async\n\n```python\nresult = await ctx.llm.acomplete(messages=...)\nresult = await ctx.llm.acomplete_structured(instructions=..., input=...)\n```\n\n### Result attributes\n\n- `text` — the assistant's response\n- `provider` — e.g. 'openrouter', 'anthropic'\n- `model` — whatever the provider returned for this call\n- `agent_id` — whose model/auth was used\n- `usage` — tokens + cache + cost estimate (input_tokens, output_tokens, total_tokens, cache_read_tokens, cache_write_tokens, cost_usd)\n- `audit` — plugin_id, purpose, profile\n- `parsed` — JSON object when content_type == 'json' (structured only)\n- `content_type` — 'json' or 'text' (structured only)\n\n## Trust gate\n\nThe default behaviour is fail-closed. A plugin can call any of the four methods against the user's active provider and model, and set request-shaping arguments. `provider=`, `model=`, `agent_id=`, and `profile=` raise `PluginLlmTrustError` until the operator opts in via `config.yaml`:\n\n```yaml\nplugins:\n  entries:\n    my-plugin:\n      llm:\n        allow_provider_override: true\n        allowed_providers:\n          - openrouter\n          - anthropic\n        allow_model_override: true\n        allowed_models:\n          - openai/gpt-4o-mini\n        allow_agent_id_override: false\n        allow_profile_override: false\n```\n\n## What the host owns\n\n- Provider resolution (reads `model.provider` + `model.model` from config)\n- Auth (pulls API keys, OAuth tokens from `~/.hermes/auth.json` / env)\n- Vision routing (falls back to configured vision model when active text model is text-only)\n- Fallback chain (if primary provider 5xxs or 429s)\n- Timeout (honours your `timeout=` argument)\n- JSON shaping (sends `response_format` to the provider when you ask for JSON)\n- Schema validation (validates against your `json_schema` when `jsonschema` is installed)\n- Audit log (each call writes one INFO line to `agent.log`)\n\n## When to use which\n\n| You want... | Reach for |\n|---|---|\n| A free-form text response | `complete()` |\n| A typed dict back, validated against a schema | `complete_structured()` |\n| Image-or-text input with a typed dict back | `complete_structured()` |\n| The same call from async code | `acomplete()` / `acomplete_structured()` |\n\n## Where this fits in the plugin surface\n\n| `ctx.register_tool` | adds a tool the agent can call |\n| `ctx.register_platform` | wires a new gateway adapter |\n| `ctx.register_image_gen_provider` | replaces an image-gen backend |\n| `ctx.register_memory_provider` | replaces the memory backend |\n| `ctx.register_context_engine` | replaces the context compressor |\n| `ctx.register_hook` | observes a lifecycle event |\n| `ctx.llm` | makes its own model call, out of band, without any of the above |\n\n## Reference\n\n- Implementation: `agent/plugin_llm.py`\n- Tests: `tests/agent/test_plugin_llm.py`\n- Reference plugins: `hermes-example-plugins` companion repo"
+}

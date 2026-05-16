@@ -1,0 +1,225 @@
+{
+  "id": "voice-mode",
+  "title": "Voice Mode",
+  "source_path": "website/docs/user-guide/features/voice-mode.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/voice-mode",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Enables full voice interaction in the CLI (push-to-talk with Ctrl+B) and messaging platforms (Telegram/Discord voice replies and Discord voice channel conversations) using STT and TTS providers.",
+  "key_concepts": [
+    "push-to-talk",
+    "silence detection",
+    "streaming TTS",
+    "speech-to-text",
+    "Discord voice channels",
+    "hallucination filter",
+    "voice replies",
+    "Whisper STT"
+  ],
+  "env_vars": [
+    {
+      "name": "GROQ_API_KEY",
+      "purpose": "Groq Whisper STT (cloud, fast, free tier)",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "VOICE_TOOLS_OPENAI_KEY",
+      "purpose": "OpenAI Whisper STT and OpenAI TTS",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "ELEVENLABS_API_KEY",
+      "purpose": "ElevenLabs premium TTS",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DISCORD_BOT_TOKEN",
+      "purpose": "Discord bot token for voice channel support",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DISCORD_ALLOWED_USERS",
+      "purpose": "User IDs allowed to interact via Discord voice",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DISCORD_REQUIRE_MENTION",
+      "purpose": "Require @mention in server channels",
+      "required": false,
+      "default": "true"
+    },
+    {
+      "name": "DISCORD_FREE_RESPONSE_CHANNELS",
+      "purpose": "Channels where bot responds without @mention",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "STT_GROQ_MODEL",
+      "purpose": "Override default Groq STT model",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "STT_OPENAI_MODEL",
+      "purpose": "Override default OpenAI STT model",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "purpose": "Start the gateway to connect messaging platforms"
+    },
+    {
+      "command": "hermes gateway setup",
+      "purpose": "Interactive setup wizard for messaging platforms"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "voice.record_key",
+      "type": "string",
+      "default": "ctrl+b",
+      "description": "Key to start/stop recording",
+      "example": "ctrl+b"
+    },
+    {
+      "path": "voice.silence_threshold",
+      "type": "int",
+      "default": "200",
+      "description": "RMS level below which counts as silence",
+      "example": "200"
+    },
+    {
+      "path": "voice.silence_duration",
+      "type": "float",
+      "default": "3.0",
+      "description": "Seconds of silence before auto-stop",
+      "example": "3.0"
+    },
+    {
+      "path": "voice.beep_enabled",
+      "type": "bool",
+      "default": "true",
+      "description": "Play record start/stop beeps",
+      "example": "false"
+    },
+    {
+      "path": "stt.provider",
+      "type": "string",
+      "default": "local",
+      "description": "STT provider: local, groq, or openai",
+      "example": "groq"
+    },
+    {
+      "path": "stt.local.model",
+      "type": "string",
+      "default": "base",
+      "description": "Whisper model size: tiny, base, small, medium, large-v3",
+      "example": "small"
+    },
+    {
+      "path": "tts.provider",
+      "type": "string",
+      "default": "edge",
+      "description": "TTS provider: edge, elevenlabs, openai, neutts, minimax",
+      "example": "elevenlabs"
+    },
+    {
+      "path": "tts.edge.voice",
+      "type": "string",
+      "default": "en-US-AriaNeural",
+      "description": "Edge TTS voice (322 voices, 74 languages)",
+      "example": "en-US-AriaNeural"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/voice",
+      "purpose": "Toggle voice mode on/off"
+    },
+    {
+      "command": "/voice on",
+      "purpose": "Enable voice mode (voice messages → voice replies)"
+    },
+    {
+      "command": "/voice tts",
+      "purpose": "Enable TTS for all messages"
+    },
+    {
+      "command": "/voice off",
+      "purpose": "Disable voice replies"
+    },
+    {
+      "command": "/voice status",
+      "purpose": "Show current voice settings"
+    },
+    {
+      "command": "/voice join",
+      "purpose": "Bot joins your current Discord voice channel"
+    },
+    {
+      "command": "/voice leave",
+      "purpose": "Bot disconnects from Discord voice channel"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Install voice extras",
+      "code": "pip install \"hermes-agent[voice]\"\npip install \"hermes-agent[messaging]\""
+    },
+    {
+      "language": "bash",
+      "caption": "System dependencies (Ubuntu)",
+      "code": "sudo apt install portaudio19-dev ffmpeg libopus0"
+    },
+    {
+      "language": "yaml",
+      "caption": "Voice config in config.yaml",
+      "code": "voice:\n  record_key: \"ctrl+b\"\n  silence_threshold: 200\n  silence_duration: 3.0\nstt:\n  provider: \"local\"\ntts:\n  provider: \"edge\""
+    },
+    {
+      "language": "bash",
+      "caption": "Discord voice re-invite URL",
+      "code": "https://discord.com/oauth2/authorize?client_id=YOUR_APP_ID&scope=bot+applications.commands&permissions=274881432640"
+    }
+  ],
+  "gotchas": [
+    "faster-whisper must be installed separately (`pip install faster-whisper`) for free local STT",
+    "Discord voice channel requires PyNaCl and Opus — installed via discord.py[voice]",
+    "Re-inviting bot to Discord server updates permissions without removing it",
+    "Discord Server Members Intent needed only if DISCORD_ALLOWED_USERS uses usernames (not IDs)",
+    "Bot needs a SPEAKING event from Discord before it can map user audio — users must start speaking within seconds of bot joining"
+  ],
+  "cross_refs": [
+    "messaging-telegram",
+    "messaging-discord",
+    "tts"
+  ],
+  "keywords": [
+    "voice mode",
+    "push-to-talk",
+    "STT",
+    "TTS",
+    "Whisper",
+    "speech-to-text",
+    "text-to-speech",
+    "Discord voice channel",
+    "microphone",
+    "ElevenLabs",
+    "Edge TTS",
+    "Groq",
+    "faster-whisper",
+    "voice messages",
+    "voice replies"
+  ],
+  "full_text": "# Voice Mode\n\nHermes Agent supports full voice interaction across CLI and messaging platforms. Talk to the agent using your microphone, hear spoken replies, and have live voice conversations in Discord voice channels.\n\n## Prerequisites\n\n1. Hermes Agent installed — `pip install hermes-agent`\n2. An LLM provider configured\n3. A working base setup\n\n## Overview\n\n| Feature | Platform | Description |\n|---------|----------|-------------|\n| **Interactive Voice** | CLI | Press Ctrl+B to record, agent auto-detects silence and responds |\n| **Auto Voice Reply** | Telegram, Discord | Agent sends spoken audio alongside text responses |\n| **Voice Channel** | Discord | Bot joins VC, listens to users speaking, speaks replies back |\n\n## Requirements\n\n```bash\npip install \"hermes-agent[voice]\"       # CLI voice mode\npip install \"hermes-agent[messaging]\"   # Discord + Telegram (includes discord.py[voice])\npip install \"hermes-agent[tts-premium]\" # ElevenLabs TTS\npip install \"hermes-agent[all]\"         # Everything\n```\n\nSystem dependencies: PortAudio (microphone), ffmpeg (audio conversion), Opus (Discord codec).\n\n## CLI Voice Mode\n\nStart with `hermes` then:\n- `/voice on` — enable voice mode\n- **Press Ctrl+B** — recording starts (880Hz beep)\n- Speak — live level bar shown\n- After 3s silence — recording auto-stops, transcribed, sent to agent\n- Reply spoken aloud if TTS enabled\n- Loop continues automatically\n\n### Silence Detection\n\nTwo-stage: speech confirmation (>0.3s above RMS threshold 200), then end detection (3.0s continuous silence). 15s no-speech timeout.\n\n### Streaming TTS\n\nSentence-by-sentence playback as the agent generates text. Strips markdown and `<think>` blocks.\n\n### Hallucination Filter\n\nFilters 26 known Whisper phantom phrases across multiple languages plus a repetitive-variation regex.\n\n## Gateway Voice Reply (Telegram & Discord)\n\n```\n/voice on    — Voice replies only when you send a voice message\n/voice tts   — Voice replies for ALL messages\n/voice off   — Disable voice replies\n/voice status — Show current setting\n```\n\nPlatform delivery: Telegram sends Opus/OGG voice bubbles; Discord sends native voice bubble (falls back to file).\n\n## Discord Voice Channels\n\nBot joins a voice channel, listens to each user independently, transcribes via Whisper, processes through the agent pipeline, and speaks TTS reply back.\n\n### Commands\n\n```\n/voice join   — Bot joins your current voice channel\n/voice leave  — Bot disconnects\n/voice status — Show voice mode and connected channel\n```\n\n### Echo Prevention\n\nBot automatically pauses audio listener while playing TTS replies.\n\n## Configuration Reference\n\n```yaml\nvoice:\n  record_key: \"ctrl+b\"\n  max_recording_seconds: 120\n  auto_tts: false\n  beep_enabled: true\n  silence_threshold: 200\n  silence_duration: 3.0\n\nstt:\n  provider: \"local\"   # \"local\" | \"groq\" | \"openai\"\n  local:\n    model: \"base\"\n\ntts:\n  provider: \"edge\"    # \"edge\" | \"elevenlabs\" | \"openai\" | \"neutts\" | \"minimax\"\n  edge:\n    voice: \"en-US-AriaNeural\"\n```\n\n## STT Providers\n\n| Provider | Model | Speed | Cost | API Key |\n|----------|-------|-------|------|---------|\n| Local | base/small/large-v3 | Fast-Slow | Free | No |\n| Groq | whisper-large-v3-turbo | Very fast | Free tier | Yes |\n| OpenAI | whisper-1 | Fast | Paid | Yes |\n\nProvider priority: local > groq > openai\n"
+}

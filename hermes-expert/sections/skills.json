@@ -1,0 +1,284 @@
+{
+  "id": "skills",
+  "title": "Skills System",
+  "source_path": "website/docs/user-guide/features/skills.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/skills",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Skills are on-demand knowledge documents the agent can load when needed. They follow a **progressive disclosure** pattern to minimize token usage and are compatible with the [agentskills.io](https://agentskills.io/specification) open standard.",
+  "key_concepts": [
+    "Using Skills",
+    "Progressive Disclosure",
+    "SKILL.md Format",
+    "When to Use",
+    "Procedure",
+    "Pitfalls",
+    "Verification",
+    "Platform-Specific Skills"
+  ],
+  "env_vars": [
+    {
+      "name": "FIRECRAWL_API_KEY",
+      "purpose": "Referenced in skills",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TENOR_API_KEY",
+      "purpose": "Referenced in skills",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GITHUB_TOKEN",
+      "purpose": "Referenced in skills",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes chat --toolsets skills -q \"What skills do you have?\"",
+      "purpose": ""
+    },
+    {
+      "command": "hermes chat --toolsets skills -q \"Show me the axolotl skill\"",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "terminal.env_passthrough",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "config.yaml",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "skills.config",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "skills.sh",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "metadata.hermes.tags",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "metadata.hermes.config",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/plan",
+      "purpose": ""
+    },
+    {
+      "command": "/skill-name",
+      "purpose": ""
+    },
+    {
+      "command": "/skills",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# In the CLI or any messaging platform:\n/gif-search funny cats\n/axolotl help me fine-tune Llama 3 on my dataset\n/github-pr-workflow create a PR for the auth refactor\n/plan design a rollout for migrating our auth provider\n\n# Just the skill name loads it and lets the agent ask what you need:\n/excalidraw\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes chat --toolsets skills -q \"What skills do you have?\"\nhermes chat --toolsets skills -q \"Show me the axolotl skill\"\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "Level 0: skills_list()           → [{name, description, category}, ...]   (~3k tokens)\nLevel 1: skill_view(name)        → Full content + metadata       (varies)\nLevel 2: skill_view(name, path)  → Specific reference file       (varies)\n"
+    },
+    {
+      "language": "markdown",
+      "caption": "",
+      "code": "---\nname: my-skill\ndescription: Brief description of what this skill does\nversion: 1.0.0\nplatforms: [macos, linux]     # Optional — restrict to specific OS platforms\nmetadata:\n  hermes:\n    tags: [python, automation]\n    category: devops\n    fallback_for_toolsets: [web]    # Optional — conditional activation (see below)\n    requires_toolsets: [terminal]   # Optional — conditional activation (see below)\n    config:                          # Optional — config.yaml settings\n      - key: my.setting\n        description: \"What this controls\"\n        default: \"value\"\n        prompt: \"Prompt for setup\"\n---\n\n# Skill Title\n\n## When to Use\nTrigger conditions for this skill.\n\n## Procedure\n1. Step one\n2. Step two\n\n## Pitfalls\n- Known failure modes and fixes\n\n## Verification\nHow to confirm it worked.\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "platforms: [macos]            # macOS only (e.g., iMessage, Apple Reminders, FindMy)\nplatforms: [macos, linux]     # macOS and Linux\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "metadata:\n  hermes:\n    fallback_for_toolsets: [web]      # Show ONLY when these toolsets are unavailable\n    requires_toolsets: [terminal]     # Show ONLY when these toolsets are available\n    fallback_for_tools: [web_search]  # Show ONLY when these specific tools are unavailable\n    requires_tools: [terminal]        # Show ONLY when these specific tools are available\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "required_environment_variables:\n  - name: TENOR_API_KEY\n    prompt: Tenor API key\n    help: Get a key from https://developers.google.com/tenor\n    required_for: full functionality\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "metadata:\n  hermes:\n    config:\n      - key: myplugin.path\n        description: Path to the plugin data directory\n        default: \"~/myplugin-data\"\n        prompt: Plugin data directory path\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "~/.hermes/skills/                  # Single source of truth\n├── mlops/                         # Category directory\n│   ├── axolotl/\n│   │   ├── SKILL.md               # Main instructions (required)\n│   │   ├── references/            # Additional docs\n│   │   ├── templates/             # Output formats\n│   │   ├── scripts/               # Helper scripts callable from the skill\n│   │   └── assets/                # Supplementary files\n│   └── vllm/\n│       └── SKILL.md\n├── devops/\n│   └── deploy-k8s/                # Agent-created skill\n│       ├── SKILL.md\n│       └── references/\n├── .hub/                          # Skills Hub state\n│   ├── lock.json\n│   ├── quarantine/\n│   └── audit.log\n└── .bundled_manifest              # Tracks seeded bundled skills\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "skills:\n  external_dirs:\n    - ~/.agents/skills\n    - /home/shared/team-skills\n    - ${SKILLS_REPO}/skills\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "~/.hermes/skills/               # Local (primary, read-write)\n├── devops/deploy-k8s/\n│   └── SKILL.md\n└── mlops/axolotl/\n    └── SKILL.md\n\n~/.agents/skills/               # External (read-only, shared)\n├── my-custom-workflow/\n│   └── SKILL.md\n└── team-conventions/\n    └── SKILL.md\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills browse                              # Browse all hub skills (official first)\nhermes skills browse --source official            # Browse only official optional skills\nhermes skills search kubernetes                   # Search all sources\nhermes skills search react --source skills-sh     # Search the skills.sh directory\nhermes skills search https://mintlify.com/docs --source well-known\nhermes skills inspect openai/skills/k8s           # Preview before installing\nhermes skills install openai/skills/k8s           # Install with security scan\nhermes skills install official/security/1password\nhermes skills install skills-sh/vercel-labs/json-render/json-render-react --force\nhermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify\nhermes skills install https://sharethis.chat/SKILL.md              # Direct URL (single-file SKILL.md)\nhermes skills install https://example.com/SKILL.md --name my-skill # Override name when frontmatter has none\nhermes skills list --source hub                   # List hub-installed skills\nhermes skills check                               # Check installed hub skills for upstream updates\nhermes skills update                              # Reinstall hub skills with upstream changes when needed\nhermes skills audit                               # Re-scan all hub skills for security\nhermes skills uninstall k8s                       # Remove a hub skill\nhermes skills reset google-workspace              # Un-stick a bundled skill from \"user-modified\" (see below)\nhermes skills reset google-workspace --restore    # Also restore the bundled version, deleting your local edits\nhermes skills publish skills/my-skill --to github --repo owner/repo\nhermes skills snapshot export setup.json          # Export skill config\nhermes skills tap add myorg/skills-repo           # Add a custom GitHub source\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills browse --source official\nhermes skills install official/security/1password\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills search react --source skills-sh\nhermes skills inspect skills-sh/vercel-labs/json-render/json-render-react\nhermes skills install skills-sh/vercel-labs/json-render/json-render-react --force\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills search https://mintlify.com/docs --source well-known\nhermes skills inspect well-known:https://mintlify.com/docs/.well-known/skills/mintlify\nhermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills install openai/skills/k8s\nhermes skills tap add myorg/skills-repo\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills install https://sharethis.chat/SKILL.md\nhermes skills install https://example.com/my-skill/SKILL.md --category productivity\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Frontmatter has no name and the URL slug is unhelpful — supply one:\nhermes skills install https://example.com/SKILL.md --name sharethis-chat\n\n# Or inside a chat session:\n/skills install https://example.com/SKILL.md --name sharethis-chat\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills install skills-sh/anthropics/skills/pdf --force\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills check          # Report which installed hub skills changed upstream\nhermes skills update         # Reinstall only the skills with updates available\nhermes skills update react   # Update one specific installed hub skill\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "owner/repo\n├── skills/                       # default path; configurable per-tap\n│   ├── my-workflow/\n│   │   ├── SKILL.md              # required\n│   │   ├── references/           # optional supporting files\n│   │   ├── templates/\n│   │   └── scripts/\n│   ├── another-skill/\n│   │   └── SKILL.md\n│   └── third-skill/\n│       └── SKILL.md\n└── README.md                     # optional but helpful\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "my-org/hermes-skills\n└── skills/\n    └── deploy-runbook/\n        └── SKILL.md\n"
+    },
+    {
+      "language": "markdown",
+      "caption": "",
+      "code": "---\nname: deploy-runbook\ndescription: Our deployment runbook — services, rollback, Slack channels\nversion: 1.0.0\nauthor: My Org Platform Team\nmetadata:\n  hermes:\n    tags: [deployment, runbook, internal]\n---\n\n# Deploy Runbook\n\nStep 1: ...\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills tap add my-org/hermes-skills\nhermes skills search deploy\nhermes skills install my-org/hermes-skills/deploy-runbook\n"
+    },
+    {
+      "language": "json",
+      "caption": "",
+      "code": "{\n  \"taps\": [\n    {\"repo\": \"my-org/platform-docs\", \"path\": \"internal/skills/\"}\n  ]\n}\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills install owner/repo/skills/my-workflow\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes skills tap list                                # show all configured taps\nhermes skills tap add myorg/skills-repo               # add (default path: skills/)\nhermes skills tap remove myorg/skills-repo            # remove\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "/skills tap list\n/skills tap add myorg/skills-repo\n/skills tap remove myorg/skills-repo\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Safe: clears the manifest entry for this skill. Your current copy is preserved,\n# but the next sync re-baselines against it so future updates work normally.\nhermes skills reset google-workspace\n\n# Full restore: also deletes your local copy and re-copies the current bundled\n# version. Use this when you want the pristine upstream skill back.\nhermes skills reset google-workspace --restore\n\n# Non-interactive (e.g. in scripts or TUI mode) — skip the --restore confirmation.\nhermes skills reset google-workspace --restore --yes\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "/skills reset google-workspace\n/skills reset google-workspace --restore\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "/skills browse\n/skills search react --source skills-sh\n/skills search https://mintlify.com/docs --source well-known\n/skills inspect skills-sh/vercel-labs/json-render/json-render-react\n/skills install openai/skills/skill-creator --force\n/skills check\n/skills update\n/skills reset google-workspace\n/skills list\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "`~/.hermes/skills/`",
+    "author",
+    "builtin",
+    "category",
+    "changed",
+    "claude-marketplace",
+    "clawhub",
+    "community",
+    "content",
+    "create",
+    "dangerous",
+    "delete",
+    "description",
+    "duckduckgo-search",
+    "edit"
+  ],
+  "full_text": "# Skills System\n\n# Skills System\n\nSkills are on-demand knowledge documents the agent can load when needed. They follow a **progressive disclosure** pattern to minimize token usage and are compatible with the [agentskills.io](https://agentskills.io/specification) open standard.\n\nAll skills live in **`~/.hermes/skills/`** — the primary directory and source of truth. On fresh install, bundled skills are copied from the repo. Hub-installed and agent-created skills also go here. The agent can modify or delete any skill.\n\nYou can also point Hermes at **external skill directories** — additional folders scanned alongside the local one. See [External Skill Directories](#external-skill-directories) below.\n\nSee also:\n\n- [Bundled Skills Catalog](/docs/reference/skills-catalog)\n- [Official Optional Skills Catalog](/docs/reference/optional-skills-catalog)\n\n## Using Skills\n\nEvery installed skill is automatically available as a slash command:\n\n```bash\n# In the CLI or any messaging platform:\n/gif-search funny cats\n/axolotl help me fine-tune Llama 3 on my dataset\n/github-pr-workflow create a PR for the auth refactor\n/plan design a rollout for migrating our auth provider\n\n# Just the skill name loads it and lets the agent ask what you need:\n/excalidraw\n```\n\nThe bundled `plan` skill is a good example. Running `/plan [request]` loads the skill's instructions, telling Hermes to inspect context if needed, write a markdown implementation plan instead of executing the task, and save the result under `.hermes/plans/` relative to the active workspace/backend working directory.\n\nYou can also interact with skills through natural conversation:\n\n```bash\nhermes chat --toolsets skills -q \"What skills do you have?\"\nhermes chat --toolsets skills -q \"Show me the axolotl skill\"\n```\n\n## Progressive Disclosure\n\nSkills use a token-efficient loading pattern:\n\n```\nLevel 0: skills_list()           → [{name, description, category}, ...]   (~3k tokens)\nLevel 1: skill_view(name)        → Full content + metadata       (varies)\nLevel 2: skill_view(name, path)  → Specific reference file       (varies)\n```\n\nThe agent only loads the full skill content when it actually needs it.\n\n## SKILL.md Format\n\n```markdown\n---\nname: my-skill\ndescription: Brief description of what this skill does\nversion: 1.0.0\nplatforms: [macos, linux]     # Optional — restrict to specific OS platforms\nmetadata:\n  hermes:\n    tags: [python, automation]\n    category: devops\n    fallback_for_toolsets: [web]    # Optional — conditional activation (see below)\n    requires_toolsets: [terminal]   # Optional — conditional activation (see below)\n    config:                          # Optional — config.yaml settings\n      - key: my.setting\n        description: \"What this controls\"\n        default: \"value\"\n        prompt: \"Prompt for setup\"\n---\n\n# Skill Title\n\n## When to Use\nTrigger conditions for this skill.\n\n## Procedure\n1. Step one\n2. Step two\n\n## Pitfalls\n- Known failure modes and fixes\n\n## Verification\nHow to confirm it worked.\n```\n\n### Platform-Specific Skills\n\nSkills can restrict themselves to specific operating systems using the `platforms` field:\n\n| Value | Matches |\n|-------|---------|\n| `macos` | macOS (Darwin) |\n| `linux` | Linux |\n| `windows` | Windows |\n\n```yaml\nplatforms: [macos]            # macOS only (e.g., iMessage, Apple Reminders, FindMy)\nplatforms: [macos, linux]     # macOS and Linux\n```\n\nWhen set, the skill is automatically hidden from the system prompt, `skills_list()`, and slash commands on incompatible platforms. If omitted, the skill loads on all platforms.\n\n### Conditional Activation (Fallback Skills)\n\nSkills can automatically show or hide themselves based on which tools are available in the current session. This is most useful for **fallback skills** — free or local alternatives that should only appear when a premium tool is unavailable.\n\n```yaml\nmetadata:\n  hermes:\n    fallback_for_toolsets: [web]      # Show ONLY when these toolsets are unavailable\n    requires_toolsets: [terminal]     # Show ONLY when these toolsets are available\n    fallback_for_tools: [web_search]  # Show ONLY when these specific tools are unavailable\n    requires_tools: [terminal]        # Show ONLY when these specific tools are available\n```\n\n| Field | Behavior |\n|-------|----------|\n| `fallback_for_toolsets` | Skill is **hidden** when the listed toolsets are available. Shown when they're missing. |\n| `fallback_for_tools` | Same, but checks individual tools instead of toolsets. |\n| `requires_toolsets` | Skill is **hidden** when the listed toolsets are unavailable. Shown when they're present. |\n| `requires_tools` | Same, but checks individual tools. |\n\n**Example:** The built-in `duckduckgo-search` skill uses `fallback_for_toolsets: [web]`. When you have `FIRECRAWL_API_KEY` set, the web toolset is available and the agent uses `web_search` — the DuckDuckGo skill stays hidden. If the API key is missing, the web toolset is unavailable and the DuckDuckGo skill automatically appears as a fallback.\n\nSkills without any conditional fields behave exactly as before — they're always shown.\n\n## Secure Setup on Load\n\nSkills can declare required environment variables without disappearing from discovery:\n\n```yaml\nrequired_environment_variables:\n  - name: TENOR_API_KEY\n    prompt: Tenor API key\n    help: Get a key from https://developers.google.com/tenor\n    required_for: full functionality\n```\n\nWhen a missing value is encountered, Hermes asks for it securely only when the skill is actually loaded in the local CLI. You can skip setup and keep using the skill. Messaging surfaces never ask for secrets in chat — they tell you to use `hermes setup` or `~/.hermes/.env` locally instead.\n\nOnce set, declared env vars are **automatically passed through** to `execute_code` and `terminal` sandboxes — the skill's scripts can use `$TENOR_API_KEY` directly. For non-skill env vars, use the `terminal.env_passthrough` config option. See [Environment Variable Passthrough](/docs/user-guide/security#environment-variable-passthrough) for details.\n\n### Skill Config Settings\n\nSkills can also declare non-secret config settings (paths, preferences) stored in `config.yaml`:\n\n```yaml\nmetadata:\n  hermes:\n    config:\n      - key: myplugin.path\n        description: Path to the plugin data directory\n        default: \"~/myplugin-data\"\n        prompt: Plugin data directory path\n```\n\nSettings are stored under `skills.config` in your config.yaml. `hermes config migrate` prompts for unconfigured settings, and `hermes config show` displays them. When a skill loads, its resolved config values are injected into the context so the agent knows the configured values automatically.\n\nSee [Skill Settings](/docs/user-guide/configuration#skill-settings) and [Creating Skills — Config Settings](/docs/developer-guide/creating-skills#config-settings-configyaml) for details.\n\n## Skill Directory Structure\n\n```text\n~/.hermes/skills/                  # Single source of truth\n├── mlops/                         # Category directory\n│   ├── axolotl/\n│   │   ├── SKILL.md               # Main instructions (required)\n│   │   ├── references/            # Additional docs\n│   │   ├── templates/             # Output formats\n│   │   ├── scripts/               # Helper scripts callable from the skill\n│   │   └── assets/                # Supplementary files\n│   └── vllm/\n│       └── SKILL.md\n├── devops/\n│   └── deploy-k8s/                # Agent-created skill\n│       ├── SKILL.md\n│       └── references/\n├── .hub/                          # Skills Hub state\n│   ├── lock.json\n│   ├── quarantine/\n│   └── audit.log\n└── .bundled_manifest              # Tracks seeded bundled skills\n```\n\n## External Skill Directories\n\nIf you maintain skills outside of Hermes — for example, a shared `~/.agents/skills/` directory used by multiple AI tools — you can tell Hermes to scan those directories too.\n\nAdd `external_dirs` under the `skills` section in `~/.hermes/config.yaml`:\n\n```yaml\nskills:\n  external_dirs:\n    - ~/.agents/skills\n    - /home/shared/team-skills\n    - ${SKILLS_REPO}/skills\n```\n\nPaths support `~` expansion and `${VAR}` environment variable substitution.\n\n### How it works\n\n- **Read-only**: External dirs are only scanned for skill discovery. When the agent creates or edits a skill, it always writes to `~/.hermes/skills/`.\n- **Local precedence**: If the same skill name exists in both the local dir and an external dir, the local version wins.\n- **Full integration**: External skills appear in the system prompt index, `skills_list`, `skill_view`, and as `/skill-name` slash commands — no different from local skills.\n- **Non-existent paths are silently skipped**: If a configured directory doesn't exist, Hermes ignores it without errors. Useful for optional shared directories that may not be present on every machine.\n\n### Example\n\n```text\n~/.hermes/skills/               # Local (primary, read-write)\n├── devops/deploy-k8s/\n│   └── SKILL.md\n└── mlops/axolotl/\n    └── SKILL.md\n\n~/.agents/skills/               # External (read-only, shared)\n├── my-custom-workflow/\n│   └── SKILL.md\n└── team-conventions/\n    └── SKILL.md\n```\n\nAll four skills appear in your skill index. If you create a new skill called `my-custom-workflow` locally, it shadows the external version.\n\n## Agent-Managed Skills (skill_manage tool)\n\nThe agent can create, update, and delete its own skills via the `skill_manage` tool. This is the agent's **procedural memory** — when it figures out a non-trivial workflow, it saves the approach as a skill for future reuse.\n\n### When the Agent Creates Skills\n\n- After completing a complex task (5+ tool calls) successfully\n- When it hit errors or dead ends and found the working path\n- When the user corrected its approach\n- When it discovered a non-trivial workflow\n\n### Actions\n\n| Action | Use for | Key params |\n|--------|---------|------------|\n| `create` | New skill from scratch | `name`, `content` (full SKILL.md), optional `category` |\n| `patch` | Targeted fixes (preferred) | `name`, `old_string`, `new_string` |\n| `edit` | Major structural rewrites | `name`, `content` (full SKILL.md replacement) |\n| `delete` | Remove a skill entirely | `name` |\n| `write_file` | Add/update supporting files | `name`, `file_path`, `file_content` |\n| `remove_file` | Remove a supporting file | `name`, `file_path` |\n\n:::tip\nThe `patch` action is preferred for updates — it's more token-efficient than `edit` because only the changed text appears in the tool call.\n:::\n\n## Skills Hub\n\nBrowse, search, install, and manage skills from online registries, `skills.sh`, direct well-known skill endpoints, and official optional skills.\n\n### Common commands\n\n```bash\nhermes skills browse                              # Browse all hub skills (official first)\nhermes skills browse --source official            # Browse only official optional skills\nhermes skills search kubernetes                   # Search all sources\nhermes skills search react --source skills-sh     # Search the skills.sh directory\nhermes skills search https://mintlify.com/docs --source well-known\nhermes skills inspect openai/skills/k8s           # Preview before installing\nhermes skills install openai/skills/k8s           # Install with security scan\nhermes skills install official/security/1password\nhermes skills install skills-sh/vercel-labs/json-render/json-render-react --force\nhermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify\nhermes skills install https://sharethis.chat/SKILL.md              # Direct URL (single-file SKILL.md)\nhermes skills install https://example.com/SKILL.md --name my-skill # Override name when frontmatter has none\nhermes skills list --source hub                   # List hub-installed skills\nhermes skills check                               # Check installed hub skills for upstream updates\nhermes skills update                              # Reinstall hub skills with upstream changes when needed\nhermes skills audit                               # Re-scan all hub skills for security\nhermes skills uninstall k8s                       # Remove a hub skill\nhermes skills reset google-workspace              # Un-stick a bundled skill from \"user-modified\" (see below)\nhermes skills reset google-workspace --restore    # Also restore the bundled version, deleting your local edits\nhermes skills publish skills/my-skill --to github --repo owner/repo\nhermes skills snapshot export setup.json          # Export skill config\nhermes skills tap add myorg/skills-repo           # Add a custom GitHub source\n```\n\n### Supported hub sources\n\n| Source | Example | Notes |\n|--------|---------|-------|\n| `official` | `official/security/1password` | Optional skills shipped with Hermes. |\n| `skills-sh` | `skills-sh/vercel-labs/agent-skills/vercel-react-best-practices` | Searchable via `hermes skills search <query> --source skills-sh`. Hermes resolves alias-style skills when the skills.sh slug differs from the repo folder. |\n| `well-known` | `well-known:https://mintlify.com/docs/.well-known/skills/mintlify` | Skills served directly from `/.well-known/skills/index.json` on a website. Search using the site or docs URL. |\n| `url` | `https://sharethis.chat/SKILL.md` | Direct HTTP(S) URL to a single-file `SKILL.md`. Name resolution: frontmatter → URL slug → interactive prompt → `--name` flag. |\n| `github` | `openai/skills/k8s` | Direct GitHub repo/path installs and custom taps. |\n| `clawhub`, `lobehub`, `claude-marketplace` | Source-specific identifiers | Community or marketplace integrations. |\n\n### Integrated hubs and registries\n\nHermes currently integrates with these skills ecosystems and discovery sources:\n\n#### 1. Official optional skills (`official`)\n\nThese are maintained in the Hermes repository itself and install with builtin trust.\n\n- Catalog: [Official Optional Skills Catalog](../../reference/optional-skills-catalog)\n- Source in repo: `optional-skills/`\n- Example:\n\n```bash\nhermes skills browse --source official\nhermes skills install official/security/1password\n```\n\n#### 2. skills.sh (`skills-sh`)\n\nThis is Vercel's public skills directory. Hermes can search it directly, inspect skill detail pages, resolve alias-style slugs, and install from the underlying source repo.\n\n- Directory: [skills.sh](https://skills.sh/)\n- CLI/tooling repo: [vercel-labs/skills](https://github.com/vercel-labs/skills)\n- Official Vercel skills repo: [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills)\n- Example:\n\n```bash\nhermes skills search react --source skills-sh\nhermes skills inspect skills-sh/vercel-labs/json-render/json-render-react\nhermes skills install skills-sh/vercel-labs/json-render/json-render-react --force\n```\n\n#### 3. Well-known skill endpoints (`well-known`)\n\nThis is URL-based discovery from sites that publish `/.well-known/skills/index.json`. It is not a single centralized hub — it is a web discovery convention.\n\n- Example live endpoint: [Mintlify docs skills index](https://mintlify.com/docs/.well-known/skills/index.json)\n- Reference server implementation: [vercel-labs/skills-handler](https://github.com/vercel-labs/skills-handler)\n- Example:\n\n```bash\nhermes skills search https://mintlify.com/docs --source well-known\nhermes skills inspect well-known:https://mintlify.com/docs/.well-known/skills/mintlify\nhermes skills install well-known:https://mintlify.com/docs/.well-known/skills/mintlify\n```\n\n#### 4. Direct GitHub skills (`github`)\n\nHermes can install directly from GitHub repositories and GitHub-based taps. This is useful when you already know the repo/path or want to add your own custom source repo.\n\nDefault taps (browsable without any setup):\n- [openai/skills](https://github.com/openai/skills)\n- [anthropics/skills](https://github.com/anthropics/skills)\n- [huggingface/skills](https://github.com/huggingface/skills)\n- [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills)\n- [garrytan/gstack](https://github.com/garrytan/gstack)\n\n- Example:\n\n```bash\nhermes skills install openai/skills/k8s\nhermes skills tap add myorg/skills-repo\n```\n\n#### 5. ClawHub (`clawhub`)\n\nA third-party skills marketplace integrated as a community source.\n\n- Site: [clawhub.ai](https://clawhub.ai/)\n- Hermes source id: `clawhub`\n\n#### 6. Claude marketplace-style repos (`claude-marketplace`)\n\nHermes supports marketplace repos that publish Claude-compatible plugin/marketplace manifests.\n\nKnown integrated sources include:\n- [anthropics/skills](https://github.com/anthropics/skills)\n- [aiskillstore/marketplace](https://github.com/aiskillstore/marketplace)\n\nHermes source id: `claude-marketplace`\n\n#### 7. LobeHub (`lobehub`)\n\nHermes can search and convert agent entries from LobeHub's public catalog into installable Hermes skills.\n\n- Site: [LobeHub](https://lobehub.com/)\n- Public agents index: [chat-agents.lobehub.com](https://chat-agents.lobehub.com/)\n- Backing repo: [lobehub/lobe-chat-agents](https://github.com/lobehub/lobe-chat-agents)\n- Hermes source id: `lobehub`\n\n#### 8. Direct URL (`url`)\n\nInstall a single-file `SKILL.md` directly from any HTTP(S) URL — useful when an author hosts a skill on their own site (no hub listing, no GitHub path to type). Hermes fetches the URL, parses the YAML frontmatter, security-scans it, and installs.\n\n- Hermes source id: `url`\n- Identifier: the URL itself (no prefix needed)\n- Scope: **single-file `SKILL.md`** only. Multi-file skills with `references/` or `scripts/` need a manifest and should be published via one of the other sources above.\n\n```bash\nhermes skills install https://sharethis.chat/SKILL.md\nhermes skills install https://example.com/my-skill/SKILL.md --category productivity\n```\n\nName resolution, in order:\n1. `name:` field in the SKILL.md YAML frontmatter (recommended — every well-formed skill has one).\n2. Parent directory name from the URL path (e.g. `.../my-skill/SKILL.md` → `my-skill`, or `.../my-skill.md` → `my-skill`), when it's a valid identifier (`^[a-z][a-z0-9_-]*$`).\n3. Interactive prompt on a terminal with a TTY.\n4. On non-interactive surfaces (the `/skills install` slash command inside the TUI, gateway platforms, scripts), a clean error pointing at the `--name` override.\n\n```bash\n# Frontmatter has no name and the URL slug is unhelpful — supply one:\nhermes skills install https://example.com/SKILL.md --name sharethis-chat\n\n# Or inside a chat session:\n/skills install https://example.com/SKILL.md --name sharethis-chat\n```\n\nTrust level is always `community` — the same security scan runs as for every other source. The URL is stored as the install identifier, so `hermes skills update` re-fetches from the same URL automatically when you want to refresh.\n\n### Security scanning and `--force`\n\nAll hub-installed skills go through a **security scanner** that checks for data exfiltration, prompt injection, destructive commands, supply-chain signals, and other threats.\n\n`hermes skills inspect ...` now also surfaces upstream metadata when available:\n- repo URL\n- skills.sh detail page URL\n- install command\n- weekly installs\n- upstream security audit statuses\n- well-known index/endpoint URLs\n\nUse `--force` when you have reviewed a third-party skill and want to override a non-dangerous policy block:\n\n```bash\nhermes skills install skills-sh/anthropics/skills/pdf --force\n```\n\nImportant behavior:\n- `--force` can override policy blocks for caution/warn-style findings.\n- `--force` does **not** override a `dangerous` scan verdict.\n- Official optional skills (`official/...`) are treated as builtin trust and do not show the third-party warning panel.\n\n### Trust levels\n\n| Level | Source | Policy |\n|-------|--------|--------|\n| `builtin` | Ships with Hermes | Always trusted |\n| `official` | `optional-skills/` in the repo | Builtin trust, no third-party warning |\n| `trusted` | Trusted registries/repos such as `openai/skills`, `anthropics/skills`, `huggingface/skills` | More permissive policy than community sources |\n| `community` | Everything else (`skills.sh`, well-known endpoints, custom GitHub repos, most marketplaces) | Non-dangerous findings can be overridden with `--force`; `dangerous` verdicts stay blocked |\n\n### Update lifecycle\n\nThe hub now tracks enough provenance to re-check upstream copies of installed skills:\n\n```bash\nhermes skills check          # Report which installed hub skills changed upstream\nhermes skills update         # Reinstall only the skills with updates available\nhermes skills update react   # Update one specific installed hub skill\n```\n\nThis uses the stored source identifier plus the current upstream bundle content hash to detect drift.\n\n:::tip GitHub rate limits\nSkills hub operations use the GitHub API, which has a rate limit of 60 requests/hour for unauthenticated users. If you see rate-limit errors during install or search, set `GITHUB_TOKEN` in your `.env` file to increase the limit to 5,000 requests/hour. The error message includes an actionable hint when this happens.\n:::\n\n### Publishing a custom skill tap\n\nIf you want to share a curated set of skills — for your team, your org, or publicly — you can publish them as a **tap**: a GitHub repository other Hermes users add with `hermes skills tap add <owner/repo>`. No server, no registry sign-up, no release pipeline. Just a directory of `SKILL.md` files.\n\n#### Repo layout\n\nA tap is any GitHub repo (public or private — private needs `GITHUB_TOKEN`) laid out like this:\n\n```\nowner/repo\n├── skills/                       # default path; configurable per-tap\n│   ├── my-workflow/\n│   │   ├── SKILL.md              # required\n│   │   ├── references/           # optional supporting files\n│   │   ├── templates/\n│   │   └── scripts/\n│   ├── another-skill/\n│   │   └── SKILL.md\n│   └── third-skill/\n│       └── SKILL.md\n└── README.md                     # optional but helpful\n```\n\nRules:\n- Each skill lives in its own directory under the tap's root path (default `skills/`).\n- The directory name becomes the skill's install slug.\n- Each skill directory must contain a `SKILL.md` with standard [SKILL.md frontmatter](#skillmd-format) (`name`, `description`, plus optional `metadata.hermes.tags`, `version`, `author`, `platforms`, `metadata.hermes.config`).\n- Subdirectories like `references/`, `templates/`, `scripts/`, `assets/` are downloaded alongside `SKILL.md` at install time.\n- Skills whose directory name starts with `.` or `_` are ignored.\n\nHermes discovers skills by listing every subdirectory of the tap path and probing each for `SKILL.md`.\n\n#### Minimal tap example\n\n```\nmy-org/hermes-skills\n└── skills/\n    └── deploy-runbook/\n        └── SKILL.md\n```\n\n`skills/deploy-runbook/SKILL.md`:\n\n```markdown\n---\nname: deploy-runbook\ndescription: Our deployment runbook — services, rollback, Slack channels\nversion: 1.0.0\nauthor: My Org Platform Team\nmetadata:\n  hermes:\n    tags: [deployment, runbook, internal]\n---\n\n# Deploy Runbook\n\nStep 1: ...\n```\n\nAfter pushing that to GitHub, any Hermes user can subscribe and install:\n\n```bash\nhermes skills tap add my-org/hermes-skills\nhermes skills search deploy\nhermes skills install my-org/hermes-skills/deploy-runbook\n```\n\n#### Non-default paths\n\nIf your skills don't live under `skills/` (common when you're adding a `skills/` subtree to an existing project), edit the tap entry in `~/.hermes/.hub/taps.json`:\n\n```json\n{\n  \"taps\": [\n    {\"repo\": \"my-org/platform-docs\", \"path\": \"internal/skills/\"}\n  ]\n}\n```\n\nThe `hermes skills tap add` CLI defaults new taps to `path: \"skills/\"`; edit the file directly if you need a different path. `hermes skills tap list` shows the effective path per tap.\n\n#### Installing individual skills directly (without adding a tap)\n\nUsers can also install a single skill from any public GitHub repo without adding the whole repo as a tap:\n\n```bash\nhermes skills install owner/repo/skills/my-workflow\n```\n\nUseful when you want to share one skill without asking the user to subscribe to your whole registry.\n\n#### Trust levels for taps\n\nNew taps are assigned `community` trust by default. Skills installed from them run through the standard security scan and show the third-party warning panel on first install. If your org or a widely-trusted source should get higher trust, add its repo to `TRUSTED_REPOS` in `tools/skills_hub.py` (requires a Hermes core PR).\n\n#### Tap management\n\n```bash\nhermes skills tap list                                # show all configured taps\nhermes skills tap add myorg/skills-repo               # add (default path: skills/)\nhermes skills tap remove myorg/skills-repo            # remove\n```\n\nInside a running session:\n\n```\n/skills tap list\n/skills tap add myorg/skills-repo\n/skills tap remove myorg/skills-repo\n```\n\nTaps are stored in `~/.hermes/.hub/taps.json` (created on demand).\n\n## Bundled skill updates (`hermes skills reset`)\n\nHermes ships with a set of bundled skills in `skills/` inside the repo. On install and on every `hermes update`, a sync pass copies those into `~/.hermes/skills/` and records a manifest at `~/.hermes/skills/.bundled_manifest` mapping each skill name to the content hash at the time it was synced (the **origin hash**).\n\nOn each sync, Hermes recomputes the hash of your local copy and compares it to the origin hash:\n\n- **Unchanged** → safe to pull upstream changes, copy the new bundled version in, record the new origin hash.\n- **Changed** → treated as **user-modified** and skipped forever, so your edits never get stomped.\n\nThe protection is good, but it has one sharp edge. If you edit a bundled skill and then later want to abandon your changes and go back to the bundled version by just copy-pasting from `~/.hermes/hermes-agent/skills/`, the manifest still holds the *old* origin hash from whenever the last successful sync ran. Your fresh copy-paste contents (current bundled hash) won't match that stale origin hash, so sync keeps flagging it as user-modified.\n\n`hermes skills reset` is the escape hatch:\n\n```bash\n# Safe: clears the manifest entry for this skill. Your current copy is preserved,\n# but the next sync re-baselines against it so future updates work normally.\nhermes skills reset google-workspace\n\n# Full restore: also deletes your local copy and re-copies the current bundled\n# version. Use this when you want the pristine upstream skill back.\nhermes skills reset google-workspace --restore\n\n# Non-interactive (e.g. in scripts or TUI mode) — skip the --restore confirmation.\nhermes skills reset google-workspace --restore --yes\n```\n\nThe same command works in chat as a slash command:\n\n```text\n/skills reset google-workspace\n/skills reset google-workspace --restore\n```\n\n:::note Profiles\nEach profile has its own `.bundled_manifest` under its own `HERMES_HOME`, so `hermes -p coder skills reset <name>` only affects that profile.\n:::\n\n### Slash commands (inside chat)\n\nAll the same commands work with `/skills`:\n\n```text\n/skills browse\n/skills search react --source skills-sh\n/skills search https://mintlify.com/docs --source well-known\n/skills inspect skills-sh/vercel-labs/json-render/json-render-react\n/skills install openai/skills/skill-creator --force\n/skills check\n/skills update\n/skills reset google-workspace\n/skills list\n```\n\nOfficial optional skills still use identifiers like `official/security/1password` and `official/migration/openclaw-migration`.\n\n---"
+}

@@ -1,0 +1,158 @@
+{
+  "id": "profiles",
+  "title": "Profiles: Running Multiple Agents",
+  "source_path": "website/docs/user-guide/profiles.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/profiles",
+  "category": "user-guide",
+  "subcategory": "",
+  "summary": "Explains how to create and manage multiple independent Hermes agent profiles, each with its own config, keys, memory, sessions, and gateway, plus profile distributions for sharing agents.",
+  "key_concepts": [
+    "profiles",
+    "HERMES_HOME",
+    "command aliases",
+    "profile cloning",
+    "token locks",
+    "profile distributions",
+    "multiple agents",
+    "systemd services"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_HOME",
+      "purpose": "Points hermes at a specific profile directory",
+      "required": false,
+      "default": "~/.hermes"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes profile create <name>",
+      "purpose": "Create a new blank profile"
+    },
+    {
+      "command": "hermes profile create <name> --clone",
+      "purpose": "Clone config/env/SOUL from current profile"
+    },
+    {
+      "command": "hermes profile create <name> --clone-all",
+      "purpose": "Clone everything from current profile"
+    },
+    {
+      "command": "hermes profile create <name> --clone --clone-from <other>",
+      "purpose": "Clone from a specific profile"
+    },
+    {
+      "command": "hermes profile list",
+      "purpose": "List all profiles with status"
+    },
+    {
+      "command": "hermes profile show <name>",
+      "purpose": "Detailed info for one profile"
+    },
+    {
+      "command": "hermes profile use <name>",
+      "purpose": "Set sticky default profile"
+    },
+    {
+      "command": "hermes profile rename <old> <new>",
+      "purpose": "Rename a profile"
+    },
+    {
+      "command": "hermes profile export <name>",
+      "purpose": "Export profile to tar.gz"
+    },
+    {
+      "command": "hermes profile import <file.tar.gz>",
+      "purpose": "Import profile from archive"
+    },
+    {
+      "command": "hermes profile delete <name>",
+      "purpose": "Delete a profile"
+    },
+    {
+      "command": "hermes profile install <git-url>",
+      "purpose": "Install a profile distribution from git"
+    },
+    {
+      "command": "hermes profile update <name>",
+      "purpose": "Update an installed profile distribution"
+    },
+    {
+      "command": "hermes -p <name>",
+      "purpose": "Target a specific profile for a command"
+    },
+    {
+      "command": "hermes completion bash",
+      "purpose": "Generate bash tab completion"
+    },
+    {
+      "command": "hermes completion zsh",
+      "purpose": "Generate zsh tab completion"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "terminal.cwd",
+      "type": "string",
+      "default": ".",
+      "description": "Working directory for the profile (set to absolute path for per-profile isolation)",
+      "example": "/absolute/path/to/project"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Quick start with a new profile",
+      "code": "hermes profile create coder\ncoder setup\ncoder chat"
+    },
+    {
+      "language": "bash",
+      "caption": "Profile management commands",
+      "code": "hermes profile list\nhermes profile show coder\nhermes profile rename coder dev-bot\nhermes profile export coder\nhermes profile delete coder --yes"
+    },
+    {
+      "language": "bash",
+      "caption": "Use a profile flag",
+      "code": "hermes -p coder chat\nhermes --profile=coder doctor\nhermes profile use coder"
+    },
+    {
+      "language": "bash",
+      "caption": "Per-profile gateway services",
+      "code": "coder gateway install\nassistant gateway install\ncoder gateway start\nassistant gateway start"
+    },
+    {
+      "language": "bash",
+      "caption": "Profile distributions",
+      "code": "hermes profile install github.com/you/research-bot --alias\nhermes profile update research-bot"
+    }
+  ],
+  "gotchas": [
+    "Profiles do NOT sandbox the agent — the agent still has the same filesystem access as your user",
+    "SOUL.md can guide the model but does not enforce a workspace boundary",
+    "Two profiles with the same bot token: the second gateway startup will be blocked",
+    "Cannot delete the default profile (~/.hermes) — use hermes uninstall to remove everything",
+    "Using cwd: '.' on local backend means the directory hermes was launched from, not the profile directory",
+    "hermes update syncs new bundled skills to ALL profiles automatically; user-modified skills are never overwritten"
+  ],
+  "cross_refs": [
+    "configuration",
+    "sessions",
+    "docker"
+  ],
+  "keywords": [
+    "profiles",
+    "multiple agents",
+    "HERMES_HOME",
+    "command alias",
+    "profile clone",
+    "profile distribution",
+    "token lock",
+    "systemd service",
+    "gateway",
+    "tab completion",
+    "workspace",
+    "sandboxing"
+  ],
+  "full_text": "# user-guide/profiles\n\n# Profiles: Running Multiple Agents\n\nRun multiple independent Hermes agents on the same machine — each with its own config, API keys, memory, sessions, skills, and gateway state.\n\n## What are profiles?\n\nA profile is a separate Hermes home directory. Each profile gets its own directory containing its own `config.yaml`, `.env`, `SOUL.md`, memories, sessions, skills, cron jobs, and state database.\n\nWhen you create a profile, it automatically becomes its own command. Create a profile called `coder` and you immediately have `coder chat`, `coder setup`, `coder gateway start`, etc.\n\n## Quick start\n\n```bash\nhermes profile create coder       # creates profile + \"coder\" command alias\ncoder setup                       # configure API keys and model\ncoder chat                        # start chatting\n```\n\n## Creating a profile\n\n### Blank profile\n\n```bash\nhermes profile create mybot\n```\n\nCreates a fresh profile with bundled skills seeded.\n\n### Clone config only (`--clone`)\n\n```bash\nhermes profile create work --clone\n```\n\nCopies current profile's `config.yaml`, `.env`, and `SOUL.md`. Fresh sessions and memory.\n\n### Clone everything (`--clone-all`)\n\n```bash\nhermes profile create backup --clone-all\n```\n\nCopies everything — config, API keys, personality, memories, sessions, skills, cron jobs, plugins.\n\n### Clone from a specific profile\n\n```bash\nhermes profile create work --clone --clone-from coder\n```\n\n## Using profiles\n\n### Command aliases\n\nEvery profile automatically gets a command alias at `~/.local/bin/<name>`:\n\n```bash\ncoder chat\ncoder setup\ncoder gateway start\ncoder doctor\ncoder skills list\ncoder config set model.default anthropic/claude-sonnet-4\n```\n\n### The `-p` flag\n\n```bash\nhermes -p coder chat\nhermes --profile=coder doctor\nhermes chat -p coder -q \"hello\"\n```\n\n### Sticky default (`hermes profile use`)\n\n```bash\nhermes profile use coder\nhermes chat                   # now targets coder\nhermes profile use default    # switch back\n```\n\n### Knowing where you are\n\n- **Prompt**: `coder ❯` instead of `❯`\n- **Banner**: Shows `Profile: coder` on startup\n- **`hermes profile`**: Shows current profile name, path, model, gateway status\n\n## Profiles vs workspaces vs sandboxing\n\n- A **profile** gives Hermes its own state directory\n- A **workspace/working directory** is controlled by `terminal.cwd`\n- A **sandbox** limits filesystem access (profiles do NOT sandbox the agent)\n\n```yaml\nterminal:\n  backend: local\n  cwd: /absolute/path/to/project\n```\n\n## Running gateways\n\nEach profile runs its own gateway as a separate process with its own bot token.\n\n### Safety: token locks\n\nIf two profiles accidentally use the same bot token, the second gateway is blocked with a clear error.\n\n### Persistent services\n\n```bash\ncoder gateway install         # creates hermes-gateway-coder systemd/launchd service\n```\n\n## Managing profiles\n\n```bash\nhermes profile list\nhermes profile show coder\nhermes profile rename coder dev-bot\nhermes profile export coder         # export to coder.tar.gz\nhermes profile import coder.tar.gz\nhermes profile delete coder\nhermes profile delete coder --yes\n```\n\nYou cannot delete the default profile (`~/.hermes`).\n\n## Tab completion\n\n```bash\n# Bash\neval \"$(hermes completion bash)\"\n\n# Zsh\neval \"$(hermes completion zsh)\"\n```\n\n## How it works\n\nProfiles use the `HERMES_HOME` environment variable. The wrapper script sets `HERMES_HOME=~/.hermes/profiles/coder` before launching hermes. The default profile is simply `~/.hermes`.\n\n## Sharing profiles as distributions\n\n```bash\n# Install a whole agent from a git repo\nhermes profile install github.com/you/research-bot --alias\n\n# Update later (keeps your memories + .env)\nhermes profile update research-bot\n```\n\nSee **Profile Distributions** for the full guide — authoring, publishing, update semantics, security model.\n"
+}

@@ -1,0 +1,148 @@
+{
+  "id": "subscription-proxy",
+  "title": "Subscription Proxy",
+  "source_path": "website/docs/user-guide/features/subscription-proxy.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/subscription-proxy",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "The subscription proxy is a local HTTP server that lets external apps — OpenViking, Karakeep, Open WebUI, anything that speaks OpenAI-compatible chat completions — use your Hermes-managed provider subscription as their LLM endpoint. The proxy attaches the right credentials (refreshing them automatically) so the app never needs a static API key.",
+  "key_concepts": [
+    "Quick Start",
+    "1. Log into your provider (one-time)",
+    "2. Start the proxy",
+    "3. Point your app at it",
+    "Available providers",
+    "Check status",
+    "Allowed paths",
+    "Configuring OpenViking to use Portal"
+  ],
+  "env_vars": [
+    {
+      "name": "API_SERVER_KEY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPENAI_API_BASE_URL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "INFERENCE_TEXT_MODEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes login nous",
+      "purpose": ""
+    },
+    {
+      "command": "hermes proxy start",
+      "purpose": ""
+    },
+    {
+      "command": "hermes proxy providers",
+      "purpose": ""
+    },
+    {
+      "command": "hermes proxy status",
+      "purpose": ""
+    },
+    {
+      "command": "hermes proxy start --host 0.0.0.0 --port 8645",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes login nous\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes proxy start\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "Starting Hermes proxy for Nous Portal\n  Listening on:  http://127.0.0.1:8645/v1\n  Forwarding to: (resolved per-request from your subscription)\n  Use any bearer token in the client — the proxy attaches your real credential.\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "Base URL:   http://127.0.0.1:8645/v1\nAPI key:    anything (e.g. \"sk-unused\")\nModel:      Hermes-4-70B    # or Hermes-4.3-36B, Hermes-4-405B\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes proxy providers\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes proxy status\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "Hermes proxy upstream adapters\n\n  [nous    ] Nous Portal — ready (bearer expires 2026-05-15T06:43:21Z)\n"
+    },
+    {
+      "language": "json",
+      "caption": "",
+      "code": "{\n  \"vlm\": {\n    \"provider\": \"openai\",\n    \"model\": \"Hermes-4-70B\",\n    \"api_base\": \"http://127.0.0.1:8645/v1\",\n    \"api_key\": \"unused-proxy-attaches-real-creds\"\n  }\n}\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Terminal 1\nhermes proxy start\n\n# Terminal 2\nopenviking-server\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Karakeep .env\nOPENAI_API_BASE_URL=http://127.0.0.1:8645/v1\nOPENAI_API_KEY=any-non-empty-string\nINFERENCE_TEXT_MODEL=Hermes-4-70B\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes proxy start --host 0.0.0.0 --port 8645\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [
+    "api-server"
+  ],
+  "keywords": [
+    "any-non-empty-string",
+    "api",
+    "api-server",
+    "credential-attaching",
+    "http",
+    "lan",
+    "llm",
+    "minted-key",
+    "non-streaming",
+    "one-time",
+    "openviking-server",
+    "pass-through",
+    "per-request",
+    "post",
+    "proxy"
+  ],
+  "full_text": "# Subscription Proxy\n\n# Subscription Proxy\n\nThe subscription proxy is a local HTTP server that lets external apps —\nOpenViking, Karakeep, Open WebUI, anything that speaks OpenAI-compatible\nchat completions — use your Hermes-managed provider subscription as their\nLLM endpoint. The proxy attaches the right credentials (refreshing them\nautomatically) so the app never needs a static API key.\n\nThis is different from the [API server](./api-server.md):\n\n| | API server | Subscription proxy |\n|---|---|---|\n| What it serves | Your agent (full toolset, memory, skills) | Raw model inference |\n| Use case | \"Use Hermes as a chat backend\" | \"Use my Portal sub from another app\" |\n| Auth | Your `API_SERVER_KEY` | Any bearer (proxy attaches the real one) |\n| Tool calls | Yes — the agent runs tools | No — passthrough only |\n\nUse the API server when you want the **agent** as a backend. Use the\nproxy when you just want **the model** through your subscription.\n\n## Quick Start\n\n### 1. Log into your provider (one-time)\n\n```bash\nhermes login nous\n```\n\nThis opens your browser for the Nous Portal OAuth flow. Hermes stores\nthe refresh token in `~/.hermes/auth.json` — the same place all Hermes\nprovider logins live.\n\n### 2. Start the proxy\n\n```bash\nhermes proxy start\n```\n\n```\nStarting Hermes proxy for Nous Portal\n  Listening on:  http://127.0.0.1:8645/v1\n  Forwarding to: (resolved per-request from your subscription)\n  Use any bearer token in the client — the proxy attaches your real credential.\n```\n\nLeave this running in the foreground. Use `tmux`, `nohup`, or a systemd\nunit if you want it to survive logout.\n\n### 3. Point your app at it\n\nAny OpenAI-compatible app config takes the same triple:\n\n```\nBase URL:   http://127.0.0.1:8645/v1\nAPI key:    anything (e.g. \"sk-unused\")\nModel:      Hermes-4-70B    # or Hermes-4.3-36B, Hermes-4-405B\n```\n\nThe proxy ignores the `Authorization` header from your app and attaches\nyour real Portal credential to the upstream request. Refreshes happen\nautomatically when the bearer approaches expiry.\n\n## Available providers\n\n```bash\nhermes proxy providers\n```\n\nCurrently shipped: `nous` (Nous Portal). More OAuth providers can be\nadded by implementing the `UpstreamAdapter` interface in\n`hermes_cli/proxy/adapters/`.\n\n## Check status\n\n```bash\nhermes proxy status\n```\n\n```\nHermes proxy upstream adapters\n\n  [nous    ] Nous Portal — ready (bearer expires 2026-05-15T06:43:21Z)\n```\n\nIf you see `not logged in`, run `hermes login nous`. If you see\n`credentials need attention`, your refresh token was revoked (rare —\nhappens if you signed out from the Portal web UI) — just re-run\n`hermes login nous`.\n\n## Allowed paths\n\nThe proxy only forwards paths the upstream actually serves. For Nous\nPortal:\n\n| Path | Purpose |\n|------|---------|\n| `/v1/chat/completions` | Chat completions (streaming + non-streaming) |\n| `/v1/completions` | Legacy text completions |\n| `/v1/embeddings` | Embeddings |\n| `/v1/models` | Model list |\n\nOther paths (`/v1/images/generations`, `/v1/audio/speech`, etc.) return\n404 with a clear error pointing at the allowed paths. This keeps stray\nclients from leaking weird requests to the upstream.\n\n## Configuring OpenViking to use Portal\n\n[OpenViking](https://github.com/volcengine/OpenViking) is a context\ndatabase that needs an LLM provider for its VLM (vision/language model\nused to extract memories) and embedding model. With the proxy, you can\npoint its `vlm.api_base` at your local proxy:\n\nEdit `~/.openviking/ov.conf`:\n\n```json\n{\n  \"vlm\": {\n    \"provider\": \"openai\",\n    \"model\": \"Hermes-4-70B\",\n    \"api_base\": \"http://127.0.0.1:8645/v1\",\n    \"api_key\": \"unused-proxy-attaches-real-creds\"\n  }\n}\n```\n\nThen start your proxy in a terminal alongside `openviking-server`:\n\n```bash\n# Terminal 1\nhermes proxy start\n\n# Terminal 2\nopenviking-server\n```\n\nOpenViking's VLM calls now flow through your Portal subscription. The\nembedding model side still needs its own provider — Portal does serve\n`/v1/embeddings` but the model selection depends on what your tier\nsupports; check `portal.nousresearch.com/models`.\n\n## Configuring Karakeep (or any bookmark/summarizer app)\n\n[Karakeep](https://karakeep.app/) takes an OpenAI-compatible API for\nbookmark summarization. In its config:\n\n```bash\n# Karakeep .env\nOPENAI_API_BASE_URL=http://127.0.0.1:8645/v1\nOPENAI_API_KEY=any-non-empty-string\nINFERENCE_TEXT_MODEL=Hermes-4-70B\n```\n\nSame pattern works for Open WebUI, LobeChat, NextChat, or any other\nOpenAI-compatible client.\n\n## Exposing on LAN\n\nBy default the proxy binds `127.0.0.1` (localhost only). To let other\nmachines on your network use it:\n\n```bash\nhermes proxy start --host 0.0.0.0 --port 8645\n```\n\n⚠ **Be aware:** anyone on your network can now use your Portal\nsubscription. The proxy has no auth of its own — it accepts any bearer.\nUse a firewall, VPN, or reverse proxy with proper auth if you expose\nthis beyond your trusted network.\n\n## Rate limits\n\nYour Portal tier's RPM/TPM limits apply across the whole proxy. The\nproxy doesn't fan out or pool — it's a single bearer with your full\nsubscription quota. Monitor usage at\n[portal.nousresearch.com](https://portal.nousresearch.com).\n\n## Architecture\n\nThe proxy is intentionally minimal. Per request:\n\n1. Receive `POST /v1/chat/completions` from your app\n2. Look up the adapter's current credential (refresh if expiring)\n3. Forward the request body verbatim, with `Authorization: Bearer <minted-key>`\n4. Stream the response back unchanged (SSE preserved)\n\nNo transformation. No logging of request bodies. No agent loop. The\nproxy is a credential-attaching pass-through.\n\n## Future: more OAuth providers\n\nThe adapter system is pluggable. Adding a new provider (e.g.\nHuggingFace, GitHub Copilot's chat endpoint, Anthropic via OAuth)\nrequires implementing `UpstreamAdapter` in\n`hermes_cli/proxy/adapters/<provider>.py` and registering it in\n`adapters/__init__.py`. Providers that aren't OpenAI-compatible at the\nprotocol level (Anthropic Messages API, for example) would need a\ntransformation layer, which is out of scope for the current shape.\n\n---"
+}

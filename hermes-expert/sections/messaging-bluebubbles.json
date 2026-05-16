@@ -1,0 +1,147 @@
+{
+  "id": "messaging-bluebubbles",
+  "title": "user-guide/messaging/bluebubbles.md",
+  "source_path": "website/docs/user-guide/messaging/bluebubbles.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/bluebubbles",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Connect Hermes to Apple iMessage via BlueBubbles(https://bluebubbles.app/) — a free, open-source macOS server that bridges iMessage to any device.",
+  "key_concepts": [
+    "BlueBubbles (iMessage)",
+    "Prerequisites",
+    "Setup",
+    "1. Install BlueBubbles Server",
+    "2. Get your Server URL and Password",
+    "3. Configure Hermes",
+    "4. Authorize Users",
+    "5. Start the Gateway"
+  ],
+  "env_vars": [
+    {
+      "name": "BLUEBUBBLES_SERVER_URL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BLUEBUBBLES_PASSWORD",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BLUEBUBBLES_ALLOWED_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BLUEBUBBLES_ALLOW_ALL_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BLUEBUBBLES_WEBHOOK_HOST",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BLUEBUBBLES_WEBHOOK_PORT",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BLUEBUBBLES_WEBHOOK_PATH",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "BLUEBUBBLES_HOME_CHANNEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway setup",
+      "purpose": ""
+    },
+    {
+      "command": "hermes pairing approve bluebubbles <CODE>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes gateway run",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/bluebubbles-webhook",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway setup\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "BLUEBUBBLES_SERVER_URL=http://192.168.1.10:1234\nBLUEBUBBLES_PASSWORD=your-server-password\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes pairing approve bluebubbles <CODE>\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "BLUEBUBBLES_ALLOWED_USERS=user@icloud.com,+15551234567\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "BLUEBUBBLES_ALLOW_ALL_USERS=true\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway run\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "iMessage → Messages.app → BlueBubbles Server → Webhook → Hermes\nHermes → BlueBubbles REST API → Messages.app → iMessage\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "api",
+    "bluebubbles",
+    "bluebubbles-webhook",
+    "code",
+    "dns",
+    "guid",
+    "helper-bundle",
+    "messaging",
+    "open-source",
+    "plain-text",
+    "real-time",
+    "rest",
+    "url",
+    "user-guide",
+    "user-guide/messaging/bluebubbles.md"
+  ],
+  "full_text": "# user-guide/messaging/bluebubbles.md\n\n# BlueBubbles (iMessage)\n\nConnect Hermes to Apple iMessage via [BlueBubbles](https://bluebubbles.app/) — a free, open-source macOS server that bridges iMessage to any device.\n\n## Prerequisites\n\n- A **Mac** (always on) running [BlueBubbles Server](https://bluebubbles.app/)\n- Apple ID signed into Messages.app on that Mac\n- BlueBubbles Server v1.0.0+ (webhooks require this version)\n- Network connectivity between Hermes and the BlueBubbles server\n\n## Setup\n\n### 1. Install BlueBubbles Server\n\nDownload and install from [bluebubbles.app](https://bluebubbles.app/). Complete the setup wizard — sign in with your Apple ID and configure a connection method (local network, Ngrok, Cloudflare, or Dynamic DNS).\n\n### 2. Get your Server URL and Password\n\nIn BlueBubbles Server → **Settings → API**, note:\n- **Server URL** (e.g., `http://192.168.1.10:1234`)\n- **Server Password**\n\n### 3. Configure Hermes\n\nRun the setup wizard:\n\n```bash\nhermes gateway setup\n```\n\nSelect **BlueBubbles (iMessage)** and enter your server URL and password.\n\nOr set environment variables directly in `~/.hermes/.env`:\n\n```bash\nBLUEBUBBLES_SERVER_URL=http://192.168.1.10:1234\nBLUEBUBBLES_PASSWORD=your-server-password\n```\n\n### 4. Authorize Users\n\nChoose one approach:\n\n**DM Pairing (recommended):**\nWhen someone messages your iMessage, Hermes automatically sends them a pairing code. Approve it with:\n```bash\nhermes pairing approve bluebubbles <CODE>\n```\nUse `hermes pairing list` to see pending codes and approved users.\n\n**Pre-authorize specific users** (in `~/.hermes/.env`):\n```bash\nBLUEBUBBLES_ALLOWED_USERS=user@icloud.com,+15551234567\n```\n\n**Open access** (in `~/.hermes/.env`):\n```bash\nBLUEBUBBLES_ALLOW_ALL_USERS=true\n```\n\n### 5. Start the Gateway\n\n```bash\nhermes gateway run\n```\n\nHermes will connect to your BlueBubbles server, register a webhook, and start listening for iMessage messages.\n\n## How It Works\n\n```\niMessage → Messages.app → BlueBubbles Server → Webhook → Hermes\nHermes → BlueBubbles REST API → Messages.app → iMessage\n```\n\n- **Inbound:** BlueBubbles sends webhook events to a local listener when new messages arrive. No polling — instant delivery.\n- **Outbound:** Hermes sends messages via the BlueBubbles REST API.\n- **Media:** Images, voice messages, videos, and documents are supported in both directions. Inbound attachments are downloaded and cached locally for the agent to process.\n\n## Environment Variables\n\n| Variable | Required | Default | Description |\n|----------|----------|---------|-------------|\n| `BLUEBUBBLES_SERVER_URL` | Yes | — | BlueBubbles server URL |\n| `BLUEBUBBLES_PASSWORD` | Yes | — | Server password |\n| `BLUEBUBBLES_WEBHOOK_HOST` | No | `127.0.0.1` | Webhook listener bind address |\n| `BLUEBUBBLES_WEBHOOK_PORT` | No | `8645` | Webhook listener port |\n| `BLUEBUBBLES_WEBHOOK_PATH` | No | `/bluebubbles-webhook` | Webhook URL path |\n| `BLUEBUBBLES_HOME_CHANNEL` | No | — | Phone/email for cron delivery |\n| `BLUEBUBBLES_ALLOWED_USERS` | No | — | Comma-separated authorized users |\n| `BLUEBUBBLES_ALLOW_ALL_USERS` | No | `false` | Allow all users |\n\nAuto-marking messages as read is controlled by the `send_read_receipts` key under `platforms.bluebubbles.extra` in `~/.hermes/config.yaml` (default: `true`). There is no corresponding environment variable.\n\n## Features\n\n### Text Messaging\nSend and receive iMessages. Markdown is automatically stripped for clean plain-text delivery.\n\n### Rich Media\n- **Images:** Photos appear natively in the iMessage conversation\n- **Voice messages:** Audio files sent as iMessage voice messages\n- **Videos:** Video attachments\n- **Documents:** Files sent as iMessage attachments\n\n### Tapback Reactions\nLove, like, dislike, laugh, emphasize, and question reactions. Requires the BlueBubbles [Private API helper](https://docs.bluebubbles.app/helper-bundle/installation).\n\n### Typing Indicators\nShows \"typing...\" in the iMessage conversation while the agent is processing. Requires Private API.\n\n### Read Receipts\nAutomatically marks messages as read after processing. Requires Private API.\n\n### Chat Addressing\nYou can address chats by email or phone number — Hermes resolves them to BlueBubbles chat GUIDs automatically. No need to use raw GUID format.\n\n## Private API\n\nSome features require the BlueBubbles [Private API helper](https://docs.bluebubbles.app/helper-bundle/installation):\n- Tapback reactions\n- Typing indicators\n- Read receipts\n- Creating new chats by address\n\nWithout the Private API, basic text messaging and media still work.\n\n## Troubleshooting\n\n### \"Cannot reach server\"\n- Verify the server URL is correct and the Mac is on\n- Check that BlueBubbles Server is running\n- Ensure network connectivity (firewall, port forwarding)\n\n### Messages not arriving\n- Check that the webhook is registered in BlueBubbles Server → Settings → API → Webhooks\n- Verify the webhook URL is reachable from the Mac\n- Check `hermes logs gateway` for webhook errors (or `hermes logs -f` to follow in real-time)\n\n### \"Private API helper not connected\"\n- Install the Private API helper: [docs.bluebubbles.app](https://docs.bluebubbles.app/helper-bundle/installation)\n- Basic messaging works without it — only reactions, typing, and read receipts require it\n\n---"
+}

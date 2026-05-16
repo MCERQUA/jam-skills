@@ -1,0 +1,141 @@
+{
+  "id": "guide-automate-cron",
+  "title": "Automate Anything with Cron",
+  "source_path": "website/docs/guides/automate-with-cron.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/automate-with-cron",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Five real-world automation patterns for Hermes cron jobs: website change monitor with state tracking, weekly report generation, GitHub repository watcher, data collection pipeline with script+agent split, and multi-skill chained workflows.",
+  "key_concepts": [
+    "cron patterns",
+    "website monitor",
+    "change detection",
+    "[SILENT]",
+    "script parameter",
+    "GitHub watcher",
+    "data collection pipeline",
+    "weekly report",
+    "multi-skill cron",
+    "delivery targets",
+    "self-contained prompts"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes cron create <schedule> <prompt>",
+      "purpose": "Create a cron job from CLI"
+    },
+    {
+      "command": "/cron add <schedule> <prompt>",
+      "purpose": "Create a cron job from chat"
+    },
+    {
+      "command": "/cron list",
+      "purpose": "List all scheduled jobs"
+    },
+    {
+      "command": "/cron run <job_id>",
+      "purpose": "Trigger a job immediately for testing"
+    },
+    {
+      "command": "/cron pause <job_id>",
+      "purpose": "Pause a job without deleting it"
+    },
+    {
+      "command": "/cron edit <job_id> --schedule <expr>",
+      "purpose": "Update job schedule"
+    },
+    {
+      "command": "/cron edit <job_id> --prompt <text>",
+      "purpose": "Update job prompt"
+    },
+    {
+      "command": "/cron remove <job_id>",
+      "purpose": "Remove a job permanently"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/cron add",
+      "purpose": "Create a new cron job"
+    },
+    {
+      "command": "/cron list",
+      "purpose": "List all cron jobs"
+    },
+    {
+      "command": "/cron run <id>",
+      "purpose": "Trigger a job immediately"
+    },
+    {
+      "command": "/cron pause <id>",
+      "purpose": "Pause a job"
+    },
+    {
+      "command": "/cron edit <id>",
+      "purpose": "Edit a job's schedule or prompt"
+    },
+    {
+      "command": "/cron remove <id>",
+      "purpose": "Delete a job"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Website change monitor script",
+      "code": "# ~/.hermes/scripts/watch-site.py\nimport hashlib, json, os, urllib.request\n\nURL = \"https://example.com/pricing\"\nSTATE_FILE = os.path.expanduser(\"~/.hermes/scripts/.watch-site-state.json\")\n\nreq = urllib.request.Request(URL, headers={\"User-Agent\": \"Hermes-Monitor/1.0\"})\ncontent = urllib.request.urlopen(req, timeout=30).read().decode()\ncurrent_hash = hashlib.sha256(content.encode()).hexdigest()\n\n# ... state management and diff detection"
+    },
+    {
+      "language": "bash",
+      "caption": "Create monitoring job with script",
+      "code": "/cron add \"every 1h\" \"If the script output says CHANGE DETECTED, summarize what changed on the page and why it might matter. If it says NO_CHANGE, respond with just [SILENT].\" --script ~/.hermes/scripts/watch-site.py --name \"Pricing monitor\" --deliver telegram"
+    },
+    {
+      "language": "bash",
+      "caption": "Weekly report",
+      "code": "/cron add \"0 9 * * 1\" \"Generate a weekly report covering:\n\n1. Search the web for the top 5 AI news stories from the past week\n2. Search GitHub for trending repositories in the 'machine-learning' topic\n3. Check Hacker News for the most discussed AI/ML posts\n\nFormat as a clean summary with sections for each source. Include links.\nKeep it under 500 words.\" --name \"Weekly AI digest\" --deliver telegram"
+    },
+    {
+      "language": "bash",
+      "caption": "GitHub repo watcher",
+      "code": "/cron add \"every 6h\" \"Check the GitHub repository NousResearch/hermes-agent for new issues, PRs, or releases in the last 6 hours. Run: gh issue list --repo NousResearch/hermes-agent --state open --json number,title,author,createdAt --limit 10. If nothing new, respond with [SILENT].\" --name \"Repo watcher\" --deliver discord"
+    }
+  ],
+  "gotchas": [
+    "Cron jobs run in fresh agent sessions with NO memory — prompts must be completely self-contained",
+    "Use [SILENT] in agent responses to suppress delivery for no-change monitoring results",
+    "The script parameter runs before the agent — its stdout becomes context for the agent's reasoning",
+    "Use execute_code for mechanical multi-tool data gathering, then delegate for reasoning-heavy analysis",
+    "Test with /cron run <job_id> before waiting for the schedule",
+    "Natural language like 'daily at 9am' is not supported — use cron expressions like '0 9 * * *'",
+    "no_agent=True mode is available for script-only jobs where the script already produces the desired output"
+  ],
+  "cross_refs": [
+    "cron",
+    "guide-daily-briefing-bot",
+    "delegation",
+    "guide-cron-script-only"
+  ],
+  "keywords": [
+    "cron",
+    "automation",
+    "scheduling",
+    "website monitor",
+    "change detection",
+    "[SILENT]",
+    "script",
+    "GitHub watcher",
+    "weekly report",
+    "data collection",
+    "pipeline",
+    "multi-skill",
+    "delivery",
+    "telegram",
+    "discord",
+    "local",
+    "self-contained"
+  ],
+  "full_text": "# Automate Anything with Cron\n\nThe daily briefing bot tutorial covers the basics. This guide goes further — five real-world automation patterns you can adapt for your own workflows.\n\n[...full content as read from source...]"
+}

@@ -1,0 +1,399 @@
+{
+  "id": "providers",
+  "title": "AI Providers",
+  "source_path": "website/docs/integrations/providers.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/integrations/providers",
+  "category": "integrations",
+  "subcategory": "",
+  "summary": "Complete reference for configuring LLM inference providers in Hermes Agent, including cloud APIs (OpenRouter, Anthropic, GitHub Copilot, Google Gemini), self-hosted endpoints (Ollama, vLLM, SGLang, llama.cpp, LM Studio), and advanced routing/fallback options.",
+  "key_concepts": [
+    "inference providers",
+    "API key configuration",
+    "OAuth authentication",
+    "custom endpoints",
+    "Ollama",
+    "vLLM",
+    "SGLang",
+    "llama.cpp",
+    "context length detection",
+    "named custom providers",
+    "fallback providers",
+    "provider routing"
+  ],
+  "env_vars": [
+    {
+      "name": "OPENROUTER_API_KEY",
+      "purpose": "OpenRouter provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "ANTHROPIC_API_KEY",
+      "purpose": "Anthropic direct API",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "ANTHROPIC_TOKEN",
+      "purpose": "Anthropic setup/OAuth token fallback",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GLM_API_KEY",
+      "purpose": "z.ai / ZhipuAI GLM provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "KIMI_API_KEY",
+      "purpose": "Kimi / Moonshot international",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "KIMI_CN_API_KEY",
+      "purpose": "Kimi / Moonshot China endpoint",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "MINIMAX_API_KEY",
+      "purpose": "MiniMax global endpoint",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "MINIMAX_CN_API_KEY",
+      "purpose": "MiniMax China endpoint",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DASHSCOPE_API_KEY",
+      "purpose": "Alibaba Cloud / DashScope",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "XIAOMI_API_KEY",
+      "purpose": "Xiaomi MiMo provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TOKENHUB_API_KEY",
+      "purpose": "Tencent TokenHub",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "ARCEEAI_API_KEY",
+      "purpose": "Arcee AI provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GMI_API_KEY",
+      "purpose": "GMI Cloud provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "NOVITA_API_KEY",
+      "purpose": "NovitaAI provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "DEEPSEEK_API_KEY",
+      "purpose": "DeepSeek provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HF_TOKEN",
+      "purpose": "Hugging Face Inference Providers",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GOOGLE_API_KEY",
+      "purpose": "Google / Gemini API key provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GEMINI_API_KEY",
+      "purpose": "Alias for GOOGLE_API_KEY",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "XAI_API_KEY",
+      "purpose": "xAI (Grok) provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "NVIDIA_API_KEY",
+      "purpose": "NVIDIA NIM provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "COPILOT_GITHUB_TOKEN",
+      "purpose": "GitHub Copilot token (first priority)",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "GH_TOKEN",
+      "purpose": "GitHub token fallback for Copilot",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OLLAMA_API_KEY",
+      "purpose": "Ollama Cloud provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "STEPFUN_API_KEY",
+      "purpose": "StepFun provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "KILOCODE_API_KEY",
+      "purpose": "Kilo Code provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPENCODE_ZEN_API_KEY",
+      "purpose": "OpenCode Zen provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "OPENCODE_GO_API_KEY",
+      "purpose": "OpenCode Go provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_GEMINI_PROJECT_ID",
+      "purpose": "GCP project for Google Gemini OAuth (paid/enterprise)",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_STREAM_READ_TIMEOUT",
+      "purpose": "Stream read timeout in seconds (for local models)",
+      "required": false,
+      "default": "120"
+    },
+    {
+      "name": "OLLAMA_CONTEXT_LENGTH",
+      "purpose": "Override Ollama context window size",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes model",
+      "purpose": "Full provider setup wizard (OAuth, API keys, custom endpoints)"
+    },
+    {
+      "command": "hermes fallback",
+      "purpose": "Manage fallback provider chain interactively"
+    },
+    {
+      "command": "hermes auth add <provider>",
+      "purpose": "Add a credential to a provider's pool"
+    },
+    {
+      "command": "hermes auth list",
+      "purpose": "List all credential pools"
+    },
+    {
+      "command": "/model",
+      "purpose": "Switch between already-configured providers inside a session"
+    },
+    {
+      "command": "/gquota",
+      "purpose": "Show remaining Google Gemini Code Assist quota"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "model.provider",
+      "type": "string",
+      "default": null,
+      "description": "Primary LLM provider ID",
+      "example": "openrouter"
+    },
+    {
+      "path": "model.default",
+      "type": "string",
+      "default": null,
+      "description": "Default model ID (alias: model.model)",
+      "example": "anthropic/claude-sonnet-4"
+    },
+    {
+      "path": "model.base_url",
+      "type": "string",
+      "default": null,
+      "description": "Custom API base URL for the provider",
+      "example": "http://localhost:11434/v1"
+    },
+    {
+      "path": "model.context_length",
+      "type": "integer",
+      "default": null,
+      "description": "Override auto-detected context window in tokens",
+      "example": 32768
+    },
+    {
+      "path": "model.max_tokens",
+      "type": "integer",
+      "default": null,
+      "description": "Maximum output tokens per response",
+      "example": 4096
+    },
+    {
+      "path": "bedrock.region",
+      "type": "string",
+      "default": null,
+      "description": "AWS region for Bedrock",
+      "example": "us-east-1"
+    },
+    {
+      "path": "custom_providers",
+      "type": "list",
+      "default": null,
+      "description": "Named custom OpenAI-compatible endpoints",
+      "example": "- name: local\n  base_url: http://localhost:8080/v1"
+    },
+    {
+      "path": "fallback_providers",
+      "type": "list",
+      "default": null,
+      "description": "Ordered list of fallback provider+model pairs",
+      "example": "- provider: openrouter\n  model: anthropic/claude-sonnet-4"
+    },
+    {
+      "path": "provider_routing.sort",
+      "type": "string",
+      "default": "price",
+      "description": "OpenRouter provider sort: price | throughput | latency",
+      "example": "throughput"
+    },
+    {
+      "path": "openrouter.min_coding_score",
+      "type": "float",
+      "default": 0.65,
+      "description": "Minimum coding score for openrouter/pareto-code router",
+      "example": 0.65
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/model",
+      "purpose": "Switch provider or model inside a running session"
+    },
+    {
+      "command": "/gquota",
+      "purpose": "Show Google Gemini Code Assist quota"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "Permanent Anthropic config",
+      "code": "model:\n  provider: \"anthropic\"\n  default: \"claude-sonnet-4-6\""
+    },
+    {
+      "language": "yaml",
+      "caption": "Ollama local config",
+      "code": "model:\n  default: qwen2.5-coder:32b\n  provider: custom\n  base_url: http://localhost:11434/v1\n  context_length: 32768"
+    },
+    {
+      "language": "yaml",
+      "caption": "Named custom providers",
+      "code": "custom_providers:\n  - name: local\n    base_url: http://localhost:8080/v1\n  - name: work\n    base_url: https://gpu-server.internal.corp/v1\n    key_env: CORP_API_KEY"
+    },
+    {
+      "language": "yaml",
+      "caption": "Fallback provider chain",
+      "code": "fallback_providers:\n  - provider: openrouter\n    model: anthropic/claude-sonnet-4\n  - provider: anthropic\n    model: claude-sonnet-4"
+    },
+    {
+      "language": "yaml",
+      "caption": "Provider routing for OpenRouter",
+      "code": "provider_routing:\n  sort: \"throughput\"\n  ignore: [\"deepinfra\"]\n  require_parameters: true\n  data_collection: \"deny\""
+    },
+    {
+      "language": "bash",
+      "caption": "Anthropic with API key",
+      "code": "export ANTHROPIC_API_KEY=***\nhermes chat --provider anthropic --model claude-sonnet-4-6"
+    },
+    {
+      "language": "bash",
+      "caption": "vLLM with tool calling",
+      "code": "vllm serve meta-llama/Llama-3.1-70B-Instruct \\\n  --port 8000 \\\n  --enable-auto-tool-choice \\\n  --tool-call-parser hermes"
+    }
+  ],
+  "gotchas": [
+    "hermes model (outside session) is for adding new providers; /model (inside session) only switches between already-configured providers",
+    "Ollama defaults to very low context length (4096 tokens if <24GB VRAM) — set OLLAMA_CONTEXT_LENGTH=32768 or use OLLAMA_CONTEXT_LENGTH environment variable",
+    "llama-server requires --jinja flag for tool calling; without it tool calls appear as raw text",
+    "Google Gemini OAuth (google-gemini-cli) uses Google's policy-violating desktop credentials — account restrictions reported by some users",
+    "Anthropic OAuth via hermes model requires Claude Max plan WITH extra usage credits, not just a base Max plan",
+    "Classic GitHub PAT tokens (ghp_*) are NOT supported by Copilot API — use OAuth tokens (gho_*) or fine-grained PATs",
+    "SGLang defaults to only 128 max output tokens — set --default-max-tokens on the server",
+    "OPENAI_BASE_URL and LLM_MODEL env vars are removed — use config.yaml only",
+    "Z.AI provider auto-probes multiple endpoints; do not set GLM_BASE_URL manually",
+    "context_length controls total input window; model.max_tokens controls output length only — common confusion"
+  ],
+  "cross_refs": [
+    "integrations-overview",
+    "provider-routing",
+    "fallback-providers",
+    "credential-pools",
+    "configuration",
+    "guide-local-llm-on-mac",
+    "guide-aws-bedrock"
+  ],
+  "keywords": [
+    "providers",
+    "LLM",
+    "OpenRouter",
+    "Anthropic",
+    "Claude",
+    "Gemini",
+    "GitHub Copilot",
+    "Ollama",
+    "vLLM",
+    "SGLang",
+    "llama.cpp",
+    "LM Studio",
+    "API key",
+    "OAuth",
+    "custom endpoint",
+    "self-hosted",
+    "context length",
+    "fallback",
+    "provider routing",
+    "z.ai",
+    "GLM",
+    "MiniMax",
+    "DeepSeek",
+    "Bedrock",
+    "NovitaAI"
+  ],
+  "full_text": "# AI Providers\n\nThis page covers setting up inference providers for Hermes Agent — from cloud APIs like OpenRouter and Anthropic, to self-hosted endpoints like Ollama and vLLM, to advanced routing and fallback configurations. You need at least one provider configured to use Hermes.\n\n[...full content as read from source...]"
+}

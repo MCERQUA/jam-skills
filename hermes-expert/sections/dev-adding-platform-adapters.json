@@ -1,0 +1,62 @@
+{
+  "id": "dev-adding-platform-adapters",
+  "title": "Adding a Platform Adapter",
+  "source_path": "website/docs/developer-guide/adding-platform-adapters.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/adding-platform-adapters",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Complete guide for adding a new messaging platform adapter to the Hermes gateway, covering the recommended plugin path (PLUGIN.yaml + adapter.py with ctx.register_platform()) and the built-in core path (20+ file checklist across gateway, CLI, tools, and docs).",
+  "key_concepts": [
+    "platform adapter",
+    "BasePlatformAdapter",
+    "plugin path",
+    "register_platform",
+    "env_enablement_fn",
+    "cron delivery",
+    "standalone_sender_fn",
+    "built-in path",
+    "slow-LLM UX"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Minimal platform plugin adapter",
+      "code": "class MyPlatformAdapter(BasePlatformAdapter):\n    async def connect(self) -> bool:\n        self._mark_connected()\n        return True\n    async def disconnect(self) -> None:\n        self._mark_disconnected()\n    async def send(self, chat_id, content, reply_to=None, metadata=None):\n        return SendResult(success=True, message_id=\"...\")\n\ndef register(ctx):\n    ctx.register_platform(\n        name=\"my_platform\",\n        label=\"My Platform\",\n        adapter_factory=lambda cfg: MyPlatformAdapter(cfg),\n        check_fn=check_requirements,\n        env_enablement_fn=_env_enablement,\n        cron_deliver_env_var=\"MY_PLATFORM_HOME_CHANNEL\",\n    )"
+    },
+    {
+      "language": "yaml",
+      "caption": "PLUGIN.yaml for platform plugin",
+      "code": "name: my-platform\nlabel: My Platform\nkind: platform\nversion: 1.0.0\ndescription: My custom messaging platform adapter\nrequires_env:\n  - name: MY_PLATFORM_TOKEN\n    description: \"Bot token\"\n    prompt: \"Token\"\n    password: true"
+    }
+  ],
+  "gotchas": [
+    "Plugin path handles 20+ integration points automatically — prefer it over built-in for community/third-party adapters",
+    "For platforms with tight response deadlines (e.g. WeCom 5s), always acknowledge immediately and deliver proactively via API later",
+    "standalone_sender_fn is required for out-of-process cron delivery — without it cron-side send fails",
+    "Always await super()._keep_typing() when overriding — never replace the typing heartbeat, layer on top of it"
+  ],
+  "cross_refs": [
+    "dev-gateway-internals",
+    "dev-cron-internals",
+    "guide-build-plugin"
+  ],
+  "keywords": [
+    "platform adapter",
+    "BasePlatformAdapter",
+    "register_platform",
+    "plugin path",
+    "built-in adapter",
+    "messaging platform",
+    "env_enablement_fn",
+    "cron delivery",
+    "slow-LLM UX",
+    "webhook adapter",
+    "long-poll adapter",
+    "PLUGIN.yaml"
+  ],
+  "full_text": "# Adding a Platform Adapter\n\nThis guide covers adding a new messaging platform to the Hermes gateway. A platform adapter connects Hermes to an external messaging service.\n\n## Plugin Path (Recommended)\n\nDrop a plugin directory into `~/.hermes/plugins/` — zero core code changes needed.\n\n```\n~/.hermes/plugins/my-platform/\n  PLUGIN.yaml      # Plugin metadata\n  adapter.py       # Adapter class + register() entry point\n```\n\n### adapter.py\n\n```python\nfrom gateway.platforms.base import BasePlatformAdapter, SendResult, MessageEvent, MessageType\nfrom gateway.config import Platform, PlatformConfig\n\nclass MyPlatformAdapter(BasePlatformAdapter):\n    def __init__(self, config: PlatformConfig):\n        super().__init__(config, Platform(\"my_platform\"))\n        self.token = os.getenv(\"MY_PLATFORM_TOKEN\")\n\n    async def connect(self) -> bool:\n        self._mark_connected()\n        return True\n\n    async def disconnect(self) -> None:\n        self._mark_disconnected()\n\n    async def send(self, chat_id, content, reply_to=None, metadata=None):\n        return SendResult(success=True, message_id=\"...\")\n\ndef register(ctx):\n    ctx.register_platform(\n        name=\"my_platform\",\n        label=\"My Platform\",\n        adapter_factory=lambda cfg: MyPlatformAdapter(cfg),\n        check_fn=check_requirements,\n        validate_config=validate_config,\n        required_env=[\"MY_PLATFORM_TOKEN\"],\n        env_enablement_fn=_env_enablement,\n        cron_deliver_env_var=\"MY_PLATFORM_HOME_CHANNEL\",\n        allowed_users_env=\"MY_PLATFORM_ALLOWED_USERS\",\n        allow_all_env=\"MY_PLATFORM_ALLOW_ALL_USERS\",\n        max_message_length=4000,\n        platform_hint=\"You are chatting via My Platform.\",\n        emoji=\"💬\",\n    )\n```\n\n### What the Plugin System Handles Automatically\n\nWhen you call `ctx.register_platform()`:\n- Gateway adapter creation, config parsing, user authorization\n- Env-driven auto-configuration via `env_enablement_fn`\n- Cron delivery via `cron_deliver_env_var`\n- `hermes config` UI entries from `requires_env` / `optional_env` in plugin.yaml\n- `send_message` tool routing, webhook cross-platform delivery\n- `hermes status`, `hermes gateway setup`, message chunking\n\n## Env-Driven Auto-Configuration\n\n```python\ndef _env_enablement() -> dict | None:\n    token = os.getenv(\"MY_PLATFORM_TOKEN\", \"\").strip()\n    channel = os.getenv(\"MY_PLATFORM_CHANNEL\", \"\").strip()\n    if not (token and channel):\n        return None\n    seed = {\"token\": token, \"channel\": channel}\n    home = os.getenv(\"MY_PLATFORM_HOME_CHANNEL\")\n    if home:\n        seed[\"home_channel\"] = {\"chat_id\": home, \"name\": \"Home\"}\n    return seed\n```\n\n## Cron Delivery\n\nTo support `deliver=my_platform` cron jobs, set `cron_deliver_env_var` to the env var name that holds the default chat/room/channel ID.\n\nFor out-of-process cron delivery, register a `standalone_sender_fn`:\n\n```python\nasync def _standalone_send(pconfig, chat_id, message, *, thread_id=None, media_files=None, force_document=False):\n    return {\"success\": True, \"message_id\": \"...\"}\n\nctx.register_platform(\n    name=\"my_platform\",\n    ...\n    standalone_sender_fn=_standalone_send,\n)\n```\n\n## Built-in Path (20+ file checklist)\n\nFor official core adapters:\n1. Platform Enum in `gateway/config.py`\n2. Adapter file in `gateway/platforms/newplat.py`\n3. Gateway Config (`gateway/config.py`) — 3 touchpoints\n4. Gateway Runner (`gateway/run.py`) — 6 touchpoints\n5. Cross-Platform Delivery (`gateway/platforms/webhook.py`, `cron/scheduler.py`)\n6. CLI Integration — 6 files\n7. Tools (`tools/send_message_tool.py`, `tools/cronjob_tools.py`)\n8. Toolsets (`toolsets.py`) — 2 edits\n9. Optional: Platform Hints in `agent/prompt_builder.py`\n10. Tests and Documentation"
+}

@@ -1,0 +1,186 @@
+{
+  "id": "configuring-models",
+  "title": "Configuring Models",
+  "source_path": "website/docs/user-guide/configuring-models.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/configuring-models",
+  "category": "user-guide",
+  "subcategory": "",
+  "summary": "Explains how to configure the main model and auxiliary models (vision, compression, session search, etc.) via the dashboard, CLI slash commands, model aliases, and REST API.",
+  "key_concepts": [
+    "main model",
+    "auxiliary models",
+    "model picker",
+    "Use as shortcut",
+    "model aliases",
+    "REST API",
+    "hot-swap",
+    "auto provider"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes model",
+      "purpose": "Interactive provider + model picker"
+    },
+    {
+      "command": "hermes config set model.aliases.fav anthropic/claude-opus-4.6",
+      "purpose": "Set a model alias"
+    },
+    {
+      "command": "hermes setup",
+      "purpose": "Wire up provider credentials"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "model.provider",
+      "type": "string",
+      "default": "openrouter",
+      "description": "Main model provider",
+      "example": "anthropic"
+    },
+    {
+      "path": "model.default",
+      "type": "string",
+      "default": "",
+      "description": "Main model name",
+      "example": "anthropic/claude-opus-4.7"
+    },
+    {
+      "path": "model.base_url",
+      "type": "string",
+      "default": "",
+      "description": "Custom OpenAI-compatible endpoint for main model",
+      "example": "http://localhost:1234/v1"
+    },
+    {
+      "path": "model.api_mode",
+      "type": "string",
+      "default": "chat_completions",
+      "description": "API mode for main model",
+      "example": "chat_completions"
+    },
+    {
+      "path": "model_aliases",
+      "type": "object",
+      "default": null,
+      "description": "Custom short names for models",
+      "example": "{\"fav\": {\"model\": \"claude-sonnet-4.6\", \"provider\": \"anthropic\"}}"
+    },
+    {
+      "path": "auxiliary.vision.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Provider for image analysis tasks",
+      "example": "openrouter"
+    },
+    {
+      "path": "auxiliary.vision.model",
+      "type": "string",
+      "default": "",
+      "description": "Model for image analysis",
+      "example": "google/gemini-2.5-flash"
+    },
+    {
+      "path": "auxiliary.compression.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Provider for context compression",
+      "example": "openrouter"
+    },
+    {
+      "path": "auxiliary.compression.model",
+      "type": "string",
+      "default": "",
+      "description": "Model for context compression",
+      "example": "google/gemini-3-flash-preview"
+    },
+    {
+      "path": "auxiliary.web_extract.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Provider for web page summarization",
+      "example": "openrouter"
+    },
+    {
+      "path": "auxiliary.session_search.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Provider for session search summarization",
+      "example": "openrouter"
+    },
+    {
+      "path": "auxiliary.approval.provider",
+      "type": "string",
+      "default": "auto",
+      "description": "Provider for approval scoring",
+      "example": "openrouter"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/model",
+      "purpose": "Show or change the current model"
+    },
+    {
+      "command": "/model <name> --provider <p>",
+      "purpose": "Switch model for current session only"
+    },
+    {
+      "command": "/model <name> --provider <p> --global",
+      "purpose": "Switch model and persist to config.yaml"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "Main model config",
+      "code": "model:\n  provider: openrouter\n  default: anthropic/claude-opus-4.7\n  base_url: ''\n  api_mode: chat_completions"
+    },
+    {
+      "language": "yaml",
+      "caption": "Auxiliary vision override",
+      "code": "auxiliary:\n  vision:\n    provider: openrouter\n    model: google/gemini-2.5-flash"
+    },
+    {
+      "language": "yaml",
+      "caption": "Model aliases",
+      "code": "model_aliases:\n  fav:\n    model: claude-sonnet-4.6\n    provider: anthropic\n  grok:\n    model: grok-4\n    provider: x-ai"
+    },
+    {
+      "language": "bash",
+      "caption": "REST API — set main model",
+      "code": "curl -X POST -H \"Content-Type: application/json\" -H \"X-Hermes-Session-Token: $TOKEN\" \\\n  -d '{\"scope\":\"main\",\"provider\":\"openrouter\",\"model\":\"anthropic/claude-opus-4.7\"}' \\\n  http://localhost:PORT/api/model/set"
+    }
+  ],
+  "gotchas": [
+    "Dashboard model change applies to new sessions only — use /model inside existing chat to hot-swap",
+    "Existing sessions don't re-read config.yaml for model changes — restart the gateway to force pickup",
+    "provider: auto with model: '' means use the main model for that auxiliary task",
+    "If a provider is missing from the picker, run hermes setup or add its API key in Keys",
+    "On OpenRouter, bare model names like 'claude-sonnet-4' resolve within OpenRouter's aggregator",
+    "The session token for the REST API rotates on every server restart — grab from browser devtools"
+  ],
+  "cross_refs": [
+    "configuration",
+    "sessions",
+    "profiles"
+  ],
+  "keywords": [
+    "model picker",
+    "auxiliary models",
+    "main model",
+    "vision model",
+    "compression model",
+    "model aliases",
+    "REST API",
+    "dashboard",
+    "provider",
+    "switch model",
+    "hot-swap",
+    "openrouter",
+    "anthropic",
+    "configuring models"
+  ],
+  "full_text": "# user-guide/configuring-models\n\n# Configuring Models\n\nHermes uses two kinds of model slots:\n\n- **Main model** — what the agent thinks with.\n- **Auxiliary models** — smaller side-jobs (context compression, vision, web-page summarization, session search, approval scoring, MCP tool routing, session-title generation, skill search).\n\n## The Models page\n\nOpen the dashboard and click **Models** in the sidebar.\n\n1. **Model Settings** — assign models to slots\n2. **Usage analytics** — ranked cards with token counts, cost, capability badges\n\n## Setting the main model\n\nClick **Change** on the Main model row. The picker shows:\n- **Left** — authenticated providers only\n- **Right** — curated agentic model list for the selected provider\n\nType in the filter box to narrow by provider name, slug, or model ID.\n\nPick a model, hit **Switch**. Writes to `~/.hermes/config.yaml` under `model`. Applies to **new sessions only** — use `/model` inside an existing chat to hot-swap.\n\n## Setting auxiliary models\n\nClick **Show auxiliary** to reveal eight task slots. Every auxiliary task defaults to `auto` (uses main model).\n\n### Common override patterns\n\n| Task | When to override |\n|---|---|\n| **Title Gen** | Almost always — a flash model writes titles as well as Opus |\n| **Vision** | When main model lacks vision (Kimi, DeepSeek) |\n| **Compression** | When burning reasoning tokens on Opus/M2.7 for summarization |\n| **Session Search** | When recall queries fan out — keep bill predictable |\n| **Approval** | For `approval_mode: smart` — use haiku/flash/gpt-5-mini |\n| **Web Extract** | When using web_extract heavily |\n\n## The \"Use as\" shortcut\n\nEvery model card has a **Use as** dropdown:\n- **Main model** — assign to main slot\n- **All auxiliary tasks** — assign to all 8 aux slots at once\n- **Individual task options** — Vision, Web Extract, Compression, etc.\n\n## What gets written to config.yaml\n\n**Main model:**\n```yaml\nmodel:\n  provider: openrouter\n  default: anthropic/claude-opus-4.7\n  base_url: ''\n  api_mode: chat_completions\n```\n\n**Auxiliary override:**\n```yaml\nauxiliary:\n  vision:\n    provider: openrouter\n    model: google/gemini-2.5-flash\n    base_url: ''\n    api_key: ''\n    timeout: 120\n    extra_body: {}\n    download_timeout: 30\n```\n\n**Auxiliary on auto (default):**\n```yaml\nauxiliary:\n  compression:\n    provider: auto\n    model: ''\n    base_url: ''\n```\n\n## When does it take effect?\n\n- **CLI** (`hermes chat`): next invocation\n- **Gateway**: next new session; restart gateway for immediate effect\n- **Dashboard chat tab**: next new PTY; use `/model` inside existing tab\n\n## Troubleshooting\n\n### \"No authenticated providers\" in the picker\nCheck **Keys** in the sidebar — run `hermes setup` to wire up a provider.\n\n### Main model didn't change in my running chat\nExpected. Use `/model <name>` inside the chat to hot-swap.\n\n### Auxiliary override \"didn't take effect\"\n1. Did you start a new session?\n2. Is `provider` set to something other than `auto`?\n3. Is the provider authenticated?\n\n## Alternative methods\n\n### CLI slash command\n\n```\n/model gpt-5.4 --provider openrouter             # session-only\n/model gpt-5.4 --provider openrouter --global    # also persists to config.yaml\n```\n\n### Custom aliases\n\n```yaml\nmodel_aliases:\n  fav:\n    model: claude-sonnet-4.6\n    provider: anthropic\n  grok:\n    model: grok-4\n    provider: x-ai\n```\n\nOr from shell: `hermes config set model.aliases.fav anthropic/claude-opus-4.6`\n\nThen `/model fav` or `/model grok` in chat.\n\n### `hermes model` subcommand\n\n```bash\nhermes model            # Interactive provider + model picker\n```\n\n### REST API\n\n```bash\n# List authenticated providers + curated model lists\ncurl -H \"X-Hermes-Session-Token: $TOKEN\" http://localhost:PORT/api/model/options\n\n# Read current main + auxiliary assignments\ncurl -H \"X-Hermes-Session-Token: $TOKEN\" http://localhost:PORT/api/model/auxiliary\n\n# Set the main model\ncurl -X POST -H \"Content-Type: application/json\" -H \"X-Hermes-Session-Token: $TOKEN\" \\\n  -d '{\"scope\":\"main\",\"provider\":\"openrouter\",\"model\":\"anthropic/claude-opus-4.7\"}' \\\n  http://localhost:PORT/api/model/set\n\n# Override a single auxiliary task\ncurl -X POST ... \\\n  -d '{\"scope\":\"auxiliary\",\"task\":\"vision\",\"provider\":\"openrouter\",\"model\":\"google/gemini-2.5-flash\"}' \\\n  http://localhost:PORT/api/model/set\n\n# Reset all auxiliary tasks to auto\ncurl -X POST ... \\\n  -d '{\"scope\":\"auxiliary\",\"task\":\"__reset__\",\"provider\":\"\",\"model\":\"\"}' \\\n  http://localhost:PORT/api/model/set\n```\n"
+}

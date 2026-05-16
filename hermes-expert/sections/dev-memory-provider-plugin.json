@@ -1,0 +1,72 @@
+{
+  "id": "dev-memory-provider-plugin",
+  "title": "Memory Provider Plugins",
+  "source_path": "website/docs/developer-guide/memory-provider-plugin.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Guide for building memory provider plugins that give Hermes Agent persistent cross-session knowledge, covering the MemoryProvider ABC lifecycle methods, config schema, threading contract for sync_turn(), profile isolation, CLI command registration, and the single-provider rule.",
+  "key_concepts": [
+    "MemoryProvider ABC",
+    "initialize",
+    "get_tool_schemas",
+    "sync_turn",
+    "on_session_end",
+    "get_config_schema",
+    "save_config",
+    "threading contract",
+    "profile isolation",
+    "CLI commands",
+    "single provider rule"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "MemoryProvider ABC skeleton",
+      "code": "from agent.memory_provider import MemoryProvider\n\nclass MyMemoryProvider(MemoryProvider):\n    @property\n    def name(self) -> str:\n        return \"my-provider\"\n\n    def is_available(self) -> bool:\n        return bool(os.environ.get(\"MY_API_KEY\"))\n\n    def initialize(self, session_id: str, **kwargs) -> None:\n        self._api_key = os.environ.get(\"MY_API_KEY\", \"\")\n        self._session_id = session_id\n\ndef register(ctx) -> None:\n    ctx.register_memory_provider(MyMemoryProvider())"
+    },
+    {
+      "language": "python",
+      "caption": "Non-blocking sync_turn with daemon thread",
+      "code": "def sync_turn(self, user_content, assistant_content):\n    def _sync():\n        try:\n            self._api.ingest(user_content, assistant_content)\n        except Exception as e:\n            logger.warning(\"Sync failed: %s\", e)\n    self._sync_thread = threading.Thread(target=_sync, daemon=True)\n    self._sync_thread.start()"
+    },
+    {
+      "language": "python",
+      "caption": "Profile-isolated storage path",
+      "code": "from hermes_constants import get_hermes_home\ndata_dir = get_hermes_home() / \"my-provider\"  # CORRECT\n# NOT: Path(\"~/.hermes/my-provider\").expanduser()  # WRONG"
+    }
+  ],
+  "gotchas": [
+    "sync_turn() MUST be non-blocking — if backend has latency run in daemon thread",
+    "Only ONE external memory provider can be active at a time — a second registration is rejected",
+    "All storage paths MUST use hermes_home kwarg from initialize() not hardcoded ~/.hermes",
+    "CLI commands only appear when provider is the active memory.provider in config",
+    "Minimal get_config_schema() — only include fields user MUST configure (API key, required creds)"
+  ],
+  "cross_refs": [
+    "dev-context-engine-plugin",
+    "dev-model-provider-plugin",
+    "memory",
+    "memory-providers"
+  ],
+  "keywords": [
+    "memory provider plugin",
+    "MemoryProvider ABC",
+    "initialize",
+    "sync_turn",
+    "on_session_end",
+    "get_config_schema",
+    "save_config",
+    "threading contract",
+    "profile isolation",
+    "CLI commands",
+    "single provider rule",
+    "honcho",
+    "supermemory"
+  ],
+  "full_text": "# Building a Memory Provider Plugin\n\nMemory provider plugins give Hermes Agent persistent, cross-session knowledge beyond the built-in MEMORY.md and USER.md.\n\n## Directory Structure\n\nEach memory provider lives in `plugins/memory/<name>/`:\n\n```\nplugins/memory/my-provider/\n__init__.py      # MemoryProvider implementation + register() entry point\nplugin.yaml      # Metadata (name, description, hooks)\nREADME.md        # Setup instructions, config reference, tools\n```\n\n## The MemoryProvider ABC\n\nYour plugin implements the `MemoryProvider` abstract base class from `agent/memory_provider.py`. Required: `name` property, `is_available()`, `initialize(session_id, **kwargs)`, `get_tool_schemas()`, `handle_tool_call(name, args)`.\n\n## Required Methods\n\n### Core Lifecycle\n\n| Method | When Called | Must Implement? |\n|--------|-----------|-----------------|\n| `name` (property) | Always | Yes |\n| `is_available()` | Agent init, before activation | Yes — no network calls |\n| `initialize(session_id, **kwargs)` | Agent startup | Yes |\n| `get_tool_schemas()` | After init, for tool injection | Yes |\n| `handle_tool_call(name, args)` | When agent uses your tools | Yes (if you have tools) |\n\n### Config\n\n| Method | Purpose | Must Implement? |\n|--------|---------|-----------------|\n| `get_config_schema()` | Declare config fields for `hermes memory setup` | Yes |\n| `save_config(values, hermes_home)` | Write non-secret config to native location | Yes (unless env-var-only) |\n\n### Optional Hooks\n\n| Method | When Called | Use Case |\n|--------|-----------|----------|\n| `system_prompt_block()` | System prompt assembly | Static provider info |\n| `prefetch(query)` | Before each API call | Return recalled context |\n| `queue_prefetch(query)` | After each turn | Pre-warm for next turn |\n| `sync_turn(user, assistant)` | After each completed turn | Persist conversation |\n| `on_session_end(messages)` | Conversation ends | Final extraction/flush |\n| `on_pre_compress(messages)` | Before context compression | Save insights before discard |\n| `on_memory_write(action, target, content)` | Built-in memory writes | Mirror to your backend |\n| `shutdown()` | Process exit | Clean up connections |\n\n## Config Schema\n\n`get_config_schema()` returns a list of field descriptors used by `hermes memory setup`. Fields with `secret: True` and `env_var` go to `.env`. Non-secret fields are passed to `save_config()`.\n\nTip: Keep the schema minimal — only include fields the user must configure. Document optional settings in a config file rather than prompting for them during setup.\n\n## Plugin Entry Point\n\n```python\ndef register(ctx) -> None:\n    ctx.register_memory_provider(MyMemoryProvider())\n```\n\n## plugin.yaml\n\n```yaml\nname: my-provider\nversion: 1.0.0\ndescription: Short description of what this provider does.\nhooks:\n  - on_session_end\n```\n\n## Threading Contract\n\n`sync_turn()` MUST be non-blocking. If your backend has latency, run the work in a daemon thread.\n\n## Profile Isolation\n\nAll storage paths MUST use the `hermes_home` kwarg from `initialize()`, not hardcoded `~/.hermes`.\n\n## Testing\n\nSee `tests/agent/test_memory_plugin_e2e.py` for the complete E2E testing pattern using a real SQLite provider.\n\n```python\nfrom agent.memory_manager import MemoryManager\n\nmgr = MemoryManager()\nmgr.add_provider(my_provider)\nmgr.initialize_all(session_id='test-1', platform='cli')\nresult = mgr.handle_tool_call('my_tool', {'action': 'add', 'content': 'test'})\nmgr.sync_all('user msg', 'assistant msg')\nmgr.on_session_end([])\nmgr.shutdown_all()\n```\n\n## Adding CLI Commands\n\nMemory provider plugins can register their own CLI subcommand tree using a convention-based discovery system.\n\n### How it works\n\n1. Add a `cli.py` file to your plugin directory\n2. Define a `register_cli(subparser)` function that builds the argparse tree\n3. The memory plugin system discovers it at startup via `discover_plugin_cli_commands()`\n4. Your commands appear under `hermes <provider-name> <subcommand>`\n\n**Active-provider gating:** Your CLI commands only appear when your provider is the active `memory.provider` in config.\n\n### Reference implementation\n\nSee `plugins/memory/honcho/cli.py` for a full example with 13 subcommands, cross-profile management, and config read/write.\n\n## Single Provider Rule\n\nOnly **one** external memory provider can be active at a time. If a user tries to register a second, the MemoryManager rejects it with a warning."
+}

@@ -1,0 +1,131 @@
+{
+  "id": "messaging-whatsapp",
+  "title": "WhatsApp Integration",
+  "source_path": "user-guide/messaging/whatsapp.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/whatsapp",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "WhatsApp integration via the Baileys unofficial bridge, covering QR code pairing, bot vs self-chat mode, session persistence, voice message transcription, and markdown conversion for WhatsApp formatting.",
+  "key_concepts": [
+    "Baileys bridge: unofficial WhatsApp Web protocol",
+    "QR code pairing on first run",
+    "Bot mode vs self-chat mode",
+    "Session persistence across restarts",
+    "Voice message transcription via STT",
+    "Markdown to WhatsApp formatting conversion",
+    "Group chat support",
+    "Media forwarding to vision pipeline",
+    "Contact allowlisting by phone number"
+  ],
+  "env_vars": [
+    {
+      "name": "WHATSAPP_SESSION_PATH",
+      "required": false,
+      "default": "./.hermes/whatsapp-session",
+      "description": "Directory to persist WhatsApp session credentials"
+    },
+    {
+      "name": "WHATSAPP_ALLOWED_CONTACTS",
+      "required": false,
+      "default": null,
+      "description": "Comma-separated E.164 phone numbers allowed to interact with the bot"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway; on first run prints QR code to pair WhatsApp"
+    },
+    {
+      "command": "hermes gateway whatsapp reset-session",
+      "description": "Delete saved session credentials to force re-pairing"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "whatsapp.enabled",
+      "type": "bool",
+      "description": "Enable WhatsApp integration (default: false)"
+    },
+    {
+      "key": "whatsapp.session_path",
+      "type": "string",
+      "description": "Path to persist session credentials"
+    },
+    {
+      "key": "whatsapp.allowed_contacts",
+      "type": "list[str]",
+      "description": "E.164 phone numbers allowed to chat"
+    },
+    {
+      "key": "whatsapp.self_chat",
+      "type": "bool",
+      "description": "Enable self-chat mode (message yourself to interact with Hermes)"
+    },
+    {
+      "key": "whatsapp.groups",
+      "type": "bool",
+      "description": "Enable group chat responses (default: false)"
+    },
+    {
+      "key": "whatsapp.transcribe_voice",
+      "type": "bool",
+      "description": "Transcribe incoming voice messages via STT (default: true)"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "title": "Enable WhatsApp in config",
+      "language": "yaml",
+      "code": "whatsapp:\n  enabled: true\n  session_path: /data/whatsapp-session\n  allowed_contacts:\n    - \"+15551234567\"\n    - \"+447700900123\""
+    },
+    {
+      "title": "Self-chat mode (message yourself)",
+      "language": "yaml",
+      "code": "whatsapp:\n  enabled: true\n  self_chat: true  # interact by messaging your own WhatsApp number"
+    },
+    {
+      "title": "First run QR pairing",
+      "language": "bash",
+      "code": "hermes gateway\n# Prints QR code to terminal\n# Scan with WhatsApp > Linked Devices > Link a Device\n# Session saved to session_path for future restarts"
+    },
+    {
+      "title": "Reset session to re-pair",
+      "language": "bash",
+      "code": "hermes gateway whatsapp reset-session\n# Deletes saved credentials, next gateway start will show QR again"
+    }
+  ],
+  "gotchas": [
+    "Baileys uses the unofficial WhatsApp Web protocol; WhatsApp may block accounts that appear automated",
+    "Session credentials expire if not used for 14+ days; reset-session and re-pair required",
+    "WhatsApp does not support multiple simultaneous sessions on the same phone number",
+    "Groups are disabled by default to avoid unintended responses; enable explicitly with groups: true",
+    "WhatsApp formatting uses *bold*, _italic_, ~strikethrough~,  \u2014 Hermes converts standard Markdown to this format",
+    "Voice messages are received as .ogg Opus files; transcription requires a configured STT provider",
+    "Rate limiting: WhatsApp may throttle or ban accounts sending too many messages per hour"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-signal",
+    "tts",
+    "voice-mode"
+  ],
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "qr code",
+    "pairing",
+    "session persistence",
+    "self-chat",
+    "voice messages",
+    "transcription",
+    "markdown conversion",
+    "group chat",
+    "allowed contacts",
+    "e.164",
+    "phone number",
+    "unofficial api"
+  ],
+  "full_text": "## WhatsApp\n\nConnect Hermes to WhatsApp via the [Baileys](https://github.com/WhiskeySockets/Baileys) bridge (unofficial WhatsApp Web protocol).\n\n> **Warning:** Baileys uses WhatsApp's unofficial web protocol. Use with a dedicated account; there is a small risk of account suspension for automated messaging.\n\n### Setup\n\nEnable WhatsApp in your config:\n\n```yaml\nwhatsapp:\n  enabled: true\n  session_path: /data/whatsapp-session\n  allowed_contacts:\n    - \"+15551234567\"\n```\n\nStart the gateway:\n\n```bash\nhermes gateway\n```\n\nOn first run, a QR code prints to the terminal. Open WhatsApp on your phone \u2192 **Linked Devices \u2192 Link a Device** \u2192 scan the QR code. Hermes saves the session to  so future restarts skip the QR step.\n\n### Self-chat mode\n\nIf you want to use your own number (not a separate bot account), enable self-chat:\n\n```yaml\nwhatsapp:\n  self_chat: true\n```\n\nMessage yourself in WhatsApp to interact with Hermes.\n\n### Session persistence\n\nSession credentials are saved as JSON files in . Back up this directory. If the session becomes invalid (not used for 14+ days, or WhatsApp logs it out), reset and re-pair:\n\n```bash\nhermes gateway whatsapp reset-session\n```\n\n### Group chats\n\nGroups are disabled by default. Enable:\n\n```yaml\nwhatsapp:\n  groups: true\n```\n\nIn groups, Hermes only responds when explicitly mentioned ().\n\n### Voice messages\n\nIncoming voice messages (.ogg Opus) are automatically transcribed if  (default) and a STT provider is configured. The transcription is passed to the LLM as the message text.\n\n### Formatting\n\nHermes converts standard Markdown to WhatsApp's formatting syntax:\n-  \u2192 \n-  \u2192 \n-  \u2192 \n-    \u2192   \n- block \u2192 block (same)\n\n### Allowlist\n\nRestrict to specific phone numbers in E.164 format:\n\n```yaml\nwhatsapp:\n  allowed_contacts:\n    - \"+15551234567\"\n    - \"+447700900123\"\n```\n\nLeave empty to allow all contacts (not recommended for public bots)."
+}

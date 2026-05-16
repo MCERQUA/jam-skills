@@ -1,0 +1,287 @@
+{
+  "id": "cron",
+  "title": "Scheduled Tasks (Cron)",
+  "source_path": "website/docs/user-guide/features/cron.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/cron",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Schedule tasks to run automatically with natural language or cron expressions. Hermes exposes cron management through a single `cronjob` tool with action-style operations instead of separate schedule/list/remove tools.",
+  "key_concepts": [
+    "What cron can do now",
+    "Creating scheduled tasks",
+    "In chat with `/cron`",
+    "From the standalone CLI",
+    "Through natural conversation",
+    "Skill-backed cron jobs",
+    "Single skill",
+    "Multiple skills"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes cron create \"every 2h\" \"Check server status\"",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron create \"every 1h\" \"Summarize new feed items\" --skill blogwatcher",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron create \"every 1h\" \"Use both skills and combine the result\" \\",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "cron.wrap_response",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "sys.executable",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "config.yaml",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "cronjob.create",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "cronjob.update",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/cron",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "/cron add 30m \"Remind me to check the build\"\n/cron add \"every 2h\" \"Check server status\"\n/cron add \"every 1h\" \"Summarize new feed items\" --skill blogwatcher\n/cron add \"every 1h\" \"Use both skills and combine the result\" --skill blogwatcher --skill maps\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron create \"every 2h\" \"Check server status\"\nhermes cron create \"every 1h\" \"Summarize new feed items\" --skill blogwatcher\nhermes cron create \"every 1h\" \"Use both skills and combine the result\" \\\n  --skill blogwatcher \\\n  --skill maps \\\n  --name \"Skill combo\"\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "Every morning at 9am, check Hacker News for AI news and send me a summary on Telegram.\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "cronjob(\n    action=\"create\",\n    skill=\"blogwatcher\",\n    prompt=\"Check the configured feeds and summarize anything new.\",\n    schedule=\"0 9 * * *\",\n    name=\"Morning feeds\",\n)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "cronjob(\n    action=\"create\",\n    skills=[\"blogwatcher\", \"maps\"],\n    prompt=\"Look for new local events and interesting nearby places, then combine them into one short brief.\",\n    schedule=\"every 6h\",\n    name=\"Local brief\",\n)\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Standalone CLI (schedule and prompt are positional)\nhermes cron create \"every 1d at 09:00\" \\\n  \"Audit open PRs, summarize CI health, and post to #eng\" \\\n  --workdir /home/me/projects/acme\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# From a chat, via the cronjob tool\ncronjob(\n    action=\"create\",\n    schedule=\"every 1d at 09:00\",\n    workdir=\"/home/me/projects/acme\",\n    prompt=\"Audit open PRs, summarize CI health, and post to #eng\",\n)\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "/cron edit <job_id> --schedule \"every 4h\"\n/cron edit <job_id> --prompt \"Use the revised task\"\n/cron edit <job_id> --skill blogwatcher --skill maps\n/cron edit <job_id> --remove-skill blogwatcher\n/cron edit <job_id> --clear-skills\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron edit <job_id> --schedule \"every 4h\"\nhermes cron edit <job_id> --prompt \"Use the revised task\"\nhermes cron edit <job_id> --skill blogwatcher --skill maps\nhermes cron edit <job_id> --add-skill maps\nhermes cron edit <job_id> --remove-skill blogwatcher\nhermes cron edit <job_id> --clear-skills\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "/cron list\n/cron pause <job_id>\n/cron resume <job_id>\n/cron run <job_id>\n/cron remove <job_id>\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron list\nhermes cron pause <job_id>\nhermes cron resume <job_id>\nhermes cron run <job_id>\nhermes cron remove <job_id>\nhermes cron status\nhermes cron tick\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway install     # Install as a user service\nsudo hermes gateway install --system   # Linux: boot-time system service for servers\nhermes gateway             # Or run in foreground\n\nhermes cron list\nhermes cron status\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "Cronjob Response: Morning feeds\n-------------\n\n<agent output here>\n\nNote: The agent cannot see this message, and therefore cannot respond to it.\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# ~/.hermes/config.yaml\ncron:\n  wrap_response: false\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "Check if nginx is running. If everything is healthy, respond with only [SILENT].\nOtherwise, report the issue.\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# ~/.hermes/config.yaml\ncron:\n  script_timeout_seconds: 300   # 5 minutes\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron create \"every 5m\" \\\n  --no-agent \\\n  --script memory-watchdog.sh \\\n  --deliver telegram \\\n  --name \"memory-watchdog\"\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "Ping me on Telegram if RAM is over 85%, every 5 minutes.\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "cronjob(action=\"create\", schedule=\"every 5m\",\n        script=\"memory-watchdog.sh\", no_agent=True,\n        deliver=\"telegram\", name=\"memory-watchdog\")\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# Job 1: Collect raw data\ncronjob(\n    action=\"create\",\n    prompt=\"Fetch the top 10 AI/ML stories from Hacker News. Save them to ~/.hermes/data/briefs/raw.md in markdown format with title, URL, and score.\",\n    schedule=\"0 7 * * *\",\n    name=\"AI News Collector\",\n)\n\n# Job 2: Triage — receives Job 1's output as context\n# Get Job 1's ID from: cronjob(action=\"list\")\ncronjob(\n    action=\"create\",\n    prompt=\"Read ~/.hermes/data/briefs/raw.md. Score each story 1–10 for engagement potential and novelty. Output the top 5 to ~/.hermes/data/briefs/ranked.md.\",\n    schedule=\"30 7 * * *\",\n    context_from=\"<job1_id>\",\n    name=\"AI News Triage\",\n)\n\n# Job 3: Ship — receives Job 2's output as context\ncronjob(\n    action=\"create\",\n    prompt=\"Read ~/.hermes/data/briefs/ranked.md. Write 3 tweet drafts (hook + body + hashtags). Deliver to telegram:7976161601.\",\n    schedule=\"0 8 * * *\",\n    context_from=\"<job2_id>\",\n    name=\"AI News Brief\",\n)\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "30m     → Run once in 30 minutes\n2h      → Run once in 2 hours\n1d      → Run once in 1 day\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "every 30m    → Every 30 minutes\nevery 2h     → Every 2 hours\nevery 1d     → Every day\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "0 9 * * *       → Daily at 9:00 AM\n0 9 * * 1-5     → Weekdays at 9:00 AM\n0 */6 * * *     → Every 6 hours\n30 8 1 * *      → First of every month at 8:30 AM\n0 0 * * 0       → Every Sunday at midnight\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "2026-03-15T09:00:00    → One-time at March 15, 2026 9:00 AM\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "cronjob(\n    action=\"create\",\n    prompt=\"...\",\n    schedule=\"every 2h\",\n    repeat=5,\n)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "cronjob(action=\"create\", ...)\ncronjob(action=\"list\")\ncronjob(action=\"update\", job_id=\"...\")\ncronjob(action=\"pause\", job_id=\"...\")\ncronjob(action=\"resume\", job_id=\"...\")\ncronjob(action=\"run\", job_id=\"...\")\ncronjob(action=\"remove\", job_id=\"...\")\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes tools\n# → pick the \"cron\" platform in the curses UI\n# → toggle toolsets on/off just like you would for Telegram/Discord/etc.\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "cronjob(action=\"create\", name=\"weekly-news-summary\",\n        schedule=\"every sunday 9am\",\n        enabled_toolsets=[\"web\", \"file\"],      # just web + file, no terminal/browser/etc.\n        prompt=\"Summarize this week's AI news: ...\")\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "{\"wakeAgent\": false}\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# pre-check script\nimport json, sys\nlatest = fetch_latest_issue_count()\nprev = read_state(\"issue_count\")\nif latest == prev:\n    print(json.dumps({\"wakeAgent\": False}))   # skip this tick\n    sys.exit(0)\nwrite_state(\"issue_count\", latest)\nprint(json.dumps({\"wakeAgent\": True, \"context\": {\"new_issues\": latest - prev}}))\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "#!/bin/bash\n# ~/.hermes/scripts/feed-changed.sh\nFEED=\"$HOME/data/feed.json\"\nSTATE=\"$HOME/.hermes/scripts/.feed-changed.last\"\ntest -f \"$FEED\" || { echo '{\"wakeAgent\": false}'; exit 0; }\nmtime=$(stat -c %Y \"$FEED\")\nlast=$(cat \"$STATE\" 2>/dev/null || echo 0)\nif [ \"$mtime\" -le \"$last\" ]; then\n  echo '{\"wakeAgent\": false}'\nelse\n  echo \"$mtime\" > \"$STATE\"\n  echo '{\"wakeAgent\": true}'\nfi\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "cronjob(action=\"create\", name=\"process-feed\",\n        schedule=\"every 30m\",\n        script=\"feed-changed.sh\",\n        prompt=\"A new ~/data/feed.json has landed. Summarize what changed.\")\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "#!/bin/bash\n# ~/.hermes/scripts/flag-ready.sh\nif test -f /tmp/new-data-ready; then\n  rm -f /tmp/new-data-ready\n  echo '{\"wakeAgent\": true}'\nelse\n  echo '{\"wakeAgent\": false}'\nfi\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "cronjob(action=\"create\", name=\"nightly-analysis\",\n        schedule=\"0 9 * * *\",\n        script=\"flag-ready.sh\",\n        prompt=\"Run the nightly analysis over today's batch.\")\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "#!/usr/bin/env python\n# ~/.hermes/scripts/new-rows.py\nimport json, sqlite3\nconn = sqlite3.connect(\"/home/me/data/app.db\")\nn = conn.execute(\n    \"SELECT COUNT(*) FROM messages WHERE ts > strftime('%s','now','-2 hours')\"\n).fetchone()[0]\nif n < 1:\n    print(json.dumps({\"wakeAgent\": False}))\nelse:\n    print(json.dumps({\"wakeAgent\": True, \"context\": {\"new_rows\": n}}))\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "cronjob(action=\"create\", name=\"summarize-new-msgs\",\n        schedule=\"every 2h\",\n        script=\"new-rows.py\",\n        prompt=\"Summarize the new messages from the last 2 hours.\")\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "cronjob(action=\"create\", name=\"daily-digest\",\n        schedule=\"every day 7am\",\n        context_from=[\"ai-news-fetch\", \"github-prs-fetch\"],\n        prompt=\"Write the daily digest using the outputs above.\")\n"
+    }
+  ],
+  "gotchas": [
+    "Cron-run sessions cannot recursively create more cron jobs. Hermes disables cron management tools inside cron executions to prevent runaway scheduling loops.",
+    "Important\nCron jobs run in a completely fresh agent session. The prompt must contain everything the agent needs that is not already provided by attached skills."
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "(cron)",
+    "all",
+    "bad:",
+    "browser",
+    "context",
+    "context_from",
+    "cron",
+    "cronjob",
+    "delegation",
+    "enabled_toolsets",
+    "execute_code",
+    "fallback_model",
+    "fallback_providers",
+    "false",
+    "good:"
+  ],
+  "full_text": "# Scheduled Tasks (Cron)\n\n# Scheduled Tasks (Cron)\n\nSchedule tasks to run automatically with natural language or cron expressions. Hermes exposes cron management through a single `cronjob` tool with action-style operations instead of separate schedule/list/remove tools.\n\n## What cron can do now\n\nCron jobs can:\n\n- schedule one-shot or recurring tasks\n- pause, resume, edit, trigger, and remove jobs\n- attach zero, one, or multiple skills to a job\n- deliver results back to the origin chat, local files, or configured platform targets\n- run in fresh agent sessions with the normal static tool list\n- run in **no-agent mode** — a script on a schedule, its stdout delivered verbatim, zero LLM involvement (see the [no-agent mode](#no-agent-mode-script-only-jobs) section below)\n\nAll of this is available to Hermes itself through the `cronjob` tool, so you can create, pause, edit, and remove jobs by asking in plain language — no CLI required.\n\n:::warning\nCron-run sessions cannot recursively create more cron jobs. Hermes disables cron management tools inside cron executions to prevent runaway scheduling loops.\n:::\n\n## Creating scheduled tasks\n\n### In chat with `/cron`\n\n```bash\n/cron add 30m \"Remind me to check the build\"\n/cron add \"every 2h\" \"Check server status\"\n/cron add \"every 1h\" \"Summarize new feed items\" --skill blogwatcher\n/cron add \"every 1h\" \"Use both skills and combine the result\" --skill blogwatcher --skill maps\n```\n\n### From the standalone CLI\n\n```bash\nhermes cron create \"every 2h\" \"Check server status\"\nhermes cron create \"every 1h\" \"Summarize new feed items\" --skill blogwatcher\nhermes cron create \"every 1h\" \"Use both skills and combine the result\" \\\n  --skill blogwatcher \\\n  --skill maps \\\n  --name \"Skill combo\"\n```\n\n### Through natural conversation\n\nAsk Hermes normally:\n\n```text\nEvery morning at 9am, check Hacker News for AI news and send me a summary on Telegram.\n```\n\nHermes will use the unified `cronjob` tool internally.\n\n## Skill-backed cron jobs\n\nA cron job can load one or more skills before it runs the prompt.\n\n### Single skill\n\n```python\ncronjob(\n    action=\"create\",\n    skill=\"blogwatcher\",\n    prompt=\"Check the configured feeds and summarize anything new.\",\n    schedule=\"0 9 * * *\",\n    name=\"Morning feeds\",\n)\n```\n\n### Multiple skills\n\nSkills are loaded in order. The prompt becomes the task instruction layered on top of those skills.\n\n```python\ncronjob(\n    action=\"create\",\n    skills=[\"blogwatcher\", \"maps\"],\n    prompt=\"Look for new local events and interesting nearby places, then combine them into one short brief.\",\n    schedule=\"every 6h\",\n    name=\"Local brief\",\n)\n```\n\nThis is useful when you want a scheduled agent to inherit reusable workflows without stuffing the full skill text into the cron prompt itself.\n\n## Running a job inside a project directory\n\nCron jobs default to running detached from any repo — no `AGENTS.md`, `CLAUDE.md`, or `.cursorrules` is loaded, and the terminal / file / code-exec tools run from whatever working directory the gateway started in. Pass `--workdir` (CLI) or `workdir=` (tool call) to change that:\n\n```bash\n# Standalone CLI (schedule and prompt are positional)\nhermes cron create \"every 1d at 09:00\" \\\n  \"Audit open PRs, summarize CI health, and post to #eng\" \\\n  --workdir /home/me/projects/acme\n```\n\n```python\n# From a chat, via the cronjob tool\ncronjob(\n    action=\"create\",\n    schedule=\"every 1d at 09:00\",\n    workdir=\"/home/me/projects/acme\",\n    prompt=\"Audit open PRs, summarize CI health, and post to #eng\",\n)\n```\n\nWhen `workdir` is set:\n\n- `AGENTS.md`, `CLAUDE.md`, and `.cursorrules` from that directory are injected into the system prompt (same discovery order as the interactive CLI)\n- `terminal`, `read_file`, `write_file`, `patch`, `search_files`, and `execute_code` all use that directory as their working directory (via `TERMINAL_CWD`)\n- The path must be an absolute directory that exists — relative paths and missing directories are rejected at create / update time\n- Pass `--workdir \"\"` (or `workdir=\"\"` via the tool) on edit to clear it and restore the old behaviour\n\n:::note Serialization\nJobs with a `workdir` run sequentially on the scheduler tick, not in the parallel pool. This is deliberate — `TERMINAL_CWD` is process-global, so two workdir jobs running at the same time would corrupt each other's cwd. Workdir-less jobs still run in parallel as before.\n:::\n\n## Editing jobs\n\nYou do not need to delete and recreate jobs just to change them.\n\n### Chat\n\n```bash\n/cron edit <job_id> --schedule \"every 4h\"\n/cron edit <job_id> --prompt \"Use the revised task\"\n/cron edit <job_id> --skill blogwatcher --skill maps\n/cron edit <job_id> --remove-skill blogwatcher\n/cron edit <job_id> --clear-skills\n```\n\n### Standalone CLI\n\n```bash\nhermes cron edit <job_id> --schedule \"every 4h\"\nhermes cron edit <job_id> --prompt \"Use the revised task\"\nhermes cron edit <job_id> --skill blogwatcher --skill maps\nhermes cron edit <job_id> --add-skill maps\nhermes cron edit <job_id> --remove-skill blogwatcher\nhermes cron edit <job_id> --clear-skills\n```\n\nNotes:\n\n- repeated `--skill` replaces the job's attached skill list\n- `--add-skill` appends to the existing list without replacing it\n- `--remove-skill` removes specific attached skills\n- `--clear-skills` removes all attached skills\n\n## Lifecycle actions\n\nCron jobs now have a fuller lifecycle than just create/remove.\n\n### Chat\n\n```bash\n/cron list\n/cron pause <job_id>\n/cron resume <job_id>\n/cron run <job_id>\n/cron remove <job_id>\n```\n\n### Standalone CLI\n\n```bash\nhermes cron list\nhermes cron pause <job_id>\nhermes cron resume <job_id>\nhermes cron run <job_id>\nhermes cron remove <job_id>\nhermes cron status\nhermes cron tick\n```\n\nWhat they do:\n\n- `pause` — keep the job but stop scheduling it\n- `resume` — re-enable the job and compute the next future run\n- `run` — trigger the job on the next scheduler tick\n- `remove` — delete it entirely\n\n## How it works\n\n**Cron execution is handled by the gateway daemon.** The gateway ticks the scheduler every 60 seconds, running any due jobs in isolated agent sessions.\n\n```bash\nhermes gateway install     # Install as a user service\nsudo hermes gateway install --system   # Linux: boot-time system service for servers\nhermes gateway             # Or run in foreground\n\nhermes cron list\nhermes cron status\n```\n\n### Gateway scheduler behavior\n\nOn each tick Hermes:\n\n1. loads jobs from `~/.hermes/cron/jobs.json`\n2. checks `next_run_at` against the current time\n3. starts a fresh `AIAgent` session for each due job\n4. optionally injects one or more attached skills into that fresh session\n5. runs the prompt to completion\n6. delivers the final response\n7. updates run metadata and the next scheduled time\n\nA file lock at `~/.hermes/cron/.tick.lock` prevents overlapping scheduler ticks from double-running the same job batch.\n\n## Delivery options\n\nWhen scheduling jobs, you specify where the output goes:\n\n| Option | Description | Example |\n|--------|-------------|---------|\n| `\"origin\"` | Back to where the job was created | Default on messaging platforms |\n| `\"local\"` | Save to local files only (`~/.hermes/cron/output/`) | Default on CLI |\n| `\"telegram\"` | Telegram home channel | Uses `TELEGRAM_HOME_CHANNEL` |\n| `\"telegram:123456\"` | Specific Telegram chat by ID | Direct delivery |\n| `\"telegram:-100123:17585\"` | Specific Telegram topic | `chat_id:thread_id` format |\n| `\"discord\"` | Discord home channel | Uses `DISCORD_HOME_CHANNEL` |\n| `\"discord:#engineering\"` | Specific Discord channel | By channel name |\n| `\"slack\"` | Slack home channel | |\n| `\"whatsapp\"` | WhatsApp home | |\n| `\"signal\"` | Signal | |\n| `\"matrix\"` | Matrix home room | |\n| `\"mattermost\"` | Mattermost home channel | |\n| `\"email\"` | Email | |\n| `\"sms\"` | SMS via Twilio | |\n| `\"homeassistant\"` | Home Assistant | |\n| `\"dingtalk\"` | DingTalk | |\n| `\"feishu\"` | Feishu/Lark | |\n| `\"wecom\"` | WeCom | |\n| `\"weixin\"` | Weixin (WeChat) | |\n| `\"bluebubbles\"` | BlueBubbles (iMessage) | |\n| `\"qqbot\"` | QQ Bot (Tencent QQ) | |\n| `\"all\"` | Fan out to every connected home channel | Resolved at fire time |\n| `\"telegram,discord\"` | Fan out to a specific set of channels | Comma-separated list |\n| `\"origin,all\"` | Deliver to the origin **plus** every other connected channel | Combine any tokens |\n\nThe agent's final response is automatically delivered. You do not need to call `send_message` in the cron prompt.\n\n### Routing intent (`all`)\n\n`all` lets you ship one cron job to every messaging channel you have configured, without having to enumerate them by name. It is **resolved at fire time**, so a job created before you wired up Telegram will pick up Telegram on the next tick after you set `TELEGRAM_HOME_CHANNEL`.\n\nSemantics: `all` expands to every platform with a configured home channel. Zero is fine; the job simply produces no delivery targets and is recorded as a delivery failure upstream.\n\n`all` composes with explicit targets. `origin,all` delivers to the origin chat *plus* every other connected home channel, de-duplicating by `(platform, chat_id, thread_id)`.\n\n### Response wrapping\n\nBy default, delivered cron output is wrapped with a header and footer so the recipient knows it came from a scheduled task:\n\n```\nCronjob Response: Morning feeds\n-------------\n\n<agent output here>\n\nNote: The agent cannot see this message, and therefore cannot respond to it.\n```\n\nTo deliver the raw agent output without the wrapper, set `cron.wrap_response` to `false`:\n\n```yaml\n# ~/.hermes/config.yaml\ncron:\n  wrap_response: false\n```\n\n### Silent suppression\n\nIf the agent's final response starts with `[SILENT]`, delivery is suppressed entirely. The output is still saved locally for audit (in `~/.hermes/cron/output/`), but no message is sent to the delivery target.\n\nThis is useful for monitoring jobs that should only report when something is wrong:\n\n```text\nCheck if nginx is running. If everything is healthy, respond with only [SILENT].\nOtherwise, report the issue.\n```\n\nFailed jobs always deliver regardless of the `[SILENT]` marker — only successful runs can be silenced.\n\n## Script timeout\n\nPre-run scripts (attached via the `script` parameter) have a default timeout of 120 seconds. If your scripts need longer — for example, to include randomized delays that avoid bot-like timing patterns — you can increase this:\n\n```yaml\n# ~/.hermes/config.yaml\ncron:\n  script_timeout_seconds: 300   # 5 minutes\n```\n\nOr set the `HERMES_CRON_SCRIPT_TIMEOUT` environment variable. The resolution order is: env var → config.yaml → 120s default.\n\n## No-agent mode (script-only jobs)\n\nFor recurring jobs that don't need LLM reasoning — classic watchdogs, disk/memory alerts, heartbeats, CI pings — pass `no_agent=True` at creation time. The scheduler runs your script on schedule and delivers its stdout directly, skipping the agent entirely:\n\n```bash\nhermes cron create \"every 5m\" \\\n  --no-agent \\\n  --script memory-watchdog.sh \\\n  --deliver telegram \\\n  --name \"memory-watchdog\"\n```\n\nSemantics:\n\n- Script stdout (trimmed) → delivered verbatim as the message.\n- **Empty stdout → silent tick**, no delivery. This is the watchdog pattern: \"only say something when something is wrong\".\n- Non-zero exit or timeout → an error alert is delivered, so a broken watchdog can't fail silently.\n- `{\"wakeAgent\": false}` on the last line → silent tick (same gate LLM jobs use).\n- No tokens, no model, no provider fallback — the job never touches the inference layer.\n\n`.sh` / `.bash` files run under `/bin/bash`; anything else under the current Python interpreter (`sys.executable`). Scripts must live in `~/.hermes/scripts/` (same sandboxing rule as the pre-run script gate).\n\n### The agent sets these up for you\n\nThe `cronjob` tool's schema exposes `no_agent` to Hermes directly, so you can describe a watchdog in chat and let the agent wire it up:\n\n```text\nPing me on Telegram if RAM is over 85%, every 5 minutes.\n```\n\nHermes will write the check script to `~/.hermes/scripts/` via `write_file`, then call:\n\n```python\ncronjob(action=\"create\", schedule=\"every 5m\",\n        script=\"memory-watchdog.sh\", no_agent=True,\n        deliver=\"telegram\", name=\"memory-watchdog\")\n```\n\nIt picks `no_agent=True` automatically when the message content is fully determined by the script (watchdogs, threshold alerts, heartbeats). The same tool also lets the agent pause, resume, edit, and remove jobs — so the whole lifecycle is chat-driven without anyone touching the CLI.\n\nSee the [Script-Only Cron Jobs guide](/docs/guides/cron-script-only) for worked examples.\n\n## Chaining jobs with `context_from`\n\nCron jobs run in isolated sessions with no memory of previous runs. But sometimes one job's output is exactly what the next job needs. The `context_from` parameter wires that connection automatically — Job B's prompt gets Job A's most recent output prepended as context at runtime.\n\n```python\n# Job 1: Collect raw data\ncronjob(\n    action=\"create\",\n    prompt=\"Fetch the top 10 AI/ML stories from Hacker News. Save them to ~/.hermes/data/briefs/raw.md in markdown format with title, URL, and score.\",\n    schedule=\"0 7 * * *\",\n    name=\"AI News Collector\",\n)\n\n# Job 2: Triage — receives Job 1's output as context\n# Get Job 1's ID from: cronjob(action=\"list\")\ncronjob(\n    action=\"create\",\n    prompt=\"Read ~/.hermes/data/briefs/raw.md. Score each story 1–10 for engagement potential and novelty. Output the top 5 to ~/.hermes/data/briefs/ranked.md.\",\n    schedule=\"30 7 * * *\",\n    context_from=\"<job1_id>\",\n    name=\"AI News Triage\",\n)\n\n# Job 3: Ship — receives Job 2's output as context\ncronjob(\n    action=\"create\",\n    prompt=\"Read ~/.hermes/data/briefs/ranked.md. Write 3 tweet drafts (hook + body + hashtags). Deliver to telegram:7976161601.\",\n    schedule=\"0 8 * * *\",\n    context_from=\"<job2_id>\",\n    name=\"AI News Brief\",\n)\n```\n\n**How it works:**\n\n- When Job 2 fires, Hermes reads Job 1's most recent output from `~/.hermes/cron/output/{job1_id}/*.md`\n- That output is prepended to Job 2's prompt automatically\n- Job 2 doesn't need to hardcode \"read this file\" — it receives the content as context\n- The chain can be any length: Job 1 → Job 2 → Job 3 → ...\n\n**What `context_from` accepts:**\n\n| Format | Example |\n|--------|---------|\n| Single job ID (string) | `context_from=\"a1b2c3d4\"` |\n| Multiple job IDs (list) | `context_from=[\"job_a\", \"job_b\"]` |\n\nOutputs are concatenated in the order listed.\n\n**When to use it:**\n\n- Multi-stage pipelines (collect → filter → format → deliver)\n- Dependent tasks where step N's work depends on step N−1's output\n- Fan-out/fan-in patterns where one job aggregates results from several others\n\n## Provider recovery\n\nCron jobs inherit your configured fallback providers and credential pool rotation. If the primary API key is rate-limited or the provider returns an error, the cron agent can:\n\n- **Fall back to an alternate provider** if you have `fallback_providers` (or the legacy `fallback_model`) configured in `config.yaml`\n- **Rotate to the next credential** in your [credential pool](/docs/user-guide/configuration#credential-pool-strategies) for the same provider\n\nThis means cron jobs that run at high frequency or during peak hours are more resilient — a single rate-limited key won't fail the entire run.\n\n## Schedule formats\n\nThe agent's final response is automatically delivered — you do **not** need to include `send_message` in the cron prompt for that same destination. If a cron run calls `send_message` to the exact target the scheduler will already deliver to, Hermes skips that duplicate send and tells the model to put the user-facing content in the final response instead. Use `send_message` only for additional or different targets.\n\n### Relative delays (one-shot)\n\n```text\n30m     → Run once in 30 minutes\n2h      → Run once in 2 hours\n1d      → Run once in 1 day\n```\n\n### Intervals (recurring)\n\n```text\nevery 30m    → Every 30 minutes\nevery 2h     → Every 2 hours\nevery 1d     → Every day\n```\n\n### Cron expressions\n\n```text\n0 9 * * *       → Daily at 9:00 AM\n0 9 * * 1-5     → Weekdays at 9:00 AM\n0 */6 * * *     → Every 6 hours\n30 8 1 * *      → First of every month at 8:30 AM\n0 0 * * 0       → Every Sunday at midnight\n```\n\n### ISO timestamps\n\n```text\n2026-03-15T09:00:00    → One-time at March 15, 2026 9:00 AM\n```\n\n## Repeat behavior\n\n| Schedule type | Default repeat | Behavior |\n|--------------|----------------|----------|\n| One-shot (`30m`, timestamp) | 1 | Runs once |\n| Interval (`every 2h`) | forever | Runs until removed |\n| Cron expression | forever | Runs until removed |\n\nYou can override it:\n\n```python\ncronjob(\n    action=\"create\",\n    prompt=\"...\",\n    schedule=\"every 2h\",\n    repeat=5,\n)\n```\n\n## Managing jobs programmatically\n\nThe agent-facing API is one tool:\n\n```python\ncronjob(action=\"create\", ...)\ncronjob(action=\"list\")\ncronjob(action=\"update\", job_id=\"...\")\ncronjob(action=\"pause\", job_id=\"...\")\ncronjob(action=\"resume\", job_id=\"...\")\ncronjob(action=\"run\", job_id=\"...\")\ncronjob(action=\"remove\", job_id=\"...\")\n```\n\nFor `update`, pass `skills=[]` to remove all attached skills.\n\n## Toolsets available to cron jobs\n\nCron runs each job in a fresh agent session with no chat platform attached. By default the cron agent gets **the toolset you configured for the `cron` platform in `hermes tools`** — not the CLI default, not everything under the sun.\n\n```bash\nhermes tools\n# → pick the \"cron\" platform in the curses UI\n# → toggle toolsets on/off just like you would for Telegram/Discord/etc.\n```\n\nTighter per-job control is available via the `enabled_toolsets` field on `cronjob.create` (or on an existing job via `cronjob.update`):\n\n```text\ncronjob(action=\"create\", name=\"weekly-news-summary\",\n        schedule=\"every sunday 9am\",\n        enabled_toolsets=[\"web\", \"file\"],      # just web + file, no terminal/browser/etc.\n        prompt=\"Summarize this week's AI news: ...\")\n```\n\nWhen `enabled_toolsets` is set on a job it wins; otherwise the `hermes tools` cron-platform config wins; otherwise Hermes falls back to the built-in defaults. This matters for cost control: carrying `moa`, `browser`, `delegation` into every tiny \"fetch news\" job bloats the tool-schema prompt on every LLM call.\n\n### Skipping the agent entirely: `wakeAgent`\n\nIf your cron job attaches a pre-check script (via `script=`), the script can decide at runtime whether Hermes should even invoke the agent. Emit a final stdout line of the form:\n\n```text\n{\"wakeAgent\": false}\n```\n\n…and cron skips the agent run entirely for this tick. Useful for frequent polls (every 1–5 min) that only need to wake the LLM when state actually changed — otherwise you pay for zero-content agent turns over and over.\n\n```python\n# pre-check script\nimport json, sys\nlatest = fetch_latest_issue_count()\nprev = read_state(\"issue_count\")\nif latest == prev:\n    print(json.dumps({\"wakeAgent\": False}))   # skip this tick\n    sys.exit(0)\nwrite_state(\"issue_count\", latest)\nprint(json.dumps({\"wakeAgent\": True, \"context\": {\"new_issues\": latest - prev}}))\n```\n\nWhen `wakeAgent` is omitted, the default is `true` (wake the agent as usual).\n\n#### Recipes: cheap pre-run gates\n\nThe `wakeAgent` gate gives you a $0 way to decide whether a scheduled job should spend any LLM tokens at all. Three patterns cover most use cases.\n\n**File-change gate** — only run when a watched file has new content since the last successful tick. The scheduler records each job's `last_run_at`; compare it against the file's mtime.\n\n```bash\n#!/bin/bash\n# ~/.hermes/scripts/feed-changed.sh\nFEED=\"$HOME/data/feed.json\"\nSTATE=\"$HOME/.hermes/scripts/.feed-changed.last\"\ntest -f \"$FEED\" || { echo '{\"wakeAgent\": false}'; exit 0; }\nmtime=$(stat -c %Y \"$FEED\")\nlast=$(cat \"$STATE\" 2>/dev/null || echo 0)\nif [ \"$mtime\" -le \"$last\" ]; then\n  echo '{\"wakeAgent\": false}'\nelse\n  echo \"$mtime\" > \"$STATE\"\n  echo '{\"wakeAgent\": true}'\nfi\n```\n\n```text\ncronjob(action=\"create\", name=\"process-feed\",\n        schedule=\"every 30m\",\n        script=\"feed-changed.sh\",\n        prompt=\"A new ~/data/feed.json has landed. Summarize what changed.\")\n```\n\n**External-flag gate** — only run when some other process has signalled readiness (e.g. a deploy hook drops a file, a CI job sets a value in your state store).\n\n```bash\n#!/bin/bash\n# ~/.hermes/scripts/flag-ready.sh\nif test -f /tmp/new-data-ready; then\n  rm -f /tmp/new-data-ready\n  echo '{\"wakeAgent\": true}'\nelse\n  echo '{\"wakeAgent\": false}'\nfi\n```\n\n```text\ncronjob(action=\"create\", name=\"nightly-analysis\",\n        schedule=\"0 9 * * *\",\n        script=\"flag-ready.sh\",\n        prompt=\"Run the nightly analysis over today's batch.\")\n```\n\n**SQL-count gate** — only run when there are new rows to process in your own database. The script can also pass the count through to the agent via `context`, so the agent knows how much it's looking at without re-querying.\n\n```python\n#!/usr/bin/env python\n# ~/.hermes/scripts/new-rows.py\nimport json, sqlite3\nconn = sqlite3.connect(\"/home/me/data/app.db\")\nn = conn.execute(\n    \"SELECT COUNT(*) FROM messages WHERE ts > strftime('%s','now','-2 hours')\"\n).fetchone()[0]\nif n < 1:\n    print(json.dumps({\"wakeAgent\": False}))\nelse:\n    print(json.dumps({\"wakeAgent\": True, \"context\": {\"new_rows\": n}}))\n```\n\n```text\ncronjob(action=\"create\", name=\"summarize-new-msgs\",\n        schedule=\"every 2h\",\n        script=\"new-rows.py\",\n        prompt=\"Summarize the new messages from the last 2 hours.\")\n```\n\nThe same pattern works for any data source you can query from a script — Postgres, an HTTP API, your own state store — without baking a SQL evaluator into the cron subsystem.\n\n:::tip\nHermes's own `~/.hermes/state.db` is an internal schema that changes between releases. Don't query it from a pre-run gate — point at your own database or feed instead.\n:::\n\nCredit: this recipe set was prompted by @iankar8's exploration in [#2654](https://github.com/NousResearch/hermes-agent/pull/2654), which proposed adding sql/file/command triggers as a parallel mechanism. The `script` + `wakeAgent` gate already covers all three cases at $0, so the work landed as documentation instead.\n\n### Chaining jobs: `context_from`\n\nA cron job can consume the most recent successful output of one or more other jobs by listing their names (or IDs) in `context_from`:\n\n```text\ncronjob(action=\"create\", name=\"daily-digest\",\n        schedule=\"every day 7am\",\n        context_from=[\"ai-news-fetch\", \"github-prs-fetch\"],\n        prompt=\"Write the daily digest using the outputs above.\")\n```\n\nThe referenced jobs' most recent completed outputs are injected above the prompt as context for this run. Each upstream entry must be a valid job ID or name (see `cronjob action=\"list\"`). Note: chaining reads the *most recent completed* output — it does not wait for upstream jobs that are running in the same tick.\n\n## Job storage\n\nJobs are stored in `~/.hermes/cron/jobs.json`. Output from job runs is saved to `~/.hermes/cron/output/{job_id}/{timestamp}.md`.\n\nJobs may store `model` and `provider` as `null`. When those fields are omitted, Hermes resolves them at execution time from the global configuration. They only appear in the job record when a per-job override is set.\n\nThe storage uses atomic file writes so interrupted writes do not leave a partially written job file behind.\n\n## Self-contained prompts still matter\n\n:::warning Important\nCron jobs run in a completely fresh agent session. The prompt must contain everything the agent needs that is not already provided by attached skills.\n:::\n\n**BAD:** `\"Check on that server issue\"`\n\n**GOOD:** `\"SSH into server 192.168.1.100 as user 'deploy', check if nginx is running with 'systemctl status nginx', and verify https://example.com returns HTTP 200.\"`\n\n## Security\n\nScheduled task prompts are scanned for prompt-injection and credential-exfiltration patterns at creation and update time. Prompts containing invisible Unicode tricks, SSH backdoor attempts, or obvious secret-exfiltration payloads are blocked.\n\n---"
+}

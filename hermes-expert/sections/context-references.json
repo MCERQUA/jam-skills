@@ -1,0 +1,56 @@
+{
+  "id": "context-references",
+  "title": "Context References",
+  "source_path": "website/docs/user-guide/features/context-references.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/context-references",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Type `@` followed by a reference to inject content directly into your message. Hermes expands the reference inline and appends the content under an `--- Attached Context ---` section.",
+  "key_concepts": [
+    "Supported References",
+    "Usage Examples",
+    "CLI Tab Completion",
+    "Line Ranges",
+    "Size Limits",
+    "Security",
+    "Sensitive Path Blocking",
+    "Path Traversal Protection"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "",
+      "code": "Review @file:src/main.py and suggest improvements\n\nWhat changed? @diff\n\nCompare @file:old_config.yaml and @file:new_config.yaml\n\nWhat's in @folder:src/components?\n\nSummarize this article @url:https://arxiv.org/abs/2301.00001\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "Check @file:main.py, and also @file:test.py.\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "@file:src/main.py:42        # Single line 42\n@file:src/main.py:10-25     # Lines 10 through 25 (inclusive)\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "# Code review workflow\nReview @diff and check for security issues\n\n# Debug with context\nThis test is failing. Here's the test @file:tests/test_auth.py\nand the implementation @file:src/auth.py:50-80\n\n# Project exploration\nWhat does this project do? @folder:src @file:README.md\n\n# Research\nCompare the approaches in @url:https://arxiv.org/abs/2301.00001\nand @url:https://arxiv.org/abs/2301.00002\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "context",
+    "context-references",
+    "read_file",
+    "references",
+    "search_files",
+    "web_extract"
+  ],
+  "full_text": "# Context References\n\n# Context References\n\nType `@` followed by a reference to inject content directly into your message. Hermes expands the reference inline and appends the content under an `--- Attached Context ---` section.\n\n## Supported References\n\n| Syntax | Description |\n|--------|-------------|\n| `@file:path/to/file.py` | Inject file contents |\n| `@file:path/to/file.py:10-25` | Inject specific line range (1-indexed, inclusive) |\n| `@folder:path/to/dir` | Inject directory tree listing with file metadata |\n| `@diff` | Inject `git diff` (unstaged working tree changes) |\n| `@staged` | Inject `git diff --staged` (staged changes) |\n| `@git:5` | Inject last N commits with patches (max 10) |\n| `@url:https://example.com` | Fetch and inject web page content |\n\n## Usage Examples\n\n```text\nReview @file:src/main.py and suggest improvements\n\nWhat changed? @diff\n\nCompare @file:old_config.yaml and @file:new_config.yaml\n\nWhat's in @folder:src/components?\n\nSummarize this article @url:https://arxiv.org/abs/2301.00001\n```\n\nMultiple references work in a single message:\n\n```text\nCheck @file:main.py, and also @file:test.py.\n```\n\nTrailing punctuation (`,`, `.`, `;`, `!`, `?`) is automatically stripped from reference values.\n\n## CLI Tab Completion\n\nIn the interactive CLI, typing `@` triggers autocomplete:\n\n- `@` shows all reference types (`@diff`, `@staged`, `@file:`, `@folder:`, `@git:`, `@url:`)\n- `@file:` and `@folder:` trigger filesystem path completion with file size metadata\n- Bare `@` followed by partial text shows matching files and folders from the current directory\n\n## Line Ranges\n\nThe `@file:` reference supports line ranges for precise content injection:\n\n```text\n@file:src/main.py:42        # Single line 42\n@file:src/main.py:10-25     # Lines 10 through 25 (inclusive)\n```\n\nLines are 1-indexed. Invalid ranges are silently ignored (full file is returned).\n\n## Size Limits\n\nContext references are bounded to prevent overwhelming the model's context window:\n\n| Threshold | Value | Behavior |\n|-----------|-------|----------|\n| Soft limit | 25% of context length | Warning appended, expansion proceeds |\n| Hard limit | 50% of context length | Expansion refused, original message returned unchanged |\n| Folder entries | 200 files max | Excess entries replaced with `- ...` |\n| Git commits | 10 max | `@git:N` clamped to range [1, 10] |\n\n## Security\n\n### Sensitive Path Blocking\n\nThese paths are always blocked from `@file:` references to prevent credential exposure:\n\n- SSH keys and config: `~/.ssh/id_rsa`, `~/.ssh/id_ed25519`, `~/.ssh/authorized_keys`, `~/.ssh/config`\n- Shell profiles: `~/.bashrc`, `~/.zshrc`, `~/.profile`, `~/.bash_profile`, `~/.zprofile`\n- Credential files: `~/.netrc`, `~/.pgpass`, `~/.npmrc`, `~/.pypirc`\n- Hermes env: `$HERMES_HOME/.env`\n\nThese directories are fully blocked (any file inside):\n- `~/.ssh/`, `~/.aws/`, `~/.gnupg/`, `~/.kube/`, `$HERMES_HOME/skills/.hub/`\n\n### Path Traversal Protection\n\nAll paths are resolved relative to the working directory. References that resolve outside the allowed workspace root are rejected.\n\n### Binary File Detection\n\nBinary files are detected via MIME type and null-byte scanning. Known text extensions (`.py`, `.md`, `.json`, `.yaml`, `.toml`, `.js`, `.ts`, etc.) bypass MIME-based detection. Binary files are rejected with a warning.\n\n## Platform Availability\n\nContext references are primarily a **CLI feature**. They work in the interactive CLI where `@` triggers tab completion and references are expanded before the message is sent to the agent.\n\nIn **messaging platforms** (Telegram, Discord, etc.), the `@` syntax is not expanded by the gateway — messages are passed through as-is. The agent itself can still reference files via the `read_file`, `search_files`, and `web_extract` tools.\n\n## Interaction with Context Compression\n\nWhen conversation context is compressed, the expanded reference content is included in the compression summary. This means:\n\n- Large file contents injected via `@file:` contribute to context usage\n- If the conversation is later compressed, the file content is summarized (not preserved verbatim)\n- For very large files, consider using line ranges (`@file:main.py:100-200`) to inject only relevant sections\n\n## Common Patterns\n\n```text\n# Code review workflow\nReview @diff and check for security issues\n\n# Debug with context\nThis test is failing. Here's the test @file:tests/test_auth.py\nand the implementation @file:src/auth.py:50-80\n\n# Project exploration\nWhat does this project do? @folder:src @file:README.md\n\n# Research\nCompare the approaches in @url:https://arxiv.org/abs/2301.00001\nand @url:https://arxiv.org/abs/2301.00002\n```\n\n## Error Handling\n\nInvalid references produce inline warnings rather than failures:\n\n| Condition | Behavior |\n|-----------|----------|\n| File not found | Warning: \"file not found\" |\n| Binary file | Warning: \"binary files are not supported\" |\n| Folder not found | Warning: \"folder not found\" |\n| Git command fails | Warning with git stderr |\n| URL returns no content | Warning: \"no content extracted\" |\n| Sensitive path | Warning: \"path is a sensitive credential file\" |\n| Path outside workspace | Warning: \"path is outside the allowed workspace\" |\n\n---"
+}

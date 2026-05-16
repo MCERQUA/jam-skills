@@ -1,0 +1,134 @@
+{
+  "id": "messaging-wecom",
+  "title": "WeCom (Enterprise WeChat)",
+  "source_path": "website/docs/user-guide/messaging/wecom.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/wecom",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Connect Hermes to WeCom(https://work.weixin.qq.com/) (企业微信), Tencent's enterprise messaging platform. The adapter uses WeCom's AI Bot WebSocket gateway for real-time bidirectional communication — no public endpoint or webhook needed.",
+  "key_concepts": [
+    "Prerequisites",
+    "Setup",
+    "Step 1: Create an AI Bot",
+    "Step 2: Configure Hermes",
+    "Optional: restrict access",
+    "Optional: home channel for cron/notifications",
+    "Step 3: Start the gateway",
+    "Features"
+  ],
+  "env_vars": [
+    {
+      "name": "WECOM_BOT_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_SECRET",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_ALLOWED_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_HOME_CHANNEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_DM_POLICY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_GROUP_POLICY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "WECOM_WEBSOCKET_URL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway setup",
+      "purpose": ""
+    },
+    {
+      "command": "hermes gateway",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway setup\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway setup\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "WECOM_BOT_ID=your-bot-id\nWECOM_SECRET=your-secret\n\n# Optional: restrict access\nWECOM_ALLOWED_USERS=user_id_1,user_id_2\n\n# Optional: home channel for cron/notifications\nWECOM_HOME_CHANNEL=chat_id\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "WECOM_DM_POLICY=allowlist\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "WECOM_GROUP_POLICY=allowlist\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "platforms:\n  wecom:\n    enabled: true\n    extra:\n      bot_id: \"your-bot-id\"\n      secret: \"your-secret\"\n      group_policy: \"allowlist\"\n      group_allow_from:\n        - \"group_id_1\"\n        - \"group_id_2\"\n      groups:\n        group_id_1:\n          allow_from:\n            - \"user_alice\"\n            - \"user_bob\"\n        group_id_2:\n          allow_from:\n            - \"user_charlie\"\n        \"*\":\n          allow_from:\n            - \"user_admin\"\n"
+    }
+  ],
+  "gotchas": [
+    "Keep the Bot Secret private. Anyone with it can impersonate your bot."
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "(enterprise",
+    "aes",
+    "amr",
+    "application-level",
+    "case-insensitive",
+    "cbc",
+    "double-processing",
+    "fine-grained",
+    "messaging",
+    "mixed-type",
+    "pkcs",
+    "real-time",
+    "replied-to",
+    "reply-mode",
+    "scan-to-create"
+  ],
+  "full_text": "# WeCom (Enterprise WeChat)\n\n# WeCom (Enterprise WeChat)\n\nConnect Hermes to [WeCom](https://work.weixin.qq.com/) (企业微信), Tencent's enterprise messaging platform. The adapter uses WeCom's AI Bot WebSocket gateway for real-time bidirectional communication — no public endpoint or webhook needed.\n\n## Prerequisites\n\n- A WeCom organization account\n- An AI Bot created in the WeCom Admin Console\n- The Bot ID and Secret from the bot's credentials page\n- Python packages: `aiohttp` and `httpx`\n\n## Setup\n\n### Step 1: Create an AI Bot\n\n#### Recommended: Scan-to-Create (one command)\n\n```bash\nhermes gateway setup\n```\n\nSelect **WeCom** and scan the QR code with your WeCom mobile app. Hermes will automatically create a bot application with the correct permissions and save the credentials.\n\nThe setup wizard will:\n1. Display a QR code in your terminal\n2. Wait for you to scan it with the WeCom mobile app\n3. Automatically retrieve the Bot ID and Secret\n4. Guide you through access control configuration\n\n#### Alternative: Manual Setup\n\nIf scan-to-create is not available, the wizard falls back to manual input:\n\n1. Log in to the [WeCom Admin Console](https://work.weixin.qq.com/wework_admin/frame)\n2. Navigate to **Applications** → **Create Application** → **AI Bot**\n3. Configure the bot name and description\n4. Copy the **Bot ID** and **Secret** from the credentials page\n5. Run `hermes gateway setup`, select **WeCom**, and enter the credentials when prompted\n\n:::warning\nKeep the Bot Secret private. Anyone with it can impersonate your bot.\n:::\n\n### Step 2: Configure Hermes\n\n#### Option A: Interactive Setup (Recommended)\n\n```bash\nhermes gateway setup\n```\n\nSelect **WeCom** and follow the prompts. The wizard will guide you through:\n- Bot credentials (via QR scan or manual entry)\n- Access control settings (allowlist, pairing mode, or open access)\n- Home channel for notifications\n\n#### Option B: Manual Configuration\n\nAdd the following to `~/.hermes/.env`:\n\n```bash\nWECOM_BOT_ID=your-bot-id\nWECOM_SECRET=your-secret\n\n# Optional: restrict access\nWECOM_ALLOWED_USERS=user_id_1,user_id_2\n\n# Optional: home channel for cron/notifications\nWECOM_HOME_CHANNEL=chat_id\n```\n\n### Step 3: Start the gateway\n\n```bash\nhermes gateway\n```\n\n## Features\n\n- **WebSocket transport** — persistent connection, no public endpoint needed\n- **DM and group messaging** — configurable access policies\n- **Per-group sender allowlists** — fine-grained control over who can interact in each group\n- **Media support** — images, files, voice, video upload and download\n- **AES-encrypted media** — automatic decryption for inbound attachments\n- **Quote context** — preserves reply threading\n- **Markdown rendering** — rich text responses\n- **Reply-mode streaming** — correlates responses to inbound message context\n- **Auto-reconnect** — exponential backoff on connection drops\n\n## Configuration Options\n\nSet these in `config.yaml` under `platforms.wecom.extra`:\n\n| Key | Default | Description |\n|-----|---------|-------------|\n| `bot_id` | — | WeCom AI Bot ID (required) |\n| `secret` | — | WeCom AI Bot Secret (required) |\n| `websocket_url` | `wss://openws.work.weixin.qq.com` | WebSocket gateway URL |\n| `dm_policy` | `open` | DM access: `open`, `allowlist`, `disabled`, `pairing` |\n| `group_policy` | `open` | Group access: `open`, `allowlist`, `disabled` |\n| `allow_from` | `[]` | User IDs allowed for DMs (when dm_policy=allowlist) |\n| `group_allow_from` | `[]` | Group IDs allowed (when group_policy=allowlist) |\n| `groups` | `{}` | Per-group configuration (see below) |\n\n## Access Policies\n\n### DM Policy\n\nControls who can send direct messages to the bot:\n\n| Value | Behavior |\n|-------|----------|\n| `open` | Anyone can DM the bot (default) |\n| `allowlist` | Only user IDs in `allow_from` can DM |\n| `disabled` | All DMs are ignored |\n| `pairing` | Pairing mode (for initial setup) |\n\n```bash\nWECOM_DM_POLICY=allowlist\n```\n\n### Group Policy\n\nControls which groups the bot responds in:\n\n| Value | Behavior |\n|-------|----------|\n| `open` | Bot responds in all groups (default) |\n| `allowlist` | Bot only responds in group IDs listed in `group_allow_from` |\n| `disabled` | All group messages are ignored |\n\n```bash\nWECOM_GROUP_POLICY=allowlist\n```\n\n### Per-Group Sender Allowlists\n\nFor fine-grained control, you can restrict which users are allowed to interact with the bot within specific groups. This is configured in `config.yaml`:\n\n```yaml\nplatforms:\n  wecom:\n    enabled: true\n    extra:\n      bot_id: \"your-bot-id\"\n      secret: \"your-secret\"\n      group_policy: \"allowlist\"\n      group_allow_from:\n        - \"group_id_1\"\n        - \"group_id_2\"\n      groups:\n        group_id_1:\n          allow_from:\n            - \"user_alice\"\n            - \"user_bob\"\n        group_id_2:\n          allow_from:\n            - \"user_charlie\"\n        \"*\":\n          allow_from:\n            - \"user_admin\"\n```\n\n**How it works:**\n\n1. The `group_policy` and `group_allow_from` controls determine whether a group is allowed at all.\n2. If a group passes the top-level check, the `groups.<group_id>.allow_from` list (if present) further restricts which senders within that group can interact with the bot.\n3. A wildcard `\"*\"` group entry serves as a default for groups not explicitly listed.\n4. Allowlist entries support the `*` wildcard to allow all users, and entries are case-insensitive.\n5. Entries can optionally use the `wecom:user:` or `wecom:group:` prefix format — the prefix is stripped automatically.\n\nIf no `allow_from` is configured for a group, all users in that group are allowed (assuming the group itself passes the top-level policy check).\n\n## Media Support\n\n### Inbound (receiving)\n\nThe adapter receives media attachments from users and caches them locally for agent processing:\n\n| Type | How it's handled |\n|------|-----------------|\n| **Images** | Downloaded and cached locally. Supports both URL-based and base64-encoded images. |\n| **Files** | Downloaded and cached. Filename is preserved from the original message. |\n| **Voice** | Voice message text transcription is extracted if available. |\n| **Mixed messages** | WeCom mixed-type messages (text + images) are parsed and all components extracted. |\n\n**Quoted messages:** Media from quoted (replied-to) messages is also extracted, so the agent has context about what the user is replying to.\n\n### AES-Encrypted Media Decryption\n\nWeCom encrypts some inbound media attachments with AES-256-CBC. The adapter handles this automatically:\n\n- When an inbound media item includes an `aeskey` field, the adapter downloads the encrypted bytes and decrypts them using AES-256-CBC with PKCS#7 padding.\n- The AES key is the base64-decoded value of the `aeskey` field (must be exactly 32 bytes).\n- The IV is derived from the first 16 bytes of the key.\n- This requires the `cryptography` Python package (`pip install cryptography`).\n\nNo configuration is needed — decryption happens transparently when encrypted media is received.\n\n### Outbound (sending)\n\n| Method | What it sends | Size limit |\n|--------|--------------|------------|\n| `send` | Markdown text messages | 4000 chars |\n| `send_image` / `send_image_file` | Native image messages | 10 MB |\n| `send_document` | File attachments | 20 MB |\n| `send_voice` | Voice messages (AMR format only for native voice) | 2 MB |\n| `send_video` | Video messages | 10 MB |\n\n**Chunked upload:** Files are uploaded in 512 KB chunks through a three-step protocol (init → chunks → finish). The adapter handles this automatically.\n\n**Automatic downgrade:** When media exceeds the native type's size limit but is under the absolute 20 MB file limit, it is automatically sent as a generic file attachment instead:\n\n- Images > 10 MB → sent as file\n- Videos > 10 MB → sent as file\n- Voice > 2 MB → sent as file\n- Non-AMR audio → sent as file (WeCom only supports AMR for native voice)\n\nFiles exceeding the absolute 20 MB limit are rejected with an informational message sent to the chat.\n\n## Reply-Mode Stream Responses\n\nWhen the bot receives a message via the WeCom callback, the adapter remembers the inbound request ID. If a response is sent while the request context is still active, the adapter uses WeCom's reply-mode (`aibot_respond_msg`) with streaming to correlate the response directly to the inbound message. This provides a more natural conversation experience in the WeCom client.\n\nIf the inbound request context has expired or is unavailable, the adapter falls back to proactive message sending via `aibot_send_msg`.\n\nReply-mode also works for media: uploaded media can be sent as a reply to the originating message.\n\n## Connection and Reconnection\n\nThe adapter maintains a persistent WebSocket connection to WeCom's gateway at `wss://openws.work.weixin.qq.com`.\n\n### Connection Lifecycle\n\n1. **Connect:** Opens a WebSocket connection and sends an `aibot_subscribe` authentication frame with the bot_id and secret.\n2. **Heartbeat:** Sends application-level ping frames every 30 seconds to keep the connection alive.\n3. **Listen:** Continuously reads inbound frames and dispatches message callbacks.\n\n### Reconnection Behavior\n\nOn connection loss, the adapter uses exponential backoff to reconnect:\n\n| Attempt | Delay |\n|---------|-------|\n| 1st retry | 2 seconds |\n| 2nd retry | 5 seconds |\n| 3rd retry | 10 seconds |\n| 4th retry | 30 seconds |\n| 5th+ retry | 60 seconds |\n\nAfter each successful reconnection, the backoff counter resets to zero. All pending request futures are failed on disconnect so callers don't hang indefinitely.\n\n### Deduplication\n\nInbound messages are deduplicated using message IDs with a 5-minute window and a maximum cache of 1000 entries. This prevents double-processing of messages during reconnection or network hiccups.\n\n## All Environment Variables\n\n| Variable | Required | Default | Description |\n|----------|----------|---------|-------------|\n| `WECOM_BOT_ID` | ✅ | — | WeCom AI Bot ID |\n| `WECOM_SECRET` | ✅ | — | WeCom AI Bot Secret |\n| `WECOM_ALLOWED_USERS` | — | _(empty)_ | Comma-separated user IDs for the gateway-level allowlist |\n| `WECOM_HOME_CHANNEL` | — | — | Chat ID for cron/notification output |\n| `WECOM_WEBSOCKET_URL` | — | `wss://openws.work.weixin.qq.com` | WebSocket gateway URL |\n| `WECOM_DM_POLICY` | — | `open` | DM access policy |\n| `WECOM_GROUP_POLICY` | — | `open` | Group access policy |\n\n## Troubleshooting\n\n| Problem | Fix |\n|---------|-----|\n| `WECOM_BOT_ID and WECOM_SECRET are required` | Set both env vars or configure in setup wizard |\n| `WeCom startup failed: aiohttp not installed` | Install aiohttp: `pip install aiohttp` |\n| `WeCom startup failed: httpx not installed` | Install httpx: `pip install httpx` |\n| `invalid secret (errcode=40013)` | Verify the secret matches your bot's credentials |\n| `Timed out waiting for subscribe acknowledgement` | Check network connectivity to `openws.work.weixin.qq.com` |\n| Bot doesn't respond in groups | Check `group_policy` setting and ensure the group ID is in `group_allow_from` |\n| Bot ignores certain users in a group | Check per-group `allow_from` lists in the `groups` config section |\n| Media decryption fails | Install `cryptography`: `pip install cryptography` |\n| `cryptography is required for WeCom media decryption` | The inbound media is AES-encrypted. Install: `pip install cryptography` |\n| Voice messages sent as files | WeCom only supports AMR format for native voice. Other formats are auto-downgraded to file. |\n| `File too large` error | WeCom has a 20 MB absolute limit on all file uploads. Compress or split the file. |\n| Images sent as files | Images > 10 MB exceed the native image limit and are auto-downgraded to file attachments. |\n| `Timeout sending message to WeCom` | The WebSocket may have disconnected. Check logs for reconnection messages. |\n| `WeCom websocket closed during authentication` | Network issue or incorrect credentials. Verify bot_id and secret. |\n\n---"
+}

@@ -1,0 +1,137 @@
+{
+  "id": "messaging-qqbot",
+  "title": "user-guide/messaging/qqbot.md",
+  "source_path": "website/docs/user-guide/messaging/qqbot.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/qqbot",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Connect Hermes to QQ via the Official QQ Bot API (v2) — supporting private (C2C), group @-mentions, guild, and direct messages with voice transcription.",
+  "key_concepts": [
+    "QQ Bot",
+    "Overview",
+    "Prerequisites",
+    "Configuration",
+    "Interactive setup",
+    "Manual configuration",
+    "Environment Variables",
+    "Advanced Configuration"
+  ],
+  "env_vars": [
+    {
+      "name": "QQ_APP_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQ_CLIENT_SECRET",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQBOT_HOME_CHANNEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQBOT_HOME_CHANNEL_NAME",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQ_ALLOWED_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQ_GROUP_ALLOWED_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQ_ALLOW_ALL_USERS",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQ_PORTAL_HOST",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQ_STT_API_KEY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQ_STT_BASE_URL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "QQ_STT_MODEL",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway setup",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "   pip install aiohttp httpx\n   "
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway setup\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "QQ_APP_ID=your-app-id\nQQ_CLIENT_SECRET=your-app-secret\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "platforms:\n  qqbot:\n    enabled: true\n    extra:\n      app_id: \"your-app-id\"\n      client_secret: \"your-secret\"\n      markdown_support: true       # enable QQ markdown (msg_type 2). Config-only; no env-var equivalent.\n      dm_policy: \"open\"          # open | allowlist | disabled\n      allow_from:\n        - \"user_openid_1\"\n      group_policy: \"open\"       # open | allowlist | disabled\n      group_allow_from:\n        - \"group_openid_1\"\n      stt:\n        provider: \"zai\"          # zai (GLM-ASR), openai (Whisper), etc.\n        baseUrl: \"https://open.bigmodel.cn/api/coding/paas/v4\"\n        apiKey: \"your-stt-key\"\n        model: \"glm-asr\"\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "api",
+    "asr",
+    "built-in",
+    "c2c",
+    "env-var",
+    "fine-grained",
+    "glm",
+    "glm-asr",
+    "messaging",
+    "qqbot",
+    "rest",
+    "stt",
+    "user-guide",
+    "user-guide/messaging/qqbot.md",
+    "voice-to-text"
+  ],
+  "full_text": "# user-guide/messaging/qqbot.md\n\n# QQ Bot\n\nConnect Hermes to QQ via the **Official QQ Bot API (v2)** — supporting private (C2C), group @-mentions, guild, and direct messages with voice transcription.\n\n## Overview\n\nThe QQ Bot adapter uses the [Official QQ Bot API](https://bot.q.qq.com/wiki/develop/api-v2/) to:\n\n- Receive messages via a persistent **WebSocket** connection to the QQ Gateway\n- Send text and markdown replies via the **REST API**\n- Download and process images, voice messages, and file attachments\n- Transcribe voice messages using Tencent's built-in ASR or a configurable STT provider\n\n## Prerequisites\n\n1. **QQ Bot Application** — Register at [q.qq.com](https://q.qq.com):\n   - Create a new application and note your **App ID** and **App Secret**\n   - Enable the required intents: C2C messages, Group @-messages, Guild messages\n   - Configure your bot in sandbox mode for testing, or publish for production\n\n2. **Dependencies** — The adapter requires `aiohttp` and `httpx`:\n   ```bash\n   pip install aiohttp httpx\n   ```\n\n## Configuration\n\n### Interactive setup\n\n```bash\nhermes gateway setup\n```\n\nSelect **QQ Bot** from the platform list and follow the prompts.\n\n### Manual configuration\n\nSet the required environment variables in `~/.hermes/.env`:\n\n```bash\nQQ_APP_ID=your-app-id\nQQ_CLIENT_SECRET=your-app-secret\n```\n\n## Environment Variables\n\n| Variable | Description | Default |\n|---|---|---|\n| `QQ_APP_ID` | QQ Bot App ID (required) | — |\n| `QQ_CLIENT_SECRET` | QQ Bot App Secret (required) | — |\n| `QQBOT_HOME_CHANNEL` | OpenID for cron/notification delivery | — |\n| `QQBOT_HOME_CHANNEL_NAME` | Display name for home channel | `Home` |\n| `QQ_ALLOWED_USERS` | Comma-separated user OpenIDs for DM access | open (all users) |\n| `QQ_GROUP_ALLOWED_USERS` | Comma-separated group OpenIDs for group access | — |\n| `QQ_ALLOW_ALL_USERS` | Set to `true` to allow all DMs | `false` |\n| `QQ_PORTAL_HOST` | Override the QQ portal host (set to `sandbox.q.qq.com` for sandbox routing) | `q.qq.com` |\n| `QQ_STT_API_KEY` | API key for voice-to-text provider | — |\n| `QQ_STT_BASE_URL` | (Not read directly — set `platforms.qqbot.extra.stt.baseUrl` in `config.yaml` instead) | n/a |\n| `QQ_STT_MODEL` | STT model name | `glm-asr` |\n\n## Advanced Configuration\n\nFor fine-grained control, add platform settings to `~/.hermes/config.yaml`:\n\n```yaml\nplatforms:\n  qqbot:\n    enabled: true\n    extra:\n      app_id: \"your-app-id\"\n      client_secret: \"your-secret\"\n      markdown_support: true       # enable QQ markdown (msg_type 2). Config-only; no env-var equivalent.\n      dm_policy: \"open\"          # open | allowlist | disabled\n      allow_from:\n        - \"user_openid_1\"\n      group_policy: \"open\"       # open | allowlist | disabled\n      group_allow_from:\n        - \"group_openid_1\"\n      stt:\n        provider: \"zai\"          # zai (GLM-ASR), openai (Whisper), etc.\n        baseUrl: \"https://open.bigmodel.cn/api/coding/paas/v4\"\n        apiKey: \"your-stt-key\"\n        model: \"glm-asr\"\n```\n\n## Voice Messages (STT)\n\nVoice transcription works in two stages:\n\n1. **QQ built-in ASR** (free, always tried first) — QQ provides `asr_refer_text` in voice message attachments, which uses Tencent's own speech recognition\n2. **Configured STT provider** (fallback) — If QQ's ASR doesn't return text, the adapter calls an OpenAI-compatible STT API:\n\n   - **Zhipu/GLM (zai)**: Default provider, uses `glm-asr` model\n   - **OpenAI Whisper**: Set `QQ_STT_BASE_URL` and `QQ_STT_MODEL`\n   - Any OpenAI-compatible STT endpoint\n\n## Troubleshooting\n\n### Bot disconnects immediately (quick disconnect)\n\nThis usually means:\n- **Invalid App ID / Secret** — Double-check your credentials at q.qq.com\n- **Missing permissions** — Ensure the bot has the required intents enabled\n- **Sandbox-only bot** — If the bot is in sandbox mode, it can only receive messages from QQ's sandbox test channel\n\n### Voice messages not transcribed\n\n1. Check if QQ's built-in `asr_refer_text` is present in the attachment data\n2. If using a custom STT provider, verify `QQ_STT_API_KEY` is set correctly\n3. Check gateway logs for STT error messages\n\n### Messages not delivered\n\n- Verify the bot's **intents** are enabled at q.qq.com\n- Check `QQ_ALLOWED_USERS` if DM access is restricted\n- For group messages, ensure the bot is **@mentioned** (group policy may require allowlisting)\n- Check `QQBOT_HOME_CHANNEL` for cron/notification delivery\n\n### Connection errors\n\n- Ensure `aiohttp` and `httpx` are installed: `pip install aiohttp httpx`\n- Check network connectivity to `api.sgroup.qq.com` and the WebSocket gateway\n- Review gateway logs for detailed error messages and reconnect behavior\n\n---"
+}

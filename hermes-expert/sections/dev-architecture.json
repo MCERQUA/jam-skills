@@ -1,0 +1,71 @@
+{
+  "id": "dev-architecture",
+  "title": "Architecture",
+  "source_path": "website/docs/developer-guide/architecture.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/architecture",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Top-level map of Hermes Agent internals covering directory structure, major subsystems (agent loop, prompt system, provider resolution, tool system, session persistence, gateway, plugin system, cron, ACP, trajectories), data flow, and design principles.",
+  "key_concepts": [
+    "AIAgent",
+    "directory structure",
+    "subsystems",
+    "data flow",
+    "design principles",
+    "profile isolation",
+    "file dependency chain"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "System overview ASCII diagram",
+      "code": "CLI (cli.py) / Gateway (gateway/run.py) / ACP → AIAgent (run_agent.py)\n  → Prompt Builder / Provider Resolution / Tool Dispatch\n  → Session Storage (SQLite+FTS5) / Tool Backends"
+    },
+    {
+      "language": "text",
+      "caption": "CLI session data flow",
+      "code": "User input → HermesCLI.process_input()\n  → AIAgent.run_conversation()\n    → prompt_builder.build_system_prompt()\n    → runtime_provider.resolve_runtime_provider()\n    → API call → tool_calls? → handle_function_call() → loop\n    → final response → display → save to SessionDB"
+    },
+    {
+      "language": "text",
+      "caption": "File dependency chain",
+      "code": "tools/registry.py (no deps)\n  ↑ tools/*.py\n  ↑ model_tools.py\n  ↑ run_agent.py, cli.py, batch_runner.py"
+    }
+  ],
+  "gotchas": [
+    "Tool registration happens at import time before any agent instance is created",
+    "Any tools/*.py with top-level registry.register() is auto-discovered — no manual import list needed"
+  ],
+  "cross_refs": [
+    "dev-agent-loop",
+    "dev-prompt-assembly",
+    "dev-provider-runtime",
+    "dev-adding-tools",
+    "dev-adding-providers",
+    "dev-session-storage",
+    "dev-gateway-internals",
+    "dev-context-compression",
+    "dev-acp-internals",
+    "dev-trajectory-format",
+    "dev-cron-internals"
+  ],
+  "keywords": [
+    "architecture",
+    "directory structure",
+    "AIAgent",
+    "subsystems",
+    "plugin system",
+    "session storage",
+    "gateway",
+    "cron",
+    "ACP",
+    "tool registry",
+    "data flow",
+    "design principles"
+  ],
+  "full_text": "# Architecture\n\nThis page is the top-level map of Hermes Agent internals. Use it to orient yourself in the codebase, then dive into subsystem-specific docs for implementation details.\n\n## System Overview\n\n```text\n┌─────────────────────────────────────────────────────────────────────┐\n│                        Entry Points                                  │\n│  CLI (cli.py)    Gateway (gateway/run.py)    ACP (acp_adapter/)     │\n└──────────┬──────────────┬───────────────────────┬───────────────────┘\n           │              │                       │\n           ▼              ▼                       ▼\n┌─────────────────────────────────────────────────────────────────────┐\n│                     AIAgent (run_agent.py)                          │\n│  Prompt Builder  |  Provider Resolution  |  Tool Dispatch           │\n│  Compression     |  3 API Modes          |  Tool Registry           │\n└─────────┬─────────────────┬─────────────────┬───────────────────────┘\n           │                │                 │\n           ▼                                  ▼\n┌───────────────────┐              ┌──────────────────────┐\n│ Session Storage   │              │ Tool Backends         │\n│ (SQLite + FTS5)   │              │ Terminal (7 backends) │\n│ hermes_state.py   │              │ Browser (5 backends)  │\n└───────────────────┘              │ MCP (dynamic), etc.   │\n                                   └──────────────────────┘\n```\n\n## Directory Structure\n\n```text\nhermes-agent/\n├── run_agent.py              # AIAgent — core conversation loop\n├── cli.py                    # HermesCLI — interactive terminal UI\n├── model_tools.py            # Tool discovery, schema collection, dispatch\n├── toolsets.py               # Tool groupings and platform presets\n├── hermes_state.py           # SQLite session/state database with FTS5\n├── hermes_constants.py       # HERMES_HOME, profile-aware paths\n├── batch_runner.py           # Batch trajectory generation\n├── agent/                    # Agent internals\n│   ├── prompt_builder.py     # System prompt assembly\n│   ├── context_engine.py     # ContextEngine ABC (pluggable)\n│   ├── context_compressor.py # Default engine — lossy summarization\n│   ├── prompt_caching.py     # Anthropic prompt caching\n│   ├── auxiliary_client.py   # Auxiliary LLM for side tasks\n│   └── trajectory.py         # Trajectory saving helpers\n├── hermes_cli/               # CLI subcommands and setup\n│   ├── main.py               # Entry point — all `hermes` subcommands\n│   ├── config.py             # DEFAULT_CONFIG, OPTIONAL_ENV_VARS, migration\n│   ├── commands.py           # COMMAND_REGISTRY — central slash command definitions\n│   ├── auth.py               # PROVIDER_REGISTRY, credential resolution\n│   ├── runtime_provider.py   # Provider → api_mode + credentials\n│   └── plugins.py            # PluginManager — discovery, loading, hooks\n├── tools/                    # Tool implementations (one file per tool)\n│   ├── registry.py           # Central tool registry\n│   ├── approval.py           # Dangerous command detection\n│   └── environments/         # Terminal backends\n├── gateway/                  # Messaging platform gateway\n│   ├── run.py                # GatewayRunner — message dispatch\n│   ├── session.py            # SessionStore — conversation persistence\n│   └── platforms/            # 20 adapters: telegram, discord, slack, etc.\n├── acp_adapter/              # ACP server (VS Code / Zed / JetBrains)\n├── cron/                     # Scheduler (jobs.py, scheduler.py)\n├── plugins/memory/           # Memory provider plugins\n├── plugins/context_engine/   # Context engine plugins\n├── skills/                   # Bundled skills (always available)\n├── optional-skills/          # Official optional skills\n└── tests/                    # Pytest suite (~3,000+ tests)\n```\n\n## Data Flow\n\n### CLI Session\n\n```text\nUser input → HermesCLI.process_input()\n  → AIAgent.run_conversation()\n    → prompt_builder.build_system_prompt()\n    → runtime_provider.resolve_runtime_provider()\n    → API call (chat_completions / codex_responses / anthropic_messages)\n    → tool_calls? → model_tools.handle_function_call() → loop\n    → final response → display → save to SessionDB\n```\n\n### Gateway Message\n\n```text\nPlatform event → Adapter.on_message() → MessageEvent\n  → GatewayRunner._handle_message()\n    → authorize user → resolve session key\n    → create AIAgent with session history\n    → AIAgent.run_conversation()\n    → deliver response back through adapter\n```\n\n## Design Principles\n\n| Principle | What it means in practice |\n|-----------|--------------------------|\n| **Prompt stability** | System prompt doesn't change mid-conversation. |\n| **Observable execution** | Every tool call is visible via callbacks. |\n| **Interruptible** | API calls and tool execution can be cancelled. |\n| **Platform-agnostic core** | One AIAgent class serves CLI, gateway, ACP, batch, and API server. |\n| **Loose coupling** | Optional subsystems use registry patterns and check_fn gating. |\n| **Profile isolation** | Each profile gets its own HERMES_HOME, config, memory, sessions, and gateway PID. |\n\n## File Dependency Chain\n\n```text\ntools/registry.py  (no deps — imported by all tool files)\n       ↑\ntools/*.py  (each calls registry.register() at import time)\n       ↑\nmodel_tools.py  (imports tools/registry + triggers tool discovery)\n       ↑\nrun_agent.py, cli.py, batch_runner.py, environments/\n```"
+}

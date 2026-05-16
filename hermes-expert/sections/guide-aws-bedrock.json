@@ -1,0 +1,143 @@
+{
+  "id": "guide-aws-bedrock",
+  "title": "AWS Bedrock",
+  "source_path": "website/docs/guides/aws-bedrock.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/aws-bedrock",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Hermes Agent supports Amazon Bedrock as a native provider using the **Converse API** — not the OpenAI-compatible endpoint. This gives you full access to the Bedrock ecosystem: IAM authentication, Guardrails, cross-region inference profiles, and all foundation models. - **AWS credentials** — any s...",
+  "key_concepts": [
+    "Prerequisites",
+    "Quick Start",
+    "Configuration",
+    "Region",
+    "Guardrails",
+    "Model Discovery",
+    "Available Models",
+    "Switching Models Mid-Session"
+  ],
+  "env_vars": [
+    {
+      "name": "AWS_ACCESS_KEY_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "AWS_SECRET_ACCESS_KEY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "AWS_PROFILE",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "AWS_REGION",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "AWS_DEFAULT_REGION",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "AWS_BEARER_TOKEN_BEDROCK",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes model",
+      "purpose": ""
+    },
+    {
+      "command": "hermes chat",
+      "purpose": ""
+    },
+    {
+      "command": "hermes doctor",
+      "purpose": ""
+    },
+    {
+      "command": "hermes gateway setup",
+      "purpose": ""
+    },
+    {
+      "command": "hermes gateway start",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/model",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Install with Bedrock support\npip install hermes-agent[bedrock]\n\n# Select Bedrock as your provider\nhermes model\n# → Choose \"More providers...\" → \"AWS Bedrock\"\n# → Select your region and model\n\n# Start chatting\nhermes chat"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "model:\n  default: us.anthropic.claude-sonnet-4-6\n  provider: bedrock\n  base_url: https://bedrock-runtime.us-east-2.amazonaws.com\n\nbedrock:\n  region: us-east-2"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "bedrock:\n  region: us-east-2\n  guardrail:\n    guardrail_identifier: \"abc123def456\"  # From the Bedrock console\n    guardrail_version: \"1\"                # Version number or \"DRAFT\"\n    stream_processing_mode: \"async\"       # \"sync\" or \"async\"\n    trace: \"disabled\"                     # \"enabled\", \"disabled\", or \"enabled_full\""
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "bedrock:\n  discovery:\n    enabled: true\n    provider_filter: [\"anthropic\", \"amazon\"]  # Only show these providers\n    refresh_interval: 3600                     # Cache for 1 hour"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "/model us.amazon.nova-pro-v1:0\n/model deepseek.v3.2\n/model us.anthropic.claude-opus-4-6-v1"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes doctor"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes gateway setup\nhermes gateway start"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "api",
+    "available",
+    "aws",
+    "bedrock",
+    "chatting",
+    "choose",
+    "click",
+    "command",
+    "config",
+    "configuration",
+    "credentials",
+    "demand",
+    "deployment",
+    "diagnostics",
+    "discovery"
+  ],
+  "full_text": "# AWS Bedrock\n\n# AWS Bedrock\n\nHermes Agent supports Amazon Bedrock as a native provider using the **Converse API** — not the OpenAI-compatible endpoint. This gives you full access to the Bedrock ecosystem: IAM authentication, Guardrails, cross-region inference profiles, and all foundation models.\n\n## Prerequisites\n\n- **AWS credentials** — any source supported by the [boto3 credential chain](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html):\n  - IAM instance role (EC2, ECS, Lambda — zero config)\n  - `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` environment variables\n  - `AWS_PROFILE` for SSO or named profiles\n  - `aws configure` for local development\n- **boto3** — install with `pip install hermes-agent[bedrock]`\n- **IAM permissions** — at minimum:\n  - `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` (for inference)\n  - `bedrock:ListFoundationModels` and `bedrock:ListInferenceProfiles` (for model discovery)\n\n:::tip EC2 / ECS / Lambda\nOn AWS compute, attach an IAM role with `AmazonBedrockFullAccess` and you're done. No API keys, no `.env` configuration — Hermes detects the instance role automatically.\n:::\n\n## Quick Start\n\n```bash\n# Install with Bedrock support\npip install hermes-agent[bedrock]\n\n# Select Bedrock as your provider\nhermes model\n# → Choose \"More providers...\" → \"AWS Bedrock\"\n# → Select your region and model\n\n# Start chatting\nhermes chat\n```\n\n## Configuration\n\nAfter running `hermes model`, your `~/.hermes/config.yaml` will contain:\n\n```yaml\nmodel:\n  default: us.anthropic.claude-sonnet-4-6\n  provider: bedrock\n  base_url: https://bedrock-runtime.us-east-2.amazonaws.com\n\nbedrock:\n  region: us-east-2\n```\n\n### Region\n\nSet the AWS region in any of these ways (highest priority first):\n\n1. `bedrock.region` in `config.yaml`\n2. `AWS_REGION` environment variable\n3. `AWS_DEFAULT_REGION` environment variable\n4. Default: `us-east-1`\n\n### Guardrails\n\nTo apply [Amazon Bedrock Guardrails](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html) to all model invocations:\n\n```yaml\nbedrock:\n  region: us-east-2\n  guardrail:\n    guardrail_identifier: \"abc123def456\"  # From the Bedrock console\n    guardrail_version: \"1\"                # Version number or \"DRAFT\"\n    stream_processing_mode: \"async\"       # \"sync\" or \"async\"\n    trace: \"disabled\"                     # \"enabled\", \"disabled\", or \"enabled_full\"\n```\n\n### Model Discovery\n\nHermes auto-discovers available models via the Bedrock control plane. You can customize discovery:\n\n```yaml\nbedrock:\n  discovery:\n    enabled: true\n    provider_filter: [\"anthropic\", \"amazon\"]  # Only show these providers\n    refresh_interval: 3600                     # Cache for 1 hour\n```\n\n## Available Models\n\nBedrock models use **inference profile IDs** for on-demand invocation. The `hermes model` picker shows these automatically, with recommended models at the top:\n\n| Model | ID | Notes |\n|-------|-----|-------|\n| Claude Sonnet 4.6 | `us.anthropic.claude-sonnet-4-6` | Recommended — best balance of speed and capability |\n| Claude Opus 4.6 | `us.anthropic.claude-opus-4-6-v1` | Most capable |\n| Claude Haiku 4.5 | `us.anthropic.claude-haiku-4-5-20251001-v1:0` | Fastest Claude |\n| Amazon Nova Pro | `us.amazon.nova-pro-v1:0` | Amazon's flagship |\n| Amazon Nova Micro | `us.amazon.nova-micro-v1:0` | Fastest, cheapest |\n| DeepSeek V3.2 | `deepseek.v3.2` | Strong open model |\n| Llama 4 Scout 17B | `us.meta.llama4-scout-17b-instruct-v1:0` | Meta's latest |\n\n:::info Cross-Region Inference\nModels prefixed with `us.` use cross-region inference profiles, which provide better capacity and automatic failover across AWS regions. Models prefixed with `global.` route across all available regions worldwide.\n:::\n\n## Switching Models Mid-Session\n\nUse the `/model` command during a conversation:\n\n```\n/model us.amazon.nova-pro-v1:0\n/model deepseek.v3.2\n/model us.anthropic.claude-opus-4-6-v1\n```\n\n## Diagnostics\n\n```bash\nhermes doctor\n```\n\nThe doctor checks:\n- Whether AWS credentials are available (env vars, IAM role, SSO)\n- Whether `boto3` is installed\n- Whether the Bedrock API is reachable (ListFoundationModels)\n- Number of available models in your region\n\n## Gateway (Messaging Platforms)\n\nBedrock works with all Hermes gateway platforms (Telegram, Discord, Slack, Feishu, etc.). Configure Bedrock as your provider, then start the gateway normally:\n\n```bash\nhermes gateway setup\nhermes gateway start\n```\n\nThe gateway reads `config.yaml` and uses the same Bedrock provider configuration.\n\n## Troubleshooting\n\n### \"No API key found\" / \"No AWS credentials\"\n\nHermes checks for credentials in this order:\n1. `AWS_BEARER_TOKEN_BEDROCK`\n2. `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`\n3. `AWS_PROFILE`\n4. EC2 instance metadata (IMDS)\n5. ECS container credentials\n6. Lambda execution role\n\nIf none are found, run `aws configure` or attach an IAM role to your compute instance.\n\n### \"Invocation of model ID ... with on-demand throughput isn't supported\"\n\nUse an **inference profile ID** (prefixed with `us.` or `global.`) instead of the bare foundation model ID. For example:\n- ❌ `anthropic.claude-sonnet-4-6`\n- ✅ `us.anthropic.claude-sonnet-4-6`\n\n### \"ThrottlingException\"\n\nYou've hit the Bedrock per-model rate limit. Hermes automatically retries with backoff. To increase limits, request a quota increase in the [AWS Service Quotas console](https://console.aws.amazon.com/servicequotas/).\n\n## One-Click AWS Deployment\n\nFor a fully automated deployment on EC2 with CloudFormation:\n\n**[sample-hermes-agent-on-aws-with-bedrock](https://github.com/JiaDe-Wu/sample-hermes-agent-on-aws-with-bedrock)** — creates VPC, IAM role, EC2 instance, and configures Bedrock automatically. Deploy in any region with one click.\n\n---"
+}

@@ -1,0 +1,207 @@
+{
+  "id": "mcp",
+  "title": "MCP (Model Context Protocol)",
+  "source_path": "website/docs/user-guide/features/mcp.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "How to connect Hermes Agent to external tool servers via Model Context Protocol (MCP), including stdio and HTTP server types, per-server tool filtering, dynamic tool discovery, MCP sampling support, and running Hermes itself as an MCP server.",
+  "key_concepts": [
+    "MCP servers",
+    "stdio transport",
+    "HTTP transport",
+    "tool filtering",
+    "tool discovery",
+    "MCP sampling",
+    "Hermes as MCP server",
+    "tool prefixing",
+    "utility wrappers"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes mcp serve",
+      "purpose": "Start Hermes as an MCP server (stdio)"
+    },
+    {
+      "command": "hermes mcp serve --verbose",
+      "purpose": "Start MCP server with debug logging"
+    },
+    {
+      "command": "hermes mcp add <name> --command <cmd>",
+      "purpose": "Add an MCP server to config"
+    },
+    {
+      "command": "hermes mcp test <name>",
+      "purpose": "Test an MCP server connection"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "mcp_servers.<name>.command",
+      "type": "string",
+      "default": null,
+      "description": "Executable for a stdio MCP server",
+      "example": "npx"
+    },
+    {
+      "path": "mcp_servers.<name>.args",
+      "type": "list",
+      "default": null,
+      "description": "Arguments for the stdio server",
+      "example": "[\"-y\", \"@modelcontextprotocol/server-filesystem\", \"/tmp\"]"
+    },
+    {
+      "path": "mcp_servers.<name>.env",
+      "type": "object",
+      "default": null,
+      "description": "Environment variables passed to stdio server",
+      "example": "GITHUB_PERSONAL_ACCESS_TOKEN: '***'"
+    },
+    {
+      "path": "mcp_servers.<name>.url",
+      "type": "string",
+      "default": null,
+      "description": "HTTP MCP endpoint URL",
+      "example": "https://mcp.example.com/mcp"
+    },
+    {
+      "path": "mcp_servers.<name>.headers",
+      "type": "object",
+      "default": null,
+      "description": "HTTP headers for remote servers",
+      "example": "Authorization: Bearer ***"
+    },
+    {
+      "path": "mcp_servers.<name>.enabled",
+      "type": "boolean",
+      "default": true,
+      "description": "If false, Hermes skips this server entirely",
+      "example": "false"
+    },
+    {
+      "path": "mcp_servers.<name>.timeout",
+      "type": "number",
+      "default": null,
+      "description": "Tool call timeout in seconds",
+      "example": "30"
+    },
+    {
+      "path": "mcp_servers.<name>.connect_timeout",
+      "type": "number",
+      "default": null,
+      "description": "Initial connection timeout in seconds",
+      "example": "10"
+    },
+    {
+      "path": "mcp_servers.<name>.tools.include",
+      "type": "list",
+      "default": null,
+      "description": "Whitelist of tool names to register from this server",
+      "example": "[create_issue, list_issues]"
+    },
+    {
+      "path": "mcp_servers.<name>.tools.exclude",
+      "type": "list",
+      "default": null,
+      "description": "Blacklist of tool names to exclude",
+      "example": "[delete_customer]"
+    },
+    {
+      "path": "mcp_servers.<name>.tools.resources",
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to register resource utility wrappers",
+      "example": "false"
+    },
+    {
+      "path": "mcp_servers.<name>.tools.prompts",
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to register prompt utility wrappers",
+      "example": "false"
+    },
+    {
+      "path": "mcp_servers.<name>.sampling.enabled",
+      "type": "boolean",
+      "default": true,
+      "description": "Enable MCP sampling (server requesting LLM inference)",
+      "example": "true"
+    },
+    {
+      "path": "mcp_servers.<name>.sampling.max_rpm",
+      "type": "integer",
+      "default": 10,
+      "description": "Rate limit for sampling requests per minute",
+      "example": "10"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/reload-mcp",
+      "purpose": "Reload MCP servers from config and refresh tool list"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "Filesystem stdio server",
+      "code": "mcp_servers:\n  filesystem:\n    command: \"npx\"\n    args: [\"-y\", \"@modelcontextprotocol/server-filesystem\", \"/home/user/projects\"]"
+    },
+    {
+      "language": "yaml",
+      "caption": "HTTP MCP server",
+      "code": "mcp_servers:\n  remote_api:\n    url: \"https://mcp.example.com/mcp\"\n    headers:\n      Authorization: \"Bearer ***\""
+    },
+    {
+      "language": "yaml",
+      "caption": "GitHub with whitelist filter",
+      "code": "mcp_servers:\n  github:\n    command: \"npx\"\n    args: [\"-y\", \"@modelcontextprotocol/server-github\"]\n    env:\n      GITHUB_PERSONAL_ACCESS_TOKEN: \"***\"\n    tools:\n      include: [create_issue, list_issues, search_code]\n      prompts: false"
+    },
+    {
+      "language": "yaml",
+      "caption": "MCP sampling config",
+      "code": "mcp_servers:\n  my_server:\n    command: \"my-mcp-server\"\n    sampling:\n      enabled: true\n      max_tokens_cap: 4096\n      timeout: 30\n      max_rpm: 10"
+    },
+    {
+      "language": "json",
+      "caption": "Hermes as MCP server in Claude Code config",
+      "code": "{\n  \"mcpServers\": {\n    \"hermes\": {\n      \"command\": \"hermes\",\n      \"args\": [\"mcp\", \"serve\"]\n    }\n  }\n}"
+    }
+  ],
+  "gotchas": [
+    "MCP tools are prefixed as mcp_<server_name>_<tool_name> to avoid naming collisions",
+    "Resource and prompt utility tools only register if the MCP session actually supports those capabilities",
+    "If include and exclude are both set, include wins",
+    "Stdio servers only receive explicitly configured env vars plus a safe baseline — not the full shell environment",
+    "hermes mcp serve is stdio-only (no HTTP MCP transport yet)",
+    "Dynamic tool discovery via notifications/tools/list_changed is lock-protected to prevent overlapping refreshes"
+  ],
+  "cross_refs": [
+    "integrations-overview",
+    "guide-use-mcp",
+    "ref-mcp-config",
+    "ref-cli-commands",
+    "ref-slash-commands"
+  ],
+  "keywords": [
+    "MCP",
+    "Model Context Protocol",
+    "tool servers",
+    "stdio",
+    "HTTP",
+    "SSE",
+    "GitHub",
+    "filesystem",
+    "tool filtering",
+    "whitelist",
+    "blacklist",
+    "sampling",
+    "MCP server",
+    "tool discovery",
+    "utility wrappers",
+    "resources",
+    "prompts"
+  ],
+  "full_text": "# MCP (Model Context Protocol)\n\nMCP lets Hermes Agent connect to external tool servers so the agent can use tools that live outside Hermes itself — GitHub, databases, file systems, browser stacks, internal APIs, and more.\n\n[...full content as read from source...]"
+}

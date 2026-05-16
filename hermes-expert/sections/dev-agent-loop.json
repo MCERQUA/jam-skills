@@ -1,0 +1,89 @@
+{
+  "id": "dev-agent-loop",
+  "title": "Agent Loop Internals",
+  "source_path": "website/docs/developer-guide/agent-loop.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Deep dive into the AIAgent class in run_agent.py covering the turn lifecycle, API modes (chat_completions / codex_responses / anthropic_messages), interruptible API calls, tool execution (sequential vs concurrent), callbacks, iteration budget, fallback behavior, and compression/persistence.",
+  "key_concepts": [
+    "AIAgent",
+    "turn lifecycle",
+    "API modes",
+    "tool execution",
+    "interruptible API calls",
+    "iteration budget",
+    "fallback model",
+    "compression",
+    "session persistence",
+    "callbacks"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "agent.max_turns",
+      "type": "integer",
+      "default": "90",
+      "description": "Maximum tool-calling iterations per conversation",
+      "example": "90"
+    },
+    {
+      "path": "delegation.max_iterations",
+      "type": "integer",
+      "default": "50",
+      "description": "Max iterations for subagent delegation",
+      "example": "50"
+    },
+    {
+      "path": "compression.protect_last_n",
+      "type": "integer",
+      "default": "20",
+      "description": "Minimum protected tail messages during compression",
+      "example": "20"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Two entry points for AIAgent",
+      "code": "response = agent.chat(\"Fix the bug in main.py\")\n\nresult = agent.run_conversation(\n    user_message=\"Fix the bug in main.py\",\n    system_message=None,\n    conversation_history=None,\n    task_id=\"task_abc123\"\n)"
+    },
+    {
+      "language": "python",
+      "caption": "Internal message format",
+      "code": "{\"role\": \"system\", \"content\": \"...\"}\n{\"role\": \"user\", \"content\": \"...\"}\n{\"role\": \"assistant\", \"content\": \"...\", \"tool_calls\": [...]}\n{\"role\": \"tool\", \"tool_call_id\": \"...\", \"content\": \"...\"}"
+    }
+  ],
+  "gotchas": [
+    "Never two assistant messages in a row — providers validate message role alternation",
+    "Never two user messages in a row",
+    "Only tool role can have consecutive entries (parallel tool results)",
+    "Preflight compression triggers at 50% of context; gateway hygiene at 85%",
+    "Memory is flushed to disk before compression to prevent data loss"
+  ],
+  "cross_refs": [
+    "dev-provider-runtime",
+    "dev-prompt-assembly",
+    "dev-context-compression",
+    "dev-tools-runtime",
+    "dev-architecture",
+    "dev-session-storage"
+  ],
+  "keywords": [
+    "agent loop",
+    "AIAgent",
+    "turn lifecycle",
+    "API modes",
+    "tool execution",
+    "interruptible",
+    "fallback model",
+    "iteration budget",
+    "compression",
+    "session persistence",
+    "callbacks",
+    "concurrent tools"
+  ],
+  "full_text": "# Agent Loop Internals\n\nThe core orchestration engine is `run_agent.py`'s `AIAgent` class — a large file (15k+ lines) that handles everything from prompt assembly to tool dispatch to provider failover.\n\n## Core Responsibilities\n\n`AIAgent` is responsible for:\n- Assembling the effective system prompt and tool schemas via `prompt_builder.py`\n- Selecting the correct provider/API mode (chat_completions, codex_responses, anthropic_messages)\n- Making interruptible model calls with cancellation support\n- Executing tool calls (sequentially or concurrently via thread pool)\n- Maintaining conversation history in OpenAI message format\n- Handling compression, retries, and fallback model switching\n- Tracking iteration budgets across parent and child agents\n- Flushing persistent memory before context is lost\n\n## Two Entry Points\n\n```python\n# Simple interface — returns final response string\nresponse = agent.chat(\"Fix the bug in main.py\")\n\n# Full interface — returns dict with messages, metadata, usage stats\nresult = agent.run_conversation(\n    user_message=\"Fix the bug in main.py\",\n    system_message=None,\n    conversation_history=None,\n    task_id=\"task_abc123\"\n)\n```\n\n## API Modes\n\n| API mode | Used for | Client type |\n|----------|----------|-------------|\n| `chat_completions` | OpenAI-compatible endpoints | `openai.OpenAI` |\n| `codex_responses` | OpenAI Codex / Responses API | `openai.OpenAI` with Responses format |\n| `anthropic_messages` | Native Anthropic Messages API | `anthropic.Anthropic` via adapter |\n\n**Mode resolution order:**\n1. Explicit `api_mode` constructor arg (highest priority)\n2. Provider-specific detection\n3. Base URL heuristics\n4. Default: `chat_completions`\n\n## Turn Lifecycle\n\n```text\nrun_conversation()\n  1. Generate task_id if not provided\n  2. Append user message to conversation history\n  3. Build or reuse cached system prompt (prompt_builder.py)\n  4. Check if preflight compression is needed (>50% context)\n  5. Build API messages from conversation history\n  6. Inject ephemeral prompt layers (budget warnings, context pressure)\n  7. Apply prompt caching markers if on Anthropic\n  8. Make interruptible API call (_interruptible_api_call)\n  9. Parse response:\n     - If tool_calls: execute them, append results, loop back to step 5\n     - If text response: persist session, flush memory if needed, return\n```\n\n## Interruptible API Calls\n\nAPI requests are wrapped in `_interruptible_api_call()` which runs the actual HTTP call in a background thread while monitoring an interrupt event. When interrupted, the API thread is abandoned, no partial response is injected into conversation history.\n\n## Tool Execution\n\n### Sequential vs Concurrent\n\n- **Single tool call** → executed directly in the main thread\n- **Multiple tool calls** → executed concurrently via `ThreadPoolExecutor`\n  - Exception: tools marked as interactive force sequential execution\n  - Results reinserted in the original tool call order\n\n### Agent-Level Tools\n\n| Tool | Why intercepted |\n|------|--------------------|\n| `todo` | Reads/writes agent-local task state |\n| `memory` | Writes to persistent memory files with character limits |\n| `session_search` | Queries session history via the agent's session DB |\n| `delegate_task` | Spawns subagent(s) with isolated context |\n\n## Callback Surfaces\n\n| Callback | When fired | Used by |\n|----------|-----------|---------|\n| `tool_progress_callback` | Before/after each tool execution | CLI spinner, gateway progress |\n| `thinking_callback` | When model starts/stops thinking | CLI indicator |\n| `reasoning_callback` | When model returns reasoning content | CLI reasoning display |\n| `clarify_callback` | When `clarify` tool is called | CLI input prompt |\n| `step_callback` | After each complete agent turn | Gateway step tracking, ACP |\n| `stream_delta_callback` | Each streaming token | CLI streaming display |\n\n## Budget and Fallback Behavior\n\n### Iteration Budget\n\n- Default: 90 iterations (configurable via `agent.max_turns`)\n- Subagents get independent budgets capped at `delegation.max_iterations` (default 50)\n- At 100%, the agent stops and returns a summary\n\n### Fallback Model\n\n1. Check `fallback_providers` list in config\n2. Try each fallback in order\n3. On success, continue with the new provider\n4. On 401/403, attempt credential refresh before failing over\n\n## Compression and Persistence\n\n- **Preflight** (before API call): If conversation exceeds 50% of context window\n- **Gateway auto-compression**: If conversation exceeds 85%\n\nDuring compression:\n1. Memory is flushed to disk first\n2. Middle conversation turns are summarized\n3. Last N messages preserved (`compression.protect_last_n`, default: 20)\n4. Tool call/result message pairs kept together\n5. New session lineage ID generated\n\n## Key Source Files\n\n| File | Purpose |\n|------|---------|\n| `run_agent.py` | AIAgent class — the complete agent loop |\n| `agent/prompt_builder.py` | System prompt assembly |\n| `agent/context_engine.py` | ContextEngine ABC |\n| `agent/context_compressor.py` | Default engine — lossy summarization |\n| `agent/prompt_caching.py` | Anthropic prompt caching |\n| `agent/auxiliary_client.py` | Auxiliary LLM client |\n| `model_tools.py` | Tool schema collection, dispatch |"
+}

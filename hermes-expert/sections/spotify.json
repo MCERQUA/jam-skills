@@ -1,0 +1,161 @@
+{
+  "id": "spotify",
+  "title": "user-guide/features/spotify.md",
+  "source_path": "website/docs/user-guide/features/spotify.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/spotify",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Hermes can control Spotify directly — playback, queue, search, playlists, saved tracks/albums, and listening history — using Spotify's official Web API with PKCE OAuth. Tokens are stored in ~/.hermes/auth.json and refreshed automatically on 401; you only log in once per machine.",
+  "key_concepts": [
+    "Spotify",
+    "Prerequisites",
+    "Setup",
+    "One-shot: `hermes tools`",
+    "Two-step flow",
+    "Creating the Spotify app (what the wizard asks for)",
+    "Running over SSH / in a headless environment",
+    "Verify"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_SPOTIFY_CLIENT_ID",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "SSH_CLIENT",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "SSH_TTY",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_SPOTIFY_REDIRECT_URI",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes tools",
+      "purpose": ""
+    },
+    {
+      "command": "hermes auth spotify",
+      "purpose": ""
+    },
+    {
+      "command": "hermes auth status spotify",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron add \\",
+      "purpose": ""
+    },
+    {
+      "command": "hermes auth logout spotify",
+      "purpose": ""
+    },
+    {
+      "command": "hermes auth spotify --scope \"user-read-playback-state user-modify-playback-state playlist-read-private\"",
+      "purpose": ""
+    },
+    {
+      "command": "hermes auth spotify --client-id <id> --redirect-uri http://localhost:3000/callback",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes tools\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes tools\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes auth spotify\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "ssh -N -L 43827:127.0.0.1:43827 user@remote-host\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes auth status spotify\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "> play some miles davis\n> what am I listening to\n> add this track to my Late Night Jazz playlist\n> skip to the next song\n> make a new playlist called \"Focus 2026\" and add the last three songs I played\n> which of my saved albums are by Radiohead\n> search for acoustic covers of Blackbird\n> transfer playback to my kitchen speaker\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron add \\\n  --name \"morning-commute\" \\\n  \"0 7 * * 1-5\" \\\n  \"Transfer playback to my kitchen speaker and start my 'Morning Commute' playlist. Volume to 40. Shuffle on.\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron add \\\n  --name \"wind-down\" \\\n  \"30 22 * * *\" \\\n  \"Pause Spotify. Then set volume to 20 so it's quiet when I start it again tomorrow.\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes auth logout spotify\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes auth spotify --scope \"user-read-playback-state user-modify-playback-state playlist-read-private\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes auth spotify --client-id <id> --redirect-uri http://localhost:3000/callback\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "HERMES_SPOTIFY_CLIENT_ID=<your_id>\nHERMES_SPOTIFY_REDIRECT_URI=http://localhost:3000/callback\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [
+    "oauth-over-ssh"
+  ],
+  "keywords": [
+    "api",
+    "built-in",
+    "hermes-agent",
+    "http",
+    "jump-box",
+    "llm",
+    "local-forward",
+    "morning-commute",
+    "not",
+    "oauth-over-ssh",
+    "pkce",
+    "playback-mutating",
+    "remote-host",
+    "single-search-then-play",
+    "spotify"
+  ],
+  "full_text": "# user-guide/features/spotify.md\n\n# Spotify\n\nHermes can control Spotify directly — playback, queue, search, playlists, saved tracks/albums, and listening history — using Spotify's official Web API with PKCE OAuth. Tokens are stored in `~/.hermes/auth.json` and refreshed automatically on 401; you only log in once per machine.\n\nUnlike Hermes' built-in OAuth integrations (Google, GitHub Copilot, Codex), Spotify requires every user to register their own lightweight developer app. Spotify does not let third parties ship a public OAuth app that anyone can use. It takes about two minutes and `hermes auth spotify` walks you through it.\n\n## Prerequisites\n\n- A Spotify account. **Free** works for search, playlist, library, and activity tools. **Premium** is required for playback control (play, pause, skip, seek, volume, queue add, transfer).\n- Hermes Agent installed and running.\n- For playback tools: an **active Spotify Connect device** — the Spotify app must be open on at least one device (phone, desktop, web player, speaker) so the Web API has something to control. If nothing is active you'll get a `403 Forbidden` with a \"no active device\" message; open Spotify on any device and retry.\n\n## Setup\n\n### One-shot: `hermes tools`\n\nThe fastest path. Run:\n\n```bash\nhermes tools\n```\n\nScroll to `🎵 Spotify`, press space to toggle it on, then `s` to save. Hermes drops you straight into the OAuth flow — if you don't have a Spotify app yet, it walks you through creating one inline. Once you finish, the toolset is enabled AND authenticated in one pass.\n\nIf you prefer to do the steps separately (or you're re-authing later), use the two-step flow below.\n\n### Two-step flow\n\n#### 1. Enable the toolset\n\n```bash\nhermes tools\n```\n\nToggle `🎵 Spotify` on, save, and when the inline wizard opens, dismiss it (Ctrl+C). The toolset stays on; only the auth step is deferred.\n\n#### 2. Run the login wizard\n\n```bash\nhermes auth spotify\n```\n\nThe 7 Spotify tools only appear in the agent's toolset after step 1 — they're off by default so users who don't want them don't ship extra tool schemas on every API call.\n\nIf no `HERMES_SPOTIFY_CLIENT_ID` is set, Hermes walks you through the app registration inline:\n\n1. Opens `https://developer.spotify.com/dashboard` in your browser\n2. Prints the exact values to paste into Spotify's \"Create app\" form\n3. Prompts you for the Client ID you get back\n4. Saves it to `~/.hermes/.env` so future runs skip this step\n5. Continues straight into the OAuth consent flow\n\nAfter you approve, tokens are written under `providers.spotify` in `~/.hermes/auth.json`. The active inference provider is NOT changed — Spotify auth is independent of your LLM provider.\n\n### Creating the Spotify app (what the wizard asks for)\n\nWhen the dashboard opens, click **Create app** and fill in:\n\n| Field | Value |\n|-------|-------|\n| App name | anything (e.g. `hermes-agent`) |\n| App description | anything (e.g. `personal Hermes integration`) |\n| Website | leave blank |\n| Redirect URI | `http://127.0.0.1:43827/spotify/callback` |\n| Which API/SDKs? | check **Web API** |\n\nAgree to the terms and click **Save**. On the next page click **Settings** → copy the **Client ID** and paste it into the Hermes prompt. That's the only value Hermes needs — PKCE doesn't use a client secret.\n\n### Running over SSH / in a headless environment\n\nIf `SSH_CLIENT` or `SSH_TTY` is set, Hermes skips the automatic browser open during both the wizard and the OAuth step. Copy the dashboard URL and the authorization URL Hermes prints, open them in a browser on your local machine, and proceed normally — the local HTTP listener still runs on the remote host on port `43827`. Your laptop's browser can't reach the remote loopback without an SSH local-forward:\n\n```bash\nssh -N -L 43827:127.0.0.1:43827 user@remote-host\n```\n\nFor jump-box / bastion setups and other gotchas (mosh, tmux, port conflicts), see [OAuth over SSH / Remote Hosts](../../guides/oauth-over-ssh.md).\n\n## Verify\n\n```bash\nhermes auth status spotify\n```\n\nShows whether tokens are present and when the access token expires. Refresh is automatic: when any Spotify API call returns 401, the client exchanges the refresh token and retries once. Refresh tokens persist across Hermes restarts, so you only re-auth if you revoke the app in your Spotify account settings or run `hermes auth logout spotify`.\n\n## Using it\n\nOnce logged in, the agent has access to 7 Spotify tools. You talk to the agent naturally — it picks the right tool and action. For the best behavior, the agent loads a companion skill that teaches canonical usage patterns (single-search-then-play, when not to preflight `get_state`, etc.).\n\n```\n> play some miles davis\n> what am I listening to\n> add this track to my Late Night Jazz playlist\n> skip to the next song\n> make a new playlist called \"Focus 2026\" and add the last three songs I played\n> which of my saved albums are by Radiohead\n> search for acoustic covers of Blackbird\n> transfer playback to my kitchen speaker\n```\n\n### Tool reference\n\nAll playback-mutating actions accept an optional `device_id` to target a specific device. If omitted, Spotify uses the currently active device.\n\n#### `spotify_playback`\nControl and inspect playback, plus fetch recently played history.\n\n| Action | Purpose | Premium? |\n|--------|---------|----------|\n| `get_state` | Full playback state (track, device, progress, shuffle/repeat) | No |\n| `get_currently_playing` | Just the current track (returns empty on 204 — see below) | No |\n| `play` | Start/resume playback. Optional: `context_uri`, `uris`, `offset`, `position_ms` | Yes |\n| `pause` | Pause playback | Yes |\n| `next` / `previous` | Skip track | Yes |\n| `seek` | Jump to `position_ms` | Yes |\n| `set_repeat` | `state` = `track` / `context` / `off` | Yes |\n| `set_shuffle` | `state` = `true` / `false` | Yes |\n| `set_volume` | `volume_percent` = 0-100 | Yes |\n| `recently_played` | Last played tracks. Optional `limit`, `before`, `after` (Unix ms) | No |\n\n#### `spotify_devices`\n| Action | Purpose |\n|--------|---------|\n| `list` | Every Spotify Connect device visible to your account |\n| `transfer` | Move playback to `device_id`. Optional `play: true` starts playback on transfer |\n\n#### `spotify_queue`\n| Action | Purpose | Premium? |\n|--------|---------|----------|\n| `get` | Currently queued tracks | No |\n| `add` | Append `uri` to the queue | Yes |\n\n#### `spotify_search`\nSearch the catalog. `query` is required. Optional: `types` (array of `track` / `album` / `artist` / `playlist` / `show` / `episode`), `limit`, `offset`, `market`.\n\n#### `spotify_playlists`\n| Action | Purpose | Required args |\n|--------|---------|---------------|\n| `list` | User's playlists | — |\n| `get` | One playlist + tracks | `playlist_id` |\n| `create` | New playlist | `name` (+ optional `description`, `public`, `collaborative`) |\n| `add_items` | Add tracks | `playlist_id`, `uris` (optional `position`) |\n| `remove_items` | Remove tracks | `playlist_id`, `uris` (+ optional `snapshot_id`) |\n| `update_details` | Rename / edit | `playlist_id` + any of `name`, `description`, `public`, `collaborative` |\n\n#### `spotify_albums`\n| Action | Purpose | Required args |\n|--------|---------|---------------|\n| `get` | Album metadata | `album_id` |\n| `tracks` | Album track list | `album_id` |\n\n#### `spotify_library`\nUnified access to saved tracks and saved albums. Pick the collection with the `kind` arg.\n\n| Action | Purpose |\n|--------|---------|\n| `list` | Paginated library listing |\n| `save` | Add `ids` / `uris` to library |\n| `remove` | Remove `ids` / `uris` from library |\n\nRequired: `kind` = `tracks` or `albums`, plus `action`.\n\n### Feature matrix: Free vs Premium\n\nRead-only tools work on Free accounts. Anything that mutates playback or the queue requires Premium.\n\n| Works on Free | Premium required |\n|---------------|------------------|\n| `spotify_search` (all) | `spotify_playback` — play, pause, next, previous, seek, set_repeat, set_shuffle, set_volume |\n| `spotify_playback` — get_state, get_currently_playing, recently_played | `spotify_queue` — add |\n| `spotify_devices` — list | `spotify_devices` — transfer |\n| `spotify_queue` — get | |\n| `spotify_playlists` (all) | |\n| `spotify_albums` (all) | |\n| `spotify_library` (all) | |\n\n## Scheduling: Spotify + cron\n\nBecause Spotify tools are regular Hermes tools, a cron job running in a Hermes session can trigger playback on any schedule. No new code needed.\n\n### Morning wake-up playlist\n\n```bash\nhermes cron add \\\n  --name \"morning-commute\" \\\n  \"0 7 * * 1-5\" \\\n  \"Transfer playback to my kitchen speaker and start my 'Morning Commute' playlist. Volume to 40. Shuffle on.\"\n```\n\nWhat happens at 7am every weekday:\n1. Cron spins up a headless Hermes session.\n2. Agent reads the prompt, calls `spotify_devices list` to find \"kitchen speaker\" by name, then `spotify_devices transfer` → `spotify_playback set_volume` → `spotify_playback set_shuffle` → `spotify_search` + `spotify_playback play`.\n3. Music starts on the target speaker. Total cost: one session, a few tool calls, no human input.\n\n### Wind-down at night\n\n```bash\nhermes cron add \\\n  --name \"wind-down\" \\\n  \"30 22 * * *\" \\\n  \"Pause Spotify. Then set volume to 20 so it's quiet when I start it again tomorrow.\"\n```\n\n### Gotchas\n\n- **An active device must exist when the cron fires.** If no Spotify client is running (phone/desktop/Connect speaker), playback actions return `403 no active device`. For morning playlists, the trick is to target a device that's always on (Sonos, Echo, a smart speaker) rather than your phone.\n- **Premium required for anything that mutates playback** — play, pause, skip, volume, transfer. Read-only cron jobs (scheduled \"email me my recently played tracks\") work fine on Free.\n- **The cron agent inherits your active toolsets.** Spotify must be enabled in `hermes tools` for the cron session to see the Spotify tools.\n- **Cron jobs run with `skip_memory=True`** so they don't write to your memory store.\n\nFull cron reference: [Cron Jobs](./cron).\n\n## Sign out\n\n```bash\nhermes auth logout spotify\n```\n\nRemoves tokens from `~/.hermes/auth.json`. To also clear the app config, delete `HERMES_SPOTIFY_CLIENT_ID` (and `HERMES_SPOTIFY_REDIRECT_URI` if you set it) from `~/.hermes/.env`, or run the wizard again.\n\nTo revoke the app on Spotify's side, visit [Apps connected to your account](https://www.spotify.com/account/apps/) and click **REMOVE ACCESS**.\n\n## Troubleshooting\n\n**`403 Forbidden — Player command failed: No active device found`** — You need Spotify running on at least one device. Open the Spotify app on your phone, desktop, or web player, start any track for a second to register it, and retry. `spotify_devices list` shows what's currently visible.\n\n**`403 Forbidden — Premium required`** — You're on a Free account trying to use a playback-mutating action. See the feature matrix above.\n\n**`204 No Content` on `get_currently_playing`** — nothing is currently playing on any device. This is Spotify's normal response, not an error; Hermes surfaces it as an explanatory empty result (`is_playing: false`).\n\n**`INVALID_CLIENT: Invalid redirect URI`** — the redirect URI in your Spotify app settings doesn't match what Hermes is using. The default is `http://127.0.0.1:43827/spotify/callback`. Either add that to your app's allowed redirect URIs, or set `HERMES_SPOTIFY_REDIRECT_URI` in `~/.hermes/.env` to whatever you registered.\n\n**`429 Too Many Requests`** — Spotify's rate limit. Hermes returns a friendly error; wait a minute and retry. If this persists, you're probably running a tight loop in a script — Spotify's quota resets roughly every 30 seconds.\n\n**`401 Unauthorized` keeps coming back** — Your refresh token was revoked (usually because you removed the app from your account, or the app was deleted). Run `hermes auth spotify` again.\n\n**Wizard doesn't open the browser** — If you're over SSH or in a container without a display, Hermes detects it and skips the auto-open. Copy the dashboard URL it prints and open it manually.\n\n## Advanced: custom scopes\n\nBy default Hermes requests the scopes needed for every shipped tool. Override if you want to restrict access:\n\n```bash\nhermes auth spotify --scope \"user-read-playback-state user-modify-playback-state playlist-read-private\"\n```\n\nScope reference: [Spotify Web API scopes](https://developer.spotify.com/documentation/web-api/concepts/scopes). If you request fewer scopes than a tool needs, that tool's calls will fail with 403.\n\n## Advanced: custom client ID / redirect URI\n\n```bash\nhermes auth spotify --client-id <id> --redirect-uri http://localhost:3000/callback\n```\n\nOr set them permanently in `~/.hermes/.env`:\n\n```\nHERMES_SPOTIFY_CLIENT_ID=<your_id>\nHERMES_SPOTIFY_REDIRECT_URI=http://localhost:3000/callback\n```\n\nThe redirect URI must be allow-listed in your Spotify app's settings. The default works for almost everyone — only change it if port 43827 is taken.\n\n## Where things live\n\n| File | Contents |\n|------|----------|\n| `~/.hermes/auth.json` → `providers.spotify` | access token, refresh token, expiry, scope, redirect URI |\n| `~/.hermes/.env` | `HERMES_SPOTIFY_CLIENT_ID`, optional `HERMES_SPOTIFY_REDIRECT_URI` |\n| Spotify app | owned by you at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard); contains the Client ID and the redirect URI allow-list |\n\n---"
+}

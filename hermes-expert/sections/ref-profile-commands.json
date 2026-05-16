@@ -1,0 +1,151 @@
+{
+  "id": "ref-profile-commands",
+  "title": "reference/profile-commands",
+  "source_path": "website/docs/reference/profile-commands.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/reference/profile-commands",
+  "category": "reference",
+  "subcategory": "",
+  "summary": "This page covers all commands related to [Hermes profiles](../user-guide/profiles.md). For general CLI commands, see [CLI Commands Reference](./cli-commands.md). hermes profile <subcommand>",
+  "key_concepts": [
+    "Distribution commands",
+    "Private distributions",
+    "Distribution manifest ()",
+    "Publishing a distribution",
+    "/",
+    "See also"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes profile <subcommand>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile list",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile use <name>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile use work",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile use default",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile create <name> [options]",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile create mybot",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile create work --clone",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile create backup --clone-all",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile create work2 --clone --clone-from work",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile delete <name> [options]",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile delete mybot",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile delete mybot --yes",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile show <name>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes profile alias <name> [options]",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes profile <subcommand>"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes profile list"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "$ hermes profile list\n  default\n* work\n  dev\n  personal"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes profile use <name>"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes profile use work\nhermes profile use default"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes profile create <name> [options]"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Blank profile — needs full setup\nhermes profile create mybot\n\n# Clone config only from current profile\nhermes profile create work --clone\n\n# Clone everything from current profile\nhermes profile create backup --clone-all\n\n# Clone config from a specific profile\nhermes profile create work2 --clone --clone-from work"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes profile delete <name> [options]"
+    }
+  ],
+  "gotchas": [
+    "`auth.json` and `.env` are never part of a distribution — they stay on the",
+    "overwritten; user data (memories, sessions, auth, .env) is never touched."
+  ],
+  "cross_refs": [
+    "profiles",
+    "cli-commands",
+    "profile-distributions"
+  ],
+  "keywords": [
+    "alias",
+    "also",
+    "api",
+    "archive",
+    "assistant",
+    "blank",
+    "clone",
+    "command",
+    "commands",
+    "completion",
+    "completions",
+    "config",
+    "create",
+    "creates",
+    "credential"
+  ],
+  "full_text": "# reference/profile-commands\n\n# Profile Commands Reference\n\nThis page covers all commands related to [Hermes profiles](../user-guide/profiles.md). For general CLI commands, see [CLI Commands Reference](./cli-commands.md).\n\n## `hermes profile`\n\n```bash\nhermes profile <subcommand>\n```\n\nTop-level command for managing profiles. Running `hermes profile` without a subcommand shows help.\n\n| Subcommand | Description |\n|------------|-------------|\n| `list` | List all profiles. |\n| `use` | Set the active (default) profile. |\n| `create` | Create a new profile. |\n| `delete` | Delete a profile. |\n| `show` | Show details about a profile. |\n| `alias` | Regenerate the shell alias for a profile. |\n| `rename` | Rename a profile. |\n| `export` | Export a profile to a tar.gz archive. |\n| `import` | Import a profile from a tar.gz archive. |\n| `install` | Install a profile distribution from a git URL or local directory. See [Profile Distributions](../user-guide/profile-distributions.md). |\n| `update` | Re-pull a distribution-managed profile and re-apply its bundle. |\n| `info` | Show distribution metadata for a profile (origin URL, commit, last update). |\n\n## `hermes profile list`\n\n```bash\nhermes profile list\n```\n\nLists all profiles. The currently active profile is marked with `*`.\n\n**Example:**\n\n```bash\n$ hermes profile list\n  default\n* work\n  dev\n  personal\n```\n\nNo options.\n\n## `hermes profile use`\n\n```bash\nhermes profile use <name>\n```\n\nSets `<name>` as the active profile. All subsequent `hermes` commands (without `-p`) will use this profile.\n\n| Argument | Description |\n|----------|-------------|\n| `<name>` | Profile name to activate. Use `default` to return to the base profile. |\n\n**Example:**\n\n```bash\nhermes profile use work\nhermes profile use default\n```\n\n## `hermes profile create`\n\n```bash\nhermes profile create <name> [options]\n```\n\nCreates a new profile.\n\n| Argument / Option | Description |\n|-------------------|-------------|\n| `<name>` | Name for the new profile. Must be a valid directory name (alphanumeric, hyphens, underscores). |\n| `--clone` | Copy `config.yaml`, `.env`, and `SOUL.md` from the current profile. |\n| `--clone-all` | Copy everything (config, memories, skills, sessions, state) from the current profile. |\n| `--clone-from <profile>` | Clone from a specific profile instead of the current one. Used with `--clone` or `--clone-all`. |\n| `--no-alias` | Skip wrapper script creation. |\n\nCreating a profile does **not** make that profile directory the default project/workspace directory for terminal commands. If you want a profile to start in a specific project, set `terminal.cwd` in that profile's `config.yaml`.\n\n**Examples:**\n\n```bash\n# Blank profile — needs full setup\nhermes profile create mybot\n\n# Clone config only from current profile\nhermes profile create work --clone\n\n# Clone everything from current profile\nhermes profile create backup --clone-all\n\n# Clone config from a specific profile\nhermes profile create work2 --clone --clone-from work\n```\n\n## `hermes profile delete`\n\n```bash\nhermes profile delete <name> [options]\n```\n\nDeletes a profile and removes its shell alias.\n\n| Argument / Option | Description |\n|-------------------|-------------|\n| `<name>` | Profile to delete. |\n| `--yes`, `-y` | Skip confirmation prompt. |\n\n**Example:**\n\n```bash\nhermes profile delete mybot\nhermes profile delete mybot --yes\n```\n\n:::warning\nThis permanently deletes the profile's entire directory including all config, memories, sessions, and skills. Cannot delete the currently active profile.\n:::\n\n## `hermes profile show`\n\n```bash\nhermes profile show <name>\n```\n\nDisplays details about a profile including its home directory, configured model, gateway status, skills count, and configuration file status.\n\nThis shows the profile's Hermes home directory, not the terminal working directory. Terminal commands start from `terminal.cwd` (or the launch directory on the local backend when `cwd: \".\"`).\n\n| Argument | Description |\n|----------|-------------|\n| `<name>` | Profile to inspect. |\n\n**Example:**\n\n```bash\n$ hermes profile show work\nProfile: work\nPath:    ~/.hermes/profiles/work\nModel:   anthropic/claude-sonnet-4 (anthropic)\nGateway: stopped\nSkills:  12\n.env:    exists\nSOUL.md: exists\nAlias:   ~/.local/bin/work\n```\n\n## `hermes profile alias`\n\n```bash\nhermes profile alias <name> [options]\n```\n\nRegenerates the shell alias script at `~/.local/bin/<name>`. Useful if the alias was accidentally deleted or if you need to update it after moving your Hermes installation.\n\n| Argument / Option | Description |\n|-------------------|-------------|\n| `<name>` | Profile to create/update the alias for. |\n| `--remove` | Remove the wrapper script instead of creating it. |\n| `--name <alias>` | Custom alias name (default: profile name). |\n\n**Example:**\n\n```bash\nhermes profile alias work\n# Creates/updates ~/.local/bin/work\n\nhermes profile alias work --name mywork\n# Creates ~/.local/bin/mywork\n\nhermes profile alias work --remove\n# Removes the wrapper script\n```\n\n## `hermes profile rename`\n\n```bash\nhermes profile rename <old-name> <new-name>\n```\n\nRenames a profile. Updates the directory and shell alias.\n\n| Argument | Description |\n|----------|-------------|\n| `<old-name>` | Current profile name. |\n| `<new-name>` | New profile name. |\n\n**Example:**\n\n```bash\nhermes profile rename mybot assistant\n# ~/.hermes/profiles/mybot → ~/.hermes/profiles/assistant\n# ~/.local/bin/mybot → ~/.local/bin/assistant\n```\n\n## `hermes profile export`\n\n```bash\nhermes profile export <name> [options]\n```\n\nExports a profile as a compressed tar.gz archive.\n\n| Argument / Option | Description |\n|-------------------|-------------|\n| `<name>` | Profile to export. |\n| `-o`, `--output <path>` | Output file path (default: `<name>.tar.gz`). |\n\n**Example:**\n\n```bash\nhermes profile export work\n# Creates work.tar.gz in the current directory\n\nhermes profile export work -o ./work-2026-03-29.tar.gz\n```\n\n## `hermes profile import`\n\n```bash\nhermes profile import <archive> [options]\n```\n\nImports a profile from a tar.gz archive.\n\n| Argument / Option | Description |\n|-------------------|-------------|\n| `<archive>` | Path to the tar.gz archive to import. |\n| `--name <name>` | Name for the imported profile (default: inferred from archive). |\n\n**Example:**\n\n```bash\nhermes profile import ./work-2026-03-29.tar.gz\n# Infers profile name from the archive\n\nhermes profile import ./work-2026-03-29.tar.gz --name work-restored\n```\n\n## Distribution commands\n\n:::tip\n**New to distributions?** Start with the [Profile Distributions user guide](../user-guide/profile-distributions.md) — it covers the why, when, and how with full examples. The sections below are a dry CLI reference for when you know what you want.\n:::\n\nDistributions turn a profile into a shareable, versioned artifact published\nas a **git repository**. A recipient installs the distribution with a single\ncommand and can update it in place later without touching their local\nmemories, sessions, or credentials.\n\n`auth.json` and `.env` are never part of a distribution — they stay on the\ninstalling user's machine.\n\nThe recipient's user data (memories, sessions, auth, their own edits to\n`.env`) is always preserved across the initial install and subsequent\nupdates.\n\n:::info\n`hermes profile export` / `import` are still the right commands for\n**local backup and restore** of a profile on your own machine. Distribution\n(`install` / `update` / `info`) is a separate concept: ship a profile via\ngit so someone else can install it.\n:::\n\n### `hermes profile install`\n\n```bash\nhermes profile install <source> [--name <name>] [--alias] [--force] [--yes]\n```\n\nInstalls a profile distribution from a git URL or a local directory.\n\n| Option | Description |\n|--------|-------------|\n| `<source>` | Git URL (`github.com/user/repo`, `https://...`, `git@...`, `ssh://`, `git://`) or a local directory containing `distribution.yaml` at its root. |\n| `--name NAME` | Override the profile name from the manifest. |\n| `--alias` | Also create a shell wrapper (e.g. `telemetry` → `hermes -p telemetry`). |\n| `--force` | Overwrite an existing profile of the same name. User data is still preserved. |\n| `-y`, `--yes` | Skip the manifest-preview confirmation prompt. |\n\nThe installer shows the manifest, lists required env vars, and warns about\ncron jobs before asking for confirmation. Required env vars go into a\n`.env.EXAMPLE` file you copy to `.env` and fill in.\n\n**Examples:**\n\n```bash\n# Install from a GitHub repo (shorthand)\nhermes profile install github.com/kyle/telemetry-distribution --alias\n\n# Install from a full HTTPS git URL\nhermes profile install https://github.com/kyle/telemetry-distribution.git\n\n# Install from SSH\nhermes profile install git@github.com:kyle/telemetry-distribution.git\n\n# Install from a local directory during development\nhermes profile install ./telemetry/\n```\n\n### `hermes profile update`\n\n```bash\nhermes profile update <name> [--force-config] [--yes]\n```\n\nRe-clones the distribution from its recorded source and applies updates.\nDistribution-owned files (SOUL.md, skills/, cron/, mcp.json) are\noverwritten; user data (memories, sessions, auth, .env) is never touched.\n\n`config.yaml` is preserved by default to keep your local overrides.\nPass `--force-config` to reset it to the distribution's shipped config.\n\n### `hermes profile info`\n\n```bash\nhermes profile info <name>\n```\n\nPrints the profile's distribution manifest — name, version, required\nHermes version, author, env var requirements, the source URL/path, and\nthe `Installed:` timestamp recorded when the distribution was last\n`install`-ed or `update`-d. Useful for checking what a shared profile\nneeds before installing it, and for spotting \"this profile was installed\n6 months ago and hasn't been updated.\"\n\n`hermes profile list` also shows the distribution name and version in a\n`Distribution` column, and `hermes profile show <name>` / `delete <name>`\nsurface the source URL so you can tell at a glance which profiles came\nfrom a git repo vs. were created locally.\n\n### Private distributions\n\nA private git repository works as a distribution source with no extra\nconfiguration — the install shells out to your normal `git` binary, so\nwhatever authentication your shell is already set up for (SSH key,\n`git credential` helper, GitHub CLI's stored HTTPS credentials) applies\ntransparently.\n\n```bash\n# Uses your SSH key, the same as any other `git clone`\nhermes profile install git@github.com:your-org/internal-assistant.git\n\n# Uses your git credential helper\nhermes profile install https://github.com/your-org/internal-assistant.git\n```\n\nIf a clone prompts for credentials interactively in your terminal during\ninstall, that prompt flows through. Set up your auth the way you'd\nnormally use `git clone` against the same repo first, then install.\n\n### Distribution manifest (`distribution.yaml`)\n\nEvery distribution has a `distribution.yaml` at the root of its repository:\n\n```yaml\nname: telemetry\nversion: 0.1.0\ndescription: \"Compliance monitoring harness\"\nhermes_requires: \">=0.12.0\"\nauthor: \"Your Name\"\nlicense: \"MIT\"\nenv_requires:\n  - name: OPENAI_API_KEY\n    description: \"OpenAI API key\"\n    required: true\n  - name: GRAPHITI_MCP_URL\n    description: \"Memory graph URL\"\n    required: false\n    default: \"http://127.0.0.1:8000/sse\"\ndistribution_owned:   # optional; defaults to SOUL.md, config.yaml,\n                      #   mcp.json, skills/, cron/, distribution.yaml\n  - SOUL.md\n  - skills/compliance/\n  - cron/\n```\n\n`hermes_requires` supports `>=`, `<=`, `==`, `!=`, `>`, `<`, or a bare\nversion (treated as `>=`). Install fails with a clear error if the current\nHermes version doesn't satisfy the spec.\n\n`distribution_owned` is optional. If set, only those paths are replaced on\nupdate; anything else in the profile stays user-owned. If omitted, the\ndefaults above apply.\n\n### Publishing a distribution\n\nAuthoring a distribution is just a git push:\n\n1. In your profile directory, create `distribution.yaml` with at least `name`\n   and `version`.\n2. Initialize a git repo (or use an existing one) and push to GitHub /\n   GitLab / any host Hermes can clone from.\n3. Tell recipients to run `hermes profile install <your-repo-url>`.\n\nUse git tags for versioned releases — recipients who clone `HEAD` get your\nlatest state, and you can always bump `version:` in the manifest.\n\n## `hermes -p` / `hermes --profile`\n\n```bash\nhermes -p <name> <command> [options]\nhermes --profile <name> <command> [options]\n```\n\nGlobal flag to run any Hermes command under a specific profile without changing the sticky default. This overrides the active profile for the duration of the command.\n\n| Option | Description |\n|--------|-------------|\n| `-p <name>`, `--profile <name>` | Profile to use for this command. |\n\n**Examples:**\n\n```bash\nhermes -p work chat -q \"Check the server status\"\nhermes --profile dev gateway start\nhermes -p personal skills list\nhermes -p work config edit\n```\n\n## `hermes completion`\n\n```bash\nhermes completion <shell>\n```\n\nGenerates shell completion scripts. Includes completions for profile names and profile subcommands.\n\n| Argument | Description |\n|----------|-------------|\n| `<shell>` | Shell to generate completions for: `bash`, `zsh`, or `fish`. |\n\n**Examples:**\n\n```bash\n# Install completions\nhermes completion bash >> ~/.bashrc\nhermes completion zsh >> ~/.zshrc\nhermes completion fish > ~/.config/fish/completions/hermes.fish\n\n# Reload shell\nsource ~/.bashrc\n```\n\nAfter installation, tab completion works for:\n- `hermes profile <TAB>` — subcommands (list, use, create, etc.)\n- `hermes profile use <TAB>` — profile names\n- `hermes -p <TAB>` — profile names\n\n## See also\n\n- [Profiles User Guide](../user-guide/profiles.md)\n- [CLI Commands Reference](./cli-commands.md)\n- [FAQ — Profiles section](./faq.md#profiles)\n\n---"
+}

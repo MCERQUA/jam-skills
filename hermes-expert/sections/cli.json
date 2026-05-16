@@ -1,0 +1,201 @@
+{
+  "id": "cli",
+  "title": "CLI Interface",
+  "source_path": "website/docs/user-guide/cli.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/cli",
+  "category": "user-guide",
+  "subcategory": "",
+  "summary": "Documents Hermes Agent's full-featured terminal CLI, including keybindings, slash commands, session management, background sessions, and busy-input modes.",
+  "key_concepts": [
+    "CLI interface",
+    "keybindings",
+    "slash commands",
+    "session resume",
+    "background sessions",
+    "busy input mode",
+    "skill preloading",
+    "personalities"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes",
+      "purpose": "Start an interactive CLI session"
+    },
+    {
+      "command": "hermes chat -q \"Hello\"",
+      "purpose": "Single query mode (non-interactive)"
+    },
+    {
+      "command": "hermes chat --model \"anthropic/claude-sonnet-4\"",
+      "purpose": "Start with a specific model"
+    },
+    {
+      "command": "hermes chat --provider nous",
+      "purpose": "Force a specific provider"
+    },
+    {
+      "command": "hermes chat --toolsets \"web,terminal,skills\"",
+      "purpose": "Start with specific toolsets"
+    },
+    {
+      "command": "hermes -s hermes-agent-dev,github-auth",
+      "purpose": "Preload skills at launch"
+    },
+    {
+      "command": "hermes --continue",
+      "purpose": "Resume the most recent CLI session"
+    },
+    {
+      "command": "hermes --resume <session_id>",
+      "purpose": "Resume a specific session by ID"
+    },
+    {
+      "command": "hermes chat --verbose",
+      "purpose": "Enable debug/verbose output"
+    },
+    {
+      "command": "hermes -w",
+      "purpose": "Run in an isolated git worktree"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "display.busy_input_mode",
+      "type": "string",
+      "default": "interrupt",
+      "description": "Controls what happens when you press Enter while the agent is working",
+      "example": "steer"
+    },
+    {
+      "path": "display.tool_preview_length",
+      "type": "integer",
+      "default": 0,
+      "description": "Max chars for tool call preview lines (0 = no limit)",
+      "example": 80
+    },
+    {
+      "path": "compression.enabled",
+      "type": "boolean",
+      "default": true,
+      "description": "Auto-compress long conversations",
+      "example": true
+    },
+    {
+      "path": "compression.threshold",
+      "type": "float",
+      "default": 0.5,
+      "description": "Compress at this fraction of context limit",
+      "example": 0.5
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/help",
+      "purpose": "Show command help"
+    },
+    {
+      "command": "/model",
+      "purpose": "Show or change the current model"
+    },
+    {
+      "command": "/tools",
+      "purpose": "List currently available tools"
+    },
+    {
+      "command": "/skills browse",
+      "purpose": "Browse the skills hub"
+    },
+    {
+      "command": "/background <prompt>",
+      "purpose": "Run a prompt in a background session"
+    },
+    {
+      "command": "/skin",
+      "purpose": "Show or switch the active CLI skin"
+    },
+    {
+      "command": "/voice on",
+      "purpose": "Enable CLI voice mode"
+    },
+    {
+      "command": "/voice tts",
+      "purpose": "Toggle spoken playback for Hermes replies"
+    },
+    {
+      "command": "/reasoning high",
+      "purpose": "Increase reasoning effort"
+    },
+    {
+      "command": "/title My Session",
+      "purpose": "Name the current session"
+    },
+    {
+      "command": "/verbose",
+      "purpose": "Cycle through tool progress display modes"
+    },
+    {
+      "command": "/busy queue",
+      "purpose": "Change busy input mode"
+    },
+    {
+      "command": "/usage",
+      "purpose": "Show detailed token/cost breakdown"
+    },
+    {
+      "command": "/compress",
+      "purpose": "Manually compress conversation context"
+    },
+    {
+      "command": "/personality",
+      "purpose": "Change agent personality"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Running the CLI with various options",
+      "code": "hermes\nhermes chat -q \"Hello\"\nhermes chat --model \"anthropic/claude-sonnet-4\"\nhermes -s hermes-agent-dev,github-auth\nhermes --continue\nhermes -w"
+    },
+    {
+      "language": "yaml",
+      "caption": "Quick commands configuration",
+      "code": "quick_commands:\n  status:\n    type: exec\n    command: systemctl status hermes-agent\n  restart:\n    type: alias\n    target: /gateway restart"
+    },
+    {
+      "language": "yaml",
+      "caption": "Busy input mode configuration",
+      "code": "display:\n  busy_input_mode: \"steer\"   # or \"queue\" or \"interrupt\" (default)"
+    }
+  ],
+  "gotchas": [
+    "Shift+Enter requires a terminal supporting Kitty keyboard protocol to be distinct from Enter; use Alt+Enter or Ctrl+J on incompatible terminals",
+    "On Windows Terminal, Alt+Enter toggles fullscreen — use Ctrl+Enter or Ctrl+J for newline instead",
+    "Background sessions are isolated — they have no knowledge of your foreground session's history",
+    "String-only prompt shortcuts are not valid quick commands — use a skill or alias instead",
+    "The onboarding.seen.busy_input_prompt flag latches after first busy-mode tip; delete it to see tip again"
+  ],
+  "cross_refs": [
+    "tui",
+    "sessions",
+    "configuration",
+    "skills",
+    "git-worktrees"
+  ],
+  "keywords": [
+    "cli",
+    "command line",
+    "terminal",
+    "keybindings",
+    "slash commands",
+    "session resume",
+    "background sessions",
+    "busy input",
+    "personalities",
+    "skill preloading",
+    "multiline",
+    "interrupt",
+    "worktree"
+  ],
+  "full_text": "# CLI Interface\n\n# CLI Interface\n\nHermes Agent's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.\n\n:::tip\nHermes also ships a modern TUI with modal overlays, mouse selection, and non-blocking input. Launch it with `hermes --tui` — see the [TUI](tui.md) guide.\n:::\n\n## Running the CLI\n\n```bash\n# Start an interactive session (default)\nhermes\n\n# Single query mode (non-interactive)\nhermes chat -q \"Hello\"\n\n# With a specific model\nhermes chat --model \"anthropic/claude-sonnet-4\"\n\n# With a specific provider\nhermes chat --provider nous        # Use Nous Portal\nhermes chat --provider openrouter  # Force OpenRouter\n\n# With specific toolsets\nhermes chat --toolsets \"web,terminal,skills\"\n\n# Start with one or more skills preloaded\nhermes -s hermes-agent-dev,github-auth\nhermes chat -s github-pr-workflow -q \"open a draft PR\"\n\n# Resume previous sessions\nhermes --continue             # Resume the most recent CLI session (-c)\nhermes --resume <session_id>  # Resume a specific session by ID (-r)\n\n# Verbose mode (debug output)\nhermes chat --verbose\n\n# Isolated git worktree (for running multiple agents in parallel)\nhermes -w                         # Interactive mode in worktree\nhermes -w -q \"Fix issue #123\"     # Single query in worktree\n```\n\n## Interface Layout\n\nThe welcome banner shows your model, terminal backend, working directory, available tools, and installed skills at a glance.\n\n### Status Bar\n\nA persistent status bar sits above the input area, updating in real time:\n\n```\n ⚕ claude-sonnet-4-20250514 │ 12.4K/200K │ [██████░░░░] 6% │ $0.06 │ 15m\n```\n\n| Element | Description |\n|---------|-------------|\n| Model name | Current model (truncated if longer than 26 chars) |\n| Token count | Context tokens used / max context window |\n| Context bar | Visual fill indicator with color-coded thresholds |\n| Cost | Estimated session cost (or `n/a` for unknown/zero-priced models) |\n| Duration | Elapsed session time |\n\nThe bar adapts to terminal width — full layout at ≥ 76 columns, compact at 52–75, minimal (model + duration only) below 52.\n\n**Context color coding:**\n\n| Color | Threshold | Meaning |\n|-------|-----------|---------|\n| Green | < 50% | Plenty of room |\n| Yellow | 50–80% | Getting full |\n| Orange | 80–95% | Approaching limit |\n| Red | ≥ 95% | Near overflow — consider `/compress` |\n\nUse `/usage` for a detailed breakdown including per-category costs (input vs output tokens).\n\n### Session Resume Display\n\nWhen resuming a previous session (`hermes -c` or `hermes --resume <id>`), a \"Previous Conversation\" panel appears between the banner and the input prompt, showing a compact recap of the conversation history.\n\n## Keybindings\n\n| Key | Action |\n|-----|--------|\n| `Enter` | Send message |\n| `Alt+Enter`, `Ctrl+J`, or `Shift+Enter` | New line (multi-line input) |\n| `Alt+V` | Paste an image from the clipboard when supported by the terminal |\n| `Ctrl+V` | Paste text and opportunistically attach clipboard images |\n| `Ctrl+B` | Start/stop voice recording when voice mode is enabled |\n| `Ctrl+G` | Open the current input buffer in `$EDITOR` |\n| `Ctrl+X Ctrl+E` | Emacs-style alternate binding for the external editor |\n| `Ctrl+C` | Interrupt agent (double-press within 2s to force exit) |\n| `Ctrl+D` | Exit |\n| `Ctrl+Z` | Suspend Hermes to background (Unix only) |\n| `Tab` | Accept auto-suggestion (ghost text) or autocomplete slash commands |\n\n## Slash Commands\n\nType `/` to see the autocomplete dropdown.\n\n| Command | Description |\n|---------|-------------|\n| `/help` | Show command help |\n| `/model` | Show or change the current model |\n| `/tools` | List currently available tools |\n| `/skills browse` | Browse the skills hub |\n| `/background <prompt>` | Run a prompt in a separate background session |\n| `/skin` | Show or switch the active CLI skin |\n| `/voice on` | Enable CLI voice mode |\n| `/voice tts` | Toggle spoken playback for Hermes replies |\n| `/reasoning high` | Increase reasoning effort |\n| `/title My Session` | Name the current session |\n\n## Quick Commands\n\n```yaml\n# ~/.hermes/config.yaml\nquick_commands:\n  status:\n    type: exec\n    command: systemctl status hermes-agent\n  gpu:\n    type: exec\n    command: nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader\n  restart:\n    type: alias\n    target: /gateway restart\n```\n\n## Preloading Skills at Launch\n\n```bash\nhermes -s hermes-agent-dev,github-auth\nhermes chat -s github-pr-workflow -s github-auth\n```\n\n## Personalities\n\n```\n/personality pirate\n/personality kawaii\n/personality concise\n```\n\nBuilt-in personalities include: `helpful`, `concise`, `technical`, `creative`, `teacher`, `kawaii`, `catgirl`, `pirate`, `shakespeare`, `surfer`, `noir`, `uwu`, `philosopher`, `hype`.\n\n## Multi-line Input\n\n1. **`Alt+Enter`, `Ctrl+J`, or `Shift+Enter`** — inserts a new line\n2. **Backslash continuation** — end a line with `\\` to continue\n\n## Interrupting the Agent\n\n- **Type a new message + Enter** while the agent is working — it interrupts\n- **`Ctrl+C`** — interrupt the current operation (press twice within 2s to force exit)\n\n### Busy Input Mode\n\n| Mode | Behavior |\n|------|----------|\n| `\"interrupt\"` (default) | Your message interrupts the current operation |\n| `\"queue\"` | Your message is silently queued |\n| `\"steer\"` | Your message is injected via `/steer` |\n\n```yaml\ndisplay:\n  busy_input_mode: \"steer\"\n```\n\n## Tool Progress Display\n\nCycle through display modes with `/verbose`: `off → new → all → verbose`.\n\n## Session Management\n\n```bash\nhermes --continue                          # Resume the most recent CLI session\nhermes -c                                  # Short form\nhermes --resume 20260225_143052_a1b2c3     # Resume a specific session by ID\nhermes -r 20260225_143052_a1b2c3           # Short form\n```\n\n## Background Sessions\n\n```\n/background Analyze the logs in /var/log and summarize any errors from today\n```\n\nEach `/background` prompt spawns a completely separate agent session in a daemon thread.\n\n## Quiet Mode\n\n```bash\nhermes chat --verbose\n```\n"
+}

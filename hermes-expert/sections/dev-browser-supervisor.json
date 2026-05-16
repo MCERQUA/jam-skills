@@ -1,0 +1,76 @@
+{
+  "id": "dev-browser-supervisor",
+  "title": "Browser CDP Supervisor",
+  "source_path": "website/docs/developer-guide/browser-supervisor.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/browser-supervisor",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Design document for the Browser CDP Supervisor (PR 14540) that detects and handles native JS dialogs and cross-origin iframes, including the CDPSupervisor architecture, dialog policy configuration, browser_dialog tool, browser_snapshot extensions, and OOPIF interaction via frame_id routing.",
+  "key_concepts": [
+    "CDPSupervisor",
+    "browser_dialog tool",
+    "OOPIF",
+    "cross-origin iframes",
+    "dialog policy",
+    "frame tree",
+    "SupervisorRegistry",
+    "Browserbase bridge",
+    "CDP WebSocket"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "browser.dialog_policy",
+      "type": "string",
+      "default": "must_respond",
+      "description": "Dialog handling policy: must_respond, auto_dismiss, or auto_accept",
+      "example": "auto_dismiss"
+    },
+    {
+      "path": "browser.dialog_timeout_s",
+      "type": "integer",
+      "default": "300",
+      "description": "Seconds before auto-dismiss safety timeout fires on pending dialogs",
+      "example": "300"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/browser connect",
+      "purpose": "Connect to a live Chrome CDP endpoint and start supervisor"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "json",
+      "caption": "browser_snapshot extension fields",
+      "code": "{\n  \"pending_dialogs\": [{\"id\": \"d-1\", \"type\": \"alert\", \"message\": \"Hello\"}],\n  \"recent_dialogs\": [{\"id\": \"d-1\", \"closed_by\": \"remote\"}],\n  \"frame_tree\": {\n    \"top\": {\"frame_id\": \"FRAME_A\", \"url\": \"https://example.com/\"},\n    \"children\": [{\"frame_id\": \"FRAME_C\", \"is_oopif\": true, \"session_id\": \"SID_C\"}]\n  }\n}"
+    }
+  ],
+  "gotchas": [
+    "Camofox (REST-only) does NOT support CDP dialogs or OOPIF — supervisor is unavailable on that backend",
+    "Browserbase auto-dismisses dialogs within ~10ms so pending_dialogs is always empty — use recent_dialogs instead",
+    "Dialog tool and snapshot fields are gated on _browser_cdp_check — no schema bloat on non-CDP sessions",
+    "SupervisorRegistry.get_or_start() is idempotent — safe to call multiple times",
+    "Frame tree is capped at 30 entries + OOPIF depth 2 to bound snapshot size on ad-heavy pages"
+  ],
+  "cross_refs": [
+    "browser",
+    "dev-architecture"
+  ],
+  "keywords": [
+    "browser CDP supervisor",
+    "CDPSupervisor",
+    "browser_dialog",
+    "OOPIF",
+    "cross-origin iframe",
+    "dialog policy",
+    "frame tree",
+    "Browserbase",
+    "CDP WebSocket",
+    "javascript dialog",
+    "browser_snapshot"
+  ],
+  "full_text": "# Browser CDP Supervisor — Design\n\n**Status:** Shipped (PR 14540)\n**Last updated:** 2026-04-23\n**Author:** @teknium1\n\n## Problem\n\nNative JS dialogs (`alert`/`confirm`/`prompt`/`beforeunload`) and iframes are the two biggest gaps in our browser tooling:\n\n1. **Dialogs block the JS thread.** Any operation on the page stalls until the dialog is handled. Before this work, the agent had no way to know a dialog was open.\n2. **Iframes are invisible.** The agent could see iframe nodes in the DOM snapshot but could not click, type, or eval inside them — especially cross-origin (OOPIF) iframes that live in separate Chromium processes.\n\n## Backend capability matrix (verified live 2026-04-23)\n\n| Backend | Dialog detect | Dialog respond | Frame tree | OOPIF Runtime.evaluate via browser_cdp(frame_id=...) |\n|---|---|---|---|---|\n| Local Chrome / /browser connect | Yes | Yes full workflow | Yes | Yes |\n| Browserbase | Yes (via bridge) | Yes full workflow (via bridge) | Yes | Yes |\n| Camofox | No (REST-only) | No | partial via DOM snapshot | No |\n\n**How Browserbase respond works.** Browserbase's CDP proxy uses Playwright internally and auto-dismisses native dialogs within ~10ms. The supervisor injects a bridge script via `Page.addScriptToEvaluateOnNewDocument` that overrides `window.alert`/`confirm`/`prompt` with a synchronous XHR to a magic host (`hermes-dialog-bridge.invalid`). `Fetch.enable` intercepts those XHRs — the dialog becomes a `Fetch.requestPaused` event the supervisor captures, and `respond_to_dialog` fulfills via `Fetch.fulfillRequest`.\n\n## Architecture\n\n### CDPSupervisor\n\nOne `asyncio.Task` running in a background daemon thread per Hermes `task_id`. Holds a persistent WebSocket to the backend's CDP endpoint. Maintains:\n\n- **Dialog queue** — `List[PendingDialog]` with `{id, type, message, default_prompt, session_id, opened_at}`\n- **Frame tree** — `Dict[frame_id, FrameInfo]` with parent relationships, URL, origin, whether cross-origin child session\n- **Session map** — `Dict[session_id, SessionInfo]` for OOPIF routing\n- **Recent console errors** — ring buffer of the last 50\n\nSubscribes on attach: `Page.enable`, `Runtime.enable`, `Target.setAutoAttach {autoAttach: true, flatten: true}`.\n\nThread-safe state access via a snapshot lock.\n\n### Lifecycle\n\n- **Start:** `SupervisorRegistry.get_or_start(task_id, cdp_url)` — called by `browser_navigate`, Browserbase session create, `/browser connect`. Idempotent.\n- **Stop:** session teardown or `/browser disconnect`.\n- **Rebind:** if the CDP URL changes, stop the old supervisor and start fresh.\n\n### Dialog policy\n\nConfigurable via `config.yaml` under `browser.dialog_policy`:\n\n- **`must_respond`** (default) — capture, surface in `browser_snapshot`, wait for explicit `browser_dialog(action=...)` call. 300s safety timeout with no response → auto-dismiss.\n- `auto_dismiss` — record and dismiss immediately.\n- `auto_accept` — record and accept.\n\n## Agent surface (PR 1)\n\n### One new tool\n\n```\nbrowser_dialog(action, prompt_text=None, dialog_id=None)\n```\n\n- `action=\"accept\"` / `\"dismiss\"` — responds to the specified or sole pending dialog\n- `prompt_text=...` — text to supply to a `prompt()` dialog\n- `dialog_id=...` — disambiguate when multiple dialogs queued\n\n### `browser_snapshot` extension\n\nAdds three optional fields when a supervisor is attached: `pending_dialogs`, `recent_dialogs`, `frame_tree`.\n\n- **`pending_dialogs`**: dialogs currently blocking the page's JS thread.\n- **`recent_dialogs`**: ring buffer of up to 20 recently-closed dialogs with a `closed_by` tag.\n- **`frame_tree`**: frame structure including cross-origin (OOPIF) children. Capped at 30 entries + OOPIF depth 2.\n\n### Availability gating\n\nBoth surfaces gate on `_browser_cdp_check`. On Camofox/no-backend sessions, the dialog tool is hidden and snapshot omits the new fields.\n\n## Cross-origin iframe interaction\n\n`browser_cdp(frame_id=...)` routes CDP calls through the supervisor's already-connected WebSocket using the OOPIF's child `sessionId`. Agents pick frame_ids out of `browser_snapshot.frame_tree.children[]` where `is_oopif=true`.\n\n## Files touched (PR 1)\n\n### New\n\n- `tools/browser_supervisor.py` — `CDPSupervisor`, `SupervisorRegistry`, `PendingDialog`, `FrameInfo`\n- `tools/browser_dialog_tool.py` — `browser_dialog` tool handler\n- `tests/tools/test_browser_supervisor.py` — mock CDP WebSocket server + lifecycle/state tests\n- `website/docs/developer-guide/browser-supervisor.md`\n\n### Modified\n\n- `toolsets.py` — register `browser_dialog` in `browser`, `hermes-acp`, `hermes-api-server`, core toolsets\n- `tools/browser_tool.py` — `browser_navigate` start-hook, `browser_snapshot` merge, `/browser connect` handler, session teardown hooks\n- `hermes_cli/config.py` — add `browser.dialog_policy` and `browser.dialog_timeout_s`\n\n## Non-goals\n\n- Detection/interaction for Camofox\n- Streaming dialog/frame events live to the user\n- Persisting dialog history across sessions\n- Per-iframe dialog policies"
+}

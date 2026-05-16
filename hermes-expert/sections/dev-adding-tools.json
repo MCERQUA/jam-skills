@@ -1,0 +1,67 @@
+{
+  "id": "dev-adding-tools",
+  "title": "Adding Tools",
+  "source_path": "website/docs/developer-guide/adding-tools.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/adding-tools",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Step-by-step guide for adding a new built-in Hermes tool to the repository, covering tool file structure, schema definition, registry.register() call, toolset assignment, async handlers, agent-loop intercepted tools, and setup wizard integration.",
+  "key_concepts": [
+    "tool registration",
+    "check_fn",
+    "tool schema",
+    "toolsets",
+    "async handlers",
+    "registry.register",
+    "agent-loop tools",
+    "OPTIONAL_ENV_VARS"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes chat -q \"Use the weather tool for London\"",
+      "purpose": "Test a newly created tool"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Complete tool file example",
+      "code": "from tools.registry import registry\n\ndef check_weather_requirements() -> bool:\n    return bool(os.getenv(\"WEATHER_API_KEY\"))\n\ndef weather_tool(location: str, units: str = \"metric\") -> str:\n    # ... call API ...\n    return json.dumps({\"location\": location, \"temp\": 22})\n\nWEATHER_SCHEMA = {\n    \"name\": \"weather\",\n    \"description\": \"Get current weather for a location.\",\n    \"parameters\": {\"type\": \"object\", \"properties\": {\"location\": {\"type\": \"string\"}}}\n}\n\nregistry.register(\n    name=\"weather\",\n    toolset=\"weather\",\n    schema=WEATHER_SCHEMA,\n    handler=lambda args, **kw: weather_tool(args.get(\"location\", \"\")),\n    check_fn=check_weather_requirements,\n    requires_env=[\"WEATHER_API_KEY\"],\n)"
+    },
+    {
+      "language": "python",
+      "caption": "Async tool handler",
+      "code": "registry.register(\n    name=\"weather\",\n    toolset=\"weather\",\n    schema=WEATHER_SCHEMA,\n    handler=lambda args, **kw: weather_tool_async(args.get(\"location\", \"\")),\n    check_fn=check_weather_requirements,\n    is_async=True,\n)"
+    }
+  ],
+  "gotchas": [
+    "Handlers MUST return a JSON string via json.dumps(), never raw dicts",
+    "Errors MUST be returned as {\"error\": \"message\"}, never raised as exceptions",
+    "check_fn returning False silently excludes the tool — no error shown to model",
+    "Tool modules with top-level registry.register() are auto-discovered — no manual import list needed",
+    "For a local/custom tool without modifying Hermes core, use the plugin route instead"
+  ],
+  "cross_refs": [
+    "dev-creating-skills",
+    "dev-tools-runtime",
+    "dev-architecture",
+    "guide-build-plugin"
+  ],
+  "keywords": [
+    "adding tools",
+    "tool registration",
+    "registry.register",
+    "check_fn",
+    "tool schema",
+    "toolsets",
+    "async handler",
+    "JSON string",
+    "built-in tool",
+    "toolsets.py",
+    "OPTIONAL_ENV_VARS"
+  ],
+  "full_text": "# Adding Tools\n\nBefore writing a tool, ask yourself: **should this be a [skill](creating-skills.md) instead?**\n\nMake it a **Skill** when the capability can be expressed as instructions + shell commands + existing tools.\n\nMake it a **Tool** when it requires end-to-end integration with API keys, custom processing logic, binary data handling, or streaming.\n\n## Overview\n\nAdding a tool touches **2 files**:\n\n1. **`tools/your_tool.py`** — handler, schema, check function, `registry.register()` call\n2. **`toolsets.py`** — add tool name to `_HERMES_CORE_TOOLS` (or a specific toolset)\n\nAny `tools/*.py` file with a top-level `registry.register()` call is auto-discovered at startup — no manual import list required.\n\n## Step 1: Create the Built-in Tool File\n\n```python\n# tools/weather_tool.py\nimport json, os, logging\n\nlogger = logging.getLogger(__name__)\n\ndef check_weather_requirements() -> bool:\n    return bool(os.getenv(\"WEATHER_API_KEY\"))\n\ndef weather_tool(location: str, units: str = \"metric\") -> str:\n    api_key = os.getenv(\"WEATHER_API_KEY\")\n    if not api_key:\n        return json.dumps({\"error\": \"WEATHER_API_KEY not configured\"})\n    try:\n        return json.dumps({\"location\": location, \"temp\": 22, \"units\": units})\n    except Exception as e:\n        return json.dumps({\"error\": str(e)})\n\nWEATHER_SCHEMA = {\n    \"name\": \"weather\",\n    \"description\": \"Get current weather for a location.\",\n    \"parameters\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"location\": {\"type\": \"string\", \"description\": \"City name\"},\n            \"units\": {\"type\": \"string\", \"enum\": [\"metric\", \"imperial\"], \"default\": \"metric\"}\n        },\n        \"required\": [\"location\"]\n    }\n}\n\nfrom tools.registry import registry\n\nregistry.register(\n    name=\"weather\",\n    toolset=\"weather\",\n    schema=WEATHER_SCHEMA,\n    handler=lambda args, **kw: weather_tool(\n        location=args.get(\"location\", \"\"),\n        units=args.get(\"units\", \"metric\")),\n    check_fn=check_weather_requirements,\n    requires_env=[\"WEATHER_API_KEY\"],\n)\n```\n\n### Key Rules\n\n- Handlers **MUST** return a JSON string (via `json.dumps()`), never raw dicts\n- Errors **MUST** be returned as `{\"error\": \"message\"}`, never raised as exceptions\n- The `check_fn` is called when building tool definitions — if it returns `False`, the tool is silently excluded\n- The `handler` receives `(args: dict, **kwargs)` where `args` is the LLM's tool call arguments\n\n## Step 2: Add the Built-in Tool to a Toolset\n\n```python\n# toolsets.py\n_HERMES_CORE_TOOLS = [\n    ...\n    \"weather\",  # <-- add here\n]\n\n# Or create a new standalone toolset:\n\"weather\": {\n    \"description\": \"Weather lookup tools\",\n    \"tools\": [\"weather\"],\n    \"includes\": []\n},\n```\n\n## Async Handlers\n\n```python\nasync def weather_tool_async(location: str) -> str:\n    async with aiohttp.ClientSession() as session:\n        ...\n    return json.dumps(result)\n\nregistry.register(\n    name=\"weather\",\n    ...\n    handler=lambda args, **kw: weather_tool_async(args.get(\"location\", \"\")),\n    is_async=True,  # registry calls _run_async() automatically\n)\n```\n\n## Optional: Setup Wizard Integration\n\n```python\nOPTIONAL_ENV_VARS = {\n    \"WEATHER_API_KEY\": {\n        \"description\": \"Weather API key for weather lookup\",\n        \"prompt\": \"Weather API key\",\n        \"url\": \"https://weatherapi.com/\",\n        \"tools\": [\"weather\"],\n        \"password\": True,\n    },\n}\n```\n\n## Checklist\n\n- [ ] Tool file created with handler, schema, check function, and registration\n- [ ] Added to appropriate toolset in `toolsets.py`\n- [ ] Handler returns JSON strings, errors returned as `{\"error\": \"...\"}`\n- [ ] Optional: API key added to `OPTIONAL_ENV_VARS` in `hermes_cli/config.py`\n- [ ] Tested with `hermes chat -q \"Use the weather tool for London\"`"
+}

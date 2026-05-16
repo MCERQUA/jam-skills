@@ -1,0 +1,151 @@
+{
+  "id": "messaging-slack",
+  "title": "Slack Integration",
+  "source_path": "user-guide/messaging/slack.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/slack",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Slack integration using Socket Mode and the Bolt SDK, covering app manifest generation, required bot scopes, event subscriptions, Messages Tab, multi-workspace support, thread-command prefix, and per-channel prompt and skill bindings.",
+  "key_concepts": [
+    "Socket Mode: no public URL required",
+    "Bolt SDK under the hood",
+    "App manifest generation via hermes gateway slack manifest",
+    "Required bot scopes and event subscriptions",
+    "Messages Tab for direct app DMs",
+    "Multi-workspace support via separate app installs",
+    "Thread commands with !cmd prefix",
+    "Per-channel system prompt overrides",
+    "Per-channel skill bindings",
+    "App-level token vs bot token distinction"
+  ],
+  "env_vars": [
+    {
+      "name": "SLACK_BOT_TOKEN",
+      "required": true,
+      "default": null,
+      "description": "Bot OAuth token (xoxb-...) from app installation"
+    },
+    {
+      "name": "SLACK_APP_TOKEN",
+      "required": true,
+      "default": null,
+      "description": "App-level token (xapp-...) for Socket Mode"
+    },
+    {
+      "name": "SLACK_SIGNING_SECRET",
+      "required": false,
+      "default": null,
+      "description": "Signing secret for HTTP mode webhook verification (not needed for Socket Mode)"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway including Slack listener"
+    },
+    {
+      "command": "hermes gateway slack manifest",
+      "description": "Generate the Slack app manifest JSON for easy app creation"
+    },
+    {
+      "command": "!reset",
+      "description": "Reset current Slack session (use ! prefix for thread commands)"
+    },
+    {
+      "command": "!help",
+      "description": "Show available thread commands"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "slack.bot_token",
+      "type": "string",
+      "description": "Bot token (overrides SLACK_BOT_TOKEN)"
+    },
+    {
+      "key": "slack.app_token",
+      "type": "string",
+      "description": "App-level token for Socket Mode (overrides SLACK_APP_TOKEN)"
+    },
+    {
+      "key": "slack.signing_secret",
+      "type": "string",
+      "description": "Signing secret for HTTP mode"
+    },
+    {
+      "key": "slack.allowed_channels",
+      "type": "list[str]",
+      "description": "Channel IDs the bot responds in"
+    },
+    {
+      "key": "slack.per_channel_prompts",
+      "type": "dict",
+      "description": "Map of channel_id to system prompt override"
+    },
+    {
+      "key": "slack.per_channel_skills",
+      "type": "dict",
+      "description": "Map of channel_id to list of skill names to enable"
+    },
+    {
+      "key": "slack.thread_prefix",
+      "type": "string",
+      "description": "Prefix for in-thread commands (default: !)"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "title": "Generate Slack app manifest",
+      "language": "bash",
+      "code": "hermes gateway slack manifest\n# Outputs JSON to paste into api.slack.com/apps > Create App > From Manifest"
+    },
+    {
+      "title": "Minimal Slack config",
+      "language": "yaml",
+      "code": "slack:\n  bot_token: \"\"\n  app_token: \"\"\n  allowed_channels:\n    - C0123456789"
+    },
+    {
+      "title": "Per-channel prompts and skills",
+      "language": "yaml",
+      "code": "slack:\n  per_channel_prompts:\n    C0123456789: \"You are a customer support agent for AcmeCorp.\"\n  per_channel_skills:\n    C0123456789:\n      - crm_lookup\n      - ticket_create"
+    },
+    {
+      "title": "Thread commands (in Slack thread)",
+      "language": "text",
+      "code": "!reset\n# Resets the session for this thread\n!help\n# Shows available commands"
+    }
+  ],
+  "gotchas": [
+    "Socket Mode requires an app-level token (xapp-...) in addition to the bot token (xoxb-...); these are different token types",
+    "The app manifest includes all required scopes; manually created apps often miss scopes causing silent failures",
+    "Commands inside threads must use the ! prefix (configurable); regular slash commands are not supported in thread context",
+    "Messages Tab must be enabled in app settings for users to DM the app directly",
+    "Multi-workspace support requires separate Slack app installs per workspace; tokens are workspace-scoped",
+    "Slack rate limits: tier 1 (1/min), tier 2 (20/min), tier 3 (50/min) vary by API method",
+    "Socket Mode WebSocket connections may drop; hermes auto-reconnects but brief gaps can occur"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-discord",
+    "messaging-mattermost"
+  ],
+  "keywords": [
+    "slack",
+    "socket mode",
+    "bolt sdk",
+    "bot token",
+    "app token",
+    "manifest",
+    "scopes",
+    "event subscriptions",
+    "messages tab",
+    "thread commands",
+    "per-channel prompts",
+    "per-channel skills",
+    "multi-workspace",
+    "allowed channels",
+    "signing secret"
+  ],
+  "full_text": "## Slack\n\nConnect Hermes to Slack using Socket Mode (no public URL required).\n\n### Setup\n\n#### 1. Generate the app manifest\n\n```bash\nhermes gateway slack manifest\n```\n\nThis prints a JSON manifest with all required scopes and event subscriptions pre-configured.\n\n#### 2. Create the Slack app\n\n1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App \u2192 From Manifest**.\n2. Paste the generated manifest JSON.\n3. Install the app to your workspace.\n\n#### 3. Get your tokens\n\n- **Bot token** (): Under **OAuth & Permissions \u2192 Bot User OAuth Token**\n- **App-level token** (): Under **Basic Information \u2192 App-Level Tokens** \u2192 generate with  scope\n\n### Minimal config\n\n```yaml\nslack:\n  bot_token: \"\"\n  app_token: \"\"\n  allowed_channels:\n    - C0123456789\n```\n\nStart the gateway:\n\n```bash\nhermes gateway\n```\n\n### Messages Tab\n\nEnable **Messages Tab** in your app's **App Home** settings to let users DM the app directly. DMs always bypass .\n\n### Thread commands\n\nIn Slack threads, commands use the  prefix (not ):\n\n```\n!reset\n!help\n```\n\nConfigure the prefix:\n\n```yaml\nslack:\n  thread_prefix: \"!\"\n```\n\n### Per-channel prompts\n\nOverride the system prompt for specific channels:\n\n```yaml\nslack:\n  per_channel_prompts:\n    C0123456789: \"You are a customer support agent for AcmeCorp. Only answer questions about our products.\"\n```\n\n### Per-channel skill bindings\n\nEnable only specific skills in certain channels:\n\n```yaml\nslack:\n  per_channel_skills:\n    C0123456789:\n      - crm_lookup\n      - ticket_create\n```\n\n### Multi-workspace\n\nTo support multiple Slack workspaces, create a separate Slack app install for each workspace and configure multiple Slack integrations in the gateway config:\n\n```yaml\nslack:\n  workspaces:\n    - bot_token: \"\"\n      app_token: \"\"\n    - bot_token: \"\"\n      app_token: \"\"\n```\n\n### Required bot scopes\n\nThe manifest includes: , , , , , , , , , , , .\n\n### Required event subscriptions\n\n, , , , ."
+}

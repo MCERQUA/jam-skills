@@ -1,0 +1,149 @@
+{
+  "id": "messaging-sms",
+  "title": "SMS Integration (Twilio)",
+  "source_path": "user-guide/messaging/sms.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/sms",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "SMS integration via Twilio, covering webhook HMAC-SHA1 validation, required SMS_WEBHOOK_URL config, 1600 character message length limit, plain text only (no markdown), phone number allowlisting in E.164 format, and multi-part message handling.",
+  "key_concepts": [
+    "Twilio as SMS provider",
+    "Webhook-based message delivery (Twilio POSTs to Hermes)",
+    "HMAC-SHA1 signature validation for security",
+    "SMS_WEBHOOK_URL required: public URL Twilio posts to",
+    "1600 character SMS limit with automatic splitting",
+    "Plain text only: no markdown formatting",
+    "E.164 phone number format",
+    "Sender allowlisting",
+    "MMS image support (US/Canada only)",
+    "Stateless sessions: no conversation history across SMS"
+  ],
+  "env_vars": [
+    {
+      "name": "TWILIO_ACCOUNT_SID",
+      "required": true,
+      "default": null,
+      "description": "Twilio Account SID from console.twilio.com"
+    },
+    {
+      "name": "TWILIO_AUTH_TOKEN",
+      "required": true,
+      "default": null,
+      "description": "Twilio Auth Token for HMAC-SHA1 webhook validation"
+    },
+    {
+      "name": "TWILIO_PHONE_NUMBER",
+      "required": true,
+      "default": null,
+      "description": "Your Twilio phone number in E.164 format"
+    },
+    {
+      "name": "SMS_WEBHOOK_URL",
+      "required": true,
+      "default": null,
+      "description": "Public HTTPS URL where Twilio posts incoming SMS; must be set in Twilio console too"
+    },
+    {
+      "name": "SMS_ALLOWED_NUMBERS",
+      "required": false,
+      "default": null,
+      "description": "Comma-separated E.164 numbers allowed to interact"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway; exposes SMS webhook endpoint"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "sms.account_sid",
+      "type": "string",
+      "description": "Twilio Account SID"
+    },
+    {
+      "key": "sms.auth_token",
+      "type": "string",
+      "description": "Twilio Auth Token for signature validation"
+    },
+    {
+      "key": "sms.phone_number",
+      "type": "string",
+      "description": "Your Twilio phone number in E.164 format"
+    },
+    {
+      "key": "sms.webhook_url",
+      "type": "string",
+      "description": "Public URL for Twilio to POST incoming messages to"
+    },
+    {
+      "key": "sms.allowed_numbers",
+      "type": "list[str]",
+      "description": "Allowed sender phone numbers in E.164 format"
+    },
+    {
+      "key": "sms.max_length",
+      "type": "int",
+      "description": "Max characters per SMS segment (default: 1600)"
+    },
+    {
+      "key": "sms.validate_signatures",
+      "type": "bool",
+      "description": "Validate Twilio HMAC-SHA1 signatures (default: true, do not disable in production)"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "title": "SMS config",
+      "language": "yaml",
+      "code": "sms:\n  account_sid: \"\"\n  auth_token: \"\"\n  phone_number: \"+15551234567\"\n  webhook_url: \"https://my-server.example.com/sms/webhook\"\n  allowed_numbers:\n    - \"+15559876543\""
+    },
+    {
+      "title": "Twilio console webhook config",
+      "language": "text",
+      "code": "# Twilio Console > Phone Numbers > Active Numbers > your number\n# Messaging > A Message Comes In > Webhook\n# URL: https://my-server.example.com/sms/webhook\n# HTTP Method: POST"
+    },
+    {
+      "title": "HMAC-SHA1 signature validation",
+      "language": "text",
+      "code": "# Twilio signs every request with HMAC-SHA1 using your Auth Token\n# Hermes validates X-Twilio-Signature header on every webhook call\n# Never disable validate_signatures in production"
+    }
+  ],
+  "gotchas": [
+    "SMS_WEBHOOK_URL must be set in BOTH the Hermes config AND the Twilio console phone number settings",
+    "Twilio requires HTTPS for webhook URLs; self-signed certs may be rejected",
+    "SMS has a hard 1600 character limit; responses exceeding this are split into multiple messages",
+    "Plain text only: markdown formatting renders as literal symbols in SMS; Hermes strips formatting automatically",
+    "Conversation history is not maintained across separate SMS threads; each conversation is stateless unless you implement session tracking",
+    "MMS (image sending/receiving) is only supported in US and Canada on Twilio",
+    "validate_signatures: false disables the only security check; never disable in production",
+    "Twilio charges per SMS segment; long LLM responses can become expensive"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-signal",
+    "messaging-email",
+    "messaging-webhooks"
+  ],
+  "keywords": [
+    "sms",
+    "twilio",
+    "webhook",
+    "hmac-sha1",
+    "signature validation",
+    "e.164",
+    "phone number",
+    "character limit",
+    "1600 chars",
+    "plain text",
+    "mms",
+    "allowed numbers",
+    "account sid",
+    "auth token",
+    "webhook url",
+    "multi-part"
+  ],
+  "full_text": "## SMS (Twilio)\n\nConnect Hermes to SMS via [Twilio](https://www.twilio.com/).\n\n### Setup\n\n#### 1. Get Twilio credentials\n\nFrom [console.twilio.com](https://console.twilio.com/):\n- **Account SID** and **Auth Token** from the dashboard\n- A **Twilio phone number** (buy one if you haven't already)\n\n#### 2. Configure Hermes\n\n```yaml\nsms:\n  account_sid: \"\"\n  auth_token: \"\"\n  phone_number: \"+15551234567\"\n  webhook_url: \"https://my-server.example.com/sms/webhook\"\n  allowed_numbers:\n    - \"+15559876543\"\n```\n\n#### 3. Configure Twilio webhook\n\nIn the Twilio Console:\n1. Go to **Phone Numbers \u2192 Active Numbers \u2192 your number**.\n2. Under **Messaging \u2192 A Message Comes In**, set:\n   - **Webhook URL:** \n   - **HTTP Method:** POST\n\n### How it works\n\nTwilio POSTs incoming SMS to your webhook URL. Hermes validates the  header using HMAC-SHA1 with your Auth Token, generates a response, and sends it back via the Twilio REST API.\n\n### Message length\n\nSMS supports up to 1600 characters. Responses longer than this are automatically split into multiple messages. Keeping responses concise is recommended \u2014 each SMS segment is a separate Twilio charge.\n\n### Formatting\n\nSMS does not support markdown. Hermes strips all formatting (bold, italic, code blocks) and sends plain text. Tables are converted to plain list format.\n\n### MMS\n\nTwilio supports MMS (image sending/receiving) in the US and Canada. Images sent to the Hermes number are forwarded to the vision pipeline if the active model supports it.\n\n### Security\n\nHermes validates every incoming webhook request using Twilio's HMAC-SHA1 signature scheme. Never set  in production \u2014 this is the only protection against spoofed requests.\n\n### Allowlist\n\n```yaml\nsms:\n  allowed_numbers:\n    - \"+15551234567\"\n    - \"+447700900123\"\n```\n\nNumbers not on the allowlist receive no response (Twilio still delivers the message to the webhook; Hermes silently drops it)."
+}

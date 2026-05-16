@@ -1,0 +1,121 @@
+{
+  "id": "personality",
+  "title": "Personality & SOUL.md",
+  "source_path": "website/docs/user-guide/features/personality.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/personality",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Hermes Agent's personality is fully customizable. `SOUL.md` is the **primary identity** — it's the first thing in the system prompt and defines who the agent is.",
+  "key_concepts": [
+    "How SOUL.md works now",
+    "Important behavior",
+    "Why this design",
+    "Where to edit it",
+    "What should go in SOUL.md?",
+    "Good SOUL.md content",
+    "Example",
+    "Style"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "agent.personalities",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "agent.system_prompt",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "display.skin",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/personality",
+      "purpose": ""
+    },
+    {
+      "command": "/skin",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "",
+      "code": "~/.hermes/SOUL.md\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "$HERMES_HOME/SOUL.md\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "~/.hermes/SOUL.md\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "$HERMES_HOME/SOUL.md\n"
+    },
+    {
+      "language": "markdown",
+      "caption": "",
+      "code": "# Personality\n\nYou are a pragmatic senior engineer with strong taste.\nYou optimize for truth, clarity, and usefulness over politeness theater.\n\n## Style\n- Be direct without being cold\n- Prefer substance over filler\n- Push back when something is a bad idea\n- Admit uncertainty plainly\n- Keep explanations compact unless depth is useful\n\n## What to avoid\n- Sycophancy\n- Hype language\n- Repeating the user's framing if it's wrong\n- Overexplaining obvious things\n\n## Technical posture\n- Prefer simple systems over clever systems\n- Care about operational reality, not idealized architecture\n- Treat edge cases as part of the design, not cleanup\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "/personality\n/personality concise\n/personality technical\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "/personality teacher\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "agent:\n  personalities:\n    codereviewer: >\n      You are a meticulous code reviewer. Identify bugs, security issues,\n      performance concerns, and unclear design choices. Be precise and constructive.\n"
+    },
+    {
+      "language": "text",
+      "caption": "",
+      "code": "/personality codereviewer\n"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "catgirl",
+    "concise",
+    "creative",
+    "helpful",
+    "hype",
+    "kawaii",
+    "noir",
+    "personality",
+    "philosopher",
+    "pirate",
+    "shakespeare",
+    "skip_context_files",
+    "soul.md",
+    "surfer",
+    "teacher"
+  ],
+  "full_text": "# Personality & SOUL.md\n\n# Personality & SOUL.md\n\nHermes Agent's personality is fully customizable. `SOUL.md` is the **primary identity** — it's the first thing in the system prompt and defines who the agent is.\n\n- `SOUL.md` — a durable persona file that lives in `HERMES_HOME` and serves as the agent's identity (slot #1 in the system prompt)\n- built-in or custom `/personality` presets — session-level system-prompt overlays\n\nIf you want to change who Hermes is — or replace it with an entirely different agent persona — edit `SOUL.md`.\n\n## How SOUL.md works now\n\nHermes now seeds a default `SOUL.md` automatically in:\n\n```text\n~/.hermes/SOUL.md\n```\n\nMore precisely, it uses the current instance's `HERMES_HOME`, so if you run Hermes with a custom home directory, it will use:\n\n```text\n$HERMES_HOME/SOUL.md\n```\n\n### Important behavior\n\n- **SOUL.md is the agent's primary identity.** It occupies slot #1 in the system prompt, replacing the hardcoded default identity.\n- Hermes creates a starter `SOUL.md` automatically if one does not exist yet\n- Existing user `SOUL.md` files are never overwritten\n- Hermes loads `SOUL.md` only from `HERMES_HOME`\n- Hermes does not look in the current working directory for `SOUL.md`\n- If `SOUL.md` exists but is empty, or cannot be loaded, Hermes falls back to a built-in default identity\n- If `SOUL.md` has content, that content is injected verbatim after security scanning and truncation\n- SOUL.md is **not** duplicated in the context files section — it appears only once, as the identity\n\nThat makes `SOUL.md` a true per-user or per-instance identity, not just an additive layer.\n\n## Why this design\n\nThis keeps personality predictable.\n\nIf Hermes loaded `SOUL.md` from whatever directory you happened to launch it in, your personality could change unexpectedly between projects. By loading only from `HERMES_HOME`, the personality belongs to the Hermes instance itself.\n\nThat also makes it easier to teach users:\n- \"Edit `~/.hermes/SOUL.md` to change Hermes' default personality.\"\n\n## Where to edit it\n\nFor most users:\n\n```bash\n~/.hermes/SOUL.md\n```\n\nIf you use a custom home:\n\n```bash\n$HERMES_HOME/SOUL.md\n```\n\n## What should go in SOUL.md?\n\nUse it for durable voice and personality guidance, such as:\n- tone\n- communication style\n- level of directness\n- default interaction style\n- what to avoid stylistically\n- how Hermes should handle uncertainty, disagreement, or ambiguity\n\nUse it less for:\n- one-off project instructions\n- file paths\n- repo conventions\n- temporary workflow details\n\nThose belong in `AGENTS.md`, not `SOUL.md`.\n\n## Good SOUL.md content\n\nA good SOUL file is:\n- stable across contexts\n- broad enough to apply in many conversations\n- specific enough to materially shape the voice\n- focused on communication and identity, not task-specific instructions\n\n### Example\n\n```markdown\n# Personality\n\nYou are a pragmatic senior engineer with strong taste.\nYou optimize for truth, clarity, and usefulness over politeness theater.\n\n## Style\n- Be direct without being cold\n- Prefer substance over filler\n- Push back when something is a bad idea\n- Admit uncertainty plainly\n- Keep explanations compact unless depth is useful\n\n## What to avoid\n- Sycophancy\n- Hype language\n- Repeating the user's framing if it's wrong\n- Overexplaining obvious things\n\n## Technical posture\n- Prefer simple systems over clever systems\n- Care about operational reality, not idealized architecture\n- Treat edge cases as part of the design, not cleanup\n```\n\n## What Hermes injects into the prompt\n\n`SOUL.md` content goes directly into slot #1 of the system prompt — the agent identity position. No wrapper language is added around it.\n\nThe content goes through:\n- prompt-injection scanning\n- truncation if it is too large\n\nIf the file is empty, whitespace-only, or cannot be read, Hermes falls back to a built-in default identity (\"You are Hermes Agent, an intelligent AI assistant created by Nous Research...\"). This fallback also applies when `skip_context_files` is set (e.g., in subagent/delegation contexts).\n\n## Security scanning\n\n`SOUL.md` is scanned like other context-bearing files for prompt injection patterns before inclusion.\n\nThat means you should still keep it focused on persona/voice rather than trying to sneak in strange meta-instructions.\n\n## SOUL.md vs AGENTS.md\n\nThis is the most important distinction.\n\n### SOUL.md\nUse for:\n- identity\n- tone\n- style\n- communication defaults\n- personality-level behavior\n\n### AGENTS.md\nUse for:\n- project architecture\n- coding conventions\n- tool preferences\n- repo-specific workflows\n- commands, ports, paths, deployment notes\n\nA useful rule:\n- if it should follow you everywhere, it belongs in `SOUL.md`\n- if it belongs to a project, it belongs in `AGENTS.md`\n\n## SOUL.md vs `/personality`\n\n`SOUL.md` is your durable default personality.\n\n`/personality` is a session-level overlay that changes or supplements the current system prompt.\n\nSo:\n- `SOUL.md` = baseline voice\n- `/personality` = temporary mode switch\n\nExamples:\n- keep a pragmatic default SOUL, then use `/personality teacher` for a tutoring conversation\n- keep a concise SOUL, then use `/personality creative` for brainstorming\n\n## Built-in personalities\n\nHermes ships with built-in personalities you can switch to with `/personality`.\n\n| Name | Description |\n|------|-------------|\n| **helpful** | Friendly, general-purpose assistant |\n| **concise** | Brief, to-the-point responses |\n| **technical** | Detailed, accurate technical expert |\n| **creative** | Innovative, outside-the-box thinking |\n| **teacher** | Patient educator with clear examples |\n| **kawaii** | Cute expressions, sparkles, and enthusiasm ★ |\n| **catgirl** | Neko-chan with cat-like expressions, nya~ |\n| **pirate** | Captain Hermes, tech-savvy buccaneer |\n| **shakespeare** | Bardic prose with dramatic flair |\n| **surfer** | Totally chill bro vibes |\n| **noir** | Hard-boiled detective narration |\n| **uwu** | Maximum cute with uwu-speak |\n| **philosopher** | Deep contemplation on every query |\n| **hype** | MAXIMUM ENERGY AND ENTHUSIASM!!! |\n\n## Switching personalities with commands\n\n### CLI\n\n```text\n/personality\n/personality concise\n/personality technical\n```\n\n### Messaging platforms\n\n```text\n/personality teacher\n```\n\nThese are convenient overlays, but your global `SOUL.md` still gives Hermes its persistent default personality unless the overlay meaningfully changes it.\n\n## Custom personalities in config\n\nYou can also define named custom personalities in `~/.hermes/config.yaml` under `agent.personalities`.\n\n```yaml\nagent:\n  personalities:\n    codereviewer: >\n      You are a meticulous code reviewer. Identify bugs, security issues,\n      performance concerns, and unclear design choices. Be precise and constructive.\n```\n\nThen switch to it with:\n\n```text\n/personality codereviewer\n```\n\n## Recommended workflow\n\nA strong default setup is:\n\n1. Keep a thoughtful global `SOUL.md` in `~/.hermes/SOUL.md`\n2. Put project instructions in `AGENTS.md`\n3. Use `/personality` only when you want a temporary mode shift\n\nThat gives you:\n- a stable voice\n- project-specific behavior where it belongs\n- temporary control when needed\n\n## How personality interacts with the full prompt\n\nAt a high level, the prompt stack includes:\n1. **SOUL.md** (agent identity — or built-in fallback if SOUL.md is unavailable)\n2. tool-aware behavior guidance\n3. memory/user context\n4. skills guidance\n5. context files (`AGENTS.md`, `.cursorrules`)\n6. timestamp\n7. platform-specific formatting hints\n8. optional system-prompt overlays such as `/personality`\n\n`SOUL.md` is the foundation — everything else builds on top of it.\n\n## Related docs\n\n- [Context Files](/docs/user-guide/features/context-files)\n- [Configuration](/docs/user-guide/configuration)\n- [Tips & Best Practices](/docs/guides/tips)\n- [SOUL.md Guide](/docs/guides/use-soul-with-hermes)\n\n## CLI appearance vs conversational personality\n\nConversational personality and CLI appearance are separate:\n\n- `SOUL.md`, `agent.system_prompt`, and `/personality` affect how Hermes speaks\n- `display.skin` and `/skin` affect how Hermes looks in the terminal\n\nFor terminal appearance, see [Skins & Themes](./skins.md).\n\n---"
+}

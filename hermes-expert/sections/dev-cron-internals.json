@@ -1,0 +1,111 @@
+{
+  "id": "dev-cron-internals",
+  "title": "Cron Internals",
+  "source_path": "website/docs/developer-guide/cron-internals.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/cron-internals",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the cron subsystem covering scheduling model (4 formats), job storage in jobs.json, scheduler tick cycle, skill/script injection, provider recovery with fallback support, delivery model across all platforms, recursion guard, cross-process locking, and CLI interface.",
+  "key_concepts": [
+    "cron scheduler",
+    "job storage",
+    "tick cycle",
+    "skill-backed jobs",
+    "script-backed jobs",
+    "delivery model",
+    "recursion guard",
+    "cross-process locking",
+    "fresh session isolation",
+    "fallback providers"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_CRON_SCRIPT_TIMEOUT",
+      "purpose": "Override the cron script execution timeout in seconds",
+      "required": false,
+      "default": "120"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes cron list",
+      "purpose": "Show all scheduled jobs"
+    },
+    {
+      "command": "hermes cron create",
+      "purpose": "Interactive job creation"
+    },
+    {
+      "command": "hermes cron edit <job_id>",
+      "purpose": "Edit job configuration"
+    },
+    {
+      "command": "hermes cron pause <job_id>",
+      "purpose": "Pause a running job"
+    },
+    {
+      "command": "hermes cron resume <job_id>",
+      "purpose": "Resume a paused job"
+    },
+    {
+      "command": "hermes cron run <job_id>",
+      "purpose": "Trigger immediate execution"
+    },
+    {
+      "command": "hermes cron remove <job_id>",
+      "purpose": "Delete a job"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "cron.wrap_response",
+      "type": "boolean",
+      "default": "true",
+      "description": "Wrap cron deliveries with job name header and footer",
+      "example": "true"
+    },
+    {
+      "path": "cron.script_timeout_seconds",
+      "type": "integer",
+      "default": "120",
+      "description": "Max seconds for script execution before timeout",
+      "example": "120"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "json",
+      "caption": "Job record format",
+      "code": "{\n  \"id\": \"a1b2c3d4e5f6\",\n  \"name\": \"Daily briefing\",\n  \"prompt\": \"Summarize today's AI news\",\n  \"schedule\": {\"kind\": \"cron\", \"expr\": \"0 9 * * *\"},\n  \"skills\": [\"ai-funding-daily-report\"],\n  \"deliver\": \"telegram:-1001234567890\",\n  \"state\": \"scheduled\",\n  \"enabled\": true\n}"
+    }
+  ],
+  "gotchas": [
+    "Each cron job runs in a completely fresh agent session with no conversation history",
+    "The prompt must be self-contained — cron jobs cannot ask clarifying questions",
+    "Cron-run sessions have the cronjob toolset disabled to prevent recursion",
+    "Cron deliveries are NOT mirrored into gateway session history — they live in their own cron session",
+    "[SILENT] prefix in a cron response suppresses delivery entirely — useful for side-effect-only jobs",
+    "Script stdout is capped at 4000 characters; script timeout defaults to 120s"
+  ],
+  "cross_refs": [
+    "dev-gateway-internals",
+    "dev-agent-loop",
+    "cron"
+  ],
+  "keywords": [
+    "cron",
+    "scheduler",
+    "job storage",
+    "tick cycle",
+    "skill-backed jobs",
+    "script-backed jobs",
+    "delivery model",
+    "recursion guard",
+    "cross-process locking",
+    "cron expression",
+    "hermes cron",
+    "jobs.json"
+  ],
+  "full_text": "# Cron Internals\n\nThe cron subsystem provides scheduled task execution — from simple one-shot delays to recurring cron-expression jobs with skill injection and cross-platform delivery.\n\n## Key Files\n\n| File | Purpose |\n|------|---------|\n| `cron/jobs.py` | Job model, storage, atomic read/write to `jobs.json` |\n| `cron/scheduler.py` | Scheduler loop — due-job detection, execution, repeat tracking |\n| `tools/cronjob_tools.py` | Model-facing `cronjob` tool registration and handler |\n| `gateway/run.py` | Gateway integration — cron ticking in the long-running loop |\n| `hermes_cli/cron.py` | CLI `hermes cron` subcommands |\n\n## Scheduling Model\n\n| Format | Example | Behavior |\n|--------|---------|----------|\n| **Relative delay** | `30m`, `2h`, `1d` | One-shot, fires after the specified duration |\n| **Interval** | `every 2h`, `every 30m` | Recurring, fires at regular intervals |\n| **Cron expression** | `0 9 * * *` | Standard 5-field cron syntax |\n| **ISO timestamp** | `2025-01-15T09:00:00` | One-shot, fires at the exact time |\n\nThe model-facing surface is a single `cronjob` tool with action-style operations: `create`, `list`, `update`, `pause`, `resume`, `run`, `remove`.\n\n## Job Storage\n\nJobs are stored in `~/.hermes/cron/jobs.json` with atomic write semantics. Each job record contains: `id`, `name`, `prompt`, `schedule` (kind/expr/display), `skills`, `deliver`, `repeat` (times/completed), `state`, `enabled`, `next_run_at`, `last_run_at`, `last_status`, `created_at`, `model`, `provider`, `script`.\n\n### Job Lifecycle States\n\n| State | Meaning |\n|-------|---------|\n| `scheduled` | Active, will fire at next scheduled time |\n| `paused` | Suspended — won't fire until resumed |\n| `completed` | Repeat count exhausted or one-shot that has fired |\n| `running` | Currently executing (transient state) |\n\nOlder jobs may have a single `skill` field instead of the `skills` array. The scheduler normalizes this at load time.\n\n## Scheduler Runtime\n\n### Tick Cycle\n\nThe scheduler runs on a periodic tick (default: every 60 seconds):\n\n```\ntick()\n  1. Acquire scheduler lock (prevents overlapping ticks)\n  2. Load all jobs from jobs.json\n  3. Filter to due jobs (next_run <= now AND state == 'scheduled')\n  4. For each due job:\n     a. Set state to 'running'\n     b. Create fresh AIAgent session (no conversation history)\n     c. Load attached skills in order\n     d. Run the job prompt through the agent\n     e. Deliver the response to the configured target\n     f. Update run_count, compute next_run\n     g. If repeat count exhausted -> state = 'completed'\n     h. Otherwise -> state = 'scheduled'\n  5. Write updated jobs back to jobs.json\n  6. Release scheduler lock\n```\n\n### Gateway Integration\n\nIn gateway mode, the scheduler runs in a dedicated background thread that calls `scheduler.tick()` every 60 seconds alongside message handling.\n\n### Fresh Session Isolation\n\nEach cron job runs in a completely fresh agent session with no conversation history, no memory of previous cron executions. The `cronjob` toolset is disabled (recursion guard).\n\n## Skill-Backed Jobs\n\nA cron job can attach one or more skills via the `skills` field. At execution time: skills are loaded in order, each skill's SKILL.md content is injected as context, the job's prompt is appended as the task instruction.\n\n### Script-Backed Jobs\n\nJobs can attach a Python script via the `script` field. The script runs before each agent turn, and its stdout is injected into the prompt as context. Script timeout defaults to 120 seconds. `_get_script_timeout()` resolves the limit through: module-level override `_SCRIPT_TIMEOUT`, environment variable `HERMES_CRON_SCRIPT_TIMEOUT`, config `cron.script_timeout_seconds`, default 120 seconds.\n\n### Provider Recovery\n\n`run_job()` passes the user's configured fallback providers and credential pool into the `AIAgent` instance. Reads `fallback_providers` (list) or `fallback_model` (legacy dict) from `config.yaml`. Only passes credential pool when the pool has credentials. Enables same-provider key rotation on 429/rate-limit errors.\n\n## Delivery Model\n\n| Target | Syntax |\n|--------|--------|\n| Origin chat | `origin` |\n| Local file | `local` |\n| Telegram | `telegram` or `telegram:<chat_id>` |\n| Discord | `discord` or `discord:#channel` |\n| Slack | `slack` |\n| WhatsApp | `whatsapp` |\n| Signal | `signal` |\n| Matrix | `matrix` |\n| Mattermost | `mattermost` |\n| Email | `email` |\n| SMS | `sms` |\n| Home Assistant | `homeassistant` |\n| DingTalk | `dingtalk` |\n| Feishu | `feishu` |\n| WeCom | `wecom` |\n| Weixin | `weixin` |\n| BlueBubbles | `bluebubbles` |\n| QQ Bot | `qqbot` |\n\nFor Telegram topics, use format `telegram:<chat_id>:<thread_id>`.\n\n### Response Wrapping\n\nBy default (`cron.wrap_response: true`), cron deliveries are wrapped with a header and footer. The `[SILENT]` prefix in a cron response suppresses delivery entirely.\n\n### Session Isolation\n\nCron deliveries are NOT mirrored into gateway session conversation history.\n\n## Recursion Guard\n\nCron-run sessions have the `cronjob` toolset disabled. This prevents a scheduled job from creating new cron jobs, recursive scheduling, and accidental mutation of the job schedule.\n\n## Locking\n\nThe scheduler uses cross-process file-based locking (`fcntl.flock` on Unix, `msvcrt.locking` on Windows) to prevent overlapping ticks. If the lock cannot be acquired, `tick()` returns 0 immediately.\n\n## CLI Interface\n\n```bash\nhermes cron list                    # Show all jobs\nhermes cron create                  # Interactive job creation (alias: add)\nhermes cron edit <job_id>           # Edit job configuration\nhermes cron pause <job_id>          # Pause a running job\nhermes cron resume <job_id>         # Resume a paused job\nhermes cron run <job_id>            # Trigger immediate execution\nhermes cron remove <job_id>         # Delete a job\n```\n\n## Related Docs\n\n- [Cron Feature Guide](/docs/user-guide/features/cron)\n- [Gateway Internals](./gateway-internals.md)\n- [Agent Loop Internals](./agent-loop.md)"
+}

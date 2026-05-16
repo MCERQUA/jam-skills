@@ -1,0 +1,68 @@
+{
+  "id": "dev-acp-internals",
+  "title": "ACP Internals",
+  "source_path": "website/docs/developer-guide/acp-internals.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/acp-internals",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the ACP (Agent Client Protocol) adapter that wraps Hermes' synchronous AIAgent in an async JSON-RPC stdio server for VS Code, Zed, and JetBrains, covering boot flow, SessionManager, event bridge, permission bridge, session lifecycle, cancelation, and forking.",
+  "key_concepts": [
+    "HermesACPAgent",
+    "SessionManager",
+    "event bridge",
+    "permission bridge",
+    "JSON-RPC stdio",
+    "session lifecycle",
+    "session fork",
+    "ACP protocol",
+    "working directory binding"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes acp",
+      "purpose": "Start the ACP server on stdio for IDE integration"
+    },
+    {
+      "command": "hermes acp --bootstrap",
+      "purpose": "Print install snippet for an ACP-capable IDE"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "ACP boot flow",
+      "code": "hermes acp -> acp_adapter.entry.main()\n  -> load ~/.hermes/.env\n  -> configure stderr logging\n  -> construct HermesACPAgent\n  -> acp.run_agent(agent, use_unstable_protocol=True)"
+    }
+  ],
+  "gotchas": [
+    "Stdout is reserved for ACP JSON-RPC transport — human-readable logs go to stderr",
+    "ACP temporarily installs an approval callback on the terminal tool during prompt execution, then restores the previous callback",
+    "The event bridge uses asyncio.run_coroutine_threadsafe() because AIAgent runs in worker thread while ACP I/O lives on main event loop",
+    "Duplicate same-name tool calls use FIFO queues per tool name to avoid completion events attaching to wrong invocation",
+    "ACP sessions are persisted to state.db and transparently restored across process restarts"
+  ],
+  "cross_refs": [
+    "dev-agent-loop",
+    "dev-gateway-internals",
+    "dev-provider-runtime"
+  ],
+  "keywords": [
+    "ACP",
+    "Agent Client Protocol",
+    "VS Code",
+    "Zed",
+    "JetBrains",
+    "JSON-RPC",
+    "stdio",
+    "session management",
+    "event bridge",
+    "permission bridge",
+    "HermesACPAgent",
+    "session fork",
+    "cancelation"
+  ],
+  "full_text": "# ACP Internals\n\nThe ACP adapter wraps Hermes' synchronous `AIAgent` in an async JSON-RPC stdio server.\n\nKey implementation files:\n\n- `acp_adapter/entry.py`\n- `acp_adapter/server.py`\n- `acp_adapter/session.py`\n- `acp_adapter/events.py`\n- `acp_adapter/permissions.py`\n- `acp_adapter/tools.py`\n- `acp_adapter/auth.py`\n- `acp_registry/agent.json`\n\n## Boot flow\n\n```text\nhermes acp / hermes-acp / python -m acp_adapter\n  -> acp_adapter.entry.main()\n  -> parse --version / --check / --setup before server startup\n  -> load ~/.hermes/.env\n  -> configure stderr logging\n  -> construct HermesACPAgent\n  -> acp.run_agent(agent, use_unstable_protocol=True)\n```\n\nThe Zed ACP Registry path launches the same adapter through `uvx --from 'hermes-agent[acp]==<version>' hermes-acp`, pointed at the `hermes-agent` PyPI release.\n\nStdout is reserved for ACP JSON-RPC transport. Human-readable logs go to stderr.\n\n## Major components\n\n### `HermesACPAgent`\n\n`acp_adapter/server.py` implements the ACP agent protocol.\n\nResponsibilities:\n\n- initialize / authenticate\n- new/load/resume/fork/list/cancel session methods\n- prompt execution\n- session model switching\n- wiring sync AIAgent callbacks into ACP async notifications\n\n### `SessionManager`\n\n`acp_adapter/session.py` tracks live ACP sessions.\n\nEach session stores:\n\n- `session_id`\n- `agent`\n- `cwd`\n- `model`\n- `history`\n- `cancel_event`\n\nThe manager is thread-safe and supports: create, get, remove, fork, list, cleanup, cwd updates.\n\n### Event bridge\n\n`acp_adapter/events.py` converts AIAgent callbacks into ACP `session_update` events.\n\nBridged callbacks:\n\n- `tool_progress_callback`\n- `thinking_callback` (currently set to `None` in the ACP bridge — reasoning is forwarded through `step_callback` instead)\n- `step_callback`\n\nBecause `AIAgent` runs in a worker thread while ACP I/O lives on the main event loop, the bridge uses `asyncio.run_coroutine_threadsafe(...)`.\n\n### Permission bridge\n\n`acp_adapter/permissions.py` adapts dangerous terminal approval prompts into ACP permission requests.\n\nMapping:\n\n- `allow_once` -> Hermes `once`\n- `allow_always` -> Hermes `always`\n- reject options -> Hermes `deny`\n\nTimeouts and bridge failures deny by default.\n\n### Tool rendering helpers\n\n`acp_adapter/tools.py` maps Hermes tools to ACP tool kinds and builds editor-facing content.\n\nExamples:\n\n- `patch` / `write_file` -> file diffs\n- `terminal` -> shell command text\n- `read_file` / `search_files` -> text previews\n- large results -> truncated text blocks for UI safety\n\n## Session lifecycle\n\n```text\nnew_session(cwd)\n  -> create SessionState\n  -> create AIAgent(platform=\"acp\", enabled_toolsets=[\"hermes-acp\"])\n  -> bind task_id/session_id to cwd override\n\nprompt(..., session_id)\n  -> extract text from ACP content blocks\n  -> reset cancel event\n  -> install callbacks + approval bridge\n  -> run AIAgent in ThreadPoolExecutor\n  -> update session history\n  -> emit final agent message chunk\n```\n\n### Cancelation\n\n`cancel(session_id)`: sets the session cancel event, calls `agent.interrupt()` when available, causes the prompt response to return `stop_reason=\"cancelled\"`.\n\n### Forking\n\n`fork_session()` deep-copies message history into a new live session, preserving conversation state while giving the fork its own session ID and cwd.\n\n## Provider/auth behavior\n\nACP does not implement its own auth store. Instead it reuses Hermes' runtime resolver: `acp_adapter/auth.py` and `hermes_cli/runtime_provider.py`. ACP advertises and uses the currently configured Hermes provider/credentials. It also always advertises a terminal setup auth method (`hermes-setup`, args `--setup`) so first-run registry clients can open Hermes' interactive model/provider configuration.\n\n## Working directory binding\n\nACP sessions carry an editor cwd. The session manager binds that cwd to the ACP session ID via task-scoped terminal/file overrides.\n\n## Duplicate same-name tool calls\n\nThe event bridge tracks tool IDs FIFO per tool name, not just one ID per name. This is important for parallel same-name calls and repeated same-name calls in one step.\n\n## Approval callback restoration\n\nACP temporarily installs an approval callback on the terminal tool during prompt execution, then restores the previous callback afterward.\n\n## Current limitations\n\n- ACP sessions are persisted to the shared `~/.hermes/state.db` (SessionDB) and transparently restored across process restarts\n- non-text prompt blocks are currently ignored for request text extraction\n- editor-specific UX varies by ACP client implementation\n\n## Related files\n\n- `tests/acp/` — ACP test suite\n- `toolsets.py` — `hermes-acp` toolset definition\n- `hermes_cli/main.py` — `hermes acp` CLI subcommand\n- `pyproject.toml` — `[acp]` optional dependency + `hermes-acp` script"
+}

@@ -1,0 +1,129 @@
+{
+  "id": "code-execution",
+  "title": "Code Execution",
+  "source_path": "website/docs/user-guide/features/code-execution.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/code-execution",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "The `execute_code` tool lets the agent write Python scripts that call Hermes tools programmatically, collapsing multi-step workflows into a single LLM turn. The script runs in a child process on the agent host, communicating with Hermes over a Unix domain socket RPC.",
+  "key_concepts": [
+    "How It Works",
+    "When the Agent Uses This",
+    "Practical Examples",
+    "Data Processing Pipeline",
+    "Multi-Step Web Research",
+    "Bulk File Refactoring",
+    "Build and Test Pipeline",
+    "Execution Mode"
+  ],
+  "env_vars": [
+    {
+      "name": "MY_CUSTOM_KEY",
+      "purpose": "Referenced in code-execution",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "ANOTHER_TOKEN",
+      "purpose": "Referenced in code-execution",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "hermes_tools.py",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "code_execution.mode",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "sys.executable",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "config.yaml",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# The agent can write scripts like:\nfrom hermes_tools import web_search, web_extract\n\nresults = web_search(\"Python 3.13 features\", limit=5)\nfor r in results[\"data\"][\"web\"]:\n    content = web_extract([r[\"url\"]])\n    # ... filter and process ...\nprint(summary)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "from hermes_tools import search_files, read_file\nimport json\n\n# Find all config files and extract database settings\nmatches = search_files(\"database\", path=\".\", file_glob=\"*.yaml\", limit=20)\nconfigs = []\nfor match in matches.get(\"matches\", []):\n    content = read_file(match[\"path\"])\n    configs.append({\"file\": match[\"path\"], \"preview\": content[\"content\"][:200]})\n\nprint(json.dumps(configs, indent=2))\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "from hermes_tools import web_search, web_extract\nimport json\n\n# Search, extract, and summarize in one turn\nresults = web_search(\"Rust async runtime comparison 2025\", limit=5)\nsummaries = []\nfor r in results[\"data\"][\"web\"]:\n    page = web_extract([r[\"url\"]])\n    for p in page.get(\"results\", []):\n        if p.get(\"content\"):\n            summaries.append({\n                \"title\": r[\"title\"],\n                \"url\": r[\"url\"],\n                \"excerpt\": p[\"content\"][:500]\n            })\n\nprint(json.dumps(summaries, indent=2))\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "from hermes_tools import search_files, read_file, patch\n\n# Find all Python files using deprecated API and fix them\nmatches = search_files(\"old_api_call\", path=\"src/\", file_glob=\"*.py\")\nfixed = 0\nfor match in matches.get(\"matches\", []):\n    result = patch(\n        path=match[\"path\"],\n        old_string=\"old_api_call(\",\n        new_string=\"new_api_call(\",\n        replace_all=True\n    )\n    if \"error\" not in str(result):\n        fixed += 1\n\nprint(f\"Fixed {fixed} files out of {len(matches.get('matches', []))} matches\")\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "from hermes_tools import terminal, read_file\nimport json\n\n# Run tests, parse results, and report\nresult = terminal(\"cd /project && python -m pytest --tb=short -q 2>&1\", timeout=120)\noutput = result.get(\"output\", \"\")\n\n# Parse test output\npassed = output.count(\" passed\")\nfailed = output.count(\" failed\")\nerrors = output.count(\" error\")\n\nreport = {\n    \"passed\": passed,\n    \"failed\": failed,\n    \"errors\": errors,\n    \"exit_code\": result.get(\"exit_code\", -1),\n    \"summary\": output[-500:] if len(output) > 500 else output\n}\n\nprint(json.dumps(report, indent=2))\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# ~/.hermes/config.yaml\ncode_execution:\n  mode: project   # or \"strict\"\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# In ~/.hermes/config.yaml\ncode_execution:\n  mode: project      # project (default) | strict\n  timeout: 300       # Max seconds per script (default: 300)\n  max_tool_calls: 50 # Max tool calls per execution (default: 50)\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "terminal:\n  env_passthrough:\n    - MY_CUSTOM_KEY\n    - ANOTHER_TOKEN\n"
+    }
+  ],
+  "gotchas": [
+    "Security Model\nThe child process runs with a **minimal environment**. API keys, tokens, and credentials are stripped by default. The script accesses tools exclusively via the RPC channel — it cannot read secrets from environment variables unless explicitly allowed."
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "`project`",
+    "background",
+    "code",
+    "code-execution",
+    "delegate_task",
+    "duration_seconds",
+    "execute_code",
+    "execution",
+    "handle_function_call",
+    "interruption",
+    "output",
+    "patch",
+    "project",
+    "pty",
+    "read_file"
+  ],
+  "full_text": "# Code Execution\n\n# Code Execution (Programmatic Tool Calling)\n\nThe `execute_code` tool lets the agent write Python scripts that call Hermes tools programmatically, collapsing multi-step workflows into a single LLM turn. The script runs in a child process on the agent host, communicating with Hermes over a Unix domain socket RPC.\n\n## How It Works\n\n1. The agent writes a Python script using `from hermes_tools import ...`\n2. Hermes generates a `hermes_tools.py` stub module with RPC functions\n3. Hermes opens a Unix domain socket and starts an RPC listener thread\n4. The script runs in a child process — tool calls travel over the socket back to Hermes\n5. Only the script's `print()` output is returned to the LLM; intermediate tool results never enter the context window\n\n```python\n# The agent can write scripts like:\nfrom hermes_tools import web_search, web_extract\n\nresults = web_search(\"Python 3.13 features\", limit=5)\nfor r in results[\"data\"][\"web\"]:\n    content = web_extract([r[\"url\"]])\n    # ... filter and process ...\nprint(summary)\n```\n\n**Available tools inside scripts:** `web_search`, `web_extract`, `read_file`, `write_file`, `search_files`, `patch`, `terminal` (foreground only).\n\n## When the Agent Uses This\n\nThe agent uses `execute_code` when there are:\n\n- **3+ tool calls** with processing logic between them\n- Bulk data filtering or conditional branching\n- Loops over results\n\nThe key benefit: intermediate tool results never enter the context window — only the final `print()` output comes back, dramatically reducing token usage.\n\n## Practical Examples\n\n### Data Processing Pipeline\n\n```python\nfrom hermes_tools import search_files, read_file\nimport json\n\n# Find all config files and extract database settings\nmatches = search_files(\"database\", path=\".\", file_glob=\"*.yaml\", limit=20)\nconfigs = []\nfor match in matches.get(\"matches\", []):\n    content = read_file(match[\"path\"])\n    configs.append({\"file\": match[\"path\"], \"preview\": content[\"content\"][:200]})\n\nprint(json.dumps(configs, indent=2))\n```\n\n### Multi-Step Web Research\n\n```python\nfrom hermes_tools import web_search, web_extract\nimport json\n\n# Search, extract, and summarize in one turn\nresults = web_search(\"Rust async runtime comparison 2025\", limit=5)\nsummaries = []\nfor r in results[\"data\"][\"web\"]:\n    page = web_extract([r[\"url\"]])\n    for p in page.get(\"results\", []):\n        if p.get(\"content\"):\n            summaries.append({\n                \"title\": r[\"title\"],\n                \"url\": r[\"url\"],\n                \"excerpt\": p[\"content\"][:500]\n            })\n\nprint(json.dumps(summaries, indent=2))\n```\n\n### Bulk File Refactoring\n\n```python\nfrom hermes_tools import search_files, read_file, patch\n\n# Find all Python files using deprecated API and fix them\nmatches = search_files(\"old_api_call\", path=\"src/\", file_glob=\"*.py\")\nfixed = 0\nfor match in matches.get(\"matches\", []):\n    result = patch(\n        path=match[\"path\"],\n        old_string=\"old_api_call(\",\n        new_string=\"new_api_call(\",\n        replace_all=True\n    )\n    if \"error\" not in str(result):\n        fixed += 1\n\nprint(f\"Fixed {fixed} files out of {len(matches.get('matches', []))} matches\")\n```\n\n### Build and Test Pipeline\n\n```python\nfrom hermes_tools import terminal, read_file\nimport json\n\n# Run tests, parse results, and report\nresult = terminal(\"cd /project && python -m pytest --tb=short -q 2>&1\", timeout=120)\noutput = result.get(\"output\", \"\")\n\n# Parse test output\npassed = output.count(\" passed\")\nfailed = output.count(\" failed\")\nerrors = output.count(\" error\")\n\nreport = {\n    \"passed\": passed,\n    \"failed\": failed,\n    \"errors\": errors,\n    \"exit_code\": result.get(\"exit_code\", -1),\n    \"summary\": output[-500:] if len(output) > 500 else output\n}\n\nprint(json.dumps(report, indent=2))\n```\n\n## Execution Mode\n\n`execute_code` has two execution modes controlled by `code_execution.mode` in `~/.hermes/config.yaml`:\n\n| Mode | Working directory | Python interpreter |\n|------|-------------------|--------------------|\n| **`project`** (default) | The session's working directory (same as `terminal()`) | Active `VIRTUAL_ENV` / `CONDA_PREFIX` python, falling back to Hermes's own python |\n| `strict` | A temp staging directory isolated from the user's project | `sys.executable` (Hermes's own python) |\n\n**When to leave it on `project`:** you want `import pandas`, `from my_project import foo`, or relative paths like `open(\".env\")` to work the same way they do in `terminal()`. This is almost always what you want.\n\n**When to flip to `strict`:** you need maximum reproducibility — you want the same interpreter every session regardless of which venv the user activated, and you want scripts quarantined from the project tree (no risk of accidentally reading project files through a relative path).\n\n```yaml\n# ~/.hermes/config.yaml\ncode_execution:\n  mode: project   # or \"strict\"\n```\n\nFallback behavior in `project` mode: if `VIRTUAL_ENV` / `CONDA_PREFIX` is unset, broken, or points at a Python older than 3.8, the resolver falls back cleanly to `sys.executable` — it never leaves the agent without a working interpreter.\n\nSecurity-critical invariants are identical across both modes:\n\n- environment scrubbing (API keys, tokens, credentials stripped)\n- tool whitelist (scripts cannot call `execute_code` recursively, `delegate_task`, or MCP tools)\n- resource limits (timeout, stdout cap, tool-call cap)\n\nSwitching mode changes where scripts run and which interpreter runs them, not what credentials they can see or which tools they can call.\n\n## Resource Limits\n\n| Resource | Limit | Notes |\n|----------|-------|-------|\n| **Timeout** | 5 minutes (300s) | Script is killed with SIGTERM, then SIGKILL after 5s grace |\n| **Stdout** | 50 KB | Output truncated with `[output truncated at 50KB]` notice |\n| **Stderr** | 10 KB | Included in output on non-zero exit for debugging |\n| **Tool calls** | 50 per execution | Error returned when limit reached |\n\nAll limits are configurable via `config.yaml`:\n\n```yaml\n# In ~/.hermes/config.yaml\ncode_execution:\n  mode: project      # project (default) | strict\n  timeout: 300       # Max seconds per script (default: 300)\n  max_tool_calls: 50 # Max tool calls per execution (default: 50)\n```\n\n## How Tool Calls Work Inside Scripts\n\nWhen your script calls a function like `web_search(\"query\")`:\n\n1. The call is serialized to JSON and sent over a Unix domain socket to the parent process\n2. The parent dispatches through the standard `handle_function_call` handler\n3. The result is sent back over the socket\n4. The function returns the parsed result\n\nThis means tool calls inside scripts behave identically to normal tool calls — same rate limits, same error handling, same capabilities. The only restriction is that `terminal()` is foreground-only (no `background` or `pty` parameters).\n\n## Error Handling\n\nWhen a script fails, the agent receives structured error information:\n\n- **Non-zero exit code**: stderr is included in the output so the agent sees the full traceback\n- **Timeout**: Script is killed and the agent sees `\"Script timed out after 300s and was killed.\"`\n- **Interruption**: If the user sends a new message during execution, the script is terminated and the agent sees `[execution interrupted — user sent a new message]`\n- **Tool call limit**: When the 50-call limit is hit, subsequent tool calls return an error message\n\nThe response always includes `status` (success/error/timeout/interrupted), `output`, `tool_calls_made`, and `duration_seconds`.\n\n## Security\n\n:::danger Security Model\nThe child process runs with a **minimal environment**. API keys, tokens, and credentials are stripped by default. The script accesses tools exclusively via the RPC channel — it cannot read secrets from environment variables unless explicitly allowed.\n:::\n\nEnvironment variables containing `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL`, `PASSWD`, or `AUTH` in their names are excluded. Only safe system variables (`PATH`, `HOME`, `LANG`, `SHELL`, `PYTHONPATH`, `VIRTUAL_ENV`, etc.) are passed through.\n\n### Skill Environment Variable Passthrough\n\nWhen a skill declares `required_environment_variables` in its frontmatter, those variables are **automatically passed through** to both `execute_code` and `terminal` child processes after the skill is loaded. This lets skills use their declared API keys without weakening the security posture for arbitrary code.\n\nFor non-skill use cases, you can explicitly allowlist variables in `config.yaml`:\n\n```yaml\nterminal:\n  env_passthrough:\n    - MY_CUSTOM_KEY\n    - ANOTHER_TOKEN\n```\n\nSee the [Security guide](/docs/user-guide/security#environment-variable-passthrough) for full details.\n\nHermes always writes the script and the auto-generated `hermes_tools.py` RPC stub into a temp staging directory that is cleaned up after execution. In `strict` mode the script also *runs* there; in `project` mode it runs in the session's working directory (the staging directory stays on `PYTHONPATH` so imports still resolve). The child process runs in its own process group so it can be cleanly killed on timeout or interruption.\n\n## execute_code vs terminal\n\n| Use Case | execute_code | terminal |\n|----------|-------------|----------|\n| Multi-step workflows with tool calls between | ✅ | ❌ |\n| Simple shell command | ❌ | ✅ |\n| Filtering/processing large tool outputs | ✅ | ❌ |\n| Running a build or test suite | ❌ | ✅ |\n| Looping over search results | ✅ | ❌ |\n| Interactive/background processes | ❌ | ✅ |\n| Needs API keys in environment | ⚠️ Only via [passthrough](/docs/user-guide/security#environment-variable-passthrough) | ✅ (most pass through) |\n\n**Rule of thumb:** Use `execute_code` when you need to call Hermes tools programmatically with logic between calls. Use `terminal` for running shell commands, builds, and processes.\n\n## Platform Support\n\nCode execution requires Unix domain sockets and is available on **Linux and macOS only**. It is automatically disabled on Windows — the agent falls back to regular sequential tool calls.\n\n---"
+}

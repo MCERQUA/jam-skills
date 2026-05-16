@@ -1,0 +1,149 @@
+{
+  "id": "delegation",
+  "title": "Subagent Delegation",
+  "source_path": "website/docs/user-guide/features/delegation.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "The `delegate_task` tool spawns child AIAgent instances with isolated context, restricted toolsets, and their own terminal sessions. Each child gets a fresh conversation and works independently — only its final summary enters the parent's context.",
+  "key_concepts": [
+    "Single Task",
+    "Parallel Batch",
+    "How Subagent Context Works",
+    "Practical Examples",
+    "Parallel Research",
+    "Code Review + Fix",
+    "Multi-File Refactoring",
+    "Batch Mode Details"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "delegation.max_concurrent_children",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "config.yaml",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "delegation.child_timeout_seconds",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    },
+    {
+      "path": "delegation.max_spawn_depth",
+      "type": "string",
+      "default": null,
+      "description": "",
+      "example": ""
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/agents",
+      "purpose": ""
+    },
+    {
+      "command": "/tasks",
+      "purpose": ""
+    },
+    {
+      "command": "/stop",
+      "purpose": ""
+    },
+    {
+      "command": "/new",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "",
+      "code": "delegate_task(\n    goal=\"Debug why tests fail\",\n    context=\"Error: assertion in test_foo.py line 42\",\n    toolsets=[\"terminal\", \"file\"]\n)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "delegate_task(tasks=[\n    {\"goal\": \"Research topic A\", \"toolsets\": [\"web\"]},\n    {\"goal\": \"Research topic B\", \"toolsets\": [\"web\"]},\n    {\"goal\": \"Fix the build\", \"toolsets\": [\"terminal\", \"file\"]}\n])\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "# BAD - subagent has no idea what \"the error\" is\ndelegate_task(goal=\"Fix the error\")\n\n# GOOD - subagent has all context it needs\ndelegate_task(\n    goal=\"Fix the TypeError in api/handlers.py\",\n    context=\"\"\"The file api/handlers.py has a TypeError on line 47:\n    'NoneType' object has no attribute 'get'.\n    The function process_request() receives a dict from parse_body(),\n    but parse_body() returns None when Content-Type is missing.\n    The project is at /home/user/myproject and uses Python 3.11.\"\"\"\n)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "delegate_task(tasks=[\n    {\n        \"goal\": \"Research the current state of WebAssembly in 2025\",\n        \"context\": \"Focus on: browser support, non-browser runtimes, language support\",\n        \"toolsets\": [\"web\"]\n    },\n    {\n        \"goal\": \"Research the current state of RISC-V adoption in 2025\",\n        \"context\": \"Focus on: server chips, embedded systems, software ecosystem\",\n        \"toolsets\": [\"web\"]\n    },\n    {\n        \"goal\": \"Research quantum computing progress in 2025\",\n        \"context\": \"Focus on: error correction breakthroughs, practical applications, key players\",\n        \"toolsets\": [\"web\"]\n    }\n])\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "delegate_task(\n    goal=\"Review the authentication module for security issues and fix any found\",\n    context=\"\"\"Project at /home/user/webapp.\n    Auth module files: src/auth/login.py, src/auth/jwt.py, src/auth/middleware.py.\n    The project uses Flask, PyJWT, and bcrypt.\n    Focus on: SQL injection, JWT validation, password handling, session management.\n    Fix any issues found and run the test suite (pytest tests/auth/).\"\"\",\n    toolsets=[\"terminal\", \"file\"]\n)\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "delegate_task(\n    goal=\"Refactor all Python files in src/ to replace print() with proper logging\",\n    context=\"\"\"Project at /home/user/myproject.\n    Use the 'logging' module with logger = logging.getLogger(__name__).\n    Replace print() calls with appropriate log levels:\n    - print(f\"Error: ...\") -> logger.error(...)\n    - print(f\"Warning: ...\") -> logger.warning(...)\n    - print(f\"Debug: ...\") -> logger.debug(...)\n    - Other prints -> logger.info(...)\n    Don't change print() in test files or CLI output.\n    Run pytest after to verify nothing broke.\"\"\",\n    toolsets=[\"terminal\", \"file\"]\n)\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# In ~/.hermes/config.yaml\ndelegation:\n  model: \"google/gemini-flash-2.0\"    # Cheaper model for subagents\n  provider: \"openrouter\"              # Optional: route subagents to a different provider\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "delegate_task(\n    goal=\"Quick file check\",\n    context=\"Check if /etc/nginx/nginx.conf exists and print its first 10 lines\",\n    max_iterations=10  # Simple task, don't need many turns\n)\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "delegation:\n  child_timeout_seconds: 600   # default\n"
+    },
+    {
+      "language": "python",
+      "caption": "",
+      "code": "delegate_task(\n    goal=\"Survey three code review approaches and recommend one\",\n    role=\"orchestrator\",  # Allows this child to spawn its own workers\n    context=\"...\",\n)\n"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "# In ~/.hermes/config.yaml\ndelegation:\n  max_iterations: 50                        # Max turns per child (default: 50)\n  # max_concurrent_children: 3              # Parallel children per batch (default: 3)\n  # max_spawn_depth: 1                      # Tree depth (1-3, default 1 = flat). Raise to 2 to allow orchestrator children to spawn leaves; 3 for three levels.\n  # orchestrator_enabled: true              # Disable to force all children to leaf role.\n  model: \"google/gemini-3-flash-preview\"             # Optional provider/model override\n  provider: \"openrouter\"                             # Optional built-in provider\n\n# Or use a direct custom endpoint instead of provider:\ndelegation:\n  model: \"qwen2.5-coder\"\n  base_url: \"http://localhost:1234/v1\"\n  api_key: \"local-key\"\n"
+    }
+  ],
+  "gotchas": [
+    "Critical: Subagents Know Nothing\nSubagents start with a **completely fresh conversation**. They have zero knowledge of the parent's conversation history, prior tool calls, or anything discussed before delegation. The subagent's only context comes from the `goal` and `context` fields the parent agent",
+    "delegate_task is synchronous — not durable\n`delegate_task` runs **inside the parent's current turn**. It blocks the parent until every child finishes (or is cancelled). It is **not** a background job queue:\n\n- If the parent is interrupted (user sends a new message, `/stop`, `/new`), all active child"
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "cannot",
+    "clarify",
+    "code_execution",
+    "context",
+    "create",
+    "cronjob",
+    "delegate_task",
+    "delegation",
+    "everything",
+    "execute_code",
+    "flat",
+    "goal",
+    "leaf",
+    "max_spawn_depth",
+    "memory"
+  ],
+  "full_text": "# Subagent Delegation\n\n# Subagent Delegation\n\nThe `delegate_task` tool spawns child AIAgent instances with isolated context, restricted toolsets, and their own terminal sessions. Each child gets a fresh conversation and works independently — only its final summary enters the parent's context.\n\n## Single Task\n\n```python\ndelegate_task(\n    goal=\"Debug why tests fail\",\n    context=\"Error: assertion in test_foo.py line 42\",\n    toolsets=[\"terminal\", \"file\"]\n)\n```\n\n## Parallel Batch\n\nUp to 3 concurrent subagents by default (configurable, no hard ceiling):\n\n```python\ndelegate_task(tasks=[\n    {\"goal\": \"Research topic A\", \"toolsets\": [\"web\"]},\n    {\"goal\": \"Research topic B\", \"toolsets\": [\"web\"]},\n    {\"goal\": \"Fix the build\", \"toolsets\": [\"terminal\", \"file\"]}\n])\n```\n\n## How Subagent Context Works\n\n:::warning Critical: Subagents Know Nothing\nSubagents start with a **completely fresh conversation**. They have zero knowledge of the parent's conversation history, prior tool calls, or anything discussed before delegation. The subagent's only context comes from the `goal` and `context` fields the parent agent populates when it calls `delegate_task`.\n:::\n\nThis means the parent agent must pass **everything** the subagent needs in the call:\n\n```python\n# BAD - subagent has no idea what \"the error\" is\ndelegate_task(goal=\"Fix the error\")\n\n# GOOD - subagent has all context it needs\ndelegate_task(\n    goal=\"Fix the TypeError in api/handlers.py\",\n    context=\"\"\"The file api/handlers.py has a TypeError on line 47:\n    'NoneType' object has no attribute 'get'.\n    The function process_request() receives a dict from parse_body(),\n    but parse_body() returns None when Content-Type is missing.\n    The project is at /home/user/myproject and uses Python 3.11.\"\"\"\n)\n```\n\nThe subagent receives a focused system prompt built from your goal and context, instructing it to complete the task and provide a structured summary of what it did, what it found, any files modified, and any issues encountered.\n\n## Practical Examples\n\n### Parallel Research\n\nResearch multiple topics simultaneously and collect summaries:\n\n```python\ndelegate_task(tasks=[\n    {\n        \"goal\": \"Research the current state of WebAssembly in 2025\",\n        \"context\": \"Focus on: browser support, non-browser runtimes, language support\",\n        \"toolsets\": [\"web\"]\n    },\n    {\n        \"goal\": \"Research the current state of RISC-V adoption in 2025\",\n        \"context\": \"Focus on: server chips, embedded systems, software ecosystem\",\n        \"toolsets\": [\"web\"]\n    },\n    {\n        \"goal\": \"Research quantum computing progress in 2025\",\n        \"context\": \"Focus on: error correction breakthroughs, practical applications, key players\",\n        \"toolsets\": [\"web\"]\n    }\n])\n```\n\n### Code Review + Fix\n\nDelegate a review-and-fix workflow to a fresh context:\n\n```python\ndelegate_task(\n    goal=\"Review the authentication module for security issues and fix any found\",\n    context=\"\"\"Project at /home/user/webapp.\n    Auth module files: src/auth/login.py, src/auth/jwt.py, src/auth/middleware.py.\n    The project uses Flask, PyJWT, and bcrypt.\n    Focus on: SQL injection, JWT validation, password handling, session management.\n    Fix any issues found and run the test suite (pytest tests/auth/).\"\"\",\n    toolsets=[\"terminal\", \"file\"]\n)\n```\n\n### Multi-File Refactoring\n\nDelegate a large refactoring task that would flood the parent's context:\n\n```python\ndelegate_task(\n    goal=\"Refactor all Python files in src/ to replace print() with proper logging\",\n    context=\"\"\"Project at /home/user/myproject.\n    Use the 'logging' module with logger = logging.getLogger(__name__).\n    Replace print() calls with appropriate log levels:\n    - print(f\"Error: ...\") -> logger.error(...)\n    - print(f\"Warning: ...\") -> logger.warning(...)\n    - print(f\"Debug: ...\") -> logger.debug(...)\n    - Other prints -> logger.info(...)\n    Don't change print() in test files or CLI output.\n    Run pytest after to verify nothing broke.\"\"\",\n    toolsets=[\"terminal\", \"file\"]\n)\n```\n\n## Batch Mode Details\n\nWhen you provide a `tasks` array, subagents run in **parallel** using a thread pool:\n\n- **Maximum concurrency:** 3 tasks by default (configurable via `delegation.max_concurrent_children` or the `DELEGATION_MAX_CONCURRENT_CHILDREN` env var; floor of 1, no hard ceiling). Batches larger than the limit return a tool error rather than being silently truncated.\n- **Thread pool:** Uses `ThreadPoolExecutor` with the configured concurrency limit as max workers\n- **Progress display:** In CLI mode, a tree-view shows tool calls from each subagent in real-time with per-task completion lines. In gateway mode, progress is batched and relayed to the parent's progress callback\n- **Result ordering:** Results are sorted by task index to match input order regardless of completion order\n- **Interrupt propagation:** Interrupting the parent (e.g., sending a new message) interrupts all active children\n\nSingle-task delegation runs directly without thread pool overhead.\n\n## Model Override\n\nYou can configure a different model for subagents via `config.yaml` — useful for delegating simple tasks to cheaper/faster models:\n\n```yaml\n# In ~/.hermes/config.yaml\ndelegation:\n  model: \"google/gemini-flash-2.0\"    # Cheaper model for subagents\n  provider: \"openrouter\"              # Optional: route subagents to a different provider\n```\n\nIf omitted, subagents use the same model as the parent.\n\n## Toolset Selection Tips\n\nThe `toolsets` parameter controls what tools the subagent has access to. Choose based on the task:\n\n| Toolset Pattern | Use Case |\n|----------------|----------|\n| `[\"terminal\", \"file\"]` | Code work, debugging, file editing, builds |\n| `[\"web\"]` | Research, fact-checking, documentation lookup |\n| `[\"terminal\", \"file\", \"web\"]` | Full-stack tasks (default) |\n| `[\"file\"]` | Read-only analysis, code review without execution |\n| `[\"terminal\"]` | System administration, process management |\n\nCertain toolsets are blocked for subagents regardless of what you specify:\n- `delegation` — blocked for leaf subagents (the default). Retained for `role=\"orchestrator\"` children, bounded by `max_spawn_depth` — see [Depth Limit and Nested Orchestration](#depth-limit-and-nested-orchestration) below.\n- `clarify` — subagents cannot interact with the user\n- `memory` — no writes to shared persistent memory\n- `code_execution` — children should reason step-by-step\n- `send_message` — no cross-platform side effects (e.g., sending Telegram messages)\n\n## Max Iterations\n\nEach subagent has an iteration limit (default: 50) that controls how many tool-calling turns it can take:\n\n```python\ndelegate_task(\n    goal=\"Quick file check\",\n    context=\"Check if /etc/nginx/nginx.conf exists and print its first 10 lines\",\n    max_iterations=10  # Simple task, don't need many turns\n)\n```\n\n## Child Timeout\n\nSubagents are killed as stuck if they go quiet for more than `delegation.child_timeout_seconds` wall-clock seconds. The default is **600** (10 minutes) — bumped up from 300s in earlier releases because high-reasoning models on non-trivial research tasks were getting killed mid-think. Tune it per-install:\n\n```yaml\ndelegation:\n  child_timeout_seconds: 600   # default\n```\n\nLower it for fast local models; raise it for slow reasoning models on hard problems. The timer resets every time the child makes an API call or tool call — only genuinely idle workers trigger the kill.\n\n:::tip Diagnostic dump on zero-call timeout\nIf a subagent times out having made **zero** API calls (usually: provider unreachable, auth failure, or tool-schema rejection), `delegate_task` writes a structured diagnostic to `~/.hermes/logs/subagent-timeout-<session>-<timestamp>.log` containing the subagent's config snapshot, credential-resolution trace, and any early error messages. Much easier to root-cause than the previous silent-timeout behavior.\n:::\n\n## Monitoring Running Subagents (`/agents`)\n\nThe TUI ships a `/agents` overlay (alias `/tasks`) that turns recursive `delegate_task` fan-out into a first-class audit surface:\n\n- Live tree view of running and recently-finished subagents, grouped by parent\n- Per-branch cost, token, and file-touched rollups\n- Kill and pause controls — cancel a specific subagent mid-flight without interrupting its siblings\n- Post-hoc review: step through each subagent's turn-by-turn history even after they've returned to the parent\n\nThe classic CLI just prints `/agents` as a text summary; the TUI is where the overlay shines. See [TUI — Slash commands](/docs/user-guide/tui#slash-commands).\n\n## Depth Limit and Nested Orchestration\n\nBy default, delegation is **flat**: a parent (depth 0) spawns children (depth 1), and those children cannot delegate further. This prevents runaway recursive delegation.\n\nFor multi-stage workflows (research → synthesis, or parallel orchestration over sub-problems), a parent can spawn **orchestrator** children that *can* delegate their own workers:\n\n```python\ndelegate_task(\n    goal=\"Survey three code review approaches and recommend one\",\n    role=\"orchestrator\",  # Allows this child to spawn its own workers\n    context=\"...\",\n)\n```\n\n- `role=\"leaf\"` (default): child cannot delegate further — identical to the flat-delegation behavior.\n- `role=\"orchestrator\"`: child retains the `delegation` toolset. Gated by `delegation.max_spawn_depth` (default **1** = flat, so `role=\"orchestrator\"` is a no-op at defaults). Raise `max_spawn_depth` to 2 to allow orchestrator children to spawn leaf grandchildren; 3 for three levels (cap).\n- `delegation.orchestrator_enabled: false`: global kill switch that forces every child to `leaf` regardless of the `role` parameter.\n\n**Cost warning:** With `max_spawn_depth: 3` and `max_concurrent_children: 3`, the tree can reach 3×3×3 = 27 concurrent leaf agents. Each extra level multiplies spend — raise `max_spawn_depth` intentionally.\n\n## Lifetime and Durability\n\n:::warning delegate_task is synchronous — not durable\n`delegate_task` runs **inside the parent's current turn**. It blocks the parent until every child finishes (or is cancelled). It is **not** a background job queue:\n\n- If the parent is interrupted (user sends a new message, `/stop`, `/new`), all active children are cancelled and return `status=\"interrupted\"`. Their in-progress work is discarded.\n- Children do **not** continue running after the parent turn ends.\n- Cancelled children return a structured result (`status=\"interrupted\"`, `exit_reason=\"interrupted\"`), but because the parent was interrupted too, that result often never makes it into a user-visible reply.\n\nFor **durable long-running work** that must survive interrupts or outlive the current turn, use:\n\n- `cronjob` (action=`create`) — schedules a separate agent run; immune to parent-turn interrupts.\n- `terminal(background=True, notify_on_complete=True)` — long-running shell commands that keep running while the agent does other things.\n:::\n\n## Key Properties\n\n- Each subagent gets its **own terminal session** (separate from the parent)\n- **Nested delegation is opt-in** — only `role=\"orchestrator\"` children can delegate further, and only when `max_spawn_depth` is raised from its default of 1 (flat). Disable globally with `orchestrator_enabled: false`.\n- Leaf subagents **cannot** call: `delegate_task`, `clarify`, `memory`, `send_message`, `execute_code`. Orchestrator subagents retain `delegate_task` but still cannot use the other four.\n- **Interrupt propagation** — interrupting the parent interrupts all active children (including grandchildren under orchestrators)\n- Only the final summary enters the parent's context, keeping token usage efficient\n- Subagents inherit the parent's **API key, provider configuration, and credential pool** (enabling key rotation on rate limits)\n\n## Delegation vs execute_code\n\n| Factor | delegate_task | execute_code |\n|--------|--------------|-------------|\n| **Reasoning** | Full LLM reasoning loop | Just Python code execution |\n| **Context** | Fresh isolated conversation | No conversation, just script |\n| **Tool access** | All non-blocked tools with reasoning | 7 tools via RPC, no reasoning |\n| **Parallelism** | 3 concurrent subagents by default (configurable) | Single script |\n| **Best for** | Complex tasks needing judgment | Mechanical multi-step pipelines |\n| **Token cost** | Higher (full LLM loop) | Lower (only stdout returned) |\n| **User interaction** | None (subagents can't clarify) | None |\n\n**Rule of thumb:** Use `delegate_task` when the subtask requires reasoning, judgment, or multi-step problem solving. Use `execute_code` when you need mechanical data processing or scripted workflows.\n\n## Configuration\n\n```yaml\n# In ~/.hermes/config.yaml\ndelegation:\n  max_iterations: 50                        # Max turns per child (default: 50)\n  # max_concurrent_children: 3              # Parallel children per batch (default: 3)\n  # max_spawn_depth: 1                      # Tree depth (1-3, default 1 = flat). Raise to 2 to allow orchestrator children to spawn leaves; 3 for three levels.\n  # orchestrator_enabled: true              # Disable to force all children to leaf role.\n  model: \"google/gemini-3-flash-preview\"             # Optional provider/model override\n  provider: \"openrouter\"                             # Optional built-in provider\n\n# Or use a direct custom endpoint instead of provider:\ndelegation:\n  model: \"qwen2.5-coder\"\n  base_url: \"http://localhost:1234/v1\"\n  api_key: \"local-key\"\n```\n\n:::tip\nThe agent handles delegation automatically based on the task complexity. You don't need to explicitly ask it to delegate — it will do so when it makes sense.\n:::\n\n---"
+}

@@ -1,0 +1,173 @@
+{
+  "id": "checkpoints-and-rollback",
+  "title": "Checkpoints and /rollback",
+  "source_path": "website/docs/user-guide/checkpoints-and-rollback.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/checkpoints-and-rollback",
+  "category": "user-guide",
+  "subcategory": "",
+  "summary": "Explains Hermes's opt-in checkpoint system that automatically snapshots project files before destructive operations, with /rollback for restore, single-file restore, and storage management.",
+  "key_concepts": [
+    "checkpoints",
+    "rollback",
+    "shadow git repository",
+    "automatic snapshots",
+    "pre-rollback snapshot",
+    "store management",
+    "auto-prune",
+    "v1 migration",
+    "single-file restore"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes chat --checkpoints",
+      "purpose": "Enable checkpoints for this session"
+    },
+    {
+      "command": "hermes checkpoints",
+      "purpose": "Show checkpoint store size and per-project breakdown"
+    },
+    {
+      "command": "hermes checkpoints status",
+      "purpose": "Same as bare hermes checkpoints"
+    },
+    {
+      "command": "hermes checkpoints prune",
+      "purpose": "Force a maintenance sweep"
+    },
+    {
+      "command": "hermes checkpoints prune --retention-days 3 --max-size-mb 200",
+      "purpose": "Prune with custom thresholds"
+    },
+    {
+      "command": "hermes checkpoints clear",
+      "purpose": "Delete the entire checkpoint base"
+    },
+    {
+      "command": "hermes checkpoints clear-legacy",
+      "purpose": "Delete only legacy v1 archives"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "checkpoints.enabled",
+      "type": "boolean",
+      "default": false,
+      "description": "Master switch for checkpoints (opt-in)",
+      "example": true
+    },
+    {
+      "path": "checkpoints.max_snapshots",
+      "type": "integer",
+      "default": 20,
+      "description": "Max checkpoints kept per project",
+      "example": 30
+    },
+    {
+      "path": "checkpoints.max_total_size_mb",
+      "type": "integer",
+      "default": 500,
+      "description": "Hard cap on total store size in MB",
+      "example": 1000
+    },
+    {
+      "path": "checkpoints.max_file_size_mb",
+      "type": "integer",
+      "default": 10,
+      "description": "Skip individual files larger than this in MB",
+      "example": 25
+    },
+    {
+      "path": "checkpoints.auto_prune",
+      "type": "boolean",
+      "default": true,
+      "description": "Auto-sweep store at startup",
+      "example": false
+    },
+    {
+      "path": "checkpoints.retention_days",
+      "type": "integer",
+      "default": 7,
+      "description": "Days before orphan/stale checkpoints are pruned",
+      "example": 14
+    },
+    {
+      "path": "checkpoints.delete_orphans",
+      "type": "boolean",
+      "default": true,
+      "description": "Delete checkpoint entries whose working directory no longer exists",
+      "example": true
+    },
+    {
+      "path": "checkpoints.min_interval_hours",
+      "type": "integer",
+      "default": 24,
+      "description": "Minimum hours between auto-prune sweeps",
+      "example": 24
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/rollback",
+      "purpose": "List all checkpoints with change stats"
+    },
+    {
+      "command": "/rollback <N>",
+      "purpose": "Restore to checkpoint N (also undoes last chat turn)"
+    },
+    {
+      "command": "/rollback diff <N>",
+      "purpose": "Preview diff between checkpoint N and current state"
+    },
+    {
+      "command": "/rollback <N> <file>",
+      "purpose": "Restore a single file from checkpoint N"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Enable checkpoints",
+      "code": "hermes chat --checkpoints\n# Or globally in config.yaml:\n# checkpoints:\n#   enabled: true"
+    },
+    {
+      "language": "yaml",
+      "caption": "Full checkpoint configuration",
+      "code": "checkpoints:\n  enabled: false\n  max_snapshots: 20\n  max_total_size_mb: 500\n  max_file_size_mb: 10\n  auto_prune: true\n  retention_days: 7\n  delete_orphans: true\n  min_interval_hours: 24"
+    },
+    {
+      "language": "bash",
+      "caption": "Inspect and manage the store",
+      "code": "hermes checkpoints\nhermes checkpoints prune --retention-days 3 --max-size-mb 200\nhermes checkpoints clear-legacy"
+    }
+  ],
+  "gotchas": [
+    "Checkpoints are opt-in — enabled: false is the default; storage grows if not managed",
+    "At most one checkpoint per directory per turn is created — not one per tool call",
+    "Directories with more than 50,000 files are skipped (e.g., node_modules heavy repos)",
+    "Files larger than max_file_size_mb (default 10 MB) are excluded from snapshots",
+    "If git is not in PATH, checkpoints are transparently disabled",
+    "/rollback N also undoes the last conversation turn — the agent's context matches the filesystem",
+    "Legacy v1 archives are not automatically pruned unless retention_days elapses; use clear-legacy manually"
+  ],
+  "cross_refs": [
+    "git-worktrees",
+    "configuration"
+  ],
+  "keywords": [
+    "checkpoints",
+    "rollback",
+    "snapshot",
+    "shadow git",
+    "restore",
+    "undo",
+    "write_file",
+    "patch",
+    "auto-prune",
+    "store",
+    "single-file restore",
+    "safety",
+    "filesystem backup"
+  ],
+  "full_text": "# Checkpoints and /rollback\n\n# Checkpoints and `/rollback`\n\nHermes Agent can automatically snapshot your project before **destructive operations** and restore it with a single command. Checkpoints are **opt-in** as of v2 — the default is off.\n\nEnable checkpoints per-session with `--checkpoints`:\n\n```bash\nhermes chat --checkpoints\n```\n\nOr enable globally in `~/.hermes/config.yaml`:\n\n```yaml\ncheckpoints:\n  enabled: true\n```\n\nThis safety net is powered by an internal **Checkpoint Manager** that keeps a single shared shadow git repository under `~/.hermes/checkpoints/store/` — your real project `.git` is never touched.\n\n## What Triggers a Checkpoint\n\nCheckpoints are taken automatically before:\n\n- **File tools** — `write_file` and `patch`\n- **Destructive terminal commands** — `rm`, `rmdir`, `cp`, `install`, `mv`, `sed -i`, `truncate`, `dd`, `shred`, output redirects (`>`), and `git reset`/`clean`/`checkout`\n\nThe agent creates **at most one checkpoint per directory per turn**.\n\n## Quick Reference\n\nIn-session slash commands:\n\n| Command | Description |\n|---------|-------------|\n| `/rollback` | List all checkpoints with change stats |\n| `/rollback <N>` | Restore to checkpoint N (also undoes last chat turn) |\n| `/rollback diff <N>` | Preview diff between checkpoint N and current state |\n| `/rollback <N> <file>` | Restore a single file from checkpoint N |\n\nCLI for inspecting and managing the store:\n\n| Command | Description |\n|---------|-------------|\n| `hermes checkpoints` | Show total size, project count, per-project breakdown |\n| `hermes checkpoints status` | Same as bare `checkpoints` |\n| `hermes checkpoints prune` | Force a sweep: delete orphans/stale, GC, enforce size cap |\n| `hermes checkpoints clear` | Nuke the entire checkpoint base (asks first) |\n| `hermes checkpoints clear-legacy` | Delete only `legacy-*` archives from v1 migration |\n\n## How Checkpoints Work\n\n1. Hermes detects when tools are about to **modify files** in your working tree\n2. Once per conversation turn (per directory), it:\n   - Resolves a reasonable project root for the file\n   - Initialises or reuses the **single shared shadow store** at `~/.hermes/checkpoints/store/`\n   - Stages into a per-project index, builds a tree, commits to a per-project ref (`refs/hermes/<project-hash>`)\n3. Per-project refs form a checkpoint history you can inspect and restore via `/rollback`\n\n## Configuration\n\n```yaml\ncheckpoints:\n  enabled: false              # master switch (default: false — opt-in)\n  max_snapshots: 20           # max checkpoints per project\n  max_total_size_mb: 500      # hard cap on total store size\n  max_file_size_mb: 10        # skip files larger than this\n\n  # Auto-maintenance\n  auto_prune: true\n  retention_days: 7\n  delete_orphans: true\n  min_interval_hours: 24\n```\n\n## Listing Checkpoints\n\n```\n/rollback\n```\n\nExample output:\n\n```text\n📸 Checkpoints for /path/to/project:\n\n  1. 4270a8c  2026-03-16 04:36  before patch  (1 file, +1/-0)\n  2. eaf4c1f  2026-03-16 04:35  before write_file\n  3. b3f9d2e  2026-03-16 04:34  before terminal: sed -i s/old/new/ config.py  (1 file, +1/-1)\n```\n\n## Inspecting the Store\n\n```bash\nhermes checkpoints\n```\n\nShows total size, projects, per-project breakdown, and legacy archives.\n\nForce a full sweep:\n```bash\nhermes checkpoints prune --retention-days 3 --max-size-mb 200\n```\n\n## Restoring with `/rollback`\n\n```\n/rollback 1\n```\n\nHermes:\n1. Verifies the target commit exists in the shadow store\n2. Takes a **pre-rollback snapshot** so you can \"undo the undo\"\n3. Restores tracked files in your working directory\n4. **Undoes the last conversation turn** so the agent's context matches\n\n## Single-File Restore\n\n```\n/rollback 1 src/broken_file.py\n```\n\n## Safety and Performance Guards\n\n- **Git availability** — if `git` is not found on `PATH`, checkpoints are transparently disabled\n- **Directory scope** — skips root `/`, home `$HOME`\n- **Repository size** — directories with more than 50,000 files are skipped\n- **Per-file size cap** — files larger than `max_file_size_mb` (default 10 MB) excluded\n- **Total store size cap** — when store exceeds `max_total_size_mb`, oldest commits dropped round-robin\n- **No-change snapshots** — if no changes since last snapshot, checkpoint is skipped\n- **Non-fatal errors** — all errors logged at debug level; tools continue to run\n\n## Where Checkpoints Live\n\n```text\n~/.hermes/checkpoints/\n  ├── store/                 # single shared bare git repo\n  │   ├── HEAD, objects/     # git internals (shared across projects)\n  │   ├── refs/hermes/<hash> # per-project branch tip\n  │   ├── indexes/<hash>     # per-project git index\n  │   ├── projects/<hash>.json  # workdir + timestamps\n  │   └── info/exclude\n  ├── .last_prune            # auto-prune idempotency marker\n  └── legacy-<ts>/           # archived pre-v2 per-project shadow repos\n```\n\n### Migration from v1\n\nPre-v2 shadow repos moved into `~/.hermes/checkpoints/legacy-<timestamp>/` on first v2 run. Run:\n\n```bash\nhermes checkpoints clear-legacy\n```\n\nto reclaim space after verifying you don't need the old history.\n\n## Best Practices\n\n- **Enable checkpoints only when you need them** — `hermes chat --checkpoints`\n- **Use `/rollback diff` before restoring** — preview what will change\n- **Use `/rollback` instead of `git reset`** for agent-driven changes\n- **Check `hermes checkpoints status` occasionally** if using regularly\n- **Combine with Git worktrees** for maximum safety\n"
+}

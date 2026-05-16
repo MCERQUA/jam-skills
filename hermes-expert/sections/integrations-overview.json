@@ -1,0 +1,131 @@
+{
+  "id": "integrations-overview",
+  "title": "Integrations",
+  "source_path": "website/docs/integrations/index.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/integrations",
+  "category": "integrations",
+  "subcategory": "",
+  "summary": "Overview of all Hermes Agent integration points: AI providers, MCP tool servers, web search backends, browser automation, voice/TTS providers, IDE integration via ACP, API server, memory backends, and 19+ messaging platforms.",
+  "key_concepts": [
+    "AI providers",
+    "MCP servers",
+    "web search backends",
+    "browser automation",
+    "TTS providers",
+    "ACP editor integration",
+    "OpenAI-compatible API server",
+    "messaging platforms"
+  ],
+  "env_vars": [
+    {
+      "name": "FIRECRAWL_API_KEY",
+      "purpose": "Web scraping via Firecrawl cloud",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "FIRECRAWL_API_URL",
+      "purpose": "Self-hosted Firecrawl endpoint",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "PARALLEL_API_KEY",
+      "purpose": "Parallel web search backend",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "TAVILY_API_KEY",
+      "purpose": "Tavily web search backend",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "EXA_API_KEY",
+      "purpose": "Exa web search backend",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "ELEVENLABS_API_KEY",
+      "purpose": "ElevenLabs TTS provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "VOICE_TOOLS_OPENAI_KEY",
+      "purpose": "OpenAI TTS provider",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "MINIMAX_API_KEY",
+      "purpose": "MiniMax TTS provider",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes model",
+      "purpose": "Configure AI providers interactively"
+    },
+    {
+      "command": "hermes tools",
+      "purpose": "Configure tool backends (web search, TTS)"
+    },
+    {
+      "command": "/browser connect",
+      "purpose": "Connect to a local Chrome instance via CDP"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "web.backend",
+      "type": "string",
+      "default": "auto",
+      "description": "Web search backend provider: firecrawl | parallel | tavily | exa",
+      "example": "firecrawl"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "Web backend selection",
+      "code": "web:\n  backend: firecrawl    # firecrawl | parallel | tavily | exa"
+    }
+  ],
+  "gotchas": [
+    "web.backend auto-detects from available API keys if not explicitly set",
+    "Self-hosted Firecrawl requires FIRECRAWL_API_URL in addition to or instead of FIRECRAWL_API_KEY"
+  ],
+  "cross_refs": [
+    "providers",
+    "mcp",
+    "acp",
+    "api-server",
+    "provider-routing",
+    "fallback-providers",
+    "credential-pools"
+  ],
+  "keywords": [
+    "integrations",
+    "providers",
+    "MCP",
+    "tool servers",
+    "web search",
+    "browser automation",
+    "TTS",
+    "STT",
+    "voice",
+    "messaging",
+    "IDE",
+    "ACP",
+    "API server",
+    "plugins",
+    "memory"
+  ],
+  "full_text": "# Integrations\n\nHermes Agent connects to external systems for AI inference, tool servers, IDE workflows, programmatic access, and more. These integrations extend what Hermes can do and where it can run.\n\n## AI Providers & Routing\n\nHermes supports multiple AI inference providers out of the box. Use `hermes model` to configure interactively, or set them in `config.yaml`.\n\n- **[AI Providers](/docs/user-guide/features/provider-routing)** — OpenRouter, Anthropic, OpenAI, Google, and any OpenAI-compatible endpoint. Hermes auto-detects capabilities like vision, streaming, and tool use per provider.\n- **[Provider Routing](/docs/user-guide/features/provider-routing)** — Fine-grained control over which underlying providers handle your OpenRouter requests. Optimize for cost, speed, or quality with sorting, whitelists, blacklists, and explicit priority ordering.\n- **[Fallback Providers](/docs/user-guide/features/fallback-providers)** — Automatic failover to backup LLM providers when your primary model encounters errors.\n\n## Tool Servers (MCP)\n\n- **[MCP Servers](/docs/user-guide/features/mcp)** — Connect Hermes to external tool servers via Model Context Protocol. Access tools from GitHub, databases, file systems, browser stacks, internal APIs, and more without writing native Hermes tools. Supports both stdio and SSE transports, per-server tool filtering, and capability-aware resource/prompt registration.\n\n## Web Search Backends\n\nThe `web_search` and `web_extract` tools support four backend providers, configured via `config.yaml` or `hermes tools`:\n\n| Backend | Env Var | Search | Extract | Crawl |\n|---------|---------|--------|---------|-------|\n| **Firecrawl** (default) | `FIRECRAWL_API_KEY` | ✔ | ✔ | ✔ |\n| **Parallel** | `PARALLEL_API_KEY` | ✔ | ✔ | — |\n| **Tavily** | `TAVILY_API_KEY` | ✔ | ✔ | ✔ |\n| **Exa** | `EXA_API_KEY` | ✔ | ✔ | — |\n\nQuick setup example:\n\n```yaml\nweb:\n  backend: firecrawl    # firecrawl | parallel | tavily | exa\n```\n\nIf `web.backend` is not set, the backend is auto-detected from whichever API key is available. Self-hosted Firecrawl is also supported via `FIRECRAWL_API_URL`.\n\n## Browser Automation\n\nHermes includes full browser automation with multiple backend options for navigating websites, filling forms, and extracting information:\n\n- **Browserbase** — Managed cloud browsers with anti-bot tooling, CAPTCHA solving, and residential proxies\n- **Browser Use** — Alternative cloud browser provider\n- **Local Chrome via CDP** — Connect to your running Chrome instance using `/browser connect`\n- **Local Chromium** — Headless local browser via the `agent-browser` CLI\n\n## Voice & TTS Providers\n\nText-to-speech and speech-to-text across all messaging platforms:\n\n| Provider | Quality | Cost | API Key |\n|----------|---------|------|---------|\n| **Edge TTS** (default) | Good | Free | None needed |\n| **ElevenLabs** | Excellent | Paid | `ELEVENLABS_API_KEY` |\n| **OpenAI TTS** | Good | Paid | `VOICE_TOOLS_OPENAI_KEY` |\n| **MiniMax** | Good | Paid | `MINIMAX_API_KEY` |\n| **NeuTTS** | Good | Free | None needed |\n\nSpeech-to-text supports six providers: local faster-whisper (free, runs on-device), a local command wrapper, Groq, OpenAI Whisper API, Mistral, and xAI.\n\n## IDE & Editor Integration\n\n- **[IDE Integration (ACP)](/docs/user-guide/features/acp)** — Use Hermes Agent inside ACP-compatible editors such as VS Code, Zed, and JetBrains. Hermes runs as an ACP server, rendering chat messages, tool activity, file diffs, and terminal commands inside your editor.\n\n## Programmatic Access\n\n- **[API Server](/docs/user-guide/features/api-server)** — Expose Hermes as an OpenAI-compatible HTTP endpoint. Any frontend that speaks the OpenAI format — Open WebUI, LobeChat, LibreChat, NextChat, ChatBox — can connect and use Hermes as a backend with its full toolset.\n\n## Memory & Personalization\n\n- **[Built-in Memory](/docs/user-guide/features/memory)** — Persistent, curated memory via `MEMORY.md` and `USER.md` files.\n- **[Memory Providers](/docs/user-guide/features/memory-providers)** — Plug in external memory backends: Honcho, OpenViking, Mem0, Hindsight, Holographic, RetainDB, ByteRover, and Supermemory.\n\n## Messaging Platforms\n\nHermes runs as a gateway bot on 19+ messaging platforms, all configured through the same `gateway` subsystem: Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, Email, SMS, DingTalk, Feishu/Lark, WeCom, Weixin, BlueBubbles, QQ Bot, Yuanbao, Home Assistant, Microsoft Teams, Webhooks.\n\n## Home Automation\n\n- **[Home Assistant](/docs/user-guide/messaging/homeassistant)** — Control smart home devices via four dedicated tools (`ha_list_entities`, `ha_get_state`, `ha_list_services`, `ha_call_service`).\n\n## Plugins\n\n- **[Plugin System](/docs/user-guide/features/plugins)** — Extend Hermes with custom tools, lifecycle hooks, and CLI commands without modifying core code.\n- **[Build a Plugin](/docs/guides/build-a-hermes-plugin)** — Step-by-step guide for creating Hermes plugins.\n\n## Training & Evaluation\n\n- **[Batch Processing](/docs/user-guide/features/batch-processing)** — Run the agent across hundreds of prompts in parallel, generating structured ShareGPT-format trajectory data."
+}

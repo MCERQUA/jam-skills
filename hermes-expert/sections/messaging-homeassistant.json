@@ -1,0 +1,140 @@
+{
+  "id": "messaging-homeassistant",
+  "title": "Home Assistant Integration",
+  "source_path": "user-guide/messaging/homeassistant.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/homeassistant",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Home Assistant integration via WebSocket API, covering state_changed event subscriptions, 4 LLM-callable HA tools (get_state, call_service, get_history, list_entities), event filtering, blocked service domains for safety, and persistent notification delivery.",
+  "key_concepts": [
+    "Home Assistant WebSocket API connection",
+    "state_changed event subscription for real-time updates",
+    "4 LLM-callable HA tools: get_state, call_service, get_history, list_entities",
+    "Event filtering to avoid LLM overload from noisy sensors",
+    "Blocked service domains for safety (e.g. alarm_control_panel)",
+    "Persistent notifications for HA frontend delivery",
+    "Long-lived access token authentication",
+    "Entity domain filtering (lights, switches, sensors, etc.)",
+    "Natural language device control",
+    "Conversation integration in HA frontend"
+  ],
+  "env_vars": [
+    {
+      "name": "HA_URL",
+      "required": true,
+      "default": null,
+      "description": "Home Assistant URL (e.g. http://homeassistant.local:8123)"
+    },
+    {
+      "name": "HA_TOKEN",
+      "required": true,
+      "default": null,
+      "description": "Long-lived access token from HA Profile > Long-Lived Access Tokens"
+    },
+    {
+      "name": "HA_ALLOWED_DOMAINS",
+      "required": false,
+      "default": null,
+      "description": "Comma-separated entity domains the LLM may control (e.g. light,switch,climate)"
+    },
+    {
+      "name": "HA_BLOCKED_DOMAINS",
+      "required": false,
+      "default": "alarm_control_panel",
+      "description": "Comma-separated service domains blocked from LLM call_service calls"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway including Home Assistant WebSocket listener"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "homeassistant.url",
+      "type": "string",
+      "description": "Home Assistant URL"
+    },
+    {
+      "key": "homeassistant.token",
+      "type": "string",
+      "description": "Long-lived access token"
+    },
+    {
+      "key": "homeassistant.allowed_domains",
+      "type": "list[str]",
+      "description": "Entity domains LLM may control (empty = all non-blocked)"
+    },
+    {
+      "key": "homeassistant.blocked_domains",
+      "type": "list[str]",
+      "description": "Service domains blocked from LLM calls (default: [alarm_control_panel])"
+    },
+    {
+      "key": "homeassistant.event_filter",
+      "type": "list[str]",
+      "description": "Entity ID patterns to subscribe to for state_changed events"
+    },
+    {
+      "key": "homeassistant.persistent_notifications",
+      "type": "bool",
+      "description": "Deliver responses as HA persistent notifications (default: false)"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "title": "Home Assistant config",
+      "language": "yaml",
+      "code": "homeassistant:\n  url: \"http://homeassistant.local:8123\"\n  token: \"${HA_TOKEN}\"\n  allowed_domains:\n    - light\n    - switch\n    - climate\n    - media_player\n  blocked_domains:\n    - alarm_control_panel\n    - lock"
+    },
+    {
+      "title": "Get long-lived access token",
+      "language": "text",
+      "code": "HA Frontend > Profile (bottom left) > Long-Lived Access Tokens > Create Token\nName: hermes\nCopy the token (shown only once)"
+    },
+    {
+      "title": "LLM-callable HA tools",
+      "language": "text",
+      "code": "get_state(entity_id)           - Get current state of any entity\ncall_service(domain, service, data) - Call any HA service (e.g. light.turn_on)\nget_history(entity_id, hours)  - Get state history for the past N hours\nlist_entities(domain)          - List all entities in a domain"
+    },
+    {
+      "title": "Event filter for specific entities",
+      "language": "yaml",
+      "code": "homeassistant:\n  event_filter:\n    - \"binary_sensor.front_door*\"\n    - \"sensor.living_room_temperature\"\n  # Only state_changed events matching these patterns trigger LLM"
+    }
+  ],
+  "gotchas": [
+    "Long-lived access tokens grant full HA access; restrict via blocked_domains to prevent LLM from controlling safety-critical systems",
+    "Without event_filter, state_changed events from ALL entities flood the gateway; noisy sensors (motion, power monitors) will trigger LLM on every update",
+    "call_service blocked_domains blocks the domain entirely; individual service blocking is not supported",
+    "The 4 HA tools are only available when the homeassistant integration is enabled; they do not appear for other gateway platforms",
+    "HA WebSocket connection drops on HA restart; hermes auto-reconnects but brief gaps occur",
+    "persistent_notifications require the notify.persistent_notification service in HA which is built-in"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-webhooks"
+  ],
+  "keywords": [
+    "home assistant",
+    "homeassistant",
+    "websocket",
+    "state changed",
+    "event subscription",
+    "get state",
+    "call service",
+    "get history",
+    "list entities",
+    "blocked domains",
+    "alarm control panel",
+    "persistent notifications",
+    "long-lived access token",
+    "entity domains",
+    "event filter",
+    "smart home",
+    "automation"
+  ],
+  "full_text": "## Home Assistant\n\nConnect Hermes to [Home Assistant](https://www.home-assistant.io/) via the WebSocket API.\n\n### Setup\n\n#### 1. Create a long-lived access token\n\nIn the HA frontend:\n1. Click your profile (bottom left).\n2. Scroll to **Long-Lived Access Tokens**.\n3. Click **Create Token**, name it \"hermes\", copy it (shown only once).\n\n#### 2. Config\n\n```yaml\nhomeassistant:\n  url: \"http://homeassistant.local:8123\"\n  token: \"${HA_TOKEN}\"\n  allowed_domains:\n    - light\n    - switch\n    - climate\n    - media_player\n  blocked_domains:\n    - alarm_control_panel\n    - lock\n```\n\n### LLM tools\n\nWhen the Home Assistant integration is active, the LLM gets 4 tools:\n\n| Tool | Description |\n|------|-------------|\n| `get_state(entity_id)` | Get current state and attributes of any entity |\n| `call_service(domain, service, data)` | Call any HA service (e.g. `light.turn_on`) |\n| `get_history(entity_id, hours)` | Get state history for the past N hours |\n| `list_entities(domain)` | List all entities in a domain |\n\nExample: \"Turn on the kitchen lights\" \u2192 LLM calls `call_service(\"light\", \"turn_on\", {\"entity_id\": \"light.kitchen\"})`\n\n### Safety: blocked domains\n\nCertain service domains are blocked from LLM calls to prevent accidents:\n\n```yaml\nblocked_domains:\n  - alarm_control_panel  # default\n  - lock                 # add if desired\n```\n\nThe LLM cannot call services in blocked domains regardless of what the user asks.\n\n### Event filtering\n\nWithout a filter, every state_changed event from every entity triggers the LLM. Use event_filter to restrict:\n\n```yaml\nhomeassistant:\n  event_filter:\n    - \"binary_sensor.front_door*\"\n    - \"sensor.living_room_temperature\"\n```\n\nOnly state_changed events from matching entities will trigger the gateway.\n\n### Persistent notifications\n\nDeliver Hermes responses as HA persistent notifications (visible in the HA frontend):\n\n```yaml\nhomeassistant:\n  persistent_notifications: true\n```\n\n### Natural language control\n\nWith the integration active, you can send natural language commands via any Hermes-connected platform:\n- \"What's the temperature in the living room?\"\n- \"Turn off all lights in the bedroom\"\n- \"Show me the front door sensor history for the last 4 hours\"\n\nHermes uses the HA tools to fulfill these requests."
+}

@@ -1,0 +1,140 @@
+{
+  "id": "messaging-signal",
+  "title": "Signal Integration",
+  "source_path": "user-guide/messaging/signal.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/signal",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Signal integration via signal-cli daemon in HTTP mode, covering daemon setup, SSE event streaming, JSON-RPC API, native bodyRanges text formatting, Note-to-Self pairing, E.164 phone number allowlisting, and health monitoring.",
+  "key_concepts": [
+    "signal-cli daemon in HTTP mode",
+    "SSE (Server-Sent Events) for incoming messages",
+    "JSON-RPC API for sending messages",
+    "E.164 phone number format for contacts",
+    "Native bodyRanges formatting (bold, italic, spoiler)",
+    "Note-to-Self mode: message your own number",
+    "Contact allowlisting by phone number",
+    "Health monitoring via /api/v1/health endpoint",
+    "Group chat support",
+    "Attachment forwarding"
+  ],
+  "env_vars": [
+    {
+      "name": "SIGNAL_PHONE_NUMBER",
+      "required": true,
+      "default": null,
+      "description": "Your registered Signal phone number in E.164 format (e.g. +15551234567)"
+    },
+    {
+      "name": "SIGNAL_CLI_URL",
+      "required": false,
+      "default": "http://localhost:8080",
+      "description": "URL of the signal-cli HTTP daemon"
+    },
+    {
+      "name": "SIGNAL_ALLOWED_CONTACTS",
+      "required": false,
+      "default": null,
+      "description": "Comma-separated E.164 phone numbers allowed to interact"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway including Signal listener via SSE"
+    },
+    {
+      "command": "signal-cli -u +15551234567 daemon --http",
+      "description": "Start signal-cli in HTTP daemon mode (run separately)"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "signal.phone_number",
+      "type": "string",
+      "description": "Your Signal phone number in E.164 format"
+    },
+    {
+      "key": "signal.cli_url",
+      "type": "string",
+      "description": "signal-cli HTTP daemon URL (default: http://localhost:8080)"
+    },
+    {
+      "key": "signal.allowed_contacts",
+      "type": "list[str]",
+      "description": "Allowed phone numbers in E.164 format"
+    },
+    {
+      "key": "signal.groups",
+      "type": "bool",
+      "description": "Enable group chat responses (default: false)"
+    },
+    {
+      "key": "signal.note_to_self",
+      "type": "bool",
+      "description": "Enable Note-to-Self interaction mode"
+    },
+    {
+      "key": "signal.use_body_ranges",
+      "type": "bool",
+      "description": "Use native Signal bodyRanges for text formatting (default: true)"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "title": "Start signal-cli daemon",
+      "language": "bash",
+      "code": "# Register/link your number first (one-time)\nsignal-cli -u +15551234567 register\nsignal-cli -u +15551234567 verify CODE\n\n# Start daemon\nsignal-cli -u +15551234567 daemon --http --port 8080"
+    },
+    {
+      "title": "Hermes Signal config",
+      "language": "yaml",
+      "code": "signal:\n  phone_number: \"+15551234567\"\n  cli_url: \"http://localhost:8080\"\n  allowed_contacts:\n    - \"+447700900123\""
+    },
+    {
+      "title": "Note-to-Self mode",
+      "language": "yaml",
+      "code": "signal:\n  phone_number: \"+15551234567\"\n  cli_url: \"http://localhost:8080\"\n  note_to_self: true  # message yourself to interact with Hermes"
+    },
+    {
+      "title": "Check signal-cli health",
+      "language": "bash",
+      "code": "curl http://localhost:8080/api/v1/health\n# Returns: {\"status\": \"ok\"}"
+    }
+  ],
+  "gotchas": [
+    "signal-cli must be installed and running as a separate daemon before starting the hermes gateway",
+    "Signal registration links the daemon to your phone number; you cannot use Signal on your phone simultaneously on the same number without linking as a secondary device",
+    "E.164 format is required: +15551234567 not 5551234567 or (555) 123-4567",
+    "SSE connection to signal-cli may drop; hermes auto-reconnects but brief message gaps can occur",
+    "Groups are disabled by default; enable with groups: true and use @mention to trigger responses",
+    "Attachments (images, audio) are forwarded as file paths; vision pipeline processes images if the model supports it",
+    "bodyRanges formatting is Signal-native and not rendered in other clients; fall back to plain text if sharing sessions cross-platform"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-whatsapp",
+    "messaging-sms",
+    "vision"
+  ],
+  "keywords": [
+    "signal",
+    "signal-cli",
+    "daemon",
+    "http mode",
+    "sse",
+    "server-sent events",
+    "json-rpc",
+    "e.164",
+    "phone number",
+    "body ranges",
+    "note to self",
+    "group chat",
+    "allowed contacts",
+    "encryption",
+    "health check",
+    "attachment"
+  ],
+  "full_text": "## Signal\n\nConnect Hermes to Signal via [signal-cli](https://github.com/AsamK/signal-cli) running in HTTP daemon mode.\n\n### Prerequisites\n\nInstall signal-cli and register your phone number:\n\n```bash\n# One-time registration\nsignal-cli -u +15551234567 register\nsignal-cli -u +15551234567 verify CODE\n\n# Start HTTP daemon\nsignal-cli -u +15551234567 daemon --http --port 8080\n```\n\nVerify the daemon is healthy:\n\n```bash\ncurl http://localhost:8080/api/v1/health\n# {\"status\": \"ok\"}\n```\n\n### Hermes config\n\n```yaml\nsignal:\n  phone_number: \"+15551234567\"\n  cli_url: \"http://localhost:8080\"\n  allowed_contacts:\n    - \"+447700900123\"\n```\n\nPhone numbers must be in E.164 format ( followed by country code and number, no spaces or dashes).\n\n### How it works\n\nHermes connects to signal-cli via SSE at  to stream incoming messages. Outgoing messages are sent via JSON-RPC POST to . No polling \u2014 event-driven.\n\n### Note-to-Self mode\n\nInteract with Hermes by messaging your own Signal number:\n\n```yaml\nsignal:\n  note_to_self: true\n```\n\n### Group chats\n\nEnable group responses:\n\n```yaml\nsignal:\n  groups: true\n```\n\nIn groups, Hermes responds only when mentioned.\n\n### Native formatting (bodyRanges)\n\nSignal supports native text formatting via bodyRanges (bold, italic, strikethrough, spoiler, monospace). Hermes uses these natively when  (default), which renders correctly in Signal clients.\n\n### Attachments\n\nImages are forwarded to the vision pipeline if the active model supports vision. Audio attachments are transcribed via the configured STT provider.\n\n### Allowlist\n\n```yaml\nsignal:\n  allowed_contacts:\n    - \"+15551234567\"\n    - \"+447700900123\"\n```\n\nLeave empty to allow all contacts."
+}

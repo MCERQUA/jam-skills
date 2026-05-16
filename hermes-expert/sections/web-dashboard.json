@@ -1,0 +1,115 @@
+{
+  "id": "web-dashboard",
+  "title": "Web Dashboard",
+  "source_path": "website/docs/user-guide/features/web-dashboard.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/web-dashboard",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "The web dashboard is a browser-based UI for managing your Hermes Agent installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.",
+  "key_concepts": [
+    "Quick Start",
+    "Options",
+    "Custom port",
+    "Start without opening browser",
+    "Prerequisites",
+    "Pages",
+    "Status",
+    "Chat"
+  ],
+  "env_vars": [
+    {
+      "name": "DEFAULT_CONFIG",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "API_SERVER_ENABLED",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes dashboard",
+      "purpose": ""
+    },
+    {
+      "command": "hermes dashboard --port 8080",
+      "purpose": ""
+    },
+    {
+      "command": "hermes dashboard --host 0.0.0.0",
+      "purpose": ""
+    },
+    {
+      "command": "hermes dashboard --no-open",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/chat",
+      "purpose": ""
+    },
+    {
+      "command": "/reload",
+      "purpose": ""
+    },
+    {
+      "command": "/api",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes dashboard\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Custom port\nhermes dashboard --port 8080\n\n# Bind to all interfaces (use with caution on shared networks)\nhermes dashboard --host 0.0.0.0\n\n# Start without opening browser\nhermes dashboard --no-open\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "pip install 'hermes-agent[web,pty]'\n"
+    },
+    {
+      "language": "",
+      "caption": "",
+      "code": "You → /reload\n  Reloaded .env (3 var(s) updated)\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Terminal 1: start the backend API\nhermes dashboard --no-open\n\n# Terminal 2: start the Vite dev server with HMR\ncd web/\nnpm install\nnpm run dev\n"
+    }
+  ],
+  "gotchas": [
+    "Security\nThe web dashboard reads and writes your `.env` file, which contains API keys and secrets. It binds to `127.0.0.1` by default — only accessible from your local machine. If you bind to `0.0.0.0`, anyone on your network can view and modify your credentials. The dashboard has no authentication "
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "ansi",
+    "api",
+    "auto-open",
+    "auto-refreshes",
+    "browser-based",
+    "cli",
+    "dangerous",
+    "dashboard",
+    "hermes-agent",
+    "http",
+    "non-localhost",
+    "pid",
+    "pixel-perfect",
+    "posix",
+    "pseudo-terminal"
+  ],
+  "full_text": "# Web Dashboard\n\n# Web Dashboard\n\nThe web dashboard is a browser-based UI for managing your Hermes Agent installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.\n\n## Quick Start\n\n```bash\nhermes dashboard\n```\n\nThis starts a local web server and opens `http://127.0.0.1:9119` in your browser. The dashboard runs entirely on your machine — no data leaves localhost.\n\n### Options\n\n| Flag | Default | Description |\n|------|---------|-------------|\n| `--port` | `9119` | Port to run the web server on |\n| `--host` | `127.0.0.1` | Bind address |\n| `--no-open` | — | Don't auto-open the browser |\n| `--insecure` | off | Allow binding to non-localhost hosts (**DANGEROUS** — exposes API keys on the network; pair with a firewall and strong auth) |\n| `--tui` | off | Expose the in-browser Chat tab (embedded `hermes --tui` via PTY/WebSocket). Alternatively set `HERMES_DASHBOARD_TUI=1`. |\n\n```bash\n# Custom port\nhermes dashboard --port 8080\n\n# Bind to all interfaces (use with caution on shared networks)\nhermes dashboard --host 0.0.0.0\n\n# Start without opening browser\nhermes dashboard --no-open\n```\n\n## Prerequisites\n\nThe default `hermes-agent` install does not ship the HTTP stack or PTY helper — those are optional extras. The **web dashboard** needs FastAPI and Uvicorn (`web` extra). The **Chat** tab also needs `ptyprocess` to spawn the embedded TUI behind a pseudo-terminal (`pty` extra on POSIX). Install both with:\n\n```bash\npip install 'hermes-agent[web,pty]'\n```\n\nThe `web` extra pulls in FastAPI/Uvicorn; `pty` pulls in `ptyprocess` (POSIX) or `pywinpty` (native Windows — note that the embedded TUI itself still requires WSL). `pip install hermes-agent[all]` includes both extras and is the easiest path if you also want messaging/voice/etc.\n\nWhen you run `hermes dashboard` without the dependencies, it will tell you what to install. If the frontend hasn't been built yet and `npm` is available, it builds automatically on first launch.\n\n## Pages\n\n### Status\n\nThe landing page shows a live overview of your installation:\n\n- **Agent version** and release date\n- **Gateway status** — running/stopped, PID, connected platforms and their state\n- **Active sessions** — count of sessions active in the last 5 minutes\n- **Recent sessions** — list of the 20 most recent sessions with model, message count, token usage, and a preview of the conversation\n\nThe status page auto-refreshes every 5 seconds.\n\n### Chat\n\nThe **Chat** tab embeds the full Hermes TUI (the same interface you get from `hermes --tui`) directly in the browser. Everything you can do in the terminal TUI — slash commands, model picker, tool-call cards, markdown streaming, clarify/sudo/approval prompts, skin theming — works identically here, because the dashboard is running the real TUI binary and rendering its ANSI output through [xterm.js](https://xtermjs.org/) with its WebGL renderer for pixel-perfect cell layout.\n\n**How it works:**\n\n- `/api/pty` opens a WebSocket authenticated with the dashboard's session token\n- The server spawns `hermes --tui` behind a POSIX pseudo-terminal\n- Keystrokes travel to the PTY; ANSI output streams back to the browser\n- xterm.js's WebGL renderer paints each cell to an integer-pixel grid; mouse tracking (SGR 1006), wide characters (Unicode 11), and box-drawing glyphs all render natively\n- Resizing the browser window resizes the TUI via the `@xterm/addon-fit` addon\n\n**Resume an existing session:** from the **Sessions** tab, click the play icon (▶) next to any session. That jumps to `/chat?resume=<id>` and launches the TUI with `--resume`, loading the full history.\n\n**Prerequisites:**\n\n- Node.js (same requirement as `hermes --tui`; the TUI bundle is built on first launch)\n- `ptyprocess` — installed by the `pty` extra (`pip install 'hermes-agent[web,pty]'`, or `[all]` covers both)\n- POSIX kernel (Linux, macOS, or WSL2).  The `/chat` terminal pane specifically needs a POSIX PTY — native Windows Python has no equivalent, so on a native Windows install the rest of the dashboard (sessions, jobs, metrics, config editor) works but the `/chat` tab will show a banner telling you to use WSL2 for that feature.\n\nClose the browser tab and the PTY is reaped cleanly on the server. Re-opening spawns a fresh session.\n\n### Config\n\nA form-based editor for `config.yaml`. All 150+ configuration fields are auto-discovered from `DEFAULT_CONFIG` and organized into tabbed categories:\n\n- **model** — default model, provider, base URL, reasoning settings\n- **terminal** — backend (local/docker/ssh/modal), timeout, shell preferences\n- **display** — skin, tool progress, resume display, spinner settings\n- **agent** — max iterations, gateway timeout, service tier\n- **delegation** — subagent limits, reasoning effort\n- **memory** — provider selection, context injection settings\n- **approvals** — dangerous command approval mode (ask/yolo/deny)\n- And more — every section of config.yaml has corresponding form fields\n\nFields with known valid values (terminal backend, skin, approval mode, etc.) render as dropdowns. Booleans render as toggles. Everything else is a text input.\n\n**Actions:**\n\n- **Save** — writes changes to `config.yaml` immediately\n- **Reset to defaults** — reverts all fields to their default values (doesn't save until you click Save)\n- **Export** — downloads the current config as JSON\n- **Import** — uploads a JSON config file to replace the current values\n\n:::tip\nConfig changes take effect on the next agent session or gateway restart. The web dashboard edits the same `config.yaml` file that `hermes config set` and the gateway read from.\n:::\n\n### API Keys\n\nManage the `.env` file where API keys and credentials are stored. Keys are grouped by category:\n\n- **LLM Providers** — OpenRouter, Anthropic, OpenAI, DeepSeek, etc.\n- **Tool API Keys** — Browserbase, Firecrawl, Tavily, ElevenLabs, etc.\n- **Messaging Platforms** — Telegram, Discord, Slack bot tokens, etc.\n- **Agent Settings** — non-secret env vars like `API_SERVER_ENABLED`\n\nEach key shows:\n- Whether it's currently set (with a redacted preview of the value)\n- A description of what it's for\n- A link to the provider's signup/key page\n- An input field to set or update the value\n- A delete button to remove it\n\nAdvanced/rarely-used keys are hidden by default behind a toggle.\n\n### Sessions\n\nBrowse and inspect all agent sessions. Each row shows the session title, source platform icon (CLI, Telegram, Discord, Slack, cron), model name, message count, tool call count, and how long ago it was active. Live sessions are marked with a pulsing badge.\n\n- **Search** — full-text search across all message content using FTS5. Results show highlighted snippets and auto-scroll to the first matching message when expanded.\n- **Expand** — click a session to load its full message history. Messages are color-coded by role (user, assistant, system, tool) and rendered as Markdown with syntax highlighting.\n- **Tool calls** — assistant messages with tool calls show collapsible blocks with the function name and JSON arguments.\n- **Delete** — remove a session and its message history with the trash icon.\n\n### Logs\n\nView agent, gateway, and error log files with filtering and live tailing.\n\n- **File** — switch between `agent`, `errors`, and `gateway` log files\n- **Level** — filter by log level: ALL, DEBUG, INFO, WARNING, or ERROR\n- **Component** — filter by source component: all, gateway, agent, tools, cli, or cron\n- **Lines** — choose how many lines to display (50, 100, 200, or 500)\n- **Auto-refresh** — toggle live tailing that polls for new log lines every 5 seconds\n- **Color-coded** — log lines are colored by severity (red for errors, yellow for warnings, dim for debug)\n\n### Analytics\n\nUsage and cost analytics computed from session history. Select a time period (7, 30, or 90 days) to see:\n\n- **Summary cards** — total tokens (input/output), cache hit percentage, total estimated or actual cost, and total session count with daily average\n- **Daily token chart** — stacked bar chart showing input and output token usage per day, with hover tooltips showing breakdowns and cost\n- **Daily breakdown table** — date, session count, input tokens, output tokens, cache hit rate, and cost for each day\n- **Per-model breakdown** — table showing each model used, its session count, token usage, and estimated cost\n\n### Cron\n\nCreate and manage scheduled cron jobs that run agent prompts on a recurring schedule.\n\n- **Create** — fill in a name (optional), prompt, cron expression (e.g. `0 9 * * *`), and delivery target (local, Telegram, Discord, Slack, or email)\n- **Job list** — each job shows its name, prompt preview, schedule expression, state badge (enabled/paused/error), delivery target, last run time, and next run time\n- **Pause / Resume** — toggle a job between active and paused states\n- **Trigger now** — immediately execute a job outside its normal schedule\n- **Delete** — permanently remove a cron job\n\n### Skills\n\nBrowse, search, and toggle skills and toolsets. Skills are loaded from `~/.hermes/skills/` and grouped by category.\n\n- **Search** — filter skills and toolsets by name, description, or category\n- **Category filter** — click category pills to narrow the list (e.g. MLOps, MCP, Red Teaming, AI)\n- **Toggle** — enable or disable individual skills with a switch. Changes take effect on the next session.\n- **Toolsets** — a separate section shows built-in toolsets (file operations, web browsing, etc.) with their active/inactive status, setup requirements, and list of included tools\n\n:::warning Security\nThe web dashboard reads and writes your `.env` file, which contains API keys and secrets. It binds to `127.0.0.1` by default — only accessible from your local machine. If you bind to `0.0.0.0`, anyone on your network can view and modify your credentials. The dashboard has no authentication of its own.\n:::\n\n## `/reload` Slash Command\n\nThe dashboard PR also adds a `/reload` slash command to the interactive CLI. After changing API keys via the web dashboard (or by editing `.env` directly), use `/reload` in an active CLI session to pick up the changes without restarting:\n\n```\nYou → /reload\n  Reloaded .env (3 var(s) updated)\n```\n\nThis re-reads `~/.hermes/.env` into the running process's environment. Useful when you've added a new provider key via the dashboard and want to use it immediately.\n\n## REST API\n\nThe web dashboard exposes a REST API that the frontend consumes. You can also call these endpoints directly for automation:\n\n### GET /api/status\n\nReturns agent version, gateway status, platform states, and active session count.\n\n### GET /api/sessions\n\nReturns the 20 most recent sessions with metadata (model, token counts, timestamps, preview).\n\n### GET /api/config\n\nReturns the current `config.yaml` contents as JSON.\n\n### GET /api/config/defaults\n\nReturns the default configuration values.\n\n### GET /api/config/schema\n\nReturns a schema describing every config field — type, description, category, and select options where applicable. The frontend uses this to render the correct input widget for each field.\n\n### PUT /api/config\n\nSaves a new configuration. Body: `{\"config\": {...}}`.\n\n### GET /api/env\n\nReturns all known environment variables with their set/unset status, redacted values, descriptions, and categories.\n\n### PUT /api/env\n\nSets an environment variable. Body: `{\"key\": \"VAR_NAME\", \"value\": \"secret\"}`.\n\n### DELETE /api/env\n\nRemoves an environment variable. Body: `{\"key\": \"VAR_NAME\"}`.\n\n### GET /api/sessions/\\{session_id\\}\n\nReturns metadata for a single session.\n\n### GET /api/sessions/\\{session_id\\}/messages\n\nReturns the full message history for a session, including tool calls and timestamps.\n\n### GET /api/sessions/search\n\nFull-text search across message content. Query parameter: `q`. Returns matching session IDs with highlighted snippets.\n\n### DELETE /api/sessions/\\{session_id\\}\n\nDeletes a session and its message history.\n\n### GET /api/logs\n\nReturns log lines. Query parameters: `file` (agent/errors/gateway), `lines` (count), `level`, `component`.\n\n### GET /api/analytics/usage\n\nReturns token usage, cost, and session analytics. Query parameter: `days` (default 30). Response includes daily breakdowns and per-model aggregates.\n\n### GET /api/cron/jobs\n\nReturns all configured cron jobs with their state, schedule, and run history.\n\n### POST /api/cron/jobs\n\nCreates a new cron job. Body: `{\"prompt\": \"...\", \"schedule\": \"0 9 * * *\", \"name\": \"...\", \"deliver\": \"local\"}`.\n\n### POST /api/cron/jobs/\\{job_id\\}/pause\n\nPauses a cron job.\n\n### POST /api/cron/jobs/\\{job_id\\}/resume\n\nResumes a paused cron job.\n\n### POST /api/cron/jobs/\\{job_id\\}/trigger\n\nImmediately triggers a cron job outside its schedule.\n\n### DELETE /api/cron/jobs/\\{job_id\\}\n\nDeletes a cron job.\n\n### GET /api/skills\n\nReturns all skills with their name, description, category, and enabled status.\n\n### PUT /api/skills/toggle\n\nEnables or disables a skill. Body: `{\"name\": \"skill-name\", \"enabled\": true}`.\n\n### GET /api/tools/toolsets\n\nReturns all toolsets with their label, description, tools list, and active/configured status.\n\n## CORS\n\nThe web server restricts CORS to localhost origins only:\n\n- `http://localhost:9119` / `http://127.0.0.1:9119` (production)\n- `http://localhost:3000` / `http://127.0.0.1:3000`\n- `http://localhost:5173` / `http://127.0.0.1:5173` (Vite dev server)\n\nIf you run the server on a custom port, that origin is added automatically.\n\n## Development\n\nIf you're contributing to the web dashboard frontend:\n\n```bash\n# Terminal 1: start the backend API\nhermes dashboard --no-open\n\n# Terminal 2: start the Vite dev server with HMR\ncd web/\nnpm install\nnpm run dev\n```\n\nThe Vite dev server at `http://localhost:5173` proxies `/api` requests to the FastAPI backend at `http://127.0.0.1:9119`.\n\nThe frontend is built with React 19, TypeScript, Tailwind CSS v4, and shadcn/ui-style components. Production builds output to `hermes_cli/web_dist/` which the FastAPI server serves as a static SPA.\n\n## Automatic Build on Update\n\nWhen you run `hermes update`, the web frontend is automatically rebuilt if `npm` is available. This keeps the dashboard in sync with code updates. If `npm` isn't installed, the update skips the frontend build and `hermes dashboard` will build it on first launch.\n\n## Themes & plugins\n\nThe dashboard ships with six built-in themes and can be extended with user-defined themes, plugin tabs, and backend API routes — all drop-in, no repo clone needed.\n\n**Switch themes live** from the header bar — click the palette icon next to the language switcher. Selection persists to `config.yaml` under `dashboard.theme` and is restored on page load.\n\nBuilt-in themes:\n\n| Theme | Character |\n|-------|-----------|\n| **Hermes Teal** (`default`) | Dark teal + cream, system fonts, comfortable spacing |\n| **Hermes Teal (Large)** (`default-large`) | Same as default with 18px text and roomier spacing |\n| **Midnight** (`midnight`) | Deep blue-violet, Inter + JetBrains Mono |\n| **Ember** (`ember`) | Warm crimson + bronze, Spectral serif + IBM Plex Mono |\n| **Mono** (`mono`) | Grayscale, IBM Plex, compact |\n| **Cyberpunk** (`cyberpunk`) | Neon green on black, Share Tech Mono |\n| **Rosé** (`rose`) | Pink + ivory, Fraunces serif, spacious |\n\nTo build your own theme, add a plugin tab, inject into shell slots, or expose plugin-specific REST endpoints, see **[Extending the Dashboard](./extending-the-dashboard)** — the complete guide covers:\n\n- Theme YAML schema — palette, typography, layout, assets, componentStyles, colorOverrides, customCSS\n- Layout variants — `standard`, `cockpit`, `tiled`\n- Plugin manifest, SDK, shell slots, page-scoped slots (inject widgets into built-in pages without overriding them), backend FastAPI routes\n- A full combined theme-plus-plugin walkthrough (Strike Freedom cockpit demo)\n- Discovery, reload, and troubleshooting\n\n---"
+}

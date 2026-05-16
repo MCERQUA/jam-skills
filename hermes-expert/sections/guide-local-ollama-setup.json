@@ -1,0 +1,105 @@
+{
+  "id": "guide-local-ollama-setup",
+  "title": "Run Hermes Locally with Ollama — Zero API Cost",
+  "source_path": "website/docs/guides/local-ollama-setup.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/local-ollama-setup",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Cloud LLM APIs charge per token. A heavy coding session can cost $5–20. For personal projects, learning, or privacy-sensitive work, that adds up — and you're sending every conversation to a third party. You'll set up Hermes Agent running entirely on your own hardware, using [Ollama](https://ollam...",
+  "key_concepts": [
+    "The Problem",
+    "What This Guide Solves",
+    "What You Need",
+    "Step 1: Install Ollama",
+    "Step 2: Pull a Model",
+    "Step 3: Configure Hermes",
+    "Step 4: Start Using Hermes",
+    "Step 5: Pick the Right Model for Your Task"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes setup",
+      "purpose": ""
+    },
+    {
+      "command": "hermes gateway",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/model",
+      "purpose": ""
+    },
+    {
+      "command": "/compress",
+      "purpose": ""
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# ~/.hermes/.env\nHERMES_API_TIMEOUT=1800   # 30 minutes — generous for slow local models"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "curl -fsSL https://ollama.com/install.sh | sh"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "ollama --version\ncurl http://localhost:11434/api/tags   # Should return {\"models\":[]}"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "ollama pull gemma4:31b"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "curl http://localhost:11434/v1/chat/completions \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"model\": \"gemma4:31b\",\n    \"messages\": [{\"role\": \"user\", \"content\": \"Say hello\"}],\n    \"max_tokens\": 50\n  }'"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes setup"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "model:\n  default: \"gemma4:31b\"\n  provider: \"custom\"\n  base_url: \"http://localhost:11434/v1\""
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes"
+    }
+  ],
+  "gotchas": [
+    "warning Tool calling matters"
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "alive",
+    "api",
+    "available",
+    "better",
+    "calls",
+    "cloud",
+    "command",
+    "comparison",
+    "conf",
+    "config",
+    "configure",
+    "connection",
+    "context",
+    "cost",
+    "create"
+  ],
+  "full_text": "# Run Hermes Locally with Ollama — Zero API Cost\n\n# Run Hermes Locally with Ollama — Zero API Cost\n\n## The Problem\n\nCloud LLM APIs charge per token. A heavy coding session can cost $5–20. For personal projects, learning, or privacy-sensitive work, that adds up — and you're sending every conversation to a third party.\n\n## What This Guide Solves\n\nYou'll set up Hermes Agent running entirely on your own hardware, using [Ollama](https://ollama.com) as the model backend. No API keys, no subscriptions, no data leaving your machine. Once configured, Hermes works exactly like it does with OpenRouter or Anthropic — terminal commands, file editing, web browsing, delegation — but the model runs locally.\n\nBy the end, you'll have:\n\n- Ollama serving one or more open-weight models\n- Hermes connected to Ollama as a custom endpoint\n- A working local agent that can edit files, run commands, and browse the web\n- Optional: a Telegram/Discord bot powered entirely by your own hardware\n\n## What You Need\n\n| Component | Minimum | Recommended |\n|-----------|---------|-------------|\n| **RAM** | 8 GB (for 3B models) | 32+ GB (for 27B+ models) |\n| **Storage** | 5 GB free | 30+ GB (for multiple models) |\n| **CPU** | 4 cores | 8+ cores (AMD EPYC, Ryzen, Intel Xeon) |\n| **GPU** | Not required | NVIDIA GPU with 8+ GB VRAM speeds things up significantly |\n\n:::tip CPU-only works, but expect slower responses\nOllama runs on CPU-only servers. A 9B model on a modern 8-core CPU gives ~10 tokens/sec. A 31B model on CPU is slower (~2–5 tokens/sec) — each response takes 30–120 seconds, but it works. A GPU dramatically improves this. For CPU-only setups, widen the API timeout via the env var (it's not a `config.yaml` key):\n\n```bash\n# ~/.hermes/.env\nHERMES_API_TIMEOUT=1800   # 30 minutes — generous for slow local models\n```\n:::\n\n## Step 1: Install Ollama\n\n```bash\ncurl -fsSL https://ollama.com/install.sh | sh\n```\n\nVerify it's running:\n\n```bash\nollama --version\ncurl http://localhost:11434/api/tags   # Should return {\"models\":[]}\n```\n\n## Step 2: Pull a Model\n\nChoose based on your hardware:\n\n| Model | Size on Disk | RAM Needed | Tool Calling | Best For |\n|-------|-------------|------------|:------------:|----------|\n| `gemma4:31b` | ~20 GB | 24+ GB | Yes | Best quality — strong tool use and reasoning |\n| `gemma2:27b` | ~16 GB | 20+ GB | No | Conversational tasks, no tool use |\n| `gemma2:9b` | ~5 GB | 8+ GB | No | Fast chat, Q&A — cannot call tools |\n| `llama3.2:3b` | ~2 GB | 4+ GB | No | Lightweight quick answers only |\n\n:::warning Tool calling matters\nHermes is an **agentic** assistant — it edits files, runs commands, and browses the web through tool calls. Models without tool-call support can only chat; they can't take actions. For the full Hermes experience, use a model that supports tools (like `gemma4:31b`).\n:::\n\nPull your chosen model:\n\n```bash\nollama pull gemma4:31b\n```\n\n:::info Multiple models\nYou can pull several models and switch between them inside Hermes with `/model`. Ollama loads the active model into memory on demand and unloads idle ones automatically.\n:::\n\nVerify the model works:\n\n```bash\ncurl http://localhost:11434/v1/chat/completions \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"model\": \"gemma4:31b\",\n    \"messages\": [{\"role\": \"user\", \"content\": \"Say hello\"}],\n    \"max_tokens\": 50\n  }'\n```\n\nYou should see a JSON response with the model's reply.\n\n## Step 3: Configure Hermes\n\nRun the Hermes setup wizard:\n\n```bash\nhermes setup\n```\n\nWhen prompted for a provider, select **Custom Endpoint** and enter:\n\n- **Base URL:** `http://localhost:11434/v1`\n- **API Key:** Leave empty or type `no-key` (Ollama doesn't need one)\n- **Model:** `gemma4:31b` (or whichever model you pulled)\n\nAlternatively, edit `~/.hermes/config.yaml` directly:\n\n```yaml\nmodel:\n  default: \"gemma4:31b\"\n  provider: \"custom\"\n  base_url: \"http://localhost:11434/v1\"\n```\n\n## Step 4: Start Using Hermes\n\n```bash\nhermes\n```\n\nThat's it. You're now running a fully local agent. Try it out:\n\n```\nYou: List all Python files in this directory and count the lines of code in each\n\nYou: Read the README.md and summarize what this project does\n\nYou: Create a Python script that fetches the weather for Ho Chi Minh City\n```\n\nHermes will use the terminal tool, file operations, and your local model — no cloud calls.\n\n## Step 5: Pick the Right Model for Your Task\n\nNot every task needs the biggest model. Here's a practical guide:\n\n| Task | Recommended Model | Why |\n|------|-------------------|-----|\n| File edits, code, terminal commands | `gemma4:31b` | Only model with reliable tool calling |\n| Quick Q&A (no tool use needed) | `gemma2:9b` | Fast responses for conversational tasks |\n| Lightweight chat | `llama3.2:3b` | Fastest, but very limited capabilities |\n\n:::note\nFor full agentic work (editing files, running commands, browsing), `gemma4:31b` is currently the best local option with tool-call support. Check [Ollama's model library](https://ollama.com/library) for newer models — tool-calling support is expanding rapidly.\n:::\n\nSwitch models on the fly inside a session:\n\n```\n/model gemma2:9b\n```\n\n## Step 6: Optimize for Speed\n\n### Increase Ollama's Context Window\n\nBy default, Ollama uses a 2048-token context. For agentic work (tool calls, long conversations), you need more:\n\n```bash\n# Create a Modelfile that extends context\ncat > /tmp/Modelfile << 'EOF'\nFROM gemma4:31b\nPARAMETER num_ctx 16384\nEOF\n\nollama create gemma4-16k -f /tmp/Modelfile\n```\n\nThen update your Hermes config to use `gemma4-16k` as the model name.\n\n### Keep the Model Loaded\n\nBy default, Ollama unloads models after 5 minutes of inactivity. For a persistent gateway bot, keep it loaded:\n\n```bash\n# Set keep-alive to 24 hours\ncurl http://localhost:11434/api/generate \\\n  -d '{\"model\": \"gemma4:31b\", \"keep_alive\": \"24h\"}'\n```\n\nOr set it globally in Ollama's environment:\n\n```bash\n# /etc/systemd/system/ollama.service.d/override.conf\n[Service]\nEnvironment=\"OLLAMA_KEEP_ALIVE=24h\"\n```\n\n### Use GPU Offloading (If Available)\n\nIf you have an NVIDIA GPU, Ollama automatically offloads layers to it. Check with:\n\n```bash\nollama ps   # Shows which model is loaded and how many GPU layers\n```\n\nFor a 31B model on a 12 GB GPU, you'll get partial offload (~40 layers on GPU, rest on CPU), which still gives a significant speedup.\n\n## Step 7: Run as a Gateway Bot (Optional)\n\nOnce Hermes works locally in the CLI, you can expose it as a Telegram or Discord bot — still running entirely on your hardware.\n\n### Telegram\n\n1. Create a bot via [@BotFather](https://t.me/BotFather) and get the token\n2. Add to your `~/.hermes/config.yaml`:\n\n```yaml\nmodel:\n  default: \"gemma4:31b\"\n  provider: \"custom\"\n  base_url: \"http://localhost:11434/v1\"\n\nplatforms:\n  telegram:\n    enabled: true\n    token: \"YOUR_TELEGRAM_BOT_TOKEN\"\n```\n\n3. Start the gateway:\n\n```bash\nhermes gateway\n```\n\nNow message your bot on Telegram — it responds using your local model.\n\n### Discord\n\n1. Create a Discord application at [discord.com/developers](https://discord.com/developers/applications)\n2. Add to config:\n\n```yaml\nplatforms:\n  discord:\n    enabled: true\n    token: \"YOUR_DISCORD_BOT_TOKEN\"\n```\n\n3. Start: `hermes gateway`\n\n## Step 8: Set Up Fallbacks (Optional)\n\nLocal models can struggle with complex tasks. Set up a cloud fallback that only activates when the local model fails:\n\n```yaml\nmodel:\n  default: \"gemma4:31b\"\n  provider: \"custom\"\n  base_url: \"http://localhost:11434/v1\"\n\nfallback_providers:\n  - provider: openrouter\n    model: anthropic/claude-sonnet-4\n```\n\nThis way, 90% of your usage is free (local), and only the hard tasks hit the paid API.\n\n## Troubleshooting\n\n### \"Connection refused\" on startup\n\nOllama isn't running. Start it:\n\n```bash\nsudo systemctl start ollama\n# or\nollama serve\n```\n\n### Slow responses\n\n- **Check model size vs RAM:** If your model needs more RAM than available, it swaps to disk. Use a smaller model or add RAM.\n- **Check `ollama ps`:** If no GPU layers are offloaded, responses are CPU-bound. This is normal for CPU-only servers.\n- **Reduce context:** Large conversations slow down inference. Use `/compress` regularly, or set a lower compression threshold in config.\n\n### Model doesn't follow tool calls\n\nSmaller models (3B, 7B) sometimes ignore tool-call instructions and produce plain text instead of structured function calls. Solutions:\n\n- **Use a bigger model** — `gemma4:31b` or `gemma2:27b` handle tool calls much better than 3B/7B models.\n- **Hermes has auto-repair** — it detects malformed tool calls and attempts to fix them automatically.\n- **Set up a fallback** — if the local model fails 3 times, Hermes falls back to a cloud provider.\n\n### Context window errors\n\nThe default Ollama context (2048 tokens) is too small for agentic work. See [Step 6](#step-6-optimize-for-speed) to increase it.\n\n## Cost Comparison\n\nHere's what running locally saves compared to cloud APIs, based on a typical coding session (~100K tokens input, ~20K tokens output):\n\n| Provider | Cost per Session | Monthly (daily use) |\n|----------|-----------------|---------------------|\n| Anthropic Claude Sonnet | ~$0.80 | ~$24 |\n| OpenRouter (GPT-4o) | ~$0.60 | ~$18 |\n| **Ollama (local)** | **$0.00** | **$0.00** |\n\nYour only cost is electricity — roughly $0.01–0.05 per session depending on hardware.\n\n## What Works Well Locally\n\n- **File editing and code generation** — models 9B+ handle this well\n- **Terminal commands** — Hermes wraps the command, runs it, reads output regardless of model\n- **Web browsing** — the browser tool does the fetching; the model just interprets results\n- **Cron jobs and scheduled tasks** — work identically to cloud setups\n- **Multi-platform gateway** — Telegram, Discord, Slack all work with local models\n\n## What's Better with Cloud Models\n\n- **Very complex multi-step reasoning** — 70B+ or cloud models like Claude Opus are noticeably better\n- **Long context windows** — cloud models offer 100K–1M tokens; local models are typically 8K–32K\n- **Speed on large responses** — cloud inference is faster than CPU-only local for long generations\n\nThe sweet spot: use local for everyday tasks, set up a cloud fallback for the hard stuff.\n\n---"
+}

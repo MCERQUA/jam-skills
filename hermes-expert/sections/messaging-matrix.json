@@ -1,0 +1,155 @@
+{
+  "id": "messaging-matrix",
+  "title": "Matrix Integration",
+  "source_path": "user-guide/messaging/matrix.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/matrix",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Matrix protocol integration via the mautrix SDK, covering account registration, E2EE with libolm, crypto store setup, cross-signing recovery key, proxy mode for macOS, MSC3245 voice messages, and room allowlisting.",
+  "key_concepts": [
+    "mautrix SDK for Matrix protocol",
+    "E2EE (end-to-end encryption) with libolm",
+    "Crypto store for persistent encryption keys",
+    "Cross-signing recovery key for key verification",
+    "Proxy mode for macOS (libolm not available as native binary)",
+    "MSC3245 voice messages",
+    "Room allowlisting by room ID",
+    "Bot account registration on Matrix homeserver",
+    "Sync token persistence for resuming after restart",
+    "Reaction support"
+  ],
+  "env_vars": [
+    {
+      "name": "MATRIX_HOMESERVER",
+      "required": true,
+      "default": null,
+      "description": "Matrix homeserver URL (e.g. https://matrix.org or self-hosted Synapse)"
+    },
+    {
+      "name": "MATRIX_USER_ID",
+      "required": true,
+      "default": null,
+      "description": "Full Matrix user ID (e.g. @hermesbot:matrix.org)"
+    },
+    {
+      "name": "MATRIX_ACCESS_TOKEN",
+      "required": true,
+      "default": null,
+      "description": "Matrix access token for the bot account"
+    },
+    {
+      "name": "MATRIX_CRYPTO_STORE_PATH",
+      "required": false,
+      "default": "./.hermes/matrix-crypto",
+      "description": "Path to persist E2EE crypto store"
+    },
+    {
+      "name": "MATRIX_RECOVERY_KEY",
+      "required": false,
+      "default": null,
+      "description": "Cross-signing recovery key for key verification bootstrapping"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway including Matrix sync listener"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "matrix.homeserver",
+      "type": "string",
+      "description": "Matrix homeserver URL"
+    },
+    {
+      "key": "matrix.user_id",
+      "type": "string",
+      "description": "Full Matrix user ID (@bot:server.com)"
+    },
+    {
+      "key": "matrix.access_token",
+      "type": "string",
+      "description": "Bot account access token"
+    },
+    {
+      "key": "matrix.crypto_store_path",
+      "type": "string",
+      "description": "Path to persist E2EE crypto keys"
+    },
+    {
+      "key": "matrix.recovery_key",
+      "type": "string",
+      "description": "Cross-signing recovery key"
+    },
+    {
+      "key": "matrix.allowed_rooms",
+      "type": "list[str]",
+      "description": "Room IDs the bot responds in"
+    },
+    {
+      "key": "matrix.proxy_mode",
+      "type": "bool",
+      "description": "Use proxy mode for E2EE (required on macOS without native libolm)"
+    },
+    {
+      "key": "matrix.voice_messages",
+      "type": "bool",
+      "description": "Enable MSC3245 voice message support (default: true if TTS configured)"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "title": "Matrix config with E2EE",
+      "language": "yaml",
+      "code": "matrix:\n  homeserver: \"https://matrix.org\"\n  user_id: \"@hermesbot:matrix.org\"\n  access_token: \"\"\n  crypto_store_path: \"/data/matrix-crypto\"\n  recovery_key: \"\"\n  allowed_rooms:\n    - \"!roomid:matrix.org\""
+    },
+    {
+      "title": "Get access token (login)",
+      "language": "bash",
+      "code": "curl -XPOST https://matrix.org/_matrix/client/v3/login \\n  -d '{type:m.login.password,user:hermesbot,password:yourpassword}'\n# Copy access_token from response"
+    },
+    {
+      "title": "Proxy mode for macOS",
+      "language": "yaml",
+      "code": "matrix:\n  proxy_mode: true  # use when libolm not available natively\n  homeserver: \"https://matrix.org\"\n  user_id: \"@hermesbot:matrix.org\"\n  access_token: \"\""
+    }
+  ],
+  "gotchas": [
+    "libolm must be installed for E2EE support on Linux; on macOS use proxy_mode: true",
+    "The crypto_store_path must persist across restarts or the bot will lose its session keys and be unable to decrypt messages",
+    "Without a recovery_key, the bot cannot verify its own cross-signing keys after a fresh start; messages may show as unverified",
+    "Room IDs look like !abc123:server.com (note the ! prefix, not #)",
+    "The bot must be invited to rooms and accept the invitation before it can receive messages",
+    "E2EE key sharing requires that the bot is verified by at least one device in the room; use the recovery key or manually verify",
+    "Sync tokens persist progress; if lost, the bot may re-process old messages on next start"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-mattermost",
+    "tts",
+    "voice-mode"
+  ],
+  "keywords": [
+    "matrix",
+    "mautrix",
+    "e2ee",
+    "libolm",
+    "crypto store",
+    "recovery key",
+    "cross-signing",
+    "proxy mode",
+    "macos",
+    "voice messages",
+    "msc3245",
+    "room id",
+    "homeserver",
+    "synapse",
+    "access token",
+    "sync token",
+    "encryption",
+    "room allowlist"
+  ],
+  "full_text": "## Matrix\n\nConnect Hermes to the Matrix protocol via the [mautrix](https://github.com/mautrix/python) SDK.\n\n### Setup\n\n#### 1. Create a bot account\n\nRegister a dedicated account on your Matrix homeserver (or matrix.org). Then get an access token:\n\n```bash\ncurl -XPOST https://matrix.org/_matrix/client/v3/login   -d '{type:m.login.password,user:hermesbot,password:yourpassword}'\n```\n\nCopy the  from the response.\n\n#### 2. Install libolm (for E2EE)\n\n```bash\n# Ubuntu/Debian\nsudo apt-get install libolm-dev python3-olm\n\n# macOS: libolm is not available as a native binary\n# Use proxy_mode: true instead (see below)\n```\n\n#### 3. Config\n\n```yaml\nmatrix:\n  homeserver: \"https://matrix.org\"\n  user_id: \"@hermesbot:matrix.org\"\n  access_token: \"\"\n  crypto_store_path: \"/data/matrix-crypto\"\n  recovery_key: \"\"\n  allowed_rooms:\n    - \"!roomid:matrix.org\"\n```\n\n### E2EE (end-to-end encryption)\n\nHermes uses libolm for E2EE. The crypto store at  persists session keys \u2014 back it up. If lost, the bot will be unable to decrypt messages from existing sessions.\n\nThe  bootstraps cross-signing so the bot's keys are trusted by other devices in the room.\n\n### Proxy mode (macOS)\n\nOn macOS, libolm is not available as a native Python package. Use proxy mode, which delegates E2EE operations to an external process:\n\n```yaml\nmatrix:\n  proxy_mode: true\n```\n\n### Room allowlist\n\nRoom IDs use the  prefix (not  which is the alias):\n\n```yaml\nmatrix:\n  allowed_rooms:\n    - \"!abc123xyz:matrix.org\"\n```\n\nInvite the bot to a room, then it will auto-accept and start listening.\n\n### Voice messages (MSC3245)\n\nIf TTS is configured, Hermes can send voice messages using the MSC3245 format:\n\n```yaml\nmatrix:\n  voice_messages: true\n```\n\n### Reactions\n\nThe bot uses Matrix reactions as delivery acknowledgments (similar to Telegram reactions)."
+}

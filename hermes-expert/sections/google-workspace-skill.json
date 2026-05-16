@@ -1,0 +1,120 @@
+{
+  "id": "google-workspace-skill",
+  "title": "Google Workspace — Gmail, Calendar, Drive, Sheets & Docs",
+  "source_path": "website/docs/user-guide/skills/google-workspace.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/skills/google-workspace",
+  "category": "user-guide",
+  "subcategory": "skills",
+  "summary": "Gmail, Calendar, Drive, Contacts, Sheets, and Docs integration for Hermes. Uses OAuth2 with automatic token refresh.",
+  "key_concepts": [
+    "Google Workspace Skill",
+    "Setup",
+    "Gmail",
+    "Searching",
+    "Reading",
+    "Sending",
+    "Basic send",
+    "HTML email"
+  ],
+  "env_vars": [
+    {
+      "name": "NOT_AUTHENTICATED",
+      "purpose": "",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "REFRESH_FAILED",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "$GAPI gmail search \"is:unread\" --max 10\n$GAPI gmail search \"from:boss@company.com newer_than:1d\"\n$GAPI gmail search \"has:attachment filename:pdf newer_than:7d\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "$GAPI gmail get MESSAGE_ID\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Basic send\n$GAPI gmail send --to user@example.com --subject \"Hello\" --body \"Message text\"\n\n# HTML email\n$GAPI gmail send --to user@example.com --subject \"Report\" \\\n  --body \"<h1>Q4 Results</h1><p>Details here</p>\" --html\n\n# Custom From header (display name + email)\n$GAPI gmail send --to user@example.com --subject \"Hello\" \\\n  --from '\"Research Agent\" <user@example.com>' --body \"Message text\"\n\n# With CC\n$GAPI gmail send --to user@example.com --cc \"team@example.com\" \\\n  --subject \"Update\" --body \"FYI\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Agent 1\n$GAPI gmail send --to client@co.com --subject \"Research Summary\" \\\n  --from '\"Research Agent\" <shared@company.com>' --body \"...\"\n\n# Agent 2  \n$GAPI gmail send --to client@co.com --subject \"Code Review\" \\\n  --from '\"Code Assistant\" <shared@company.com>' --body \"...\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "$GAPI gmail reply MESSAGE_ID \\\n  --from '\"Support Bot\" <shared@company.com>' --body \"We're on it\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "$GAPI gmail reply MESSAGE_ID --body \"Thanks, that works for me.\"\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# List all labels\n$GAPI gmail labels\n\n# Add/remove labels\n$GAPI gmail modify MESSAGE_ID --add-labels LABEL_ID\n$GAPI gmail modify MESSAGE_ID --remove-labels UNREAD\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# List events (defaults to next 7 days)\n$GAPI calendar list\n$GAPI calendar list --start 2026-03-01T00:00:00Z --end 2026-03-07T23:59:59Z\n\n# Create event (timezone required)\n$GAPI calendar create --summary \"Team Standup\" \\\n  --start 2026-03-01T10:00:00-07:00 --end 2026-03-01T10:30:00-07:00\n\n# With location and attendees\n$GAPI calendar create --summary \"Lunch\" \\\n  --start 2026-03-01T12:00:00Z --end 2026-03-01T13:00:00Z \\\n  --location \"Cafe\" --attendees \"alice@co.com,bob@co.com\"\n\n# Delete event\n$GAPI calendar delete EVENT_ID\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "$GAPI drive search \"quarterly report\" --max 10\n$GAPI drive search \"mimeType='application/pdf'\" --raw-query --max 5\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "# Read a range\n$GAPI sheets get SHEET_ID \"Sheet1!A1:D10\"\n\n# Write to a range\n$GAPI sheets update SHEET_ID \"Sheet1!A1:B2\" --values '[[\"Name\",\"Score\"],[\"Alice\",\"95\"]]'\n\n# Append rows\n$GAPI sheets append SHEET_ID \"Sheet1!A:C\" --values '[[\"new\",\"row\",\"data\"]]'\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "$GAPI docs get DOC_ID\n"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "$GAPI contacts list --max 20\n"
+    }
+  ],
+  "gotchas": [
+    "Calendar times **must** include a timezone offset (e.g. `-07:00`) or use UTC (`Z`). Bare datetimes like `2026-03-01T10:00:00` are ambiguous and will be treated as UTC."
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "&",
+    "add-labels",
+    "agent-driven",
+    "auto-refreshes",
+    "calendar,",
+    "cli",
+    "docs",
+    "drive,",
+    "fyi",
+    "gapi",
+    "gmail,",
+    "google",
+    "google-workspace",
+    "html",
+    "json"
+  ],
+  "full_text": "# Google Workspace — Gmail, Calendar, Drive, Sheets & Docs\n\n# Google Workspace Skill\n\nGmail, Calendar, Drive, Contacts, Sheets, and Docs integration for Hermes. Uses OAuth2 with automatic token refresh. Prefers the [Google Workspace CLI (`gws`)](https://github.com/nicholasgasior/gws) when available for broader coverage, and falls back to Google's Python client libraries otherwise.\n\n**Skill path:** `skills/productivity/google-workspace/`\n\n## Setup\n\nThe setup is fully agent-driven — ask Hermes to set up Google Workspace and it walks you through each step. The flow:\n\n1. **Create a Google Cloud project** and enable the required APIs (Gmail, Calendar, Drive, Sheets, Docs, People)\n2. **Create OAuth 2.0 credentials** (Desktop app type) and download the client secret JSON\n3. **Authorize** — Hermes generates an auth URL, you approve in the browser, paste back the redirect URL\n4. **Done** — token auto-refreshes from that point on\n\n:::tip Email-only users\nIf you only need email (no Calendar/Drive/Sheets), use the **himalaya** skill instead — it works with a Gmail App Password and takes 2 minutes. No Google Cloud project needed.\n:::\n\n## Gmail\n\n### Searching\n\n```bash\n$GAPI gmail search \"is:unread\" --max 10\n$GAPI gmail search \"from:boss@company.com newer_than:1d\"\n$GAPI gmail search \"has:attachment filename:pdf newer_than:7d\"\n```\n\nReturns JSON with `id`, `from`, `subject`, `date`, `snippet`, and `labels` for each message.\n\n### Reading\n\n```bash\n$GAPI gmail get MESSAGE_ID\n```\n\nReturns the full message body as text (prefers plain text, falls back to HTML).\n\n### Sending\n\n```bash\n# Basic send\n$GAPI gmail send --to user@example.com --subject \"Hello\" --body \"Message text\"\n\n# HTML email\n$GAPI gmail send --to user@example.com --subject \"Report\" \\\n  --body \"<h1>Q4 Results</h1><p>Details here</p>\" --html\n\n# Custom From header (display name + email)\n$GAPI gmail send --to user@example.com --subject \"Hello\" \\\n  --from '\"Research Agent\" <user@example.com>' --body \"Message text\"\n\n# With CC\n$GAPI gmail send --to user@example.com --cc \"team@example.com\" \\\n  --subject \"Update\" --body \"FYI\"\n```\n\n### Custom From Header\n\nThe `--from` flag lets you customize the sender display name on outgoing emails. This is useful when multiple agents share the same Gmail account but you want recipients to see different names:\n\n```bash\n# Agent 1\n$GAPI gmail send --to client@co.com --subject \"Research Summary\" \\\n  --from '\"Research Agent\" <shared@company.com>' --body \"...\"\n\n# Agent 2  \n$GAPI gmail send --to client@co.com --subject \"Code Review\" \\\n  --from '\"Code Assistant\" <shared@company.com>' --body \"...\"\n```\n\n**How it works:** The `--from` value is set as the RFC 5322 `From` header on the MIME message. Gmail allows customizing the display name on your own authenticated email address without any additional configuration. Recipients see the custom display name (e.g. \"Research Agent\") while the email address stays the same.\n\n**Important:** If you use a *different email address* in `--from` (not the authenticated account), Gmail requires that address to be configured as a [Send As alias](https://support.google.com/mail/answer/22370) in Gmail Settings → Accounts → Send mail as.\n\nThe `--from` flag works on both `send` and `reply`:\n\n```bash\n$GAPI gmail reply MESSAGE_ID \\\n  --from '\"Support Bot\" <shared@company.com>' --body \"We're on it\"\n```\n\n### Replying\n\n```bash\n$GAPI gmail reply MESSAGE_ID --body \"Thanks, that works for me.\"\n```\n\nAutomatically threads the reply (sets `In-Reply-To` and `References` headers) and uses the original message's thread ID.\n\n### Labels\n\n```bash\n# List all labels\n$GAPI gmail labels\n\n# Add/remove labels\n$GAPI gmail modify MESSAGE_ID --add-labels LABEL_ID\n$GAPI gmail modify MESSAGE_ID --remove-labels UNREAD\n```\n\n## Calendar\n\n```bash\n# List events (defaults to next 7 days)\n$GAPI calendar list\n$GAPI calendar list --start 2026-03-01T00:00:00Z --end 2026-03-07T23:59:59Z\n\n# Create event (timezone required)\n$GAPI calendar create --summary \"Team Standup\" \\\n  --start 2026-03-01T10:00:00-07:00 --end 2026-03-01T10:30:00-07:00\n\n# With location and attendees\n$GAPI calendar create --summary \"Lunch\" \\\n  --start 2026-03-01T12:00:00Z --end 2026-03-01T13:00:00Z \\\n  --location \"Cafe\" --attendees \"alice@co.com,bob@co.com\"\n\n# Delete event\n$GAPI calendar delete EVENT_ID\n```\n\n:::warning\nCalendar times **must** include a timezone offset (e.g. `-07:00`) or use UTC (`Z`). Bare datetimes like `2026-03-01T10:00:00` are ambiguous and will be treated as UTC.\n:::\n\n## Drive\n\n```bash\n$GAPI drive search \"quarterly report\" --max 10\n$GAPI drive search \"mimeType='application/pdf'\" --raw-query --max 5\n```\n\n## Sheets\n\n```bash\n# Read a range\n$GAPI sheets get SHEET_ID \"Sheet1!A1:D10\"\n\n# Write to a range\n$GAPI sheets update SHEET_ID \"Sheet1!A1:B2\" --values '[[\"Name\",\"Score\"],[\"Alice\",\"95\"]]'\n\n# Append rows\n$GAPI sheets append SHEET_ID \"Sheet1!A:C\" --values '[[\"new\",\"row\",\"data\"]]'\n```\n\n## Docs\n\n```bash\n$GAPI docs get DOC_ID\n```\n\nReturns the document title and full text content.\n\n## Contacts\n\n```bash\n$GAPI contacts list --max 20\n```\n\n## Output Format\n\nAll commands return JSON. Key fields per service:\n\n| Command | Fields |\n|---------|--------|\n| `gmail search` | `id`, `threadId`, `from`, `to`, `subject`, `date`, `snippet`, `labels` |\n| `gmail get` | `id`, `threadId`, `from`, `to`, `subject`, `date`, `labels`, `body` |\n| `gmail send/reply` | `status`, `id`, `threadId` |\n| `calendar list` | `id`, `summary`, `start`, `end`, `location`, `description`, `htmlLink` |\n| `calendar create` | `status`, `id`, `summary`, `htmlLink` |\n| `drive search` | `id`, `name`, `mimeType`, `modifiedTime`, `webViewLink` |\n| `contacts list` | `name`, `emails`, `phones` |\n| `sheets get` | 2D array of cell values |\n\n## Troubleshooting\n\n| Problem | Fix |\n|---------|-----|\n| `NOT_AUTHENTICATED` | Run setup (ask Hermes to set up Google Workspace) |\n| `REFRESH_FAILED` | Token revoked — re-run authorization steps |\n| `HttpError 403: Insufficient Permission` | Missing scope — revoke and re-authorize with the right services |\n| `HttpError 403: Access Not Configured` | API not enabled in Google Cloud Console |\n| `ModuleNotFoundError` | Run setup script with `--install-deps` |\n\n---"
+}

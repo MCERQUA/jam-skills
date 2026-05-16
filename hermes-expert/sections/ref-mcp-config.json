@@ -1,0 +1,85 @@
+{
+  "id": "ref-mcp-config",
+  "title": "MCP Config Reference",
+  "source_path": "website/docs/reference/mcp-config-reference.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference",
+  "category": "reference",
+  "subcategory": "",
+  "summary": "This page is the compact reference companion to the main MCP docs. For conceptual guidance, see:",
+  "key_concepts": [
+    "Root config shape",
+    "Server keys",
+    "policy keys",
+    "Filtering semantics",
+    "Precedence",
+    "Utility-tool policy",
+    "Disable resources",
+    "Disable prompts"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "mcp_servers:\n  <server_name>:\n    command: \"...\"      # stdio servers\n    args: []\n    env: {}\n\n    # OR\n    url: \"...\"          # HTTP servers\n    headers: {}\n\n    enabled: true\n    timeout: 120\n    connect_timeout: 60\n    tools:\n      include: []\n      exclude: []\n      resources: true\n      prompts: true"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "tools:\n  include: [create_issue, list_issues]"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "tools:\n  exclude: [delete_customer]"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "tools:\n  include: [create_issue]\n  exclude: [create_issue, delete_issue]"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "tools:\n  resources: false"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "tools:\n  prompts: false"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "mcp_servers:\n  legacy:\n    url: \"https://mcp.legacy.internal\"\n    enabled: false"
+    },
+    {
+      "language": "yaml",
+      "caption": "",
+      "code": "mcp_servers:\n  github:\n    command: \"npx\"\n    args: [\"-y\", \"@modelcontextprotocol/server-github\"]\n    env:\n      GITHUB_PERSONAL_ACCESS_TOKEN: \"***\"\n    tools:\n      include: [list_issues, create_issue, update_issue, search_code]\n      resources: false\n      prompts: false"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "allowlist",
+    "api",
+    "authentication",
+    "aware",
+    "behavior",
+    "blacklist",
+    "capability",
+    "command",
+    "config",
+    "configs",
+    "disable",
+    "docs",
+    "empty",
+    "enabled",
+    "env"
+  ],
+  "full_text": "# MCP Config Reference\n\n# MCP Config Reference\n\nThis page is the compact reference companion to the main MCP docs.\n\nFor conceptual guidance, see:\n- [MCP (Model Context Protocol)](/docs/user-guide/features/mcp)\n- [Use MCP with Hermes](/docs/guides/use-mcp-with-hermes)\n\n## Root config shape\n\n```yaml\nmcp_servers:\n  <server_name>:\n    command: \"...\"      # stdio servers\n    args: []\n    env: {}\n\n    # OR\n    url: \"...\"          # HTTP servers\n    headers: {}\n\n    enabled: true\n    timeout: 120\n    connect_timeout: 60\n    tools:\n      include: []\n      exclude: []\n      resources: true\n      prompts: true\n```\n\n## Server keys\n\n| Key | Type | Applies to | Meaning |\n|---|---|---|---|\n| `command` | string | stdio | Executable to launch |\n| `args` | list | stdio | Arguments for the subprocess |\n| `env` | mapping | stdio | Environment passed to the subprocess |\n| `url` | string | HTTP | Remote MCP endpoint |\n| `headers` | mapping | HTTP | Headers for remote server requests |\n| `enabled` | bool | both | Skip the server entirely when false |\n| `timeout` | number | both | Tool call timeout |\n| `connect_timeout` | number | both | Initial connection timeout |\n| `tools` | mapping | both | Filtering and utility-tool policy |\n| `auth` | string | HTTP | Authentication method. Set to `oauth` to enable OAuth 2.1 with PKCE |\n| `sampling` | mapping | both | Server-initiated LLM request policy (see MCP guide) |\n\n## `tools` policy keys\n\n| Key | Type | Meaning |\n|---|---|---|\n| `include` | string or list | Whitelist server-native MCP tools |\n| `exclude` | string or list | Blacklist server-native MCP tools |\n| `resources` | bool-like | Enable/disable `list_resources` + `read_resource` |\n| `prompts` | bool-like | Enable/disable `list_prompts` + `get_prompt` |\n\n## Filtering semantics\n\n### `include`\n\nIf `include` is set, only those server-native MCP tools are registered.\n\n```yaml\ntools:\n  include: [create_issue, list_issues]\n```\n\n### `exclude`\n\nIf `exclude` is set and `include` is not, every server-native MCP tool except those names is registered.\n\n```yaml\ntools:\n  exclude: [delete_customer]\n```\n\n### Precedence\n\nIf both are set, `include` wins.\n\n```yaml\ntools:\n  include: [create_issue]\n  exclude: [create_issue, delete_issue]\n```\n\nResult:\n- `create_issue` is still allowed\n- `delete_issue` is ignored because `include` takes precedence\n\n## Utility-tool policy\n\nHermes may register these utility wrappers per MCP server:\n\nResources:\n- `list_resources`\n- `read_resource`\n\nPrompts:\n- `list_prompts`\n- `get_prompt`\n\n### Disable resources\n\n```yaml\ntools:\n  resources: false\n```\n\n### Disable prompts\n\n```yaml\ntools:\n  prompts: false\n```\n\n### Capability-aware registration\n\nEven when `resources: true` or `prompts: true`, Hermes only registers those utility tools if the MCP session actually exposes the corresponding capability.\n\nSo this is normal:\n- you enable prompts\n- but no prompt utilities appear\n- because the server does not support prompts\n\n## `enabled: false`\n\n```yaml\nmcp_servers:\n  legacy:\n    url: \"https://mcp.legacy.internal\"\n    enabled: false\n```\n\nBehavior:\n- no connection attempt\n- no discovery\n- no tool registration\n- config remains in place for later reuse\n\n## Empty result behavior\n\nIf filtering removes all server-native tools and no utility tools are registered, Hermes does not create an empty MCP runtime toolset for that server.\n\n## Example configs\n\n### Safe GitHub allowlist\n\n```yaml\nmcp_servers:\n  github:\n    command: \"npx\"\n    args: [\"-y\", \"@modelcontextprotocol/server-github\"]\n    env:\n      GITHUB_PERSONAL_ACCESS_TOKEN: \"***\"\n    tools:\n      include: [list_issues, create_issue, update_issue, search_code]\n      resources: false\n      prompts: false\n```\n\n### Stripe blacklist\n\n```yaml\nmcp_servers:\n  stripe:\n    url: \"https://mcp.stripe.com\"\n    headers:\n      Authorization: \"Bearer ***\"\n    tools:\n      exclude: [delete_customer, refund_payment]\n```\n\n### Resource-only docs server\n\n```yaml\nmcp_servers:\n  docs:\n    url: \"https://mcp.docs.example.com\"\n    tools:\n      include: []\n      resources: true\n      prompts: false\n```\n\n## Reloading config\n\nAfter changing MCP config, reload servers with:\n\n```text\n/reload-mcp\n```\n\n## Tool naming\n\nServer-native MCP tools become:\n\n```text\nmcp_<server>_<tool>\n```\n\nExamples:\n- `mcp_github_create_issue`\n- `mcp_filesystem_read_file`\n- `mcp_my_api_query_data`\n\nUtility tools follow the same prefixing pattern:\n- `mcp_<server>_list_resources`\n- `mcp_<server>_read_resource`\n- `mcp_<server>_list_prompts`\n- `mcp_<server>_get_prompt`\n\n### Name sanitization\n\nHyphens (`-`) and dots (`.`) in both server names and tool names are replaced with underscores before registration. This ensures tool names are valid identifiers for LLM function-calling APIs.\n\nFor example, a server named `my-api` exposing a tool called `list-items.v2` becomes:\n\n```text\nmcp_my_api_list_items_v2\n```\n\nKeep this in mind when writing `include` / `exclude` filters — use the **original** MCP tool name (with hyphens/dots), not the sanitized version.\n\n## OAuth 2.1 authentication\n\nFor HTTP servers that require OAuth, set `auth: oauth` on the server entry:\n\n```yaml\nmcp_servers:\n  protected_api:\n    url: \"https://mcp.example.com/mcp\"\n    auth: oauth\n```\n\nBehavior:\n- Hermes uses the MCP SDK's OAuth 2.1 PKCE flow (metadata discovery, dynamic client registration, token exchange, and refresh)\n- On first connect, a browser window opens for authorization\n- Tokens are persisted to `~/.hermes/mcp-tokens/<server>.json` and reused across sessions\n- Token refresh is automatic; re-authorization only happens when refresh fails\n- Only applies to HTTP/StreamableHTTP transport (`url`-based servers)\n\n---"
+}

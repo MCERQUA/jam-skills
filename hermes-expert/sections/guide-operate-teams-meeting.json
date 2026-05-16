@@ -1,0 +1,153 @@
+{
+  "id": "guide-operate-teams-meeting",
+  "title": "Operate the Teams Meeting Pipeline",
+  "source_path": "website/docs/guides/operate-teams-meeting-pipeline.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/guides/operate-teams-meeting-pipeline",
+  "category": "guides",
+  "subcategory": "",
+  "summary": "Use this guide after you have already enabled the feature from [Teams Meetings](/docs/user-guide/messaging/teams-meetings). This page covers:",
+  "key_concepts": [
+    "Core Operator Commands",
+    "Validate the config snapshot",
+    "Inspect token health",
+    "Inspect subscriptions",
+    "Renew near-expiry subscriptions",
+    "Automating subscription renewal (REQUIRED for production)",
+    "Inspect recent jobs",
+    "Replay a stored job"
+  ],
+  "env_vars": [
+    {
+      "name": "MSGRAPH_WEBHOOK_CLIENT_STATE",
+      "purpose": "",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes teams-pipeline validate",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline token-health",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline token-health --force-refresh",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline subscriptions",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline maintain-subscriptions",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline maintain-subscriptions --dry-run",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron create \"0 */12 * * *\" \\",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron list",
+      "purpose": ""
+    },
+    {
+      "command": "hermes cron status",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline list",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline list --status failed",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline show <job-id>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline run <job-id>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline fetch --meeting-id <meeting-id>",
+      "purpose": ""
+    },
+    {
+      "command": "hermes teams-pipeline fetch --join-web-url \"<join-url>\"",
+      "purpose": ""
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes teams-pipeline validate"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes teams-pipeline token-health\nhermes teams-pipeline token-health --force-refresh"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes teams-pipeline subscriptions"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes teams-pipeline maintain-subscriptions\nhermes teams-pipeline maintain-subscriptions --dry-run"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "mkdir -p ~/.hermes/scripts\ncat > ~/.hermes/scripts/maintain-teams-subscriptions.sh <<'EOF'\n#!/usr/bin/env bash\nexec hermes teams-pipeline maintain-subscriptions\nEOF\nchmod +x ~/.hermes/scripts/maintain-teams-subscriptions.sh"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron create \"0 */12 * * *\" \\\n  --name \"teams-pipeline-maintain-subscriptions\" \\\n  --no-agent \\\n  --script maintain-teams-subscriptions.sh \\\n  --deliver local"
+    },
+    {
+      "language": "bash",
+      "caption": "",
+      "code": "hermes cron list\nhermes cron status        # scheduler status"
+    },
+    {
+      "language": "ini",
+      "caption": "",
+      "code": "[Unit]\nDescription=Hermes Teams pipeline subscription maintenance\nAfter=network-online.target\n\n[Service]\nType=oneshot\nUser=hermes\nEnvironmentFile=/etc/hermes/env\nExecStart=/usr/local/bin/hermes teams-pipeline maintain-subscriptions"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [],
+  "keywords": [
+    "after",
+    "already",
+    "artifact",
+    "automating",
+    "bash",
+    "before",
+    "being",
+    "change",
+    "changing",
+    "checklist",
+    "checks",
+    "command",
+    "commands",
+    "config",
+    "core"
+  ],
+  "full_text": "# Operate the Teams Meeting Pipeline\n\n# Operate the Teams Meeting Pipeline\n\nUse this guide after you have already enabled the feature from [Teams Meetings](/docs/user-guide/messaging/teams-meetings).\n\nThis page covers:\n- operator CLI flows\n- routine subscription maintenance\n- failure triage\n- go-live checks\n- rollout worksheet\n\n## Core Operator Commands\n\n### Validate the config snapshot\n\n```bash\nhermes teams-pipeline validate\n```\n\nUse this first after any config change.\n\n### Inspect token health\n\n```bash\nhermes teams-pipeline token-health\nhermes teams-pipeline token-health --force-refresh\n```\n\nUse `--force-refresh` when you suspect stale auth state.\n\n### Inspect subscriptions\n\n```bash\nhermes teams-pipeline subscriptions\n```\n\n### Renew near-expiry subscriptions\n\n```bash\nhermes teams-pipeline maintain-subscriptions\nhermes teams-pipeline maintain-subscriptions --dry-run\n```\n\n### Automating subscription renewal (REQUIRED for production)\n\n**Microsoft Graph subscriptions expire in at most 72 hours.** If nothing renews them, meeting notifications silently stop after 3 days and the pipeline looks \"broken.\" This is the #1 operational failure mode for any Graph-backed integration.\n\nYou MUST run `maintain-subscriptions` on a schedule. Pick one of these three options:\n\n#### Option 1: Hermes cron (recommended if you already run the Hermes gateway)\n\nHermes ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.hermes/scripts/`. First create the script:\n\n```bash\nmkdir -p ~/.hermes/scripts\ncat > ~/.hermes/scripts/maintain-teams-subscriptions.sh <<'EOF'\n#!/usr/bin/env bash\nexec hermes teams-pipeline maintain-subscriptions\nEOF\nchmod +x ~/.hermes/scripts/maintain-teams-subscriptions.sh\n```\n\nThen register a script-only cron job that runs every 12 hours (gives 6x headroom against the 72h expiry window):\n\n```bash\nhermes cron create \"0 */12 * * *\" \\\n  --name \"teams-pipeline-maintain-subscriptions\" \\\n  --no-agent \\\n  --script maintain-teams-subscriptions.sh \\\n  --deliver local\n```\n\nVerify it was registered and inspect the next run time:\n\n```bash\nhermes cron list\nhermes cron status        # scheduler status\n```\n\n#### Option 2: systemd timer (recommended for Linux production deployments)\n\nCreate `/etc/systemd/system/hermes-teams-pipeline-maintain.service`:\n\n```ini\n[Unit]\nDescription=Hermes Teams pipeline subscription maintenance\nAfter=network-online.target\n\n[Service]\nType=oneshot\nUser=hermes\nEnvironmentFile=/etc/hermes/env\nExecStart=/usr/local/bin/hermes teams-pipeline maintain-subscriptions\n```\n\nAnd `/etc/systemd/system/hermes-teams-pipeline-maintain.timer`:\n\n```ini\n[Unit]\nDescription=Run Hermes Teams pipeline subscription maintenance every 12 hours\n\n[Timer]\nOnBootSec=5min\nOnUnitActiveSec=12h\nPersistent=true\n\n[Install]\nWantedBy=timers.target\n```\n\nEnable:\n\n```bash\nsudo systemctl daemon-reload\nsudo systemctl enable --now hermes-teams-pipeline-maintain.timer\nsystemctl list-timers hermes-teams-pipeline-maintain.timer\n```\n\n#### Option 3: Plain crontab\n\n```cron\n0 */12 * * * /usr/local/bin/hermes teams-pipeline maintain-subscriptions >> /var/log/hermes/teams-pipeline-maintain.log 2>&1\n```\n\nMake sure the cron environment has the `MSGRAPH_*` credentials. Simplest fix: source `~/.hermes/.env` at the top of a wrapper script that crontab calls.\n\n#### Verifying renewal is working\n\nAfter you've set up the schedule, check renewal activity after the first scheduled run:\n\n```bash\nhermes teams-pipeline subscriptions   # should show expirationDateTime advanced\nhermes teams-pipeline maintain-subscriptions --dry-run   # should show \"0 expiring soon\" most of the time\n```\n\nIf you ever see your Graph webhook mysteriously \"stop working\" after exactly ~72 hours, this is the first thing to check: did the renewal job actually run?\n\n### Inspect recent jobs\n\n```bash\nhermes teams-pipeline list\nhermes teams-pipeline list --status failed\nhermes teams-pipeline show <job-id>\n```\n\n### Replay a stored job\n\n```bash\nhermes teams-pipeline run <job-id>\n```\n\n### Dry-run meeting artifact fetches\n\n```bash\nhermes teams-pipeline fetch --meeting-id <meeting-id>\nhermes teams-pipeline fetch --join-web-url \"<join-url>\"\n```\n\n## Routine Runbook\n\n### After first setup\n\nRun these in order:\n\n```bash\nhermes teams-pipeline validate\nhermes teams-pipeline token-health --force-refresh\nhermes teams-pipeline subscriptions\n```\n\nThen trigger or wait for a real meeting event and confirm:\n\n```bash\nhermes teams-pipeline list\nhermes teams-pipeline show <job-id>\n```\n\n### Daily or periodic checks\n\n- run `hermes teams-pipeline maintain-subscriptions --dry-run`\n- inspect `hermes teams-pipeline list --status failed`\n- verify the Teams delivery target is still the correct chat or channel\n\n### Before changing webhook URLs or delivery targets\n\n- update the public notification URL or Teams target config\n- run `hermes teams-pipeline validate`\n- renew or recreate affected subscriptions\n- confirm new events land in the expected sink\n\n## Failure Triage\n\n### No jobs are being created\n\nCheck:\n- `msgraph_webhook` is enabled\n- the public notification URL points to `/msgraph/webhook`\n- the client state in the subscription matches `MSGRAPH_WEBHOOK_CLIENT_STATE`\n- subscriptions still exist remotely and are not expired\n\n### Jobs stay in retry or fail before summarization\n\nCheck:\n- transcript permissions and availability\n- recording permissions and artifact availability\n- `ffmpeg` availability if recording fallback is enabled\n- Graph token health\n\n### Summaries are produced but not delivered to Teams\n\nCheck:\n- `platforms.teams.enabled: true`\n- `delivery_mode`\n- `incoming_webhook_url` for webhook mode\n- `chat_id` or `team_id` plus `channel_id` for Graph mode\n- Teams auth config if Graph posting is used\n\n### Duplicate or unexpected replays\n\nCheck:\n- whether you manually replayed a job with `hermes teams-pipeline run`\n- whether the sink record already exists for that meeting\n- whether you intentionally enabled a resend path in your local config\n\n## Go-Live Checklist\n\n- [ ] Graph credentials are present and correct\n- [ ] `msgraph_webhook` is enabled and reachable from the public internet\n- [ ] `MSGRAPH_WEBHOOK_CLIENT_STATE` is set and matches subscriptions\n- [ ] transcript subscription is created\n- [ ] recording subscription is created if STT fallback is required\n- [ ] `ffmpeg` is installed if recording fallback is enabled\n- [ ] Teams outbound delivery target is configured and verified\n- [ ] Notion and Linear sinks are configured only if actually needed\n- [ ] `hermes teams-pipeline validate` returns an OK snapshot\n- [ ] `hermes teams-pipeline token-health --force-refresh` succeeds\n- [ ] **`maintain-subscriptions` is scheduled** (Hermes cron, systemd timer, or crontab — see [Automating subscription renewal](#automating-subscription-renewal-required-for-production)). Without this, Graph subscriptions silently expire within 72 hours.\n- [ ] a real end-to-end meeting event has produced a stored job\n- [ ] at least one summary has reached the intended delivery sink\n\n## Delivery-Mode Decision Guide\n\n| Mode | Use when | Tradeoff |\n|------|----------|----------|\n| `incoming_webhook` | you only need simple posting into Teams | simplest setup, less control |\n| `graph` | you need channel or chat posting through Graph | more control, more auth and target config |\n\n## Operator Worksheet\n\nFill this out before rollout:\n\n| Item | Value |\n|------|-------|\n| Public notification URL | |\n| Graph tenant ID | |\n| Graph client ID | |\n| Webhook client state | |\n| Transcript resource subscription | |\n| Recording resource subscription | |\n| Teams delivery mode | |\n| Teams chat ID or team/channel | |\n| Notion database ID | |\n| Linear team ID | |\n| Store path override, if any | |\n| Owner for daily checks | |\n\n## Change Review Worksheet\n\nUse this before changing the deployment:\n\n| Question | Answer |\n|----------|--------|\n| Are we changing the public webhook URL? | |\n| Are we rotating Graph credentials? | |\n| Are we changing Teams delivery mode? | |\n| Are we moving to a new Teams chat or channel? | |\n| Do subscriptions need to be recreated or renewed? | |\n| Do we need a fresh end-to-end verification run? | |\n\n## Related Docs\n\n- [Teams Meetings setup](/docs/user-guide/messaging/teams-meetings)\n- [Microsoft Teams bot setup](/docs/user-guide/messaging/teams)\n\n---"
+}

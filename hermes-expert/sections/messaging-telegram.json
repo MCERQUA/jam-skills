@@ -1,0 +1,201 @@
+{
+  "id": "messaging-telegram",
+  "title": "Telegram Integration",
+  "source_path": "user-guide/messaging/telegram.md",
+  "url": "https://docs.hermes-agent.com/user-guide/messaging/telegram",
+  "category": "user-guide",
+  "subcategory": "messaging",
+  "summary": "Complete guide to Telegram bot integration including BotFather setup, privacy mode, webhook vs polling, group forum topics, per-chat sessions, streaming via draft/edit transport, slash command ACL, reactions, per-channel prompts, and DNS fallback configuration.",
+  "key_concepts": [
+    "BotFather bot creation and token acquisition",
+    "Privacy mode: disable for group message access",
+    "Webhook mode vs long-polling mode",
+    "Private chat topics for multi-session DMs",
+    "Group forum topic sessions",
+    "Streaming transport: draft then edit",
+    "Group allowlisting via telegram_allowed_chats",
+    "Slash command ACL per-user and per-group",
+    "Reactions as response delivery option",
+    "Per-channel prompt overrides",
+    "DNS fallback IPs for restricted regions",
+    "Table rendering via markdown or HTML parse mode"
+  ],
+  "env_vars": [
+    {
+      "name": "TELEGRAM_BOT_TOKEN",
+      "required": true,
+      "default": null,
+      "description": "Bot token from BotFather (@BotFather /newbot)"
+    },
+    {
+      "name": "TELEGRAM_WEBHOOK_URL",
+      "required": false,
+      "default": null,
+      "description": "Public HTTPS URL for webhook mode; if unset, uses long-polling"
+    },
+    {
+      "name": "TELEGRAM_WEBHOOK_SECRET",
+      "required": false,
+      "default": null,
+      "description": "Secret token sent in X-Telegram-Bot-Api-Secret-Token header for webhook verification"
+    },
+    {
+      "name": "TELEGRAM_ALLOWED_CHATS",
+      "required": false,
+      "default": null,
+      "description": "Comma-separated list of allowed chat IDs or usernames; gateway denies all others"
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes gateway",
+      "description": "Start the messaging gateway including Telegram listener"
+    },
+    {
+      "command": "/topic <name>",
+      "description": "Create a named private chat topic for a separate DM session"
+    },
+    {
+      "command": "/topic list",
+      "description": "List all active private chat topics"
+    },
+    {
+      "command": "/topic delete <name>",
+      "description": "Delete a private chat topic and its session"
+    }
+  ],
+  "config_keys": [
+    {
+      "key": "telegram.token",
+      "type": "string",
+      "description": "Bot token (overrides TELEGRAM_BOT_TOKEN env var)"
+    },
+    {
+      "key": "telegram.webhook_url",
+      "type": "string",
+      "description": "Webhook URL for webhook mode"
+    },
+    {
+      "key": "telegram.webhook_secret",
+      "type": "string",
+      "description": "Webhook secret for request verification"
+    },
+    {
+      "key": "telegram.allowed_chats",
+      "type": "list[str]",
+      "description": "Allowed chat IDs or usernames"
+    },
+    {
+      "key": "telegram.parse_mode",
+      "type": "string",
+      "description": "Message parse mode: Markdown or HTML (default: Markdown)"
+    },
+    {
+      "key": "telegram.stream",
+      "type": "bool",
+      "description": "Enable streaming via draft/edit transport (default: true)"
+    },
+    {
+      "key": "telegram.reactions",
+      "type": "bool",
+      "description": "Send reaction emoji as response acknowledgment"
+    },
+    {
+      "key": "telegram.per_channel_prompts",
+      "type": "dict",
+      "description": "Map of chat_id to system prompt override"
+    },
+    {
+      "key": "telegram.dns_fallback_ips",
+      "type": "list[str]",
+      "description": "Fallback IPs for api.telegram.org in restricted regions"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/topic",
+      "platforms": [
+        "telegram"
+      ],
+      "description": "Manage named DM sub-sessions (create, list, delete)"
+    },
+    {
+      "command": "/reset",
+      "platforms": [
+        "telegram"
+      ],
+      "description": "Reset current session conversation history"
+    },
+    {
+      "command": "/help",
+      "platforms": [
+        "telegram"
+      ],
+      "description": "Show available commands for the bot"
+    }
+  ],
+  "code_examples": [
+    {
+      "title": "Minimal Telegram config",
+      "language": "yaml",
+      "code": "telegram:\n  token: \"\"\n  allowed_chats:\n    - \"@myusername\"\n    - \"-1001234567890\"  # group chat ID"
+    },
+    {
+      "title": "Webhook mode config",
+      "language": "yaml",
+      "code": "telegram:\n  token: \"\"\n  webhook_url: \"https://my-server.example.com/telegram/webhook\"\n  webhook_secret: \"\""
+    },
+    {
+      "title": "Per-channel prompt override",
+      "language": "yaml",
+      "code": "telegram:\n  per_channel_prompts:\n    \"-1001234567890\": \"You are a support bot for AcmeCorp. Only answer questions about our products.\"\n    \"@myusername\": \"You are my personal assistant.\""
+    },
+    {
+      "title": "DNS fallback for restricted regions",
+      "language": "yaml",
+      "code": "telegram:\n  dns_fallback_ips:\n    - \"149.154.167.220\"\n    - \"149.154.167.221\"\n    - \"91.108.4.14\""
+    },
+    {
+      "title": "Create a named DM topic",
+      "language": "text",
+      "code": "/topic work\n# Creates a separate session called \"work\" in your DM with the bot\n/topic list\n# Lists: default, work\n/topic delete work"
+    }
+  ],
+  "gotchas": [
+    "Privacy mode must be disabled via BotFather (/setprivacy -> Disable) or the bot will not receive group messages",
+    "Bot must be added as admin to supergroups to read messages and use forum topics",
+    "Webhook mode requires a valid publicly accessible HTTPS URL; self-signed certs not accepted by Telegram",
+    "Long-polling and webhook cannot run simultaneously; only one mode active at a time",
+    "Forum topics require the supergroup to have topics enabled in Telegram group settings",
+    "Streaming uses draft-then-edit pattern: bot sends a draft, then edits it as tokens arrive; this counts against Telegram edit rate limits",
+    "Telegram limits bot message edits to ~20/minute per chat; high-throughput streams may hit this",
+    "HTML parse_mode requires proper entity escaping; Markdown mode has its own escape rules for special chars"
+  ],
+  "cross_refs": [
+    "messaging-overview",
+    "messaging-discord",
+    "voice-mode",
+    "tts"
+  ],
+  "keywords": [
+    "telegram",
+    "bot",
+    "botfather",
+    "webhook",
+    "polling",
+    "forum topics",
+    "privacy mode",
+    "topic command",
+    "streaming",
+    "draft edit",
+    "group chat",
+    "allowed chats",
+    "reactions",
+    "per-channel prompts",
+    "dns fallback",
+    "parse mode",
+    "markdown",
+    "html"
+  ],
+  "full_text": "## Telegram\n\nConnect Hermes to Telegram via the official Bot API.\n\n### Setup\n\n1. Message [@BotFather](https://t.me/BotFather) and run .\n2. Copy the token it returns \u2014 this is your .\n3. Run  \u2192 select your bot \u2192 **Disable** so the bot can read group messages.\n\n### Minimal config\n\n```yaml\ntelegram:\n  token: \"\"\n  allowed_chats:\n    - \"@myusername\"\n    - \"-1001234567890\"  # group chat ID\n```\n\nStart the gateway:\n\n```\nhermes gateway\n```\n\n### Webhook mode\n\nBy default Hermes uses long-polling. To switch to webhooks set  to a publicly reachable HTTPS endpoint:\n\n```yaml\ntelegram:\n  webhook_url: \"https://my-server.example.com/telegram/webhook\"\n  webhook_secret: \"\"\n```\n\nTelegram will POST updates to that URL with the secret token in .\n\n### Private chat topics ()\n\nIn a 1-on-1 DM you can run multiple isolated sessions using named topics:\n\n```\n/topic work\n```\n\nCreates a new session called *work*. Future messages in this DM go to the *work* session until you switch back () or delete it ().\n\nUse  to see all active topics.\n\n### Group forum topics\n\nWhen a supergroup has **Topics** enabled, each forum topic gets its own Hermes session automatically. No config needed \u2014 session IDs are derived from the topic thread ID.\n\n### Streaming transport\n\nHermes sends a placeholder message, then edits it repeatedly as tokens stream in. This gives a real-time typing feel inside Telegram. To disable:\n\n```yaml\ntelegram:\n  stream: false\n```\n\nNote: Telegram limits edits to ~20/minute per chat. Streaming long responses in busy groups may trigger rate limits.\n\n### Parse mode\n\nDefault is . Switch to  if your prompts generate HTML-tagged output:\n\n```yaml\ntelegram:\n  parse_mode: HTML\n```\n\n### Per-channel prompts\n\nOverride the system prompt for specific chats:\n\n```yaml\ntelegram:\n  per_channel_prompts:\n    \"-1001234567890\": \"You are a support bot for AcmeCorp.\"\n    \"@myusername\": \"You are my personal assistant.\"\n```\n\n### Group allowlisting\n\n accepts chat IDs (integers) or usernames (strings with ). The gateway rejects messages from any chat not on the list. Leave empty to allow all (not recommended for public bots).\n\n### Slash command ACL\n\nRestrict slash commands to specific users or groups:\n\n```yaml\ntelegram:\n  command_acl:\n    admin_users:\n      - \"@myusername\"\n    admin_chats:\n      - \"-1001234567890\"\n```\n\n### Reactions\n\nEnable emoji reactions as a lightweight acknowledgment:\n\n```yaml\ntelegram:\n  reactions: true\n```\n\nThe bot will react with \ud83d\udc4d when it receives a message and \ud83e\udd16 when it finishes responding.\n\n### DNS fallback\n\nFor regions where  is blocked, provide fallback IPs:\n\n```yaml\ntelegram:\n  dns_fallback_ips:\n    - \"149.154.167.220\"\n    - \"149.154.167.221\"\n    - \"91.108.4.14\"\n```\n\nHermes will attempt these IPs directly if DNS resolution fails."
+}

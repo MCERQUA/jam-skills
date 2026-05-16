@@ -1,0 +1,183 @@
+{
+  "id": "honcho",
+  "title": "Honcho Memory",
+  "source_path": "website/docs/user-guide/features/honcho.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/honcho",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Honcho is an AI-native memory provider plugin that adds dialectic reasoning and deep user modeling to Hermes, maintaining a running model of user preferences, communication style, and goals through LLM-synthesized reasoning across sessions.",
+  "key_concepts": [
+    "Honcho",
+    "dialectic reasoning",
+    "user modeling",
+    "memory provider",
+    "session strategy",
+    "recall mode",
+    "observation mode",
+    "context injection",
+    "cold/warm prompts",
+    "multi-agent profiles"
+  ],
+  "env_vars": [
+    {
+      "name": "HONCHO_API_KEY",
+      "purpose": "API key for Honcho service",
+      "required": true,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes memory setup",
+      "purpose": "Interactive memory provider setup (select Honcho)"
+    },
+    {
+      "command": "hermes honcho status",
+      "purpose": "Connection status, config, and key settings"
+    },
+    {
+      "command": "hermes honcho strategy",
+      "purpose": "Show or set session strategy"
+    },
+    {
+      "command": "hermes honcho peer",
+      "purpose": "Show or update peer names and dialectic reasoning level"
+    },
+    {
+      "command": "hermes honcho mode",
+      "purpose": "Show or set recall mode (hybrid/context/tools)"
+    },
+    {
+      "command": "hermes honcho tokens",
+      "purpose": "Show or set token budget"
+    },
+    {
+      "command": "hermes honcho identity",
+      "purpose": "Seed or show the AI peer's Honcho identity"
+    },
+    {
+      "command": "hermes honcho sync",
+      "purpose": "Sync Honcho config to all existing profiles"
+    },
+    {
+      "command": "hermes honcho sessions",
+      "purpose": "List known Honcho session mappings"
+    },
+    {
+      "command": "hermes honcho map",
+      "purpose": "Map current directory to a Honcho session name"
+    },
+    {
+      "command": "hermes honcho enable",
+      "purpose": "Enable Honcho for the active profile"
+    },
+    {
+      "command": "hermes honcho disable",
+      "purpose": "Disable Honcho for the active profile"
+    },
+    {
+      "command": "hermes honcho migrate",
+      "purpose": "Step-by-step migration guide"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "memory.provider",
+      "type": "string",
+      "default": null,
+      "description": "Set to 'honcho' to activate Honcho as the memory provider",
+      "example": "honcho"
+    },
+    {
+      "path": "contextTokens",
+      "type": "integer",
+      "default": null,
+      "description": "Token budget for auto-injected context per turn (in honcho.json)",
+      "example": 1200
+    },
+    {
+      "path": "contextCadence",
+      "type": "integer",
+      "default": 1,
+      "description": "Turns between context() API calls",
+      "example": 1
+    },
+    {
+      "path": "dialecticCadence",
+      "type": "integer",
+      "default": 2,
+      "description": "Turns between peer.chat() LLM calls (dialectic refresh)",
+      "example": 2
+    },
+    {
+      "path": "dialecticDepth",
+      "type": "integer",
+      "default": 1,
+      "description": "Number of .chat() passes per dialectic invocation (1-3)",
+      "example": 1
+    },
+    {
+      "path": "recallMode",
+      "type": "string",
+      "default": "hybrid",
+      "description": "hybrid | context | tools",
+      "example": "hybrid"
+    },
+    {
+      "path": "sessionStrategy",
+      "type": "string",
+      "default": "per-directory",
+      "description": "per-directory | per-repo | per-session | global",
+      "example": "per-directory"
+    },
+    {
+      "path": "observationMode",
+      "type": "string",
+      "default": "directional",
+      "description": "directional | unified",
+      "example": "directional"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "Enable Honcho as memory provider",
+      "code": "memory:\n  provider: honcho"
+    },
+    {
+      "language": "bash",
+      "caption": "Interactive setup",
+      "code": "hermes memory setup    # select \"honcho\" from the provider list"
+    }
+  ],
+  "gotchas": [
+    "hermes honcho subcommand only appears after memory.provider: honcho is set in config.yaml",
+    "dialecticCadence recommended 1-5; too frequent increases LLM call costs",
+    "In tools mode, dialecticCadence and contextCadence are irrelevant — model calls tools explicitly",
+    "Server-side observation toggles (from Honcho dashboard) override local config",
+    "Session prewarm fires at session init — if it hasn't landed by turn 1, falls back to synchronous call with bounded timeout"
+  ],
+  "cross_refs": [
+    "memory-providers",
+    "memory"
+  ],
+  "keywords": [
+    "Honcho",
+    "memory",
+    "dialectic reasoning",
+    "user modeling",
+    "personalization",
+    "session strategy",
+    "recall mode",
+    "hybrid",
+    "context injection",
+    "observation",
+    "multi-agent",
+    "cold start",
+    "warm session",
+    "per-directory",
+    "cross-session"
+  ],
+  "full_text": "# Honcho Memory\n\nHoncho is an AI-native memory backend that adds dialectic reasoning and deep user modeling on top of Hermes's built-in memory system.\n\n[...full content as read from source...]"
+}

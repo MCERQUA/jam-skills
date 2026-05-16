@@ -1,0 +1,81 @@
+{
+  "id": "dev-video-gen-plugin",
+  "title": "Video Generation Provider Plugins",
+  "source_path": "website/docs/developer-guide/video-gen-provider-plugin.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/video-gen-provider-plugin",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Guide for building video generation provider plugins using the VideoGenProvider ABC, covering the unified text-to-video + image-to-video surface, capabilities() method, model families and endpoint routing (FAL pattern), selection precedence, success_response/error_response format, and artifact saving.",
+  "key_concepts": [
+    "VideoGenProvider ABC",
+    "generate method",
+    "capabilities method",
+    "text-to-video",
+    "image-to-video",
+    "model families",
+    "endpoint routing",
+    "FAL pattern",
+    "success_response",
+    "save_bytes_video"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes tools",
+      "purpose": "Select active video generation provider"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "video_gen.provider",
+      "type": "string",
+      "default": "",
+      "description": "Active video generation provider name",
+      "example": "fal"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Minimal VideoGenProvider skeleton",
+      "code": "from agent.video_gen_provider import VideoGenProvider, success_response, error_response\n\nclass MyVideoGenProvider(VideoGenProvider):\n    @property\n    def name(self) -> str:\n        return \"my-backend\"\n\n    def capabilities(self) -> dict:\n        return {\n            \"modalities\": [\"text\", \"image\"],\n            \"aspect_ratios\": [\"16:9\", \"9:16\"],\n            \"min_duration\": 1,\n            \"max_duration\": 10,\n        }\n\n    def generate(self, prompt, *, image_url=None, model=None, **kwargs):\n        endpoint = \"image-to-video\" if image_url else \"text-to-video\"\n        # ... call API ...\n        return success_response(\n            video=\"https://cdn/out.mp4\",\n            model=model or \"fast\",\n            prompt=prompt,\n            modality=\"image\" if image_url else \"text\",\n            aspect_ratio=\"16:9\",\n            duration=5,\n            provider=self.name,\n        )\n\ndef register(ctx):\n    ctx.register_video_gen_provider(MyVideoGenProvider())"
+    },
+    {
+      "language": "python",
+      "caption": "FAL model families pattern",
+      "code": "FAMILIES = {\n    \"veo3.1\": {\n        \"text_endpoint\": \"fal-ai/veo3.1\",\n        \"image_endpoint\": \"fal-ai/veo3.1/image-to-video\",\n    },\n}\n\ndef generate(self, prompt, *, image_url=None, model=None, **kwargs):\n    family_id, family = _resolve_family(model)\n    endpoint = family[\"image_endpoint\"] if image_url else family[\"text_endpoint\"]"
+    }
+  ],
+  "gotchas": [
+    "Always ignore unknown kwargs with **kwargs for forward-compatibility — new parameters will be added",
+    "The user picks the model family once in hermes tools — the agent never thinks about endpoints",
+    "Unlike image-gen, there is no in-tree legacy backend — every video provider is a plugin",
+    "Use save_b64_video() or save_bytes_video() for artifacts — not in-memory storage",
+    "generate() must return dict built via success_response() or error_response() — don't hand-roll"
+  ],
+  "cross_refs": [
+    "dev-image-gen-plugin",
+    "dev-memory-provider-plugin",
+    "dev-context-engine-plugin",
+    "guide-build-plugin"
+  ],
+  "keywords": [
+    "video generation plugin",
+    "VideoGenProvider",
+    "generate method",
+    "capabilities",
+    "text-to-video",
+    "image-to-video",
+    "model families",
+    "FAL pattern",
+    "endpoint routing",
+    "success_response",
+    "kind: backend",
+    "xAI",
+    "Veo",
+    "Kling",
+    "Pixverse"
+  ],
+  "full_text": "# Building a Video Generation Provider Plugin\n\nVideo-gen provider plugins register a backend that services every `video_generate` tool call. Built-in providers (xAI, FAL) ship as plugins. Add a new one, or override a bundled one, by dropping a directory into `plugins/video_gen/<name>/`.\n\n## The unified surface (one tool, two modalities)\n\nThe `video_generate` tool exposes two modalities through one parameter:\n\n- **Text-to-video** — call with `prompt` only. The provider routes to its text-to-video endpoint.\n- **Image-to-video** — call with `prompt` + `image_url`. The provider routes to its image-to-video endpoint.\n\n## How discovery works\n\nHermes scans for video-gen backends in three places:\n\n1. **Bundled** — `<repo>/plugins/video_gen/<name>/` (auto-loaded with `kind: backend`)\n2. **User** — `~/.hermes/plugins/video_gen/<name>/` (opt-in via `plugins.enabled`)\n3. **Pip** — packages declaring a `hermes_agent.plugins` entry point\n\nEach plugin's `register(ctx)` function calls `ctx.register_video_gen_provider(...)`. Unlike `image_generate`, there is no in-tree legacy backend — every provider is a plugin.\n\n## Directory structure\n\n```\nplugins/video_gen/my-backend/\n__init__.py      # VideoGenProvider subclass + register()\nplugin.yaml      # Manifest with kind: backend\n```\n\n## The VideoGenProvider ABC\n\nSubclass `agent.video_gen_provider.VideoGenProvider`. Required: `name` property and `generate()` method.\n\nKey members: `name` (stable id), `display_name`, `is_available()`, `list_models()` (each entry is a model FAMILY), `default_model()`, `capabilities()` (modalities, aspect_ratios, resolutions, min/max duration, supports_audio, supports_negative_prompt, max_reference_images), `get_setup_schema()`, `generate(prompt, *, model, image_url, reference_image_urls, duration, aspect_ratio, resolution, negative_prompt, audio, seed, **kwargs)`.\n\n## The plugin manifest\n\n```yaml\nname: my-backend\nversion: 1.0.0\ndescription: My video generation backend\nauthor: Your Name\nkind: backend\nrequires_env:\n  - MY_API_KEY\n```\n\n## The `video_generate` schema\n\n| Parameter | What it does |\n|---|---|\n| `prompt` | Text instruction (required) |\n| `image_url` | When set -> image-to-video; when omitted -> text-to-video |\n| `reference_image_urls` | Style/character refs (provider-dependent) |\n| `duration` | Seconds — provider clamps |\n| `aspect_ratio` | `16:9`, `9:16`, `1:1`, etc. — provider clamps |\n| `resolution` | `480p` / `540p` / `720p` / `1080p` — provider clamps |\n| `negative_prompt` | Content to avoid (Pixverse/Kling only) |\n| `audio` | Native audio (Veo3 / Pixverse pricing tier) |\n| `seed` | Reproducibility |\n| `model` | Override the active model/family |\n\n## Model families and endpoint routing (the FAL pattern)\n\nWhen your backend has multiple endpoints per 'model' — like FAL, where every family (Veo 3.1, Pixverse v6, Kling O3) has both text-to-video and image-to-video URLs — represent each **family** as one catalog entry. Your `generate()` picks the right endpoint based on whether `image_url` was passed.\n\n## Selection precedence\n\n1. `model=` keyword from the tool call\n2. `<PROVIDER>_VIDEO_MODEL` env var\n3. `video_gen.<provider>.model` in `config.yaml`\n4. `video_gen.model` in `config.yaml`\n5. Provider's `default_model()`\n\n## Response shape\n\n`success_response()` and `error_response()` produce the dict shape every backend returns. Do not hand-roll the dict.\n\nSuccess keys: `success`, `video` (URL or absolute path), `model`, `prompt`, `modality` (`'text'` or `'image'`), `aspect_ratio`, `duration`, `provider`, `extra`.\n\nError keys: `success`, `video` (None), `error`, `error_type`, `model`, `prompt`, `aspect_ratio`, `provider`.\n\n## Where to save artifacts\n\nIf your backend returns base64, use `save_b64_video()` to write under `$HERMES_HOME/cache/videos/`. For raw bytes from a follow-up HTTP fetch, use `save_bytes_video()`. Otherwise return the upstream URL directly.\n\n## Testing\n\nDrop a smoke test under `tests/plugins/video_gen/test_<name>_plugin.py`. The xAI and FAL tests show the pattern — register, verify catalog, exercise routing both with and without `image_url`, assert clean error responses on missing auth."
+}

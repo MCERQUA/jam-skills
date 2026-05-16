@@ -1,0 +1,205 @@
+{
+  "id": "tui",
+  "title": "TUI",
+  "source_path": "website/docs/user-guide/tui.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/tui",
+  "category": "user-guide",
+  "subcategory": "",
+  "summary": "Covers Hermes's modern terminal UI (TUI) built on Node.js, with rich overlays, non-blocking input, LaTeX rendering, light-terminal detection, and live session status.",
+  "key_concepts": [
+    "TUI",
+    "non-blocking input",
+    "modal overlays",
+    "LaTeX rendering",
+    "light-terminal detection",
+    "auto-resume",
+    "slash command overlays",
+    "details mode"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_TUI",
+      "purpose": "Set to 1 to use TUI by default instead of classic CLI",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_TUI_RESUME",
+      "purpose": "Set to 1 or a session ID to auto-resume on launch",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_TUI_THEME",
+      "purpose": "Force light/dark theme or a raw 6-char background hex",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "HERMES_TUI_DIR",
+      "purpose": "Path to a prebuilt TUI bundle directory",
+      "required": false,
+      "default": null
+    }
+  ],
+  "cli_commands": [
+    {
+      "command": "hermes --tui",
+      "purpose": "Launch the TUI"
+    },
+    {
+      "command": "hermes --tui -c",
+      "purpose": "Resume the latest TUI session"
+    },
+    {
+      "command": "hermes --tui -r <id>",
+      "purpose": "Resume a specific session by ID"
+    },
+    {
+      "command": "hermes --tui --dev",
+      "purpose": "Run TUI from source (contributor mode)"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "display.skin",
+      "type": "string",
+      "default": "default",
+      "description": "Active CLI/TUI skin",
+      "example": "ares"
+    },
+    {
+      "path": "display.details_mode",
+      "type": "string",
+      "default": "collapsed",
+      "description": "Global accordion default: hidden | collapsed | expanded",
+      "example": "expanded"
+    },
+    {
+      "path": "display.sections.thinking",
+      "type": "string",
+      "default": "expanded",
+      "description": "Override details mode for thinking section",
+      "example": "collapsed"
+    },
+    {
+      "path": "display.sections.tools",
+      "type": "string",
+      "default": "expanded",
+      "description": "Override details mode for tools section",
+      "example": "collapsed"
+    },
+    {
+      "path": "display.sections.activity",
+      "type": "string",
+      "default": "hidden",
+      "description": "Override details mode for activity section",
+      "example": "collapsed"
+    },
+    {
+      "path": "display.mouse_tracking",
+      "type": "boolean",
+      "default": true,
+      "description": "Enable mouse tracking in the TUI",
+      "example": false
+    },
+    {
+      "path": "display.tui_status_indicator",
+      "type": "string",
+      "default": "kaomoji",
+      "description": "Busy indicator style: kaomoji | emoji | unicode | ascii",
+      "example": "emoji"
+    }
+  ],
+  "slash_commands": [
+    {
+      "command": "/help",
+      "purpose": "Overlay with categorized commands (arrow-key navigable)"
+    },
+    {
+      "command": "/sessions",
+      "purpose": "Modal session picker"
+    },
+    {
+      "command": "/model",
+      "purpose": "Modal model picker grouped by provider"
+    },
+    {
+      "command": "/skin",
+      "purpose": "Live preview skin switching"
+    },
+    {
+      "command": "/details",
+      "purpose": "Toggle verbose tool-call details mode"
+    },
+    {
+      "command": "/usage",
+      "purpose": "Rich token / cost / context panel"
+    },
+    {
+      "command": "/agents",
+      "purpose": "Observability overlay for subagent tree"
+    },
+    {
+      "command": "/reload",
+      "purpose": "Re-read ~/.hermes/.env without restart"
+    },
+    {
+      "command": "/mouse",
+      "purpose": "Toggle mouse tracking on/off"
+    },
+    {
+      "command": "/indicator",
+      "purpose": "Change busy indicator style"
+    },
+    {
+      "command": "/terminal-setup",
+      "purpose": "Install VS Code / Cursor / Windsurf terminal bindings"
+    }
+  ],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Launch and resume the TUI",
+      "code": "hermes --tui\nhermes --tui -c\nhermes --tui -r 20260409_000000_aa11bb\nexport HERMES_TUI=1\nhermes"
+    },
+    {
+      "language": "bash",
+      "caption": "Enable auto-resume",
+      "code": "export HERMES_TUI_RESUME=1\nexport HERMES_TUI_RESUME=<session-id>"
+    },
+    {
+      "language": "yaml",
+      "caption": "TUI-specific display configuration",
+      "code": "display:\n  details_mode: collapsed\n  sections:\n    thinking: expanded\n    tools: expanded\n    activity: collapsed\n  mouse_tracking: true\n  tui_status_indicator: kaomoji"
+    }
+  ],
+  "gotchas": [
+    "Node.js ≥ 20 is required — hermes doctor verifies this",
+    "On first launch, TUI deps install into ui-tui/node_modules (one-time, a few seconds)",
+    "The dashboard side-process is not supervised — if it crashes it stays down until container restart",
+    "If TUI fails to launch (no Node, missing bundle, TTY issue), Hermes falls back to classic CLI",
+    "Sessions are shared between TUI and classic CLI via state.db"
+  ],
+  "cross_refs": [
+    "cli",
+    "sessions",
+    "configuration"
+  ],
+  "keywords": [
+    "TUI",
+    "terminal UI",
+    "Node.js",
+    "overlays",
+    "modal",
+    "LaTeX",
+    "light theme",
+    "dark theme",
+    "auto-resume",
+    "non-blocking",
+    "status bar",
+    "details mode",
+    "mouse tracking"
+  ],
+  "full_text": "# TUI\n\n# TUI\n\nThe TUI is the modern front-end for Hermes — a terminal UI backed by the same Python runtime as the [Classic CLI](cli.md). Same agent, same sessions, same slash commands; a cleaner, more responsive surface for interacting with them.\n\nIt's the recommended way to run Hermes interactively.\n\n## Launch\n\n```bash\n# Launch the TUI\nhermes --tui\n\n# Resume the latest TUI session\nhermes --tui -c\nhermes --tui --continue\n\n# Resume a specific session by ID or title\nhermes --tui -r 20260409_000000_aa11bb\nhermes --tui --resume \"my t0p session\"\n\n# Run source directly (for TUI contributors)\nhermes --tui --dev\n```\n\nYou can also enable it via env var:\n\n```bash\nexport HERMES_TUI=1\nhermes          # now uses the TUI\n```\n\n## Why the TUI\n\n- **Instant first frame** — the banner paints before the app finishes loading\n- **Non-blocking input** — type and queue messages before the session is ready\n- **Rich overlays** — model picker, session picker, approval prompts as modal panels\n- **Live session panel** — tools and skills fill in progressively\n- **Mouse-friendly selection** — drag to highlight with a uniform background\n- **Alternate-screen rendering** — differential updates, no flicker\n\n## Requirements\n\n- **Node.js** ≥ 20 — the TUI runs as a subprocess launched from the Python CLI\n- **TTY** — piping stdin falls back to single-query mode\n\nOn first launch Hermes installs the TUI's Node dependencies into `ui-tui/node_modules` (one-time, a few seconds).\n\n### External prebuild\n\n```bash\nexport HERMES_TUI_DIR=/path/to/prebuilt/ui-tui\nhermes --tui\n```\n\nThe directory must contain `dist/entry.js`.\n\n## Keybindings\n\nKeybindings match the Classic CLI exactly. Differences:\n\n- **Mouse drag** highlights text with a uniform selection background\n- **`Cmd+V` / `Ctrl+V`** first tries normal text paste, then falls back to image attach\n- **`/terminal-setup`** installs local VS Code / Cursor / Windsurf terminal bindings\n- **Slash autocompletion** opens as a floating panel with descriptions\n- **`Ctrl+X`** — delete a queued message; **`Esc`** cancels editing\n\n## Slash commands\n\nTUI-owned commands produce richer output or render as overlays:\n\n| Command | TUI behavior |\n|---------|--------------|\n| `/help` | Overlay with categorized commands, arrow-key navigable |\n| `/sessions` | Modal session picker |\n| `/model` | Modal model picker grouped by provider |\n| `/skin` | Live preview — theme change applies as you browse |\n| `/details` | Toggle verbose tool-call details |\n| `/usage` | Rich token / cost / context panel |\n| `/agents` (alias `/tasks`) | Observability overlay — live subagent tree |\n| `/reload` | Re-reads `~/.hermes/.env` without restart |\n| `/mouse` | Toggle mouse tracking on/off |\n\n## LaTeX math rendering\n\nThe TUI renders LaTeX math inline: `$E = mc^2$` and `$$\\frac{a}{b}$$` render as Unicode-formatted math. Always-on.\n\n## Light-terminal detection\n\nDetection works in three layers:\n1. `HERMES_TUI_THEME` env var — highest priority. Values: `light`, `dark`, or raw 6-char hex\n2. `COLORFGBG` env var\n3. Terminal background probe via OSC 11\n\n```bash\nexport HERMES_TUI_THEME=light\n```\n\n## Busy indicator styles\n\n```yaml\ndisplay:\n  tui_status_indicator: kaomoji   # kaomoji | emoji | unicode | ascii\n```\n\nOr in-session: `/indicator emoji`.\n\n## Auto-resume\n\n```bash\nexport HERMES_TUI_RESUME=1          # most-recent TUI session\nexport HERMES_TUI_RESUME=<session-id>   # specific session\n```\n\n## Status line\n\n| Status | Meaning |\n|--------|---------|\n| `starting agent…` | Session ID is live; tools still coming online |\n| `ready` | Agent is idle |\n| `thinking…` / `running…` | Agent is reasoning or running a tool |\n| `interrupted` | Current turn was cancelled |\n| `forging session…` / `resuming…` | Initial connect or `--resume` handshake |\n\nThe status line also shows working directory with git branch and per-prompt elapsed time.\n\n## Configuration\n\n```yaml\ndisplay:\n  skin: default\n  personality: helpful\n  details_mode: collapsed    # hidden | collapsed | expanded\n  sections:\n    thinking: expanded       # always open\n    tools: expanded          # always open\n    activity: collapsed\n  mouse_tracking: true\n```\n\nRuntime toggles:\n- `/details [hidden|collapsed|expanded|cycle]` — set global mode\n- `/details <section> [hidden|collapsed|expanded|reset]` — override one section\n\n## Sessions\n\nSessions are shared between the TUI and the classic CLI — both write to the same `~/.hermes/state.db`.\n\n## Reverting to the classic CLI\n\nLaunching `hermes` (without `--tui`) stays on the classic CLI. If the TUI fails to launch, Hermes prints a diagnostic and falls back.\n\n## See also\n\n- [CLI Interface](cli.md) — full slash command and keybinding reference (shared)\n- [Sessions](sessions.md) — resume, branch, and history\n- [Skins & Themes](features/skins.md) — theme the banner, status bar, and overlays\n"
+}

@@ -1,0 +1,110 @@
+{
+  "id": "batch-processing",
+  "title": "Batch Processing",
+  "source_path": "website/docs/user-guide/features/batch-processing.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/batch-processing",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "Batch processing runs the Hermes agent across thousands of prompts in parallel to generate ShareGPT-format training trajectories with tool usage statistics and reasoning coverage metrics.",
+  "key_concepts": [
+    "batch runner",
+    "JSONL dataset",
+    "training data generation",
+    "toolset distributions",
+    "checkpointing",
+    "quality filtering",
+    "trajectory format"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "python batch_runner.py --dataset_file=... --batch_size=... --run_name=...",
+      "purpose": "Run a batch job"
+    },
+    {
+      "command": "python batch_runner.py --resume",
+      "purpose": "Resume an interrupted batch run"
+    },
+    {
+      "command": "python batch_runner.py --list_distributions",
+      "purpose": "List available toolset distributions"
+    }
+  ],
+  "config_keys": [
+    {
+      "path": "--distribution",
+      "type": "string",
+      "default": "default",
+      "description": "Toolset distribution to sample from",
+      "example": "default"
+    },
+    {
+      "path": "--model",
+      "type": "string",
+      "default": "claude-sonnet-4.6",
+      "description": "Model to use for batch runs",
+      "example": "anthropic/claude-sonnet-4.6"
+    },
+    {
+      "path": "--num_workers",
+      "type": "int",
+      "default": "4",
+      "description": "Parallel worker processes",
+      "example": "8"
+    },
+    {
+      "path": "--max_turns",
+      "type": "int",
+      "default": "10",
+      "description": "Maximum tool-calling iterations per prompt",
+      "example": "15"
+    },
+    {
+      "path": "--reasoning_effort",
+      "type": "string",
+      "default": null,
+      "description": "Reasoning effort level: none, minimal, low, medium, high, xhigh",
+      "example": "high"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Basic batch run",
+      "code": "python batch_runner.py --dataset_file=data/prompts.jsonl --batch_size=10 --run_name=my_first_run --model=anthropic/claude-sonnet-4.6 --num_workers=4"
+    },
+    {
+      "language": "jsonl",
+      "caption": "Dataset format",
+      "code": "{\"prompt\": \"Write a Python function that finds the longest palindromic substring\"}\n{\"prompt\": \"Create a REST API endpoint for user authentication using Flask\"}"
+    },
+    {
+      "language": "json",
+      "caption": "Trajectory output format",
+      "code": "{\"prompt_index\": 42, \"conversations\": [...], \"metadata\": {...}, \"completed\": true, \"tool_stats\": {...}}"
+    }
+  ],
+  "gotchas": [
+    "Samples where zero assistant turns contain reasoning are discarded automatically",
+    "Content-based resume matching means dataset order changes don't break resume",
+    "Each prompt gets its own isolated environment",
+    "Per-prompt Docker images can be specified in the JSONL with `image` field"
+  ],
+  "cross_refs": [],
+  "keywords": [
+    "batch processing",
+    "training data",
+    "trajectories",
+    "JSONL",
+    "ShareGPT",
+    "fine-tuning",
+    "evaluation",
+    "parallel",
+    "checkpointing",
+    "toolset distributions",
+    "reasoning coverage",
+    "batch_runner"
+  ],
+  "full_text": "# Batch Processing\n\n# Batch Processing\n\nBatch processing lets you run the Hermes agent across hundreds or thousands of prompts in parallel, generating structured trajectory data. This is primarily used for **training data generation** — producing ShareGPT-format trajectories with tool usage statistics that can be used for fine-tuning or evaluation.\n\n## Overview\n\nThe batch runner (`batch_runner.py`) processes a JSONL dataset of prompts, running each through a full agent session with tool access. Each prompt gets its own isolated environment. The output is structured trajectory data with full conversation history, tool call statistics, and reasoning coverage metrics.\n\n## Quick Start\n\n```bash\n# Basic batch run\npython batch_runner.py \\\n    --dataset_file=data/prompts.jsonl \\\n    --batch_size=10 \\\n    --run_name=my_first_run \\\n    --model=anthropic/claude-sonnet-4.6 \\\n    --num_workers=4\n\n# Resume an interrupted run\npython batch_runner.py \\\n    --dataset_file=data/prompts.jsonl \\\n    --batch_size=10 \\\n    --run_name=my_first_run \\\n    --resume\n\n# List available toolset distributions\npython batch_runner.py --list_distributions\n```\n\n## Dataset Format\n\nThe input dataset is a JSONL file (one JSON object per line). Each entry must have a `prompt` field:\n\n```jsonl\n{\"prompt\": \"Write a Python function that finds the longest palindromic substring\"}\n{\"prompt\": \"Create a REST API endpoint for user authentication using Flask\"}\n{\"prompt\": \"Debug this error: TypeError: cannot unpack non-iterable NoneType object\"}\n```\n\nEntries can optionally include:\n- `image` or `docker_image`: A container image to use for this prompt's sandbox (works with Docker, Modal, and Singularity backends)\n- `cwd`: Working directory override for the task's terminal session\n\n## Configuration Options\n\n| Parameter | Default | Description |\n|-----------|---------|-------------|\n| `--dataset_file` | (required) | Path to JSONL dataset |\n| `--batch_size` | (required) | Prompts per batch |\n| `--run_name` | (required) | Name for this run (used for output dir and checkpointing) |\n| `--distribution` | `\"default\"` | Toolset distribution to sample from |\n| `--model` | `claude-sonnet-4.6` | Model to use |\n| `--base_url` | `https://openrouter.ai/api/v1` | API base URL |\n| `--api_key` | (env var) | API key for model |\n| `--max_turns` | `10` | Maximum tool-calling iterations per prompt |\n| `--num_workers` | `4` | Parallel worker processes |\n| `--resume` | `false` | Resume from checkpoint |\n| `--verbose` | `false` | Enable verbose logging |\n| `--max_samples` | all | Only process first N samples from dataset |\n| `--max_tokens` | model default | Maximum tokens per model response |\n\n## Output Format\n\nAll output goes to `data/<run_name>/`:\n\n- `trajectories.jsonl` — Combined final output\n- `batch_N.jsonl` — Individual batch results\n- `checkpoint.json` — Resume checkpoint\n- `statistics.json` — Aggregate tool usage stats\n\n## Checkpointing\n\nRobust checkpointing for fault tolerance. On `--resume`, the runner scans existing batch files and matches completed prompts by content (not indices).\n\n## Quality Filtering\n\n- No-reasoning filter: samples without reasoning are discarded\n- Corrupted entry filter: entries with hallucinated tool names are filtered out\n\n## Statistics\n\nAfter completion: tool usage counts, success/failure rates, reasoning coverage, samples discarded, duration.\n"
+}

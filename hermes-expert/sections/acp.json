@@ -1,0 +1,104 @@
+{
+  "id": "acp",
+  "title": "ACP Editor Integration",
+  "source_path": "website/docs/user-guide/features/acp.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/acp",
+  "category": "user-guide",
+  "subcategory": "features",
+  "summary": "How to run Hermes Agent as an ACP (Agent Client Protocol) server for use inside ACP-compatible editors like VS Code, Zed, and JetBrains, enabling editor-native chat, file diffs, tool activity, and terminal commands.",
+  "key_concepts": [
+    "ACP server",
+    "editor integration",
+    "VS Code",
+    "Zed",
+    "JetBrains",
+    "hermes-acp toolset",
+    "browser tools setup",
+    "ACP registry",
+    "session management",
+    "approvals"
+  ],
+  "env_vars": [],
+  "cli_commands": [
+    {
+      "command": "hermes acp",
+      "purpose": "Start Hermes in ACP mode"
+    },
+    {
+      "command": "hermes-acp",
+      "purpose": "Alias to start Hermes in ACP mode"
+    },
+    {
+      "command": "python -m acp_adapter",
+      "purpose": "Alternative ACP startup"
+    },
+    {
+      "command": "hermes acp --version",
+      "purpose": "Check ACP version"
+    },
+    {
+      "command": "hermes acp --check",
+      "purpose": "Verify ACP installation"
+    },
+    {
+      "command": "hermes acp --setup",
+      "purpose": "Run first-run provider/model setup for registry clients"
+    },
+    {
+      "command": "hermes acp --setup-browser",
+      "purpose": "Install browser tools (Node.js + agent-browser)"
+    },
+    {
+      "command": "hermes acp --setup-browser --yes",
+      "purpose": "Non-interactive browser tool install"
+    }
+  ],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "json",
+      "caption": "VS Code ACP agent config",
+      "code": "{\n  \"acp.agents\": {\n    \"Hermes Agent\": {\n      \"command\": \"hermes\",\n      \"args\": [\"acp\"]\n    }\n  }\n}"
+    },
+    {
+      "language": "json",
+      "caption": "Zed custom agent server config",
+      "code": "{\n  \"agent_servers\": {\n    \"hermes-agent\": {\n      \"type\": \"custom\",\n      \"command\": \"hermes\",\n      \"args\": [\"acp\"]\n    }\n  }\n}"
+    },
+    {
+      "language": "bash",
+      "caption": "Install ACP extra",
+      "code": "pip install -e '.[acp]'"
+    }
+  ],
+  "gotchas": [
+    "ACP mode uses stdio for JSON-RPC — stdout is reserved for protocol traffic, logs go to stderr",
+    "Browser tools require Node.js 22 and ~400MB download — use --setup-browser to install",
+    "Zed registry install requires uv to be available in PATH",
+    "ACP sessions are in-memory only — list/load/resume/fork are scoped to the current running server process",
+    "The hermes-acp toolset excludes messaging delivery and cron management compared to the full toolset"
+  ],
+  "cross_refs": [
+    "dev-acp-internals",
+    "dev-provider-runtime",
+    "dev-tools-runtime"
+  ],
+  "keywords": [
+    "ACP",
+    "editor integration",
+    "VS Code",
+    "Zed",
+    "JetBrains",
+    "IDE",
+    "agent client protocol",
+    "hermes-acp",
+    "uvx",
+    "browser tools",
+    "session",
+    "approvals",
+    "chat",
+    "file diff"
+  ],
+  "full_text": "# ACP Editor Integration\n\nHermes Agent can run as an ACP server, letting ACP-compatible editors talk to Hermes over stdio.\n\n[...full content as read from source...]"
+}

@@ -1,0 +1,78 @@
+{
+  "id": "dev-session-storage",
+  "title": "Session Storage",
+  "source_path": "website/docs/developer-guide/session-storage.md",
+  "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/gateway-internals",
+  "category": "developer-guide",
+  "subcategory": "",
+  "summary": "Documents the SQLite-based session storage system (state.db) covering schema design (sessions, messages, FTS5 tables), schema migrations, write contention handling with retry/jitter, full-text search capabilities, session lineage via parent_session_id, and common operations.",
+  "key_concepts": [
+    "SQLite",
+    "SessionDB",
+    "FTS5 full-text search",
+    "session lineage",
+    "WAL mode",
+    "write contention",
+    "schema migrations",
+    "trigram search"
+  ],
+  "env_vars": [
+    {
+      "name": "HERMES_HOME",
+      "purpose": "Override the default ~/.hermes home directory path for database location",
+      "required": false,
+      "default": "~/.hermes"
+    }
+  ],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "python",
+      "caption": "Initialize SessionDB",
+      "code": "from hermes_state import SessionDB\ndb = SessionDB()\ndb = SessionDB(db_path=Path(\"/tmp/test.db\"))"
+    },
+    {
+      "language": "python",
+      "caption": "Create and manage sessions",
+      "code": "db.create_session(\n    session_id=\"sess_abc123\",\n    source=\"cli\",\n    model=\"anthropic/claude-sonnet-4.6\",\n    user_id=\"user_1\",\n    parent_session_id=None,\n)\ndb.end_session(\"sess_abc123\", end_reason=\"user_exit\")"
+    },
+    {
+      "language": "python",
+      "caption": "FTS5 search",
+      "code": "results = db.search_messages(\"docker deployment\")\nresults = db.search_messages(\"error\", source_filter=[\"cli\"])\nresults = db.search_messages(\"bug\", exclude_sources=[\"telegram\", \"discord\"])"
+    },
+    {
+      "language": "sql",
+      "caption": "Find session lineage",
+      "code": "WITH RECURSIVE lineage AS (\n    SELECT * FROM sessions WHERE id = ?\n    UNION ALL\n    SELECT s.* FROM sessions s\n    JOIN lineage l ON s.id = l.parent_session_id\n)\nSELECT id, title, started_at, parent_session_id FROM lineage;"
+    }
+  ],
+  "gotchas": [
+    "Current schema version is 11 — always check migration history before manual SQL operations",
+    "tool_calls is stored as a JSON string in the messages table",
+    "Timestamps are Unix epoch floats (time.time())",
+    "Write contention uses 1s SQLite timeout + application-level retry with jitter (not SQLite's default 30s)"
+  ],
+  "cross_refs": [
+    "dev-gateway-internals",
+    "dev-agent-loop",
+    "dev-prompt-assembly"
+  ],
+  "keywords": [
+    "session storage",
+    "SQLite",
+    "FTS5",
+    "full-text search",
+    "session lineage",
+    "WAL mode",
+    "write contention",
+    "schema migration",
+    "state.db",
+    "hermes_state",
+    "messages table",
+    "sessions table"
+  ],
+  "full_text": "# Session Storage\n\nHermes Agent uses a SQLite database (`~/.hermes/state.db`) to persist session metadata, full message history, and model configuration across CLI and gateway sessions.\n\nSource file: `hermes_state.py`\n\n## Architecture Overview\n\n```\n~/.hermes/state.db (SQLite, WAL mode)\n├── sessions              — Session metadata, token counts, billing\n├── messages              — Full message history per session\n├── messages_fts          — FTS5 virtual table (content + tool_name + tool_calls)\n├── messages_fts_trigram  — FTS5 virtual table with trigram tokenizer (CJK / substring search)\n├── state_meta            — Key/value metadata table\n└── schema_version        — Single-row table tracking migration state\n```\n\nKey design decisions:\n- **WAL mode** for concurrent readers + one writer (gateway multi-platform)\n- **FTS5 virtual table** for fast text search across all session messages\n- **Session lineage** via `parent_session_id` chains (compression-triggered splits)\n- **Source tagging** (`cli`, `telegram`, `discord`, etc.) for platform filtering\n\n## SQLite Schema\n\n### Sessions Table (schema version 11)\n\n```sql\nCREATE TABLE IF NOT EXISTS sessions (\n    id TEXT PRIMARY KEY,\n    source TEXT NOT NULL,\n    user_id TEXT,\n    model TEXT,\n    model_config TEXT,\n    system_prompt TEXT,\n    parent_session_id TEXT,\n    started_at REAL NOT NULL,\n    ended_at REAL,\n    end_reason TEXT,\n    message_count INTEGER DEFAULT 0,\n    tool_call_count INTEGER DEFAULT 0,\n    input_tokens INTEGER DEFAULT 0,\n    output_tokens INTEGER DEFAULT 0,\n    cache_read_tokens INTEGER DEFAULT 0,\n    cache_write_tokens INTEGER DEFAULT 0,\n    reasoning_tokens INTEGER DEFAULT 0,\n    billing_provider TEXT,\n    estimated_cost_usd REAL,\n    actual_cost_usd REAL,\n    title TEXT,\n    api_call_count INTEGER DEFAULT 0,\n    FOREIGN KEY (parent_session_id) REFERENCES sessions(id)\n);\n```\n\n### Messages Table\n\n```sql\nCREATE TABLE IF NOT EXISTS messages (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    session_id TEXT NOT NULL REFERENCES sessions(id),\n    role TEXT NOT NULL,\n    content TEXT,\n    tool_call_id TEXT,\n    tool_calls TEXT,\n    tool_name TEXT,\n    timestamp REAL NOT NULL,\n    token_count INTEGER,\n    finish_reason TEXT,\n    reasoning TEXT,\n    reasoning_content TEXT,\n    reasoning_details TEXT,\n    codex_reasoning_items TEXT,\n    codex_message_items TEXT\n);\n```\n\n### FTS5 Full-Text Search\n\n```sql\nCREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(\n    content,\n    content=messages,\n    content_rowid=id\n);\n```\n\nKept in sync via INSERT/UPDATE/DELETE triggers.\n\n## Schema Version and Migrations\n\nCurrent schema version: **11**\n\n| Version | Change |\n|---------|--------|\n| 1 | Initial schema (sessions, messages, FTS5) |\n| 2 | Add `finish_reason` column to messages |\n| 3 | Add `title` column to sessions |\n| 4 | Add unique index on `title` |\n| 5 | Add billing columns |\n| 6 | Add reasoning columns to messages |\n| 10 | Add `messages_fts_trigram` virtual table (CJK / substring search) |\n| 11 | Re-index FTS tables to cover `tool_name` + `tool_calls` |\n\n## Write Contention Handling\n\n```\n_WRITE_MAX_RETRIES = 15\n_WRITE_RETRY_MIN_S = 0.020   # 20ms\n_WRITE_RETRY_MAX_S = 0.150   # 150ms\n_CHECKPOINT_EVERY_N_WRITES = 50\n```\n\nUses **BEGIN IMMEDIATE** transactions to surface lock contention at transaction start.\n\n## Common Operations\n\n```python\nfrom hermes_state import SessionDB\n\ndb = SessionDB()                           # Default: ~/.hermes/state.db\ndb = SessionDB(db_path=Path(\"/tmp/test.db\"))\n\n# Create session\ndb.create_session(session_id=\"sess_abc123\", source=\"cli\", model=\"anthropic/claude-sonnet-4.6\")\n\n# Append message\nmsg_id = db.append_message(\n    session_id=\"sess_abc123\",\n    role=\"assistant\",\n    content=\"Here's the answer...\",\n    tool_calls=[...],\n)\n\n# Retrieve messages\nmessages = db.get_messages(\"sess_abc123\")\nconversation = db.get_messages_as_conversation(\"sess_abc123\")\n\n# Full-text search\nresults = db.search_messages(\"docker deployment\")\nresults = db.search_messages(\"error\", source_filter=[\"cli\"])\n```\n\n## FTS5 Query Syntax\n\n| Syntax | Example | Meaning |\n|--------|---------|---------|\n| Keywords | `docker deployment` | Both terms (implicit AND) |\n| Quoted phrase | `\"exact phrase\"` | Exact phrase match |\n| Boolean OR | `docker OR kubernetes` | Either term |\n| Prefix | `deploy*` | Prefix match |\n\n## Session Lineage\n\nSessions can form chains via `parent_session_id`. This happens when context compression triggers a session split in the gateway.\n\n```sql\n-- Find all ancestors of a session\nWITH RECURSIVE lineage AS (\n    SELECT * FROM sessions WHERE id = ?\n    UNION ALL\n    SELECT s.* FROM sessions s\n    JOIN lineage l ON s.id = l.parent_session_id\n)\nSELECT id, title, started_at, parent_session_id FROM lineage;\n```"
+}
