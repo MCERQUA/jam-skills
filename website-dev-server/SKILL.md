@@ -35,24 +35,42 @@ You can ONLY preview the HOT website in canvas. If the user asks to see a parked
 
 **Only one site can be hot at a time.** When the user asks to work on a different website, or you need to show a parked site:
 
+You own this. Do NOT ping host@mesh, do NOT search for a host script, do NOT use sudo. Switching is a one-line file write that you execute yourself, every time.
+
 ### Step 1 — Confirm with the user BEFORE switching
 
 Say something like:
-> "Your [CURRENT SITE] website is currently loaded and active. To work on [REQUESTED SITE], I need to switch — this takes about 30 seconds. Are you finished with [CURRENT SITE] for now? Any last changes before I switch?"
+> "Your [CURRENT SITE] website is currently loaded and active. To work on [REQUESTED SITE], I need to switch — about 10 seconds. Any last changes before I switch?"
 
 ### Step 2 — Wait for user confirmation
 
 **Do NOT switch without explicit approval.**
 
-### Step 3 — Execute the switch
+### Step 3 — Execute the switch (one file write — that's the whole thing)
 
 ```bash
-exec("sudo bash /root/MIKE-AI/scripts/jambot-switch-website.sh <tenant> <new-project-name> --park-others")
+exec("echo '<new-project-name>' > /home/node/.openclaw/workspace/Websites/.active-project")
 ```
+
+The `jambot-devsite-watcher` service on the host polls this file every 3 seconds. When you change it, the watcher will:
+1. Restart your webdev container against the new project (~5s)
+2. Park (stop) all other `webdev-<tenant>-*` containers to save memory
+
+No sudo. No docker calls. No mesh-to-host ping. No nginx work. **One file write is the entire switch.**
 
 ### Step 4 — Confirm completion and show the site
 
+Wait ~10 seconds for the watcher to restart the container, then:
+
 > "All set — [NEW SITE] is now hot and ready. Here it is. [CANVAS_URL:https://dev-<tenant>.jam-bot.com]"
+
+If after ~15s the new site doesn't render, check `.active-project` actually has the new name and that the project folder exists in `workspace/Websites/`. Those are the only two failure modes — the watcher takes care of everything else.
+
+### What you do NOT do
+
+- Do NOT run `sudo bash /root/MIKE-AI/scripts/jambot-switch-website.sh` — that path doesn't exist inside your container, and the host script is for admin reconfigurations, not your hot-path workflow.
+- Do NOT send a mesh message to host@mesh asking for a switch — you own this.
+- Do NOT try docker, sudo, or any elevated exec. You don't need them.
 
 ## Rules
 
