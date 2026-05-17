@@ -19,6 +19,10 @@ Generate production-ready UI designs from text prompts. Outputs HTML with Tailwi
 
 4. **One screen at a time.** Generate one screen, verify it exists, THEN generate the next. Don't batch.
 
+5. **Every `<img>` in a Stitch HTML has a `data-alt` attribute = the full image-generation prompt.** Stitch bakes long-form descriptions (style, subject, lighting, setting) into `data-alt` on every image tag. This is your ready-to-use prompt for either regenerating the image (feed to `gr1_z_image_turbo_generate`) or sourcing a matching real photo. Example: `data-alt="A sprawling, multi-level high-end cedar deck overlooking a lush Washington state forest during the golden hour..."`. The `src=` URL also points to Stitch's rendered AIDA image — append `=w1600` for native resolution. Always read the HTML and grep `data-alt` before guessing what an image is supposed to be.
+
+6. **AIDA image URL sizing.** Bare `lh3.googleusercontent.com/aida/...` URLs return a heavily downscaled preview (~40x512). Append `=w1200` / `=w2048` / `=w4096` to get the native resolution. Stitch caps mobile screens at 780px wide, desktop at 2560px — `=w1600` is a safe default.
+
 ## How To Use
 
 Run the helper script with `exec` (ALWAYS exec, never sub-agents):
