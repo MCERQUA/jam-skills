@@ -1,0 +1,26 @@
+{
+  "id": "2026-05-18-1000-email-quote-followup-acme",
+  "state": "intake",
+  "raised_at": "2026-05-18T10:00:00Z",
+  "raised_by": "brief",
+  "source_ref": "gmail-thread-178f3a2c91b4e0d2",
+  "summary": "Email-origin: follow up on Acme quote stalled since last Tuesday",
+  "tenant": "smoke-test-tenant",
+  "operator_phone": null,
+  "email_authorized_by_mike": null,
+  "recipient": null,
+  "scheduled_at": null,
+  "parked_until": null,
+  "completed_at": null,
+  "outcome": null,
+  "state_history": [
+    {"state": "intake", "at": "2026-05-18T10:00:00Z", "by": "brief-reader@josh-desktop"}
+  ],
+  "clerk_session_id": null,
+  "lock_required": true,
+  "defer_count": 0,
+  "failure_modes": [],
+  "dedup_hash": "smoke-test-tenant:gmail-thread-178f3a2c91b4e0d2:quote-followup",
+  "recipient_role": "mike",
+  "linked_to": []
+}

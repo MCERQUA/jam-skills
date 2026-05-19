@@ -1,0 +1,57 @@
+--- a/task_schema.py
++++ b/task_schema.py
+@@ -1,5 +1,5 @@
+ """
+-task.json schema validator — v0.1.3 (Rule 8 + Rule 7 confirmed; failure_modes enum locked).
++task.json schema validator — v0.1.4 (notification_policy added; v0.1.3 fields unchanged).
+ 
+ Extends the v0.1 baseline at
+ /agent-desk/snapshots/2026-05-18-task-substrate/task_schema.py with the
+@@ -92,6 +92,15 @@
+     "worker_self_report_passed_but_unverified",
+ )
+ 
++# Milestone-4 notification cadence — host msg 2026-05-19-001.
++# snake_case enum values for migration stability (matches FAILURE_MODES
++# convention, NOT the kebab-case STATES convention).
++NOTIFICATION_MODES = (
++    "inline",
++    "roll_up_daily",
++    "on_finding",
++)
++
+ # id: <YYYY-MM-DD>-<HHMM>-<slug>
+ _ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9][a-z0-9-]*$")
+ _ISO_Z_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+@@ -123,6 +132,8 @@
+     "dedup_hash":               ("always",        "str_or_null"),
+     "recipient_role":           ("always",        "recipient_role_or_null"),
+     "linked_to":                ("always",        "list_of_str"),
++    # Milestone-4 — OPTIONAL with default 'roll_up_daily' applied at intake.
++    "notification_policy":      ("optional",      "notification_policy"),
+ }
+ 
+ 
+@@ -196,6 +207,22 @@
+             return None
+         if value not in RECIPIENT_ROLES:
+             return f"recipient_role must be one of {RECIPIENT_ROLES} or null; got {value!r}"
++    elif kind == "notification_policy":
++        if not isinstance(value, dict):
++            return f"notification_policy must be an object; got {type(value).__name__}"
++        extra = set(value) - {"mode", "on_finding_threshold"}
++        if extra:
++            return f"notification_policy unknown fields: {sorted(extra)}"
++        if "mode" not in value:
++            return "notification_policy missing required field: mode"
++        if value["mode"] not in NOTIFICATION_MODES:
++            return (
++                f"notification_policy.mode must be one of {NOTIFICATION_MODES}; "
++                f"got {value['mode']!r}"
++            )
++        thr = value.get("on_finding_threshold")
++        if thr is not None and not isinstance(thr, dict):
++            return f"notification_policy.on_finding_threshold must be object or null; got {type(thr).__name__}"
+     return None
+ 
+ 

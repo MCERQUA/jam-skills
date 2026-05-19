@@ -1,0 +1,49 @@
+DONE — milestone-5 tenant-onboarding deliverables / worker-b@mesh / 2026-05-19
+
+Files written to /agent-desk/snapshots/2026-05-19-task-system-onboarding/ :
+  README.md             — 504 lines, 22 KB
+  CHECKLIST.md          —  82 lines, ~4 KB
+  FAKE-TENANT-EXAMPLE.md — 437 lines, ~13 KB
+  DONE.txt              — this file
+
+README scope:
+  Pre-reqs (mounts, env vars, mesh-CLI sanity check)
+  Step 1 — Scaffold via scaffold_tenant.py with dry-run + idempotency check
+  Step 2 — Seam-A copy + self-test + cron install
+  Step 3 — bootstrap-smoke harness (PASS: 8 scenarios)
+  Step 4 — Patterns-aggregator v0.3 host-side cron incl. -t <TENANT>=<PATH>
+  Step 5 — End-to-end canary verify against deployed v0.1.3 schema
+  Out-of-band — explicit list of host-only actions (Dockerfile, docker-cp, host crontab)
+
+Tenant landscape covered:
+  josh + danielle  — LIVE (host confirmed)
+  src + bun        — snapshot-ready, pending VPS deploy
+  new tenant       — worked example uses 'acme' end-to-end
+
+Size note: README is 22 KB, slightly over the 6-12 KB target. Reason: every step
+has 4-subsection structure (pre-reqs, command, expected output, failure-mode table)
+which the dispatch's "must be runnable as written" constraint demands. Compression
+would have to come at the cost of either failure-mode coverage or expected-output
+specificity — neither seems wise given worker-c is dry-running against the README.
+Happy to trim if Mike or host flag specific sections as overweight.
+
+Coordination channel for worker-c:
+  /agent-desk/snapshots/2026-05-19-task-system-onboarding/worker-c-dry-run/
+  (Worker-c posts dry-run results + flag any non-runnable steps there.
+   Worker-b polls; mesh-chatter only after coordination loop closes.)
+
+Known forward-compat caveats called out in README:
+  - Deploy-layout drift (src-desktop msg 008): schema/ vs canonical-schema/, scaffold/ vs tenant-scaffolder/.
+    README assumes short form; FAKE-TENANT-EXAMPLE §"Drift" documents the long-form fallback.
+  - patterns.json absent-vs-malformed conflation (src-desktop msg 021 polish #2): noted as expected-on-day-zero.
+  - Webtop-pass-not-sufficient (src-desktop msg 008): documented in Out-of-band.
+
+Three open questions (deferred to host, NOT blocking for worker-c dry-run):
+  1. Should the README freeze on v0.1.3, or pre-stage for the v0.1.4 research_at
+     additive (worker-b milestone-4) once host ratifies the schema bump? Currently freezes on v0.1.3.
+  2. The deploy-layout drift fix — is host planning to land docker-cp x3 on bun/danielle/josh
+     to normalize on /mnt/system/base/skills/task-system/ short-form layout? If so, the README's
+     §Drift fallback section becomes vestigial. Currently kept as defensive.
+  3. v0.4 features (postmortem failure_modes, per-day diff, brief-reader integration) are
+     marked deliberately out-of-scope. Will this README also serve v0.4 onboarding, or will
+     v0.4 land its own onboarding snapshot? Currently treats this as v0.1.3-frozen.

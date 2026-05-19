@@ -1,0 +1,241 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jam-bot.com/schemas/task-json/v0.1.4.json",
+  "title": "JamBot task.json (canonical v0.1.4 — notification_policy + two-phase schedule)",
+  "description": "v0.1.3 (failure_modes enum locked) + notification_policy field (default mode 'roll_up_daily') + research_at sibling of scheduled_at for two-phase scheduling. Both additions are additive — v0.1.3 records without these fields validate clean under v0.1.4. Milestone-4 per host msg 2026-05-19-001.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "state",
+    "raised_at",
+    "raised_by",
+    "source_ref",
+    "summary",
+    "tenant",
+    "operator_phone",
+    "email_authorized_by_mike",
+    "recipient",
+    "state_history",
+    "clerk_session_id",
+    "lock_required",
+    "defer_count",
+    "failure_modes",
+    "dedup_hash",
+    "recipient_role",
+    "linked_to"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}-\\d{4}-[a-z0-9][a-z0-9-]*$",
+      "description": "<YYYY-MM-DD>-<HHMM>-<slug>"
+    },
+    "state": {
+      "type": "string",
+      "enum": ["intake", "shop-floor", "planned", "scheduled", "today", "done", "in-flight", "parked"]
+    },
+    "raised_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "raised_by": {
+      "type": "string",
+      "enum": ["voice", "mesh", "brief", "manual", "sms", "email"],
+      "description": "Intake channel. 'email' added per Rule 7 (folded into Rule 8 amendment)."
+    },
+    "source_ref": {
+      "type": ["string", "null"],
+      "description": "Mesh filename / transcript line / sms-sid / gmail-thread-id."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "tenant": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_phone": {
+      "type": ["string", "null"],
+      "description": "Only SMS-origin tasks populate. bun-desktop wanted this cut; src-desktop wanted it kept — resolution: keep but nullable."
+    },
+    "email_authorized_by_mike": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+      "description": "Rule 1: must be set together with `recipient`."
+    },
+    "recipient": {
+      "type": ["string", "null"],
+      "description": "Rule 1: must be set together with `email_authorized_by_mike`."
+    },
+    "research_at": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+      "description": "Two-phase schedule (milestone-4): moment the planning/research run fires. Sibling of scheduled_at. Optional; defaults to scheduled_at - 60min when null and scheduled_at is set (resolved scheduler-side, not schema-side). v0.1.3 readers that ignore this field continue to validate."
+    },
+    "scheduled_at": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "parked_until": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "completed_at": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "outcome": {
+      "type": ["string", "null"]
+    },
+    "state_history": {
+      "type": "array",
+      "description": "Append-only audit trail (bun-desktop). Can be empty but must be present.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["state", "at", "by"],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["intake", "shop-floor", "planned", "scheduled", "today", "done", "in-flight", "parked"]
+          },
+          "at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+          },
+          "by": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Agent URI (e.g. josh-desktop@mesh)."
+          }
+        }
+      }
+    },
+    "clerk_session_id": {
+      "type": ["string", "null"],
+      "description": "src-desktop: voice-session binding."
+    },
+    "lock_required": {
+      "type": "boolean",
+      "description": "src-desktop: false for background tasks (digest cron, blocker sweeps); default true."
+    },
+    "defer_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "src-desktop: lock-and-defer yield counter; default 0."
+    },
+    "failure_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "blocker_source_split_brain",
+          "completion_signal_ambiguous",
+          "cross_session_artifact_handoff_blindness",
+          "deadlock_on_missing_signal",
+          "decision_matrix_skipped_failure_mode_first_pass",
+          "false_negative_active_state",
+          "false_positive_active_state",
+          "in_flight_orphan",
+          "interleave_corruption",
+          "latency_budget_exceeded",
+          "orphan_after_crash",
+          "outbound_recipient_drift",
+          "parallel_shift_writer_race",
+          "parked_without_clock",
+          "permission_drift_breaks_protocol_channel",
+          "schema_field_unenforced",
+          "sentinel_traps_silent_skip",
+          "silent_drift",
+          "transition_illegal",
+          "voice_agent_is_executor_but_no_task_record",
+          "worker_self_report_passed_but_unverified"
+        ]
+      },
+      "description": "v0.2 enum locked 2026-05-18T21:05Z by src-desktop@mesh. Empty list legal; non-empty must be drawn from the 21-value enum. Source: /mesh/BLACKBOARD/task-system/2026-05-19/failure-modes-enum-v0.2.md"
+    },
+    "dedup_hash": {
+      "type": ["string", "null"],
+      "description": "Rule 8 (host@mesh confirmed 2026-05-18). Populated by intake adapter from tenant+source_ref+summary-shingle. Required-always."
+    },
+    "recipient_role": {
+      "type": ["string", "null"],
+      "enum": ["mike", "operator", "client", "other", null],
+      "description": "Rule 7 (host@mesh confirmed 2026-05-18). Outbound-writer gate — disambiguates mike vs operator vs client. Required-always."
+    },
+    "linked_to": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Rule 8 (host@mesh confirmed 2026-05-18). Task-ids this dedupes with; default []. Required-always."
+    },
+    "notification_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "description": "Milestone-4 (host msg 2026-05-19-001). Delivery cadence for task-completion notifications. OPTIONAL — absent = treat as {\"mode\": \"roll_up_daily\"}. Snake_case enum values are stable for future migrations.",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["inline", "roll_up_daily", "on_finding"],
+          "default": "roll_up_daily",
+          "description": "inline = reply at done; roll_up_daily = batch into morning brief (DEFAULT); on_finding = fire only when a research delta crosses on_finding_threshold."
+        },
+        "on_finding_threshold": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "TBD shape pending Mike-input. Proposed: {metric: str, comparator: enum, value: number, cooldown_seconds: int}. Only meaningful when mode='on_finding'; null elsewhere. Validator accepts any object until v0.2 ratchet (mirrors failure_modes v0.1->0.2 path)."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "Rule 1 cross-field: email_authorized_by_mike and recipient must BOTH be set or BOTH be null.",
+      "oneOf": [
+        {
+          "properties": {
+            "email_authorized_by_mike": {"type": "null"},
+            "recipient": {"type": "null"}
+          }
+        },
+        {
+          "properties": {
+            "email_authorized_by_mike": {"type": "string"},
+            "recipient": {"type": "string"}
+          },
+          "required": ["email_authorized_by_mike", "recipient"]
+        }
+      ]
+    },
+    {
+      "description": "scheduled / today / done states must carry scheduled_at.",
+      "if": {
+        "properties": {"state": {"enum": ["scheduled", "today", "done"]}}
+      },
+      "then": {
+        "required": ["scheduled_at"]
+      }
+    },
+    {
+      "description": "parked state must carry parked_until.",
+      "if": {
+        "properties": {"state": {"const": "parked"}}
+      },
+      "then": {
+        "required": ["parked_until"]
+      }
+    },
+    {
+      "description": "done state must carry completed_at and outcome.",
+      "if": {
+        "properties": {"state": {"const": "done"}}
+      },
+      "then": {
+        "required": ["completed_at", "outcome"]
+      }
+    }
+  ]
+}

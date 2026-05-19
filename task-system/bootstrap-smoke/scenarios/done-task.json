@@ -1,0 +1,30 @@
+{
+  "id": "2026-05-15-0900-acme-quote-fence-replacement",
+  "state": "done",
+  "raised_at": "2026-05-15T09:00:00Z",
+  "raised_by": "email",
+  "source_ref": "gmail-thread-99887766aabbccdd",
+  "summary": "Send fence replacement quote to Patel residence Bayview Ave",
+  "tenant": "acme",
+  "operator_phone": null,
+  "email_authorized_by_mike": "2026-05-15T09:30:00Z",
+  "recipient": "patel.family@example.com",
+  "scheduled_at": "2026-05-15T10:00:00Z",
+  "completed_at": "2026-05-15T11:45:00Z",
+  "outcome": "Quote sent; Patel confirmed receipt, requested 1 wk to decide.",
+  "state_history": [
+    {"state": "intake",     "at": "2026-05-15T09:00:00Z", "by": "email-intake-adapter@mesh"},
+    {"state": "shop-floor", "at": "2026-05-15T09:05:00Z", "by": "acme-tenant-agent@mesh"},
+    {"state": "planned",    "at": "2026-05-15T09:15:00Z", "by": "acme-tenant-agent@mesh"},
+    {"state": "scheduled",  "at": "2026-05-15T09:30:00Z", "by": "acme-tenant-agent@mesh"},
+    {"state": "today",      "at": "2026-05-15T10:00:00Z", "by": "acme-tenant-agent@mesh"},
+    {"state": "done",       "at": "2026-05-15T11:45:00Z", "by": "acme-tenant-agent@mesh"}
+  ],
+  "clerk_session_id": null,
+  "lock_required": true,
+  "defer_count": 0,
+  "failure_modes": [],
+  "dedup_hash": "sha1:acme:gmail-thread-99887766aabbccdd:send-fence-replacement",
+  "recipient_role": "client",
+  "linked_to": []
+}

@@ -1,0 +1,164 @@
+--- a/agent-desk/snapshots/2026-05-19-bootstrap-smoke/smoke_test.py
++++ b/agent-desk/snapshots/2026-05-19-bootstrap-smoke/smoke_test.py
+@@ -30,7 +30,7 @@
+ import shutil
+ import sys
+ import tempfile
+-from datetime import date, datetime, timezone
++from datetime import date, datetime, timedelta, timezone
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parent
+@@ -42,6 +42,7 @@
+ INTAKE_DIR     = Path("/agent-desk/snapshots/2026-05-18-intake-internal")
+ BOOTSTRAP_DIR  = Path("/agent-desk/snapshots/2026-05-19-rule-8-bootstrap")
+ SESSION_DIR    = Path("/agent-desk/snapshots/2026-05-19-session-context")
++MILESTONE_4_DIR = Path("/agent-desk/snapshots/2026-05-19-milestone-4-notification-cadence/worker-c")
+ 
+ # Point intake_common's schema resolver at v0.1.3 BEFORE it imports task_schema.
+ os.environ["TASK_SYSTEM_SCHEMA_DIR"] = str(SCHEMA_DIR)
+@@ -338,6 +339,133 @@
+             f"intake task raised_by != manual; got {intake_tasks[0]['raised_by']!r}")
+ 
+ 
++# milestone-4 fixtures live in worker-c/ (not in scenarios/) — co-located
++# with the design doc so the fixture and rationale ship together.
++MILESTONE_4_VALID   = MILESTONE_4_DIR / "milestone-4-scenario.json"
++MILESTONE_4_INVALID = MILESTONE_4_DIR / "milestone-4-invalid.json"
++
++# Defaults per peer design docs (worker-a NOTIFICATION-POLICY.md §1 +
++# worker-b SCHEDULE-DESIGN.md §3). Defaults are applied READER-side /
++# SCHEDULER-side, NOT in task_schema — these helpers mirror that behaviour
++# so the smoke exercises the same rule the production reader will apply.
++_NOTIFICATION_POLICY_ABSENT_DEFAULT = {"mode": "roll_up_daily"}
++_RESEARCH_AT_OFFSET_MIN = 60
++
++
++def _effective_notification_policy(record: dict) -> dict:
++    """Mirror the reader-side default: absent ⇒ {'mode': 'roll_up_daily'}."""
++    if "notification_policy" not in record or record["notification_policy"] is None:
++        return dict(_NOTIFICATION_POLICY_ABSENT_DEFAULT)
++    return record["notification_policy"]
++
++
++def _effective_research_at(record: dict) -> str | None:
++    """Mirror the scheduler-side default: null + scheduled_at ⇒ scheduled_at - 60min."""
++    explicit = record.get("research_at")
++    if explicit:
++        return explicit
++    sa = record.get("scheduled_at")
++    if not sa:
++        return None
++    dt = datetime.strptime(sa, ISO_Z).replace(tzinfo=timezone.utc)
++    return (dt - timedelta(minutes=_RESEARCH_AT_OFFSET_MIN)).strftime(ISO_Z)
++
++
++def assert_milestone_4_scenario(workspace: Path) -> None:
++    """Step 9 — milestone-4 e2e: notification_policy + research_at + defaults.
++
++    Asserts (in order):
++      9.1  valid fixture validates under v0.1.4 (worker-a + worker-b patches)
++      9.2  both new fields round-trip with exact shape (object for policy)
++      9.3  loader preserves both new fields on re-bootstrap
++      9.4  scheduler-side default: research_at=null + scheduled_at ⇒ -60min
++      9.5  reader-side default: notification_policy absent ⇒ {mode: roll_up_daily}
++      9.6  invalid fixture rejected on BOTH new fields (not just one)
++      9.7  open_task_count == 5 after seeding the milestone-4 task
++    """
++    scenario = "milestone_4"
++
++    # 9.1 — schema accepts the valid fixture.
++    valid_record = _read_json(MILESTONE_4_VALID)
++    errors = task_schema.validate_task_record(valid_record)
++    _assert(not errors, scenario,
++            f"valid milestone-4 fixture failed validation: {errors}")
++    _log("[smoke] (9.1) milestone-4 fixture validates under v0.1.4: PASS")
++
++    # 9.2 — both new fields survive the JSON round-trip with exact values.
++    expected_policy = {"mode": "on_finding", "on_finding_threshold": None}
++    _assert(valid_record.get("notification_policy") == expected_policy, scenario,
++            f"notification_policy round-trip mismatch: "
++            f"got {valid_record.get('notification_policy')!r}")
++    _assert(valid_record.get("research_at") == "2026-05-20T14:00:00Z", scenario,
++            f"research_at round-trip mismatch: {valid_record.get('research_at')!r}")
++    _log("[smoke] (9.2) notification_policy (object) + research_at round-trip: PASS")
++
++    # 9.3 — drop into tasks/scheduled/ and confirm load_context preserves both.
++    task_dir = workspace / "tasks" / "scheduled" / valid_record["id"]
++    task_dir.mkdir(parents=True, exist_ok=True)
++    _write_json(task_dir / "task.json", valid_record)
++    ctx = task_bootstrap.load_context(TENANT, workspace, today=TODAY)
++    scheduled = ctx["open_tasks"].get("scheduled", [])
++    m4 = [t for t in scheduled if t.get("id") == valid_record["id"]]
++    _assert(len(m4) == 1, scenario,
++            f"milestone-4 task not loaded under open_tasks['scheduled']; "
++            f"got {len(m4)} matches")
++    _assert(m4[0].get("notification_policy") == expected_policy, scenario,
++            f"loader stripped notification_policy: got {m4[0].get('notification_policy')!r}")
++    _assert(m4[0].get("research_at") == "2026-05-20T14:00:00Z", scenario,
++            f"loader stripped research_at: got {m4[0].get('research_at')!r}")
++    _log("[smoke] (9.3) loader preserves both milestone-4 fields: PASS")
++
++    # 9.4 — scheduler-side default: null research_at + scheduled_at ⇒ -60min.
++    # Per worker-b SCHEDULE-DESIGN.md §3 the field STAYS null in the file
++    # and the scheduler computes the effective value at fire-time.
++    record_b = dict(valid_record)
++    record_b["research_at"] = None
++    errs_b = task_schema.validate_task_record(record_b)
++    _assert(not errs_b, scenario,
++            f"record with research_at=null must validate (field is optional); "
++            f"got {errs_b}")
++    effective_b = _effective_research_at(record_b)
++    expected_b = "2026-05-20T14:00:00Z"  # scheduled_at (15:00Z) - 60min
++    _assert(effective_b == expected_b, scenario,
++            f"scheduler-side default research_at: expected {expected_b}; "
++            f"got {effective_b!r}")
++    _log("[smoke] (9.4) scheduler-side default: research_at=null -> -60min: PASS")
++
++    # 9.5 — reader-side default: notification_policy absent ⇒ {mode: roll_up_daily}.
++    # Per worker-a NOTIFICATION-POLICY.md §1 the field is OPTIONAL and the
++    # reader treats absence as the default policy object.
++    record_a = dict(valid_record)
++    record_a.pop("notification_policy", None)
++    errs_a = task_schema.validate_task_record(record_a)
++    _assert(not errs_a, scenario,
++            f"record without notification_policy must validate (field is optional); "
++            f"got {errs_a}")
++    effective_a = _effective_notification_policy(record_a)
++    _assert(effective_a == {"mode": "roll_up_daily"}, scenario,
++            f"reader-side default notification_policy: "
++            f"expected {{'mode': 'roll_up_daily'}}; got {effective_a!r}")
++    _log("[smoke] (9.5) reader-side default: absent policy -> {mode: roll_up_daily}: PASS")
++
++    # 9.6 — invalid fixture rejected on BOTH new fields.
++    invalid_record = _read_json(MILESTONE_4_INVALID)
++    errors = task_schema.validate_task_record(invalid_record)
++    _assert(errors, scenario,
++            "invalid milestone-4 fixture should produce schema errors; got none")
++    _assert(any("notification_policy" in e for e in errors), scenario,
++            f"invalid fixture must error on notification_policy; got {errors}")
++    _assert(any("research_at" in e for e in errors), scenario,
++            f"invalid fixture must error on research_at; got {errors}")
++    _log("[smoke] (9.6) invalid example rejected on both fields: PASS")
++
++    # 9.7 — open_task_count == 5 (3 seeded + 1 step-6 intake + 1 milestone-4).
++    _assert(ctx["open_task_count"] == 5, scenario,
++            f"expected open_task_count == 5 after milestone-4 seed; "
++            f"got {ctx['open_task_count']}")
++    _log("[smoke] (9.7) re-bootstrap sees milestone-4 task; open_task_count == 5: PASS")
++
++
+ def main(argv: list[str] | None = None) -> int:
+     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
+     ap.add_argument("--no-cleanup", action="store_true",
+@@ -383,6 +511,10 @@
+         n_passed += 1
+         _log("[smoke] (8) re-bootstrap — new intake task visible, count==4: PASS")
+ 
++        assert_milestone_4_scenario(workspace)
++        n_passed += 1
++        _log("[smoke] (9) milestone-4 notification cadence + research_at: PASS")
++
+     except SmokeFail as exc:
+         print(f"FAIL: scenario {exc.scenario}: {exc.reason}", file=sys.stderr)
+         return 1

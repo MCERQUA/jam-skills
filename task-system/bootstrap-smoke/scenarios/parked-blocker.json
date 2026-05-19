@@ -1,0 +1,8 @@
+{
+  "raised_at": "2026-05-17T14:30:00Z",
+  "blocker_text": "Cabot stain delivery slipped — supplier promised callback by Mon 8am, no word yet.",
+  "last_pinged": "2026-05-17T14:35:00Z",
+  "parked_until": "2026-05-18T08:00:00Z",
+  "escalate_count": 1,
+  "resurface_action": "ping supplier; if still no answer, escalate to Mike with phone-call recommendation"
+}

@@ -1,0 +1,67 @@
+--- /mesh/BLACKBOARD/task-system/v0.1.1-verified/canonical-schema/task-json-schema.json	2026-05-18 20:28:21.000000000 +0000
++++ /agent-desk/snapshots/2026-05-19-failure-modes-enum-ratchet/task-json-schema.json	2026-05-19 03:45:13.905381696 +0000
+@@ -1,8 +1,8 @@
+ {
+   "$schema": "http://json-schema.org/draft-07/schema#",
+-  "$id": "https://jam-bot.com/schemas/task-json/v0.1.1.json",
+-  "title": "JamBot task.json (canonical v0.1.1)",
+-  "description": "v0.1 spec §3 + bun-desktop state_history + src-desktop voice-lane fields + Rule 8 (PENDING_HOST_CONFIRM) fields.",
++  "$id": "https://jam-bot.com/schemas/task-json/v0.1.3.json",
++  "title": "JamBot task.json (canonical v0.1.3)",
++  "description": "v0.1.1 baseline + v0.2 Rule 9: failure_modes enum-constrained to 21-value vocabulary. Rule 8 fields remain PENDING_HOST_CONFIRM at this layer (flip happens at v0.1.2, orthogonal to this patch).",
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+@@ -121,22 +121,47 @@
+     },
+     "failure_modes": {
+       "type": "array",
+-      "items": {"type": "string"},
+-      "description": "src-desktop: host accepted on 2026-05-18 (AND-gate thread)."
++      "description": "v0.2 Rule 9 — closed enum of 21 values. Empty list permitted but discouraged. Source of truth: /agent-desk/snapshots/2026-05-19-failure-modes-enum/failure-modes-enum-v0.2.md",
++      "items": {
++        "type": "string",
++        "enum": [
++          "blocker_source_split_brain",
++          "completion_signal_ambiguous",
++          "cross_session_artifact_handoff_blindness",
++          "deadlock_on_missing_signal",
++          "decision_matrix_skipped_failure_mode_first_pass",
++          "false_negative_active_state",
++          "false_positive_active_state",
++          "in_flight_orphan",
++          "interleave_corruption",
++          "latency_budget_exceeded",
++          "orphan_after_crash",
++          "outbound_recipient_drift",
++          "parallel_shift_writer_race",
++          "parked_without_clock",
++          "permission_drift_breaks_protocol_channel",
++          "schema_field_unenforced",
++          "sentinel_traps_silent_skip",
++          "silent_drift",
++          "transition_illegal",
++          "voice_agent_is_executor_but_no_task_record",
++          "worker_self_report_passed_but_unverified"
++        ]
++      }
+     },
+     "dedup_hash": {
+       "type": ["string", "null"],
+-      "description": "Rule 8 amendment — PENDING_HOST_CONFIRM. Populated by intake adapter from tenant+source_ref+summary-shingle. Required once host@mesh confirms; until then optional."
++      "description": "Rule 8 amendment — PENDING_HOST_CONFIRM at v0.1.1; flips to required at v0.1.2 (orthogonal to this v0.1.3 ratchet)."
+     },
+     "recipient_role": {
+       "type": ["string", "null"],
+       "enum": ["mike", "operator", "client", "other", null],
+-      "description": "Rule 8 amendment — PENDING_HOST_CONFIRM. Used by outbound writers (Rule 7 role gating). Required once host@mesh confirms; until then optional."
++      "description": "Rule 8 amendment — PENDING_HOST_CONFIRM at v0.1.1; flips to required at v0.1.2 (orthogonal to this v0.1.3 ratchet)."
+     },
+     "linked_to": {
+       "type": "array",
+       "items": {"type": "string"},
+-      "description": "Rule 8 amendment — PENDING_HOST_CONFIRM. Task-ids this dedupes with; default []. Required once host@mesh confirms; until then optional."
++      "description": "Rule 8 amendment — PENDING_HOST_CONFIRM at v0.1.1; flips to required at v0.1.2 (orthogonal to this v0.1.3 ratchet). Task-ids this dedupes with; default []."
+     }
+   },
+   "allOf": [

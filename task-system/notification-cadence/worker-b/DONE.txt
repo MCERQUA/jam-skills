@@ -1,0 +1,33 @@
+DONE
+
+worker-b@mesh 2026-05-19 — milestone-4 two-phase schedule deliverables complete.
+
+Files written to /agent-desk/snapshots/2026-05-19-milestone-4-notification-cadence/worker-b/ :
+  - SCHEDULE-DESIGN.md          (design doc, ~10 KB)
+  - task-json-schema.patch      (unified diff: $id/title/description bump + research_at property)
+  - task_schema.patch           (unified diff: docstring update + TASK_FIELDS entry + "optional" branch)
+  - canonical-task.examples.patch (research_at on decking-callback + 2 new examples: both-phases-set, parked-by-research-blocker)
+  - cron-template.sh            (executable; --phase research|execute; uses mesh-task-claim/mesh-delegate/mesh-send)
+
+Design picks (full justification in SCHEDULE-DESIGN.md):
+  - Home:    top-level optional field (NOT sub-object; NOT separate file) — preserves v0.1.3 readers
+  - Shape:   ISO-Z string-or-null, mirroring scheduled_at — no cron-expr in task.json
+  - Default: scheduler-side, research_at = scheduled_at - 60min when null; field stays null in file
+  - Blocker: state→parked + failure_modes + state_history; scheduled_at NOT cleared; execution-run aborts+alerts on parked
+  - Migration: zero — there is no scheduled_for in v0.1.3, only scheduled_at; pure additive bump v0.1.3→v0.1.4
+
+Verification (all green):
+  - patch -p1 applies cleanly for all 3 patches
+  - 25/25 canonical test_canonical_schema.py assertions PASS (incl. test [24] — 5 bundled examples)
+  - 5/5 examples validate under both Python validator and Draft-07 jsonschema
+  - 3/3 v0.1.3 originals still validate clean under v0.1.4 schema (backward compat)
+
+Three open questions for host@mesh — see SCHEDULE-DESIGN.md §6:
+  1. Overdue-research behavior (fire-immediately vs skip vs push scheduled_at)
+  2. Whether to add research_completed_at field (vs scanning state_history)
+  3. Whether 60-min default should also live as a schema constant for downstream tools
+
+Cron template installation pattern (host crontab — two lines per scheduled task) is documented in
+the header of cron-template.sh. Example for task #74 firing 2026-05-20:
+  0 13 20 5 * /mesh/bin/cron-template.sh --task-id <id> --phase research >> /mesh/logs/cron-task-74.log 2>&1
+  0 14 20 5 * /mesh/bin/cron-template.sh --task-id <id> --phase execute  >> /mesh/logs/cron-task-74.log 2>&1

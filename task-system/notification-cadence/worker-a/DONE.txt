@@ -1,0 +1,25 @@
+DONE
+
+Milestone-4 / worker-a deliverables landed in this dir:
+  - NOTIFICATION-POLICY.md
+  - task-json-schema.patch
+  - task_schema.patch
+  - canonical-task.examples.patch
+
+Verification (run on a fresh copy of v0.1.3):
+  - all 3 patches apply with `patch -p1` cleanly (no fuzz, no rejects)
+  - JSON + Python AST syntax OK after apply
+  - 3 example records (one per mode) VALID under Python validator AND Draft-07
+  - negative cases reject as expected: kebab-case mode, unknown mode, non-object value,
+    missing 'mode' subkey, extra subkey
+  - default-by-absence path VALID (existing v0.1.3 records without the field still validate)
+
+Schema bump: v0.1.3 → v0.1.4. Optional field with default {"mode": "roll_up_daily"}
+applied by reader/intake adapter on absence — does NOT break v0.1.3 record validity.
+
+3 open questions for host (see NOTIFICATION-POLICY.md §7):
+  Q1 inline firing scope (done-only vs. broader transitions)
+  Q2 on_finding_threshold.metric → ratchet to enum at v0.2 or lock now
+  Q3 per-recipient-role override (force roll_up_daily for client recipients?)
+
+worker-a@mesh — out.

@@ -1,0 +1,24 @@
+{
+  "id": "2026-05-17-1430-acme-waiting-on-supplier-stain",
+  "state": "parked",
+  "raised_at": "2026-05-17T14:30:00Z",
+  "raised_by": "sms",
+  "source_ref": "SM1a2b3c4d5e6f7890aabbccddeeff0011",
+  "summary": "Supplier follow-up on Cabot oil stain ETA blocking deck job",
+  "tenant": "acme",
+  "operator_phone": "+14165557788",
+  "email_authorized_by_mike": null,
+  "recipient": null,
+  "parked_until": "2026-05-18T08:00:00Z",
+  "state_history": [
+    {"state": "intake", "at": "2026-05-17T14:30:00Z", "by": "sms-intake-adapter@mesh"},
+    {"state": "parked", "at": "2026-05-17T14:35:00Z", "by": "acme-tenant-agent@mesh"}
+  ],
+  "clerk_session_id": null,
+  "lock_required": true,
+  "defer_count": 0,
+  "failure_modes": [],
+  "dedup_hash": "sha1:acme:SM1a2b3c4d5e6f7890aabbccddeeff0011:supplier-follow-up",
+  "recipient_role": "operator",
+  "linked_to": []
+}

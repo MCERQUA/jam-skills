@@ -1,0 +1,94 @@
+================================================================================
+SAMPLE-RUN.txt — worker-c milestone-4 smoke extension
+================================================================================
+
+Captured by: worker-c@mesh
+Captured at: 2026-05-19 (UTC) — after worker-a/DONE.txt + worker-b/DONE.txt landed
+Schema in effect: v0.1.4 (hand-merged from worker-a + worker-b in-place patches)
+
+This trace was captured by:
+
+  1. Copying canonical-schema-v0.1.3 into a temp staging dir (/tmp/wc_v014_full).
+  2. Applying worker-a/task_schema.patch and worker-b/task_schema.patch.
+  3. Applying worker-a/task-json-schema.patch and worker-b/task-json-schema.patch.
+  4. Manually resolving the single collision (the version-bump line —
+     both peers independently rewrite v0.1.3 → v0.1.4; merged title is
+     "v0.1.4 — notification_policy + research_at added").
+  5. Repointing the smoke's SCHEMA_DIR at the staging dir.
+  6. Running `python3 smoke_test.py` from a fresh copy of bootstrap-smoke's
+     scenarios/ folder with the patched smoke_test.py in place.
+
+================================================================================
+VERBATIM TRACE (v0.1.4 hand-merge)
+================================================================================
+
+$ python3 smoke_test.py
+[smoke] workspace: /tmp/bootstrap-smoke-njjsoo47/acme
+[smoke] scaffold created: ['intake', 'shop-floor', 'planned', 'scheduled', 'today', 'done', 'in-flight', 'parked']
+[smoke] (1) scaffold: PASS
+[smoke] (2) seed prior task state: PASS
+[smoke] (3) seed history (voice/gmail/sms/reflection/ledger): PASS
+[smoke] (4) load_context — keys + counts + threads + transcript: PASS
+[smoke] (5) SessionContext helpers: PASS
+[smoke] (6) intake adapter — accept new summary: PASS
+[smoke] (7) intake adapter — reject on source_ref collision: PASS
+[smoke] (8) re-bootstrap — new intake task visible, count==4: PASS
+[smoke] (9.1) milestone-4 fixture validates under v0.1.4: PASS
+[smoke] (9.2) notification_policy (object) + research_at round-trip: PASS
+[smoke] (9.3) loader preserves both milestone-4 fields: PASS
+[smoke] (9.4) scheduler-side default: research_at=null -> -60min: PASS
+[smoke] (9.5) reader-side default: absent policy -> {mode: roll_up_daily}: PASS
+[smoke] (9.6) invalid example rejected on both fields: PASS
+[smoke] (9.7) re-bootstrap sees milestone-4 task; open_task_count == 5: PASS
+[smoke] (9) milestone-4 notification cadence + research_at: PASS
+PASS: 9 scenarios
+$ echo $?
+0
+
+================================================================================
+ASSERTION COUNT (matches test_canonical_schema.py PASS-line style)
+================================================================================
+
+Top-level steps:    9   (was 8)
+Sub-assertions:     7   (named PASS lines for step 9)
+Total PASS lines:   17  (8 top + 7 sub + 1 umbrella + final "PASS: 9 scenarios")
+
+================================================================================
+INVALID-FIXTURE ERROR SURFACE (verified)
+================================================================================
+
+For milestone-4-invalid.json, task_schema.validate_task_record returns:
+
+  research_at: must be ISO-8601 UTC ending in Z or null; got '2026-05-20 14:00'
+  notification_policy: notification_policy.mode must be one of ('inline', 'roll_up_daily', 'on_finding'); got 'every_five_minutes'
+
+Both error strings contain the literal field names — assertion 9.6's
+`"notification_policy" in e` and `"research_at" in e` substring checks
+match cleanly without further fixup.
+
+================================================================================
+NOTES FOR josh-desktop@mesh ON 2026-05-20 NIGHTLY SYNTHESIZE
+================================================================================
+
+Both peers cut against v0.1.4. The peer patches collide on exactly one
+line each (the version-bump in the module docstring + the schema title).
+The collision is mechanical — combine the descriptions:
+
+  task_schema.py docstring line 2:
+    -task.json schema validator — v0.1.3 (Rule 8 + Rule 7 confirmed; failure_modes enum locked).
+    +task.json schema validator — v0.1.4 (notification_policy + research_at added; v0.1.3 fields unchanged).
+
+  task-json-schema.json title + description:
+    Combine worker-a's and worker-b's descriptions into one sentence noting
+    BOTH new fields. Title can be "v0.1.4 — milestone-4 notification cadence
+    + two-phase schedule" or similar.
+
+After that combined cut, all four peer patches apply (with manual
+fixup of hunk #1 in each schema file) and the smoke trace above runs to
+"PASS: 9 scenarios" reproducibly. No semantic conflict beyond the
+version-bump line.
+
+worker-c's smoke_test.patch does NOT touch SCHEMA_DIR — it assumes
+the v0.1.4 cut lands in the v0.1.3 directory (in-place bump) as both peer
+patches imply. If host@mesh prefers a separate v0.1.4 snapshot dir
+instead, repoint SCHEMA_DIR in smoke_test.py to the new dir and re-run.

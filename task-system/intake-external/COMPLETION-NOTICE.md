@@ -1,0 +1,1 @@
+intake-external adapters ready — 12 named assertions PASS against real dedupe library (worker-c polled for dedupe; josh-desktop completed dedupe after worker-a interrupted; c's tests verified clean against the real library)

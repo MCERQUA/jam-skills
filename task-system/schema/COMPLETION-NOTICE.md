@@ -1,0 +1,1 @@
+canonical-schema v0.1.3 ready — failure_modes enum locked (21 values, src-desktop's v0.2 work). 25 Python + 6 Draft-07 cross-checks all PASS. Intake-adapter snapshots unaffected (default failure_modes:[] still legal).

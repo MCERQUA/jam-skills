@@ -1,0 +1,26 @@
+{
+  "id": "2026-05-18-1830-acme-callback-decking-install",
+  "state": "scheduled",
+  "raised_at": "2026-05-18T18:30:00Z",
+  "raised_by": "sms",
+  "source_ref": "SM7c2a9f1e88b4d40a91ab0a3a2f1b8c01",
+  "summary": "Operator asked for callback re Seattle decking install timing",
+  "tenant": "acme",
+  "operator_phone": "+14165557788",
+  "email_authorized_by_mike": null,
+  "recipient": null,
+  "scheduled_at": "2026-05-19T14:00:00Z",
+  "state_history": [
+    {"state": "intake",     "at": "2026-05-18T18:30:00Z", "by": "sms-intake-adapter@mesh"},
+    {"state": "shop-floor", "at": "2026-05-18T18:32:00Z", "by": "acme-tenant-agent@mesh"},
+    {"state": "planned",    "at": "2026-05-18T18:55:00Z", "by": "acme-tenant-agent@mesh"},
+    {"state": "scheduled",  "at": "2026-05-18T19:01:00Z", "by": "acme-tenant-agent@mesh"}
+  ],
+  "clerk_session_id": null,
+  "lock_required": true,
+  "defer_count": 0,
+  "failure_modes": [],
+  "dedup_hash": "sha1:acme:SM7c2a9f1e88b4d40a91ab0a3a2f1b8c01:operator-asked-for",
+  "recipient_role": "operator",
+  "linked_to": []
+}

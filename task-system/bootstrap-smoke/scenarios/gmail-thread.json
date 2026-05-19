@@ -1,0 +1,21 @@
+{
+  "thread_id": "gmail-thread-abc123def456",
+  "subject": "Updated quote — Seattle decking",
+  "participants": ["bookings@acme-roofing.example", "mike@cca.example"],
+  "messages": [
+    {
+      "id": "msg-001",
+      "from": "bookings@acme-roofing.example",
+      "to": ["mike@cca.example"],
+      "sent_at": "2026-05-18T09:55:00Z",
+      "body": "Hi Mike — circling back on the Seattle decking install. The owner asked for an updated quote that reflects the cedar option we discussed. Can you get something across by Wed? — Acme"
+    },
+    {
+      "id": "msg-002",
+      "from": "mike@cca.example",
+      "to": ["bookings@acme-roofing.example"],
+      "sent_at": "2026-05-18T10:01:00Z",
+      "body": "Got it — will work the cedar number and have it across by Wed AM at the latest. Will confirm dimensions with the operator first."
+    }
+  ]
+}

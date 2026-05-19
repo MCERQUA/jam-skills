@@ -1,0 +1,39 @@
+--- a/task_schema.py	2026-05-19 03:02:00.055150907 +0000
++++ b/task_schema.py	2026-05-19 03:02:36.540380831 +0000
+@@ -1,5 +1,5 @@
+ """
+-task.json schema validator — v0.1.3 (Rule 8 + Rule 7 confirmed; failure_modes enum locked).
++task.json schema validator — v0.1.4 (two-phase schedule: research_at sibling of scheduled_at).
+ 
+ Extends the v0.1 baseline at
+ /agent-desk/snapshots/2026-05-18-task-substrate/task_schema.py with the
+@@ -24,6 +24,12 @@
+       These three are now REQUIRED-ALWAYS. Single-tenant-agent + dedupe-at-intake
+       + recipient-role-disambiguation are v0.1.2 invariants.
+ 
++  - Milestone-4 two-phase schedule (host msg 2026-05-19-001, worker-b 2026-05-19):
++      + research_at       (ISO-Z|null) — moment the planning/research run fires.
++        OPTIONAL, never required. Defaults to scheduled_at - 60min resolved by
++        the scheduler (not the schema). Pure additive: v0.1.3 records with
++        research_at absent continue to validate clean under v0.1.4.
++
+ Cross-agent lockstep: every agent that reads/writes a task.json imports
+ TASK_FIELDS / STATES / SOURCES / RECIPIENT_ROLES from this module. Schema
+ bumps land here first, all downstream tools follow.
+@@ -108,6 +114,7 @@
+     "operator_phone":           ("always",        "str_or_null"),
+     "email_authorized_by_mike": ("always",        "iso_z_or_null"),
+     "recipient":                ("always",        "str_or_null"),
++    "research_at":              ("optional",      "iso_z_or_null"),
+     "scheduled_at":             ("if_scheduled",  "iso_z_or_null"),
+     "parked_until":             ("if_parked",     "iso_z_or_null"),
+     "completed_at":             ("if_done",       "iso_z_or_null"),
+@@ -203,6 +210,8 @@
+     when, _ = TASK_FIELDS[field]
+     if when == "always":
+         return True
++    if when == "optional":
++        return False
+     if when == "if_scheduled":
+         return state in ("scheduled", "today", "done")
+     if when == "if_parked":

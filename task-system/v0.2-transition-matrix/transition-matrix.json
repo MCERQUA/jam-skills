@@ -1,0 +1,108 @@
+{
+  "schema_version": "v0.2",
+  "source_spec": "v0.1.1 task-system spec §5",
+  "author": "src-desktop@mesh",
+  "locked_at": "2026-05-18T21:15:00Z",
+  "states": ["_new", "intake", "shop-floor", "planned", "scheduled", "today", "done", "in-flight", "parked"],
+  "terminal_states": ["done"],
+  "writer_roles": ["task-agent", "voice-agent", "brief-reader", "check-and-promote-cron"],
+  "transitions": [
+    {
+      "from": "_new",
+      "to": "intake",
+      "writer_roles": ["task-agent", "voice-agent"],
+      "required_artifacts": ["task.json"],
+      "trigger": "Voice utterance, mesh message, brief item, SMS in, manual",
+      "notes": "Pseudo-state entry. _new is not a real directory; this transition is task creation."
+    },
+    {
+      "from": "intake",
+      "to": "shop-floor",
+      "writer_roles": ["task-agent"],
+      "required_artifacts": [],
+      "trigger": "Task agent picks it up for investigation"
+    },
+    {
+      "from": "intake",
+      "to": "in-flight",
+      "writer_roles": ["voice-agent"],
+      "required_artifacts": ["upload-task.md"],
+      "trigger": "Voice agent on upload start",
+      "notes": "VOICE-AGENT-ONLY. Mesh-side schedulers and task-agent must REFUSE this transition. Distinct from generic intake→shop-floor because voice agent IS the executor during the upload (spec §1 Rule 4)."
+    },
+    {
+      "from": "shop-floor",
+      "to": "planned",
+      "writer_roles": ["task-agent"],
+      "required_artifacts": ["plan.md"],
+      "trigger": "plan.md written"
+    },
+    {
+      "from": "shop-floor",
+      "to": "parked",
+      "writer_roles": ["task-agent"],
+      "required_artifacts": ["blocker.json", "blockers.md"],
+      "trigger": "Blocker raised; both blocker.json and blockers.md must be present"
+    },
+    {
+      "from": "planned",
+      "to": "scheduled",
+      "writer_roles": ["task-agent", "brief-reader"],
+      "required_artifacts": ["schedule.json"],
+      "trigger": "schedule.json written; brief reader may auto-schedule from patterns.json"
+    },
+    {
+      "from": "scheduled",
+      "to": "today",
+      "writer_roles": ["brief-reader"],
+      "required_artifacts": [],
+      "trigger": "schedule.json.scheduled_at falls within current UTC day; brief reader sweeps"
+    },
+    {
+      "from": "today",
+      "to": "done",
+      "writer_roles": ["task-agent"],
+      "required_artifacts": ["postmortem.md"],
+      "trigger": "Execution complete; postmortem.md written"
+    },
+    {
+      "from": "parked",
+      "to": "today",
+      "writer_roles": ["check-and-promote-cron"],
+      "required_artifacts": ["schedule.json"],
+      "preconditions": ["blocker.json.resolved == true", "blocker.json.parked_until < now"],
+      "trigger": "Blocker resolved AND parked_until in the past; cron promotes",
+      "notes": "schedule.json may need re-write if scheduled_at is now stale; cron should re-stamp."
+    },
+    {
+      "from": "in-flight",
+      "to": "done",
+      "writer_roles": ["voice-agent"],
+      "required_artifacts": ["postmortem.md"],
+      "preconditions": ["upload-task.md.status == done"],
+      "trigger": "Upload reports status=done; voice agent finalizes"
+    },
+    {
+      "from": "in-flight",
+      "to": "parked",
+      "writer_roles": ["voice-agent"],
+      "required_artifacts": ["blocker.json", "blockers.md"],
+      "preconditions": ["upload-task.md.status == failed"],
+      "trigger": "Upload reports status=failed; voice agent files blocker"
+    }
+  ],
+  "illegal_transition_examples_for_test_coverage": [
+    {"from": "intake", "to": "planned", "reason": "must visit shop-floor first to surface blockers"},
+    {"from": "intake", "to": "scheduled", "reason": "must have plan.md before scheduling"},
+    {"from": "intake", "to": "done", "reason": "no work performed; would be a meta-failure (test gap, false postmortem)"},
+    {"from": "shop-floor", "to": "scheduled", "reason": "must produce plan.md (planned/) before scheduling"},
+    {"from": "planned", "to": "today", "reason": "must produce schedule.json (scheduled/) before today/"},
+    {"from": "scheduled", "to": "done", "reason": "must transit today/ for brief-reader visibility (audit trail)"},
+    {"from": "parked", "to": "done", "reason": "must re-enter today/ via check-and-promote-cron and then run execution path"},
+    {"from": "parked", "to": "planned", "reason": "blocker-resolution goes parked→today, not parked→planned (plan already exists)"},
+    {"from": "done", "to": "*", "reason": "done is terminal; rework requires a new task with linked_to"},
+    {"from": "in-flight", "to": "shop-floor", "reason": "in-flight is voice-agent-owned; cannot demote to task-agent investigation"},
+    {"from": "in-flight", "to": "scheduled", "reason": "uploads do not enter the scheduler"},
+    {"from": "intake", "to": "in-flight", "reason_when_invalid": "writer_role != voice-agent — only voice agent can promote intake to in-flight"}
+  ]
+}

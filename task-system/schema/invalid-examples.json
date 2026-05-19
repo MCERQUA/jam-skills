@@ -1,0 +1,200 @@
+[
+  {
+    "example": {
+      "id": "2026-05-18-2100-rule1-violation",
+      "state": "intake",
+      "raised_at": "2026-05-18T21:00:00Z",
+      "raised_by": "mesh",
+      "source_ref": "2026-05-18-999-fake.md",
+      "summary": "Try to send something to a client without both auth fields set",
+      "tenant": "cca",
+      "operator_phone": null,
+      "email_authorized_by_mike": "2026-05-18T20:00:00Z",
+      "recipient": null,
+      "state_history": [
+        {
+          "state": "intake",
+          "at": "2026-05-18T21:00:00Z",
+          "by": "cca-intake-adapter@mesh"
+        }
+      ],
+      "clerk_session_id": null,
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": []
+    },
+    "why_invalid": "Rule 1 cross-field violation: email_authorized_by_mike is set but recipient is null. Both must be set or both null."
+  },
+  {
+    "example": {
+      "id": "2026-05-18-2110-legacy-escalate-on-task",
+      "state": "intake",
+      "raised_at": "2026-05-18T21:10:00Z",
+      "raised_by": "manual",
+      "source_ref": null,
+      "summary": "Legacy task carrying escalate_count \u2014 that field now lives in blocker.json",
+      "tenant": "josh",
+      "operator_phone": null,
+      "email_authorized_by_mike": null,
+      "recipient": null,
+      "state_history": [
+        {
+          "state": "intake",
+          "at": "2026-05-18T21:10:00Z",
+          "by": "manual"
+        }
+      ],
+      "clerk_session_id": null,
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": [],
+      "escalate_count": 0
+    },
+    "why_invalid": "escalate_count is no longer a task.json field \u2014 src-desktop moved it to blocker.json. Unknown-field check fires."
+  },
+  {
+    "example": {
+      "id": "2026-05-18-2120-missing-state-history",
+      "state": "intake",
+      "raised_at": "2026-05-18T21:20:00Z",
+      "raised_by": "voice",
+      "source_ref": "voice-session-9aa1-line-7",
+      "summary": "Voice utterance that did not write a state_history entry on intake",
+      "tenant": "danielle",
+      "operator_phone": null,
+      "email_authorized_by_mike": null,
+      "recipient": null,
+      "clerk_session_id": "sess_2nWqLk9rTfBy",
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": []
+    },
+    "why_invalid": "Missing required state_history field. bun-desktop input mandates it on every task (can be [] but must be present)."
+  },
+  {
+    "example": {
+      "id": "2026-05-19-2200-bad-notif-mode",
+      "state": "intake",
+      "raised_at": "2026-05-19T22:00:00Z",
+      "raised_by": "mesh",
+      "source_ref": "synthetic-invalid",
+      "summary": "synthetic invalid example",
+      "tenant": "josh",
+      "operator_phone": null,
+      "email_authorized_by_mike": null,
+      "recipient": null,
+      "state_history": [
+        {
+          "state": "intake",
+          "at": "2026-05-19T22:00:00Z",
+          "by": "test@mesh"
+        }
+      ],
+      "clerk_session_id": null,
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": [],
+      "dedup_hash": "sha1:josh:synth:invalid-base",
+      "recipient_role": null,
+      "linked_to": [],
+      "notification_policy": {
+        "mode": "roll-up-daily"
+      }
+    },
+    "why_invalid": "notification_policy.mode must be snake_case enum (inline | roll_up_daily | on_finding); kebab 'roll-up-daily' is not in the enum."
+  },
+  {
+    "example": {
+      "id": "2026-05-19-2201-bad-research-at",
+      "state": "intake",
+      "raised_at": "2026-05-19T22:00:00Z",
+      "raised_by": "mesh",
+      "source_ref": "synthetic-invalid",
+      "summary": "synthetic invalid example",
+      "tenant": "josh",
+      "operator_phone": null,
+      "email_authorized_by_mike": null,
+      "recipient": null,
+      "state_history": [
+        {
+          "state": "intake",
+          "at": "2026-05-19T22:00:00Z",
+          "by": "test@mesh"
+        }
+      ],
+      "clerk_session_id": null,
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": [],
+      "dedup_hash": "sha1:josh:synth:invalid-base",
+      "recipient_role": null,
+      "linked_to": [],
+      "research_at": "2026/05/19 13:00"
+    },
+    "why_invalid": "research_at must match ISO-8601 UTC pattern ending in Z (e.g. 2026-05-19T13:00:00Z); '2026/05/19 13:00' fails the regex."
+  },
+  {
+    "example": {
+      "id": "2026-05-19-2202-bad-failure-mode",
+      "state": "intake",
+      "raised_at": "2026-05-19T22:00:00Z",
+      "raised_by": "mesh",
+      "source_ref": "synthetic-invalid",
+      "summary": "synthetic invalid example",
+      "tenant": "josh",
+      "operator_phone": null,
+      "email_authorized_by_mike": null,
+      "recipient": null,
+      "state_history": [
+        {
+          "state": "intake",
+          "at": "2026-05-19T22:00:00Z",
+          "by": "test@mesh"
+        }
+      ],
+      "clerk_session_id": null,
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": [
+        "arbitrary_string_not_in_enum"
+      ],
+      "dedup_hash": "sha1:josh:synth:invalid-base",
+      "recipient_role": null,
+      "linked_to": []
+    },
+    "why_invalid": "failure_modes items must be drawn from the v0.2 21-value enum; 'arbitrary_string_not_in_enum' is rejected."
+  },
+  {
+    "example": {
+      "id": "2026-05-19-2203-notif-extra",
+      "state": "intake",
+      "raised_at": "2026-05-19T22:00:00Z",
+      "raised_by": "mesh",
+      "source_ref": "synthetic-invalid",
+      "summary": "synthetic invalid example",
+      "tenant": "josh",
+      "operator_phone": null,
+      "email_authorized_by_mike": null,
+      "recipient": null,
+      "state_history": [
+        {
+          "state": "intake",
+          "at": "2026-05-19T22:00:00Z",
+          "by": "test@mesh"
+        }
+      ],
+      "clerk_session_id": null,
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": [],
+      "dedup_hash": "sha1:josh:synth:invalid-base",
+      "recipient_role": null,
+      "linked_to": [],
+      "notification_policy": {
+        "mode": "inline",
+        "unknown_key": "x"
+      }
+    },
+    "why_invalid": "notification_policy object disallows additional properties; unknown_key is rejected."
+  }
+]

@@ -1,0 +1,73 @@
+[
+  {
+    "id": "2026-05-18-0915-cca-domain-quote-acme",
+    "state": "intake",
+    "raised_at": "2026-05-18T09:15:00Z",
+    "raised_by": "email",
+    "source_ref": "gmail-thread-189f3b7ac2",
+    "summary": "Acme Roofing asked for an updated domain + hosting quote",
+    "tenant": "cca",
+    "operator_phone": null,
+    "email_authorized_by_mike": null,
+    "recipient": null,
+    "state_history": [
+      {"state": "intake", "at": "2026-05-18T09:15:00Z", "by": "cca-intake-adapter@mesh"}
+    ],
+    "clerk_session_id": null,
+    "lock_required": true,
+    "defer_count": 0,
+    "failure_modes": [],
+    "dedup_hash": "sha1:cca:gmail-thread-189f3b7ac2:acme-roofing-quote",
+    "recipient_role": null,
+    "linked_to": []
+  },
+  {
+    "id": "2026-05-18-1830-cca-followup-decking",
+    "state": "scheduled",
+    "raised_at": "2026-05-18T18:30:00Z",
+    "raised_by": "sms",
+    "source_ref": "SM7c2a9f1e88b4d40a91ab0a3a2f1b8c01",
+    "summary": "Operator asked for callback re Seattle decking install timing",
+    "tenant": "cca",
+    "operator_phone": "+14374559131",
+    "email_authorized_by_mike": null,
+    "recipient": null,
+    "scheduled_at": "2026-05-19T14:00:00Z",
+    "state_history": [
+      {"state": "intake",    "at": "2026-05-18T18:30:00Z", "by": "sms-router@mesh"},
+      {"state": "shop-floor","at": "2026-05-18T18:32:00Z", "by": "cca-tenant-agent@mesh"},
+      {"state": "planned",   "at": "2026-05-18T18:55:00Z", "by": "cca-tenant-agent@mesh"},
+      {"state": "scheduled", "at": "2026-05-18T19:01:00Z", "by": "cca-tenant-agent@mesh"}
+    ],
+    "clerk_session_id": null,
+    "lock_required": true,
+    "defer_count": 1,
+    "failure_modes": ["latency_budget_exceeded"],
+    "dedup_hash": "sha1:cca:SM7c2a9f1e88b4d40a91ab0a3a2f1b8c01:decking-callback",
+    "recipient_role": "operator",
+    "linked_to": []
+  },
+  {
+    "id": "2026-05-18-1411-kitchen-cabinets-upload",
+    "state": "in-flight",
+    "raised_at": "2026-05-18T14:11:53Z",
+    "raised_by": "voice",
+    "source_ref": "voice-session-7e2dd8a4-line-42",
+    "summary": "MP4 walkthrough of kitchen-cabinets job — Danielle canvas upload",
+    "tenant": "danielle",
+    "operator_phone": null,
+    "email_authorized_by_mike": null,
+    "recipient": null,
+    "state_history": [
+      {"state": "intake",    "at": "2026-05-18T14:11:53Z", "by": "danielle-voice@mesh"},
+      {"state": "in-flight", "at": "2026-05-18T14:11:55Z", "by": "danielle-voice@mesh"}
+    ],
+    "clerk_session_id": "sess_2nWqLk9rTfBy",
+    "lock_required": true,
+    "defer_count": 0,
+    "failure_modes": ["voice_agent_is_executor_but_no_task_record"],
+    "dedup_hash": "sha1:danielle:voice-session-7e2dd8a4-line-42:kitchen-cabinets-mp4",
+    "recipient_role": null,
+    "linked_to": []
+  }
+]

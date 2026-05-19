@@ -1,0 +1,26 @@
+{
+  "id": "2026-05-18-1015-sms-confirm-tuesday-install",
+  "state": "intake",
+  "raised_at": "2026-05-18T10:15:00Z",
+  "raised_by": "sms",
+  "source_ref": "SM7c1f9a40b2d34e75ab06f8c2e91d6b50",
+  "summary": "SMS-origin: operator confirms Tuesday install slot, log and ack",
+  "tenant": "smoke-test-tenant",
+  "operator_phone": "+14165550100",
+  "email_authorized_by_mike": null,
+  "recipient": null,
+  "scheduled_at": null,
+  "parked_until": null,
+  "completed_at": null,
+  "outcome": null,
+  "state_history": [
+    {"state": "intake", "at": "2026-05-18T10:15:00Z", "by": "sms-router@josh-desktop"}
+  ],
+  "clerk_session_id": null,
+  "lock_required": true,
+  "defer_count": 0,
+  "failure_modes": [],
+  "dedup_hash": "smoke-test-tenant:SM7c1f9a40b2d34e75ab06f8c2e91d6b50:tuesday-install",
+  "recipient_role": "operator",
+  "linked_to": []
+}

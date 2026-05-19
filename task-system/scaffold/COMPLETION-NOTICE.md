@@ -1,0 +1,1 @@
+tenant-scaffolder ready

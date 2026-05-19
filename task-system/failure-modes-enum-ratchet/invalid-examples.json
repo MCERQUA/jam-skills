@@ -1,0 +1,88 @@
+[
+  {
+    "example": {
+      "id": "2026-05-18-2100-rule1-violation",
+      "state": "intake",
+      "raised_at": "2026-05-18T21:00:00Z",
+      "raised_by": "mesh",
+      "source_ref": "2026-05-18-999-fake.md",
+      "summary": "Try to send something to a client without both auth fields set",
+      "tenant": "cca",
+      "operator_phone": null,
+      "email_authorized_by_mike": "2026-05-18T20:00:00Z",
+      "recipient": null,
+      "state_history": [
+        {"state": "intake", "at": "2026-05-18T21:00:00Z", "by": "cca-intake-adapter@mesh"}
+      ],
+      "clerk_session_id": null,
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": []
+    },
+    "why_invalid": "Rule 1 cross-field violation: email_authorized_by_mike is set but recipient is null. Both must be set or both null."
+  },
+  {
+    "example": {
+      "id": "2026-05-18-2110-legacy-escalate-on-task",
+      "state": "intake",
+      "raised_at": "2026-05-18T21:10:00Z",
+      "raised_by": "manual",
+      "source_ref": null,
+      "summary": "Legacy task carrying escalate_count — that field now lives in blocker.json",
+      "tenant": "josh",
+      "operator_phone": null,
+      "email_authorized_by_mike": null,
+      "recipient": null,
+      "state_history": [
+        {"state": "intake", "at": "2026-05-18T21:10:00Z", "by": "manual"}
+      ],
+      "clerk_session_id": null,
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": [],
+      "escalate_count": 0
+    },
+    "why_invalid": "escalate_count is no longer a task.json field — src-desktop moved it to blocker.json. Unknown-field check fires."
+  },
+  {
+    "example": {
+      "id": "2026-05-18-2120-missing-state-history",
+      "state": "intake",
+      "raised_at": "2026-05-18T21:20:00Z",
+      "raised_by": "voice",
+      "source_ref": "voice-session-9aa1-line-7",
+      "summary": "Voice utterance that did not write a state_history entry on intake",
+      "tenant": "danielle",
+      "operator_phone": null,
+      "email_authorized_by_mike": null,
+      "recipient": null,
+      "clerk_session_id": "sess_2nWqLk9rTfBy",
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": []
+    },
+    "why_invalid": "Missing required state_history field. bun-desktop input mandates it on every task (can be [] but must be present)."
+  },
+  {
+    "example": {
+      "id": "2026-05-19-2130-arbitrary-failure-mode",
+      "state": "intake",
+      "raised_at": "2026-05-19T21:30:00Z",
+      "raised_by": "mesh",
+      "source_ref": "2026-05-19-999-fake.md",
+      "summary": "v0.1.3: failure_modes carrying a value not in the 21-value enum",
+      "tenant": "josh",
+      "operator_phone": null,
+      "email_authorized_by_mike": null,
+      "recipient": null,
+      "state_history": [
+        {"state": "intake", "at": "2026-05-19T21:30:00Z", "by": "josh-desktop@mesh"}
+      ],
+      "clerk_session_id": null,
+      "lock_required": true,
+      "defer_count": 0,
+      "failure_modes": ["timeout"]
+    },
+    "why_invalid": "v0.1.3 Rule 9: 'timeout' is not in the 21-value failure_modes enum. Vocabulary closed at v0.2; additions require kind: decision + Mike approval at v0.3 ratchet."
+  }
+]

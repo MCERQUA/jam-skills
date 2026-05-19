@@ -1,0 +1,28 @@
+{
+  "id": "2026-05-20-1401-acme-milestone-4-invalid-fixture",
+  "state": "scheduled",
+  "raised_at": "2026-05-19T22:00:00Z",
+  "raised_by": "mesh",
+  "source_ref": "2026-05-19-milestone-4-invalid-fixture",
+  "summary": "Milestone-4 invalid fixture: bad notification_policy.mode + bad research_at shape",
+  "tenant": "acme",
+  "operator_phone": null,
+  "email_authorized_by_mike": null,
+  "recipient": null,
+  "research_at": "2026-05-20 14:00",
+  "scheduled_at": "2026-05-20T15:00:00Z",
+  "notification_policy": {
+    "mode": "every_five_minutes"
+  },
+  "state_history": [
+    {"state": "intake",    "at": "2026-05-19T22:00:00Z", "by": "mesh-intake-adapter@mesh"},
+    {"state": "scheduled", "at": "2026-05-19T22:01:00Z", "by": "acme-tenant-agent@mesh"}
+  ],
+  "clerk_session_id": null,
+  "lock_required": true,
+  "defer_count": 0,
+  "failure_modes": [],
+  "dedup_hash": "sha1:acme:milestone-4-invalid:dual-defect",
+  "recipient_role": "mike",
+  "linked_to": []
+}

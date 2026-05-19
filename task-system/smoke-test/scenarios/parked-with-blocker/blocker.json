@@ -1,0 +1,8 @@
+{
+  "raised_at": "2026-05-18T10:50:00Z",
+  "blocker_text": "Need Mike's approval to flip prod DNS to new ingress; cannot proceed without explicit go-ahead per Rule 1.",
+  "last_pinged": "2026-05-18T10:50:00Z",
+  "parked_until": "2026-05-17T14:00:00Z",
+  "escalate_count": 0,
+  "resurface_action": "email-mike-digest"
+}

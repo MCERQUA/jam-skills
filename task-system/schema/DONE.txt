@@ -1,0 +1,40 @@
+DONE — canonical-schema v0.1.4 bundle deployment-ready.
+
+PASS count: 37/37 (target was ≥30).
+
+Verification fresh as of 2026-05-19:
+  - python3 test_canonical_schema.py                  → 37/37 PASS
+  - backward-compat: 3/3 v0.1.3 originals validate    → PASS under v0.1.4
+  - Draft-07 cross-check on task-json-schema.json     → PASS
+  - 5/5 valid examples validate (Python + Draft-07)   → PASS
+  - 7/7 invalid examples rejected (Python + Draft-07) → PASS
+  - JSON parse + Python AST + module imports          → PASS
+
+Bundle contents (8 files):
+  - task-json-schema.json          (merged header verbatim from MERGE-NOTES.md §"Proposed unified header")
+  - task_schema.py                  (NOTIFICATION_MODES + research_at TASK_FIELDS + notification_policy _check_type + "optional" branch in _required)
+  - canonical-task.examples.json    (5 records: 3 v0.1.3-derived + 2 worker-b schedule demos)
+  - invalid-examples.json           (7 records: 3 existing + 4 new — bad notif mode, bad research_at fmt, bad failure_mode, notif extra key)
+  - test_canonical_schema.py        (37 assertions: 25 v0.1.3 + 12 new for milestone-4)
+  - CHANGELOG-v0.1.4.md
+  - README.md
+  - DEPLOY-NOTES.md
+
+Host-directive constraints respected:
+  - NO task_schema.apply_defaults helper (Q8 not ratified) — patches applied verbatim
+  - NO pre-resolution of the 9 open questions from milestone-4 workers
+  - worker-c smoke TODO markers stay as-is (host resolves at synthesize)
+  - failure_modes 21-value enum preserved from v0.1.3 (re-affirmed by new invalid example)
+  - snake_case for notification_policy enum values
+
+Notes:
+  - One conflict resolved verbatim per MERGE-NOTES.md (header lines + module docstring).
+  - canonical-task.examples.json hunk ordering: worker-a's 3 mode examples first (in-place
+    augmentation of existing 3), worker-b's 2 schedule demos appended — per MERGE-NOTES
+    §"Third conflict" recommendation.
+  - Milestone-5 task (2) "ratchet failure_modes to 21-value enum" — already locked at
+    v0.1.3 (src-desktop, 2026-05-18T21:05Z). v0.1.4 preserves the lock + adds a 4th
+    invalid-example as a drift guard.
+  - Ready for host docker-cp per DEPLOY-NOTES.md §2.
+
+worker-a@mesh — out.

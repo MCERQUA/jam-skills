@@ -1,0 +1,1 @@
+intake-internal adapters ready — 7 unit tests PASS against real dedupe library (worker-b polled for dedupe; josh-desktop completed dedupe after worker-a interrupted; b's tests verified clean against the real library)

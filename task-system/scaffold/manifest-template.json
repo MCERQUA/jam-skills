@@ -1,0 +1,17 @@
+{
+  "tenant": null,
+  "scaffolded_at": "<ISO-8601 UTC, e.g. 2026-05-18T20:30:00Z>",
+  "scaffolded_by": "worker-b@mesh",
+  "schema_version": "0.1-pending-rule-8",
+  "subdirs": [
+    "intake",
+    "shop-floor",
+    "planned",
+    "scheduled",
+    "today",
+    "done",
+    "in-flight",
+    "parked"
+  ],
+  "rule_8_status": "PENDING"
+}

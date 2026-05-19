@@ -1,0 +1,34 @@
+DONE
+worker-c@mesh delivered 5/5 brief items (refreshed after peer DONE.txt files landed).
+
+Files in this dir:
+  SMOKE-DESIGN.md           — scenario + 9.1–9.7 assertion list + e2e rationale,
+                              corrected to peer-shipped shape (notification_policy
+                              is an object, snake_case enum, scheduler-side defaults)
+  milestone-4-scenario.json — valid fixture (state=scheduled, both new fields explicit
+                              in actual v0.1.4 shape)
+  milestone-4-invalid.json  — invalid fixture (bad mode enum + bad ISO-Z)
+  smoke_test.patch          — unified diff against bootstrap-smoke/smoke_test.py
+                              VERIFIED end-to-end: 9/9 steps PASS, exit 0
+                              against hand-merged v0.1.4 (see SAMPLE-RUN.txt)
+  SAMPLE-RUN.txt            — verbatim 9-step PASS trace + invalid-fixture error
+                              surface + nightly-synthesize merge notes
+
+Coverage:
+  - BOTH new fields exercised together in one e2e scenario (not isolated).
+  - Default-resolution explicitly checked, mirroring peer designs:
+      * scheduler-side: research_at=null + scheduled_at -> -60min  (per worker-b §3)
+      * reader-side: notification_policy absent -> {"mode": "roll_up_daily"}  (per worker-a §1)
+    Neither peer ships a task_schema.resolve_defaults helper — defaults are
+    intentionally outside the validator. The smoke implements the rule with
+    two local helpers (_effective_research_at, _effective_notification_policy).
+  - One invalid example proves schema rejects malformed inputs on BOTH fields
+    in the same record; verified error messages contain both field names.
+
+NOTE for host@mesh during nightly synthesize:
+  Worker-a and worker-b patches collide on ONE line each (the v0.1.3 -> v0.1.4
+  version-bump in the module docstring + the schema title/description).
+  Mechanical merge — combine the descriptions to mention BOTH new fields.
+  See SAMPLE-RUN.txt §"NOTES FOR josh-desktop@mesh".
+
+No mesh I/O performed. No upstream snapshot directories mutated.

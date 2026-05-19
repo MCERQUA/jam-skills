@@ -1,0 +1,39 @@
+--- a/canonical-task.examples.json
++++ b/canonical-task.examples.json
+@@ -19,7 +19,8 @@
+     "failure_modes": [],
+     "dedup_hash": "sha1:cca:gmail-thread-189f3b7ac2:acme-roofing-quote",
+     "recipient_role": null,
+-    "linked_to": []
++    "linked_to": [],
++    "notification_policy": {"mode": "roll_up_daily"}
+   },
+   {
+     "id": "2026-05-18-1830-cca-followup-decking",
+@@ -45,7 +46,8 @@
+     "failure_modes": ["latency_budget_exceeded"],
+     "dedup_hash": "sha1:cca:SM7c2a9f1e88b4d40a91ab0a3a2f1b8c01:decking-callback",
+     "recipient_role": "operator",
+-    "linked_to": []
++    "linked_to": [],
++    "notification_policy": {"mode": "inline"}
+   },
+   {
+     "id": "2026-05-18-1411-kitchen-cabinets-upload",
+@@ -68,6 +70,15 @@
+     "failure_modes": [],
+     "dedup_hash": "sha1:danielle:voice-session-7e2dd8a4-line-42:kitchen-cabinets-mp4",
+     "recipient_role": null,
+-    "linked_to": []
++    "linked_to": [],
++    "notification_policy": {
++      "mode": "on_finding",
++      "on_finding_threshold": {
++        "metric": "research_delta_score",
++        "comparator": "gte",
++        "value": 0.8,
++        "cooldown_seconds": 3600
++      }
++    }
+   }
+ ]

@@ -1,0 +1,26 @@
+--- a/task-json-schema.json	2026-05-19 03:05:17.303395761 +0000
++++ b/task-json-schema.json	2026-05-19 03:05:17.518397120 +0000
+@@ -1,8 +1,8 @@
+ {
+   "$schema": "http://json-schema.org/draft-07/schema#",
+-  "$id": "https://jam-bot.com/schemas/task-json/v0.1.3.json",
+-  "title": "JamBot task.json (canonical v0.1.3 — failure_modes enum locked)",
+-  "description": "v0.1.2 (Rule 8 + Rule 7) + v0.2 failure_modes enum (21 values, locked 2026-05-18T21:05Z by src-desktop, 4 contributors aligned).",
++  "$id": "https://jam-bot.com/schemas/task-json/v0.1.4.json",
++  "title": "JamBot task.json (canonical v0.1.4 — two-phase schedule)",
++  "description": "v0.1.3 + research_at top-level optional field for two-phase scheduling (milestone-4, host msg 2026-05-19-001). Additive; v0.1.3 records with research_at absent continue to validate.",
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+@@ -70,6 +70,11 @@
+       "type": ["string", "null"],
+       "description": "Rule 1: must be set together with `email_authorized_by_mike`."
+     },
++    "research_at": {
++      "type": ["string", "null"],
++      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
++      "description": "Two-phase schedule (milestone-4): moment the planning/research run fires. Sibling of scheduled_at. Optional; defaults to scheduled_at - 60min when null and scheduled_at is set (resolved scheduler-side, not schema-side). v0.1.3 readers that ignore this field continue to validate."
++    },
+     "scheduled_at": {
+       "type": ["string", "null"],
+       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"

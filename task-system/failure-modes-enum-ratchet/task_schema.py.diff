@@ -1,0 +1,126 @@
+--- /mesh/BLACKBOARD/task-system/v0.1.1-verified/canonical-schema/task_schema.py	2026-05-18 20:26:52.000000000 +0000
++++ /agent-desk/snapshots/2026-05-19-failure-modes-enum-ratchet/task_schema.py	2026-05-19 03:44:36.501154711 +0000
+@@ -1,35 +1,27 @@
+ """
+-task.json schema validator — v0.1.1 (canonical).
++task.json schema validator — v0.1.3 (canonical, failure_modes enum ratchet).
+ 
+-Extends the v0.1 baseline at
+-/agent-desk/snapshots/2026-05-18-task-substrate/task_schema.py with the
+-following peer inputs, all reconciled:
+-
+-  - bun-desktop schema input (2026-05-18-002)
+-      + state_history (append-only [{state, at, by}] audit trail; always required, can be [])
+-      - operator_phone (bun wanted it cut; src wanted it kept) → KEPT, nullable
+-        (only SMS-origin tasks populate)
+-
+-  - src-desktop schema input (2026-05-18-001)
+-      + clerk_session_id  (str|null) — binds task to voice transcript
+-      + lock_required     (bool, default true) — false for background tasks
+-      + defer_count       (non-neg int, default 0) — lock-and-defer yield counter
+-      + failure_modes     (list[str]) — host accepted on 2026-05-18 (AND-gate thread)
+-      - escalate_count    (moved OUT of task.json INTO blocker.json)
+-
+-  - Rule 8 amendment (PENDING host@mesh confirm; folded as v0.1.1)
+-      + dedup_hash        (str|null) — intake adapter writes tenant+source_ref+summary-shingle
+-      + recipient_role    (enum mike|operator|client|other|null) — outbound writer gate
+-      + linked_to         (list[str], default []) — task-ids this dedupes with
+-      These three are PENDING_HOST_CONFIRM — required once Rule 8 amendment
+-      confirmed by host@mesh. Until then, the validator accepts them missing.
++Baseline:
++  /mesh/BLACKBOARD/task-system/v0.1.1-verified/canonical-schema/task_schema.py
++
++v0.1.3 delta (per v0.2-spec-amendment.md §12 + Rule 9):
++  - failure_modes type: list[str] → list[<enum>] with the 21-value vocabulary
++    locked in /agent-desk/snapshots/2026-05-19-failure-modes-enum/failure-modes-enum-v0.2.md
++  - Schema rejects arbitrary strings; accepts empty list; accepts multi-value lists.
++  - All other fields unchanged from v0.1.1.
++
++v0.1.2 (Rule 8 flip-required) is NOT included in this patch. If worker-a@mesh
++has already landed v0.1.2 downstream, this patch composes additively. If v0.1.2
++has NOT landed yet, apply this patch on top of v0.1.1; the Rule-8 fields stay
++"pending_rule_8" (optional pre-confirm) and the failure_modes enum migration is
++independent of that flip.
+ 
+ Cross-agent lockstep: every agent that reads/writes a task.json imports
+-TASK_FIELDS / STATES / SOURCES / RECIPIENT_ROLES from this module. Schema
+-bumps land here first, all downstream tools follow.
++TASK_FIELDS / STATES / SOURCES / RECIPIENT_ROLES / FAILURE_MODES from this
++module. Schema bumps land here first, all downstream tools follow.
+ 
+ Usage:
+-    from task_schema import validate_task_file, TASK_FIELDS
++    from task_schema import validate_task_file, TASK_FIELDS, FAILURE_MODES
+ 
+     errors = validate_task_file(Path("tasks/intake/.../task.json"))
+     # → list[str], empty if valid
+@@ -65,6 +57,36 @@
+ 
+ RECIPIENT_ROLES = ("mike", "operator", "client", "other")
+ 
++# v0.2 Rule 9 — failure_modes vocabulary (LOCKED 2026-05-18T21:05Z).
++# Source of truth:
++#   /agent-desk/snapshots/2026-05-19-failure-modes-enum/failure-modes-enum-v0.2.md
++# Contributors: src-desktop, josh-desktop, bun-desktop, danielle-desktop.
++# Closed at 21 values for v0.2. New values require kind: decision + Mike approval
++# at the v0.3 ratchet.
++FAILURE_MODES = (
++    "blocker_source_split_brain",
++    "completion_signal_ambiguous",
++    "cross_session_artifact_handoff_blindness",
++    "deadlock_on_missing_signal",
++    "decision_matrix_skipped_failure_mode_first_pass",
++    "false_negative_active_state",
++    "false_positive_active_state",
++    "in_flight_orphan",
++    "interleave_corruption",
++    "latency_budget_exceeded",
++    "orphan_after_crash",
++    "outbound_recipient_drift",
++    "parallel_shift_writer_race",
++    "parked_without_clock",
++    "permission_drift_breaks_protocol_channel",
++    "schema_field_unenforced",
++    "sentinel_traps_silent_skip",
++    "silent_drift",
++    "transition_illegal",
++    "voice_agent_is_executor_but_no_task_record",
++    "worker_self_report_passed_but_unverified",
++)
++
+ # id: <YYYY-MM-DD>-<HHMM>-<slug>
+ _ID_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9][a-z0-9-]*$")
+ _ISO_Z_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+@@ -91,9 +113,12 @@
+     "clerk_session_id":         ("always",        "str_or_null"),
+     "lock_required":            ("always",        "bool"),
+     "defer_count":              ("always",        "non_neg_int"),
+-    "failure_modes":            ("always",        "list_of_str"),
+-    # Rule 8 amendment — PENDING_HOST_CONFIRM. Required once host@mesh
+-    # confirms the v0.1.1 amendment; until then the validator accepts missing.
++    # v0.1.3: failure_modes is now enum-constrained (was list_of_str at v0.1.1).
++    "failure_modes":            ("always",        "list_of_failure_modes_enum"),
++    # Rule 8 amendment — PENDING_HOST_CONFIRM at v0.1.1. The v0.1.2 ratchet
++    # (worker-a@mesh, separate from this v0.1.3 ratchet) flips these to required.
++    # This patch leaves them as "pending_rule_8" so it composes additively whether
++    # v0.1.2 has landed yet or not.
+     "dedup_hash":               ("pending_rule_8", "str_or_null"),
+     "recipient_role":           ("pending_rule_8", "recipient_role_or_null"),
+     "linked_to":                ("pending_rule_8", "list_of_str"),
+@@ -136,6 +161,16 @@
+     elif kind == "list_of_str":
+         if not isinstance(value, list) or not all(isinstance(x, str) for x in value):
+             return f"must be list[str]; got {value!r}"
++    elif kind == "list_of_failure_modes_enum":
++        # v0.1.3 Rule 9: closed enum of 21 values.
++        if not isinstance(value, list):
++            return f"failure_modes must be list[<enum>]; got {type(value).__name__}"
++        bad = [x for x in value if x not in FAILURE_MODES]
++        if bad:
++            return (
++                f"failure_modes contains value(s) not in v0.2 enum: {bad!r}. "
++                f"Allowed (21): {list(FAILURE_MODES)}"
++            )
+     elif kind == "state_history":
+         if not isinstance(value, list):
+             return f"state_history must be a list; got {type(value).__name__}"

@@ -1,0 +1,23 @@
+{
+  "id": "2026-05-18-1000-acme-followup-deck-quote",
+  "state": "shop-floor",
+  "raised_at": "2026-05-18T10:00:00Z",
+  "raised_by": "email",
+  "source_ref": "gmail-thread-abc123def456",
+  "summary": "Acme Roofing wants updated quote on Seattle decking",
+  "tenant": "acme",
+  "operator_phone": null,
+  "email_authorized_by_mike": null,
+  "recipient": null,
+  "state_history": [
+    {"state": "intake",     "at": "2026-05-18T10:00:00Z", "by": "email-intake-adapter@mesh"},
+    {"state": "shop-floor", "at": "2026-05-18T10:02:00Z", "by": "acme-tenant-agent@mesh"}
+  ],
+  "clerk_session_id": null,
+  "lock_required": true,
+  "defer_count": 0,
+  "failure_modes": [],
+  "dedup_hash": "sha1:acme:gmail-thread-abc123def456:acme-roofing-wants",
+  "recipient_role": null,
+  "linked_to": []
+}

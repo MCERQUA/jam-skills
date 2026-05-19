@@ -1,0 +1,23 @@
+{
+  "thread_id": "SM7c2a9f1e88b4d40a91ab0a3a2f1b8c01",
+  "phone": "+14165557788",
+  "operator_name": "Janelle",
+  "messages": [
+    {
+      "id": "sms-001",
+      "direction": "inbound",
+      "from": "+14165557788",
+      "to": "+14374559131",
+      "sent_at": "2026-05-18T18:28:00Z",
+      "body": "Hey it's Janelle — got a sec to talk decking install for Acme tomorrow? Need to confirm crew start time."
+    },
+    {
+      "id": "sms-002",
+      "direction": "outbound",
+      "from": "+14374559131",
+      "to": "+14165557788",
+      "sent_at": "2026-05-18T18:30:00Z",
+      "body": "Will call you back tomorrow at 2pm with crew confirmed."
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "2026-05-18-1045-parked-dns-approval",
+  "state": "parked",
+  "raised_at": "2026-05-18T10:45:00Z",
+  "raised_by": "manual",
+  "source_ref": "mesh-msg-2026-05-18-001-dns-question",
+  "summary": "Parked: awaiting Mike's approval to flip prod DNS to new ingress",
+  "tenant": "smoke-test-tenant",
+  "operator_phone": null,
+  "email_authorized_by_mike": null,
+  "recipient": null,
+  "scheduled_at": null,
+  "parked_until": "2026-05-17T14:00:00Z",
+  "completed_at": null,
+  "outcome": null,
+  "state_history": [
+    {"state": "intake", "at": "2026-05-18T10:45:00Z", "by": "task-agent@smoke-test-tenant"},
+    {"state": "parked", "at": "2026-05-18T10:50:00Z", "by": "task-agent@smoke-test-tenant"}
+  ],
+  "clerk_session_id": null,
+  "lock_required": true,
+  "defer_count": 0,
+  "failure_modes": [],
+  "dedup_hash": "smoke-test-tenant:mesh-msg-2026-05-18-001-dns-question:dns-approval",
+  "recipient_role": "mike",
+  "linked_to": []
+}

@@ -1,0 +1,30 @@
+{
+  "id": "2026-05-20-1400-acme-milestone-4-research-scheduled",
+  "state": "scheduled",
+  "raised_at": "2026-05-19T22:00:00Z",
+  "raised_by": "mesh",
+  "source_ref": "2026-05-19-milestone-4-notification-cadence-fixture",
+  "summary": "Milestone-4 e2e fixture: research_at + notification_policy round-trip",
+  "tenant": "acme",
+  "operator_phone": null,
+  "email_authorized_by_mike": null,
+  "recipient": null,
+  "research_at": "2026-05-20T14:00:00Z",
+  "scheduled_at": "2026-05-20T15:00:00Z",
+  "notification_policy": {
+    "mode": "on_finding",
+    "on_finding_threshold": null
+  },
+  "state_history": [
+    {"state": "intake",    "at": "2026-05-19T22:00:00Z", "by": "mesh-intake-adapter@mesh"},
+    {"state": "planned",   "at": "2026-05-19T22:05:00Z", "by": "acme-tenant-agent@mesh"},
+    {"state": "scheduled", "at": "2026-05-19T22:10:00Z", "by": "acme-tenant-agent@mesh"}
+  ],
+  "clerk_session_id": null,
+  "lock_required": true,
+  "defer_count": 0,
+  "failure_modes": [],
+  "dedup_hash": "sha1:acme:milestone-4-fixture:research-scheduled-roundtrip",
+  "recipient_role": "mike",
+  "linked_to": []
+}
