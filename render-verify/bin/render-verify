@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+# render-verify — universal "did this video actually work" gate.
+#
+# Returns exit 0 = PASS · 2 = WARN · 1 = FAIL.
+# Writes a JSON report alongside the MP4 (or to stdout if --json-only).
+#
+# Catches the v3-class failure mode where ffprobe metadata passes but
+# the h264 stream is corrupt (Invalid NAL unit size everywhere) and
+# Chrome only renders the first I-frame.
+#
+# Usage:
+#   render-verify <file.mp4>
+#   render-verify <file.mp4> --expected-duration 21.0 --expected-audio yes
+#   render-verify <file.mp4> --json-only > report.json
+set -uo pipefail
+
+FILE="${1:-}"
+EXPECTED_DURATION=""
+EXPECTED_AUDIO="any"   # any | yes | no
+JSON_ONLY="false"
+FRAME_SAMPLES=10
+MIN_AUDIO_DB=-45
+DURATION_TOLERANCE=0.5
+
+if [ -z "$FILE" ] || [ "$FILE" = "--help" ]; then
+  cat <<EOF
+render-verify <file.mp4> [options]
+  --expected-duration <seconds>   abort if duration off by >${DURATION_TOLERANCE}s
+  --expected-audio yes|no|any     expect (or expect-no) audio
+  --frame-samples <N>             how many frames to sample (default ${FRAME_SAMPLES})
+  --min-audio-db <dB>             mean_volume floor (default ${MIN_AUDIO_DB})
+  --json-only                     emit JSON only, no human-readable
+Exit: 0=PASS  1=FAIL  2=WARN
+EOF
+  exit 1
+fi
+shift || true
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --expected-duration) EXPECTED_DURATION="$2"; shift 2;;
+    --expected-audio)    EXPECTED_AUDIO="$2"; shift 2;;
+    --frame-samples)     FRAME_SAMPLES="$2"; shift 2;;
+    --min-audio-db)      MIN_AUDIO_DB="$2"; shift 2;;
+    --json-only)         JSON_ONLY="true"; shift;;
+    *) echo "unknown arg: $1" >&2; exit 1;;
+  esac
+done
+
+[ -f "$FILE" ] || { echo "FAIL: file not found: $FILE" >&2; exit 1; }
+
+REPORT_PATH="${FILE%.mp4}.verify.json"
+TMP=$(mktemp -d)
+trap "rm -rf $TMP" EXIT
+
+# ──── CHECK 1: container / metadata sanity ────
+META=$(ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=codec_type,codec_name,width,height,r_frame_rate -of default=noprint_wrappers=1 "$FILE" 2>&1)
+DURATION=$(echo "$META" | awk -F= '/^duration=/{print $2}')
+SIZE=$(echo "$META" | awk -F= '/^size=/{print $2}')
+VIDEO_CODEC=$(echo "$META" | awk -F= '/codec_type=video/{f=1;next} f && /codec_name=/{print $2;f=0}')
+HAS_AUDIO=$(echo "$META" | grep -q "codec_type=audio" && echo "yes" || echo "no")
+
+[ -z "$DURATION" ] && { echo "FAIL: ffprobe could not read duration" >&2; exit 1; }
+
+# ──── CHECK 2: full-decode integrity (the v3-catcher) ────
+DECODE_ERR=$(ffmpeg -v error -i "$FILE" -f null - 2>&1 | head -200)
+DECODE_ERR_LINES=$(echo "$DECODE_ERR" | grep -c . || true)
+DECODE_OK="true"
+if [ "$DECODE_ERR_LINES" -gt 0 ]; then
+  DECODE_OK="false"
+fi
+
+# ──── CHECK 3: frame samples (decode + non-solid-color) ────
+if [ "$(echo "$DURATION > 0" | bc -l)" = "1" ]; then
+  STEP=$(awk -v d="$DURATION" -v n="$FRAME_SAMPLES" 'BEGIN{printf "%.3f", d/(n+1)}')
+else
+  STEP=0
+fi
+FRAMES_OK=0
+FRAMES_SOLID=0
+FRAMES_FAIL=0
+for i in $(seq 1 "$FRAME_SAMPLES"); do
+  T=$(awk -v s="$STEP" -v i="$i" 'BEGIN{printf "%.3f", s*i}')
+  if ffmpeg -nostdin -v error -ss "$T" -i "$FILE" -frames:v 1 -q:v 3 "$TMP/f-$i.jpg" 2>/dev/null && [ -s "$TMP/f-$i.jpg" ]; then
+    # Solid-color check: ImageMagick `identify -format` standard-deviation across the image.
+    STD=$(identify -format "%[fx:standard_deviation]" "$TMP/f-$i.jpg" 2>/dev/null || echo "0")
+    # std < 0.005 means basically one color across the frame
+    IS_SOLID=$(awk -v s="$STD" 'BEGIN{print (s<0.005)?"1":"0"}')
+    if [ "$IS_SOLID" = "1" ]; then
+      FRAMES_SOLID=$((FRAMES_SOLID + 1))
+    else
+      FRAMES_OK=$((FRAMES_OK + 1))
+    fi
+  else
+    FRAMES_FAIL=$((FRAMES_FAIL + 1))
+  fi
+done
+
+# ──── CHECK 4: audio peak ────
+AUDIO_MEAN_DB="n/a"
+AUDIO_MAX_DB="n/a"
+AUDIO_OK="n/a"
+if [ "$HAS_AUDIO" = "yes" ]; then
+  AUDIO_OUT=$(ffmpeg -nostdin -i "$FILE" -af "volumedetect" -f null - 2>&1)
+  AUDIO_MEAN_DB=$(echo "$AUDIO_OUT" | awk -F': ' '/mean_volume/{print $2}' | awk '{print $1}')
+  AUDIO_MAX_DB=$(echo "$AUDIO_OUT" | awk -F': ' '/max_volume/{print $2}' | awk '{print $1}')
+  if [ -n "$AUDIO_MEAN_DB" ] && [ "$(echo "$AUDIO_MEAN_DB > $MIN_AUDIO_DB" | bc -l 2>/dev/null)" = "1" ]; then
+    AUDIO_OK="yes"
+  else
+    AUDIO_OK="no"
+  fi
+fi
+
+# ──── CHECK 5: duration sanity ────
+DUR_OK="n/a"
+if [ -n "$EXPECTED_DURATION" ]; then
+  DIFF=$(awk -v a="$DURATION" -v b="$EXPECTED_DURATION" 'BEGIN{d=a-b; if(d<0)d=-d; print d}')
+  if [ "$(echo "$DIFF <= $DURATION_TOLERANCE" | bc -l)" = "1" ]; then
+    DUR_OK="yes"
+  else
+    DUR_OK="no"
+  fi
+fi
+
+# ──── VERDICT ────
+VERDICT="PASS"
+REASONS=""
+if [ "$DECODE_OK" = "false" ]; then
+  VERDICT="FAIL"
+  REASONS="${REASONS}h264-stream-corrupt(${DECODE_ERR_LINES}-errors);"
+fi
+if [ "$FRAMES_FAIL" -ge 3 ] || [ "$FRAMES_SOLID" -ge $((FRAME_SAMPLES / 2)) ]; then
+  VERDICT="FAIL"
+  REASONS="${REASONS}frame-decode-failures(fail=${FRAMES_FAIL},solid=${FRAMES_SOLID}/${FRAME_SAMPLES});"
+elif [ "$FRAMES_FAIL" -ge 1 ] || [ "$FRAMES_SOLID" -ge 1 ]; then
+  [ "$VERDICT" = "PASS" ] && VERDICT="WARN"
+  REASONS="${REASONS}some-frames-suspicious(fail=${FRAMES_FAIL},solid=${FRAMES_SOLID});"
+fi
+if [ "$EXPECTED_AUDIO" = "yes" ] && [ "$HAS_AUDIO" = "no" ]; then
+  VERDICT="FAIL"
+  REASONS="${REASONS}expected-audio-missing;"
+fi
+if [ "$EXPECTED_AUDIO" = "yes" ] && [ "$AUDIO_OK" = "no" ]; then
+  VERDICT="FAIL"
+  REASONS="${REASONS}audio-too-quiet(mean=${AUDIO_MEAN_DB}dB);"
+fi
+if [ "$DUR_OK" = "no" ]; then
+  VERDICT="FAIL"
+  REASONS="${REASONS}duration-mismatch(got=${DURATION},want=${EXPECTED_DURATION});"
+fi
+
+# ──── EMIT REPORT ────
+JSON=$(cat <<EOF
+{
+  "file": "$FILE",
+  "verdict": "$VERDICT",
+  "reasons": "${REASONS:-ok}",
+  "checks": {
+    "duration_s": "$DURATION",
+    "size_bytes": "$SIZE",
+    "video_codec": "$VIDEO_CODEC",
+    "has_audio": "$HAS_AUDIO",
+    "decode_ok": "$DECODE_OK",
+    "decode_error_lines": $DECODE_ERR_LINES,
+    "frames_total": $FRAME_SAMPLES,
+    "frames_ok": $FRAMES_OK,
+    "frames_solid": $FRAMES_SOLID,
+    "frames_fail": $FRAMES_FAIL,
+    "audio_mean_db": "$AUDIO_MEAN_DB",
+    "audio_max_db": "$AUDIO_MAX_DB",
+    "audio_ok": "$AUDIO_OK",
+    "duration_ok": "$DUR_OK"
+  }
+}
+EOF
+)
+
+echo "$JSON" > "$REPORT_PATH"
+
+if [ "$JSON_ONLY" = "true" ]; then
+  echo "$JSON"
+else
+  echo "===== render-verify ====="
+  echo "file:      $FILE"
+  echo "verdict:   $VERDICT"
+  echo "reasons:   ${REASONS:-ok}"
+  echo "duration:  ${DURATION}s  size: $(echo "$SIZE" | awk '{printf "%.1f MB", $1/1024/1024}')"
+  echo "codec:     $VIDEO_CODEC + $([ "$HAS_AUDIO" = "yes" ] && echo "audio" || echo "no-audio")"
+  echo "decode:    $DECODE_OK  ($DECODE_ERR_LINES error lines)"
+  echo "frames:    ok=$FRAMES_OK  solid=$FRAMES_SOLID  fail=$FRAMES_FAIL  (of $FRAME_SAMPLES)"
+  [ "$HAS_AUDIO" = "yes" ] && echo "audio:     mean=${AUDIO_MEAN_DB}dB max=${AUDIO_MAX_DB}dB  ok=$AUDIO_OK"
+  [ "$DUR_OK" != "n/a" ] && echo "duration:  expected=${EXPECTED_DURATION} got=${DURATION} ok=$DUR_OK"
+  echo "report:    $REPORT_PATH"
+  echo "========================="
+fi
+
+case "$VERDICT" in
+  PASS) exit 0;;
+  WARN) exit 2;;
+  FAIL) exit 1;;
+esac
