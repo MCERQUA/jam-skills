@@ -1,0 +1,40 @@
+{
+  "id": "community-tokentelemetry",
+  "title": "TokenTelemetry — Third-Party Local Dashboard",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1tixe6k",
+  "category": "community",
+  "subcategory": "observability",
+  "summary": "Third-party local observability dashboard for Hermes sessions/logs — costs, skills, memory, delegate_task activity. Reads Hermes session/log data; runs locally. Alternative to Hermes's bundled Langfuse plugin (v0.12+).",
+  "key_concepts": [
+    "local-first observability",
+    "session + cost + skill telemetry",
+    "delegate_task tracking"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "Repo + dashboard",
+      "code": "Dashboard:  tokentelemetry.com\nHermes plugin: github.com/VasiHemanth/tokentelemetry-hermes-plugin"
+    }
+  ],
+  "gotchas": [],
+  "cross_refs": [
+    "built-in-plugins",
+    "plugins",
+    "dev-gateway-internals"
+  ],
+  "keywords": [
+    "tokentelemetry",
+    "observability",
+    "session dashboard",
+    "cost tracking",
+    "langfuse alternative",
+    "delegate_task telemetry"
+  ],
+  "full_text": "Recommended by u/Extension-Aside29 in r/hermesagent post 1tixe6k. Reads Hermes session/log data; local dashboard for sessions, costs, skills, memory, delegate_task activity.\n\nAlternative to v0.12's bundled Langfuse observability plugin (built-in)."
+}

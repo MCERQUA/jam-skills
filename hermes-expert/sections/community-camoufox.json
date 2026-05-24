@@ -1,0 +1,42 @@
+{
+  "id": "community-camoufox",
+  "title": "Camoufox Stealth Browser Backend (v0.7.0+)",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1sd1wji",
+  "category": "community",
+  "subcategory": "browser",
+  "summary": "v0.7.0 shipped Camoufox as the stealth browser backend — anti-fingerprint, auto-installs via `hermes tools`. Source 1sd1wji (98/13).",
+  "key_concepts": [
+    "anti-fingerprint browser",
+    "auto-install via hermes tools",
+    "shipped alongside credential pools in v0.7.0"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "Repo",
+      "code": "github.com/daijro/camoufox"
+    }
+  ],
+  "gotchas": [
+    "u/cribbageSTARSHIP (+2): v0.7.0 era — 'gateway didn't start on boot.' Verify gateway autostart works after upgrade to/past 0.7.x"
+  ],
+  "cross_refs": [
+    "browser",
+    "credential-pools",
+    "dev-browser-supervisor"
+  ],
+  "keywords": [
+    "camoufox",
+    "stealth browser",
+    "anti-fingerprint",
+    "v0.7.0",
+    "daijro",
+    "browser backend"
+  ],
+  "full_text": "Source: r/hermesagent post 1sd1wji (98 score, 13 comments). Two big v0.7.0 features shipped together: Camoufox stealth browser + credential pools (separate section).\n\nCamoufox repo: github.com/daijro/camoufox\nAuto-installs via `hermes tools`.\n\nKnown issue at v0.7 era: gateway didn't start on boot (u/cribbageSTARSHIP). Worth verifying autostart after upgrade."
+}

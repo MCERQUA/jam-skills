@@ -157,6 +157,12 @@ PROJECT_DIR="/mnt/clients/$CLIENT/openclaw/workspace/Websites/$PROJECT"
 if [[ -d "$PROJECT_DIR/.git" ]] && command -v gh >/dev/null 2>&1; then
     pushd "$PROJECT_DIR" > /dev/null
     if ! git rev-parse --abbrev-ref HEAD >/dev/null 2>&1; then
+        # Defense-in-depth: ensure .gitignore is in place before git add -A so
+        # node_modules/.next don't leak into the initial commit (cheer-insurance
+        # incident 2026-05-23).
+        if [[ ! -f .gitignore ]]; then
+            cp /mnt/shared-skills/website-builder/templates/project/.gitignore . 2>/dev/null || true
+        fi
         git init -q && git add -A && git commit -qm "initial: from website-builder pipeline"
     fi
     BRANCH=$(git rev-parse --abbrev-ref HEAD)

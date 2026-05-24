@@ -1,12 +1,28 @@
 ---
 upstream: https://docs.openclaw.ai/cli/index.md
 relevance: jambot-critical
-last-verified: 2026-05-04
-audit_anchors: []
-related_pages: [cli__gateway, cli__doctor, cli__plugins, cli__sessions, cli__sandbox]
+last-verified: 2026-05-23
+audit_anchors: [19]
+related_pages: [cli__gateway, cli__doctor, cli__plugins, cli__sessions, cli__sandbox, help__troubleshooting]
 ---
 
 # CLI reference — JamBot annotation
+
+## Anchor #19 — `openclaw doctor` is destructive (added 2026-05-23)
+
+Per anchor-19 + r/openclaw 1ri9nt0: `openclaw doctor --fix` overwrites custom config with defaults. Multiple gateway-won't-start incidents in the community trace to this command. JamBot rule: never run on a tenant without a fresh git-backup of `openclaw.json`. See `playbooks/safe-config-edit.md`.
+
+The `openclaw doctor` (no `--fix`) diagnostic-only run is safer but still surfaces "fixes" suggestions you should not blindly accept. Read the output, change one thing at a time via `openclaw config set`, git-commit each change.
+
+## Slash commands (canonical, added 2026-05-23)
+
+| Command | Purpose | Source |
+|---|---|---|
+| `/new` | Clear conversation buffer (preserves SOUL.md/MEMORY.md/etc) | r/openclaw 1ssuze9 |
+| `/compact` | Force compaction with optional focus hint: `/compact <guidance>` | docs + 1qzyibu |
+| `/btw` | Fire a side conversation without polluting main context | 1ssuze9 |
+
+**`/new` cost-cutting note (1rp8t9r):** can cut cost 40-60% on long-running sessions. **Caveat (u/EquivalentFactor7591 +11, 1rp8t9r):** prompt caching makes `/new` MORE expensive when used mid-topic because cache invalidates. Rule: `/new` at topic boundaries, not for short follow-ups.
 
 ## What docs say (TL;DR)
 

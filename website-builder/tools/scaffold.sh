@@ -33,10 +33,11 @@ fi
 echo "=== Creating project: $PROJECT_NAME ==="
 
 # 1. Create directory and copy template
+# Use trailing /. instead of /* — bash * glob silently skips dotfiles like .gitignore,
+# which caused worker-a's cheer-insurance scaffold to commit node_modules wholesale
+# (cheer-insurance 2026-05-23; 137MB push rejected). /. copies hidden files correctly.
 mkdir -p "$PROJECT_DIR"
-cp -r "$SKILL_DIR/templates/project/"* "$PROJECT_DIR/"
-cp "$SKILL_DIR/templates/project/.gitignore" "$PROJECT_DIR/"
-cp "$SKILL_DIR/templates/project/.env.local.example" "$PROJECT_DIR/"
+cp -r "$SKILL_DIR/templates/project/." "$PROJECT_DIR/"
 
 # 2. Copy animation wrappers
 mkdir -p "$PROJECT_DIR/src/components/animations"

@@ -1,0 +1,54 @@
+{
+  "id": "community-upstream-watch-cron",
+  "title": "Upstream-Watch Cron (community pattern)",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1t9gz2f",
+  "category": "community",
+  "subcategory": "operations",
+  "summary": "Community pattern (u/itsdodobitch) for a daily cron that diffs the local Hermes install against NousResearch/hermes-agent upstream, surfaces relevant commits via Telegram, prevents wasted workaround effort on already-fixed bugs.",
+  "key_concepts": [
+    "daily upstream diff",
+    "local git fetch vs GitHub API",
+    "watchlist prompt extension"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Cheap variant — local git fetch (u/RoughFuture77's correction)",
+      "code": "cd ~/.hermes/hermes-agent\ngit fetch origin\nBEHIND=$(git rev-list --count HEAD..origin/main)\ngit log --oneline -n \"$BEHIND\" origin/main\ngit diff --stat HEAD..origin/main"
+    },
+    {
+      "language": "bash",
+      "caption": "GitHub API variant — note 564 KB payload per call",
+      "code": "curl --max-time 15 \"https://api.github.com/repos/NousResearch/hermes-agent/commits?since=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)&per_page=100\""
+    },
+    {
+      "language": "text",
+      "caption": "Watchlist prompt extension for bug-tracking",
+      "code": "Pay special attention to commits mentioning:\n- gateway\n- skills config\n- Telegram\n- provider errors\n- memory\n- my current bug / issue"
+    }
+  ],
+  "gotchas": [
+    "GitHub API call returns ~564 KB per fetch — use local git fetch + git log + git diff --stat for a fraction of the bandwidth",
+    "GitHub Link-header pagination caps at 100 commits per page; loop pages or use git"
+  ],
+  "cross_refs": [
+    "updating",
+    "cron",
+    "guide-automate-cron"
+  ],
+  "keywords": [
+    "upstream watch",
+    "daily cron",
+    "git fetch",
+    "commit diff",
+    "github api",
+    "version drift",
+    "itsdodobitch"
+  ],
+  "full_text": "Source: r/hermesagent post 1t9gz2f by u/itsdodobitch (173 score, 40 comments). 45/45 detection success across the OP's runs. Saved real workaround effort on bugs that were already fixed upstream.\n\nu/Unixwzrd variant: extend the same pattern to watch llama.cpp releases for Metal/macOS/perf changes; second job to re-pick OpenRouter free auxiliary models every couple of days."
+}

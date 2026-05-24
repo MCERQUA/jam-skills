@@ -77,12 +77,15 @@
     "Browser tools require Node.js 22 and ~400MB download — use --setup-browser to install",
     "Zed registry install requires uv to be available in PATH",
     "ACP sessions are in-memory only — list/load/resume/fork are scoped to the current running server process",
-    "The hermes-acp toolset excludes messaging delivery and cron management compared to the full toolset"
+    "The hermes-acp toolset excludes messaging delivery and cron management compared to the full toolset",
+    "`delegate_task` does NOT persist context between calls (ephemeral). For multi-step or multi-profile orchestration that needs to remember, use named ACP sessions — see community-multi-hermes-orchestration"
   ],
   "cross_refs": [
     "dev-acp-internals",
     "dev-provider-runtime",
-    "dev-tools-runtime"
+    "dev-tools-runtime",
+    "community-multi-hermes-orchestration",
+    "community-claude-code-bundled"
   ],
   "keywords": [
     "ACP",
@@ -98,7 +101,10 @@
     "session",
     "approvals",
     "chat",
-    "file diff"
+    "file diff",
+    "delegate_task ephemeral",
+    "named ACP sessions",
+    "orchestrator pattern"
   ],
   "full_text": "# ACP Editor Integration\n\nHermes Agent can run as an ACP server, letting ACP-compatible editors talk to Hermes over stdio.\n\n[...full content as read from source...]"
 }

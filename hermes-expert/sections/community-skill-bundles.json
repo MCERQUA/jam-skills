@@ -1,0 +1,51 @@
+{
+  "id": "community-skill-bundles",
+  "title": "Skill Bundles (community + Hermes docs)",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1tixe6k",
+  "category": "community",
+  "subcategory": "skills",
+  "summary": "Skill Bundles let you trigger groups of skills with one slash command via a tiny YAML file. Canonical examples: /release-prep, /incident-response, /research-sprint. Source 1tixe6k (111/12).",
+  "key_concepts": [
+    "YAML bundle format",
+    "one slash command → group of skills",
+    "lazy vs eager loading (open question)"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/release-prep",
+      "purpose": "Canonical bundle example"
+    },
+    {
+      "command": "/incident-response",
+      "purpose": "Canonical bundle example"
+    },
+    {
+      "command": "/research-sprint",
+      "purpose": "Canonical bundle example"
+    }
+  ],
+  "code_examples": [],
+  "gotchas": [
+    "u/kruzibit (+1): Skills loaded but unused burn tokens — unclear from current docs whether bundles eager-load all skills or lazy-load on demand. Verify before adding heavyweight skills to a bundle"
+  ],
+  "cross_refs": [
+    "skills",
+    "ref-skills-catalog",
+    "ref-slash-commands",
+    "guide-work-with-skills",
+    "community-tokentelemetry"
+  ],
+  "keywords": [
+    "skill bundles",
+    "yaml bundle",
+    "/release-prep",
+    "/incident-response",
+    "/research-sprint",
+    "slash command bundle"
+  ],
+  "full_text": "Source: r/hermesagent post 1tixe6k (111 score, 12 comments).\n\nNous Research dropped Skill Bundles — tiny YAML files that group skills behind one slash command. Canonical examples: /release-prep, /incident-response, /research-sprint.\n\nDocs reference: hermes-agent.nousresearch.com/docs/user-guide/features/skills#skill-bundles\n\nOpen question (u/kruzibit): eager-load all skills in a bundle vs lazy-load — token-cost implications matter for heavyweight skills."
+}

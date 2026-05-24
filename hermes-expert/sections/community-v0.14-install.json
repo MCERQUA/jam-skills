@@ -1,0 +1,56 @@
+{
+  "id": "community-v0.14-install",
+  "title": "v0.14 PyPI Install + uv Pip Broken Note",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1teu9u4",
+  "category": "community",
+  "subcategory": "installation",
+  "summary": "v0.14 (May 16 2026, 'Foundation Release', 808 commits / 633 PRs since v0.13) makes Hermes a proper PyPI package: `pip install hermes-agent && hermes`. No more clone-and-shell-installer. BUT `uv pip install` is currently broken — known issue #8744 with malformed dependency specs.",
+  "key_concepts": [
+    "PyPI package install",
+    "uv pip install broken (#8744)",
+    "venv install pattern"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "bash",
+      "caption": "Recommended v0.14+ install — vanilla pip in venv",
+      "code": "python -m venv ~/hermes-venv\nsource ~/hermes-venv/bin/activate\npip install hermes-agent     # do NOT use `uv pip install` — see #8744\nhermes"
+    },
+    {
+      "language": "bash",
+      "caption": "What NOT to use",
+      "code": "# Known broken on v0.14 — incorrect dependency specifications break uv resolver\nuv pip install hermes-agent  # ← issue #8744\n\n# Also no longer needed:\ncurl -sSL https://hermes-agent.nousresearch.com/install.sh | sh  # superseded"
+    }
+  ],
+  "gotchas": [
+    "`uv pip install hermes-agent` fails — Hermes dependency specs are incorrect for uv's stricter resolver (issue #8744)",
+    "v0.14 deprecates the curl-pipe installer — community pushback was vocal even before (u/JamesTDennis: 'Please don't `curl … | sh -`. Just DON'T.')",
+    "Brave Search + DuckDuckGo (DDGS) native — no API key needed for those backends",
+    "Linux Computer Use works (u/septicdank pointed unsupervised Hermes at the cua repo and got a working CUA on Debian + X11) but is not bundled — Mac-first"
+  ],
+  "cross_refs": [
+    "installation",
+    "updating",
+    "quickstart",
+    "windows-native",
+    "computer-use",
+    "web-search"
+  ],
+  "keywords": [
+    "pip install hermes-agent",
+    "v0.14",
+    "Foundation Release",
+    "uv pip broken",
+    "issue 8744",
+    "venv install",
+    "PyPI package",
+    "brave search",
+    "duckduckgo ddgs"
+  ],
+  "full_text": "Source: r/hermesagent post 1teu9u4 (140 score, 23 comments). v0.14.0 / v2026.5.16.\n\n## Headline change\n`pip install hermes-agent && hermes` is the canonical install. No more `curl … | sh`.\n\n## Scale of release\n808 commits / 633 PRs / 1393 files changed / 545 closed issues since v0.13.\n\n## New native features (v0.14)\n- Brave Search free web-search backend (PR #21337)\n- DuckDuckGo (DDGS) added as free web-search backend\n- Teams plugin closes Microsoft Graph stack\n- LSP support\n- Browser/vision/X improvements\n- Kanban improvements\n- xAI SuperGrok + Premium+ access for Grok models\n- Codex as a runtime backend for OpenAI models\n- LINE gateway messenger\n- Native video generation\n- Windows native beta\n\n## Known issue — uv pip install broken\nu/Pristine-Woodpecker (+2): 'It looks like the dependencies are incorrectly specified and this causes issue with uv.' Tracked as Hermes issue #8744. **Use vanilla `pip` in a venv, not `uv pip install`.**\n\n## CUA scope\n- Mac-first because of macOS accessibility framework depth\n- Windows: 'if you fiddle with it' (u/sarhoshamiral: MCP servers exist to enable CUA on Windows)\n- Linux: works per u/septicdank's unsupervised-Hermes-on-debian-x11 experiment but not bundled"
+}

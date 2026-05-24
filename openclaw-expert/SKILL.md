@@ -1,14 +1,16 @@
 ---
 name: openclaw-expert
-description: OpenClaw expertise for JamBot. Catalog-indexed router into 464 upstream doc pages + JamBot-specific overrides + 15 version-anchor corrections covering the 2026.4.20 → 2026.5.2 changelog window. Use to teach, debug, configure, or build on OpenClaw.
+description: OpenClaw expertise for JamBot. Catalog-indexed router into 464 upstream doc pages + JamBot-specific overrides + 21 version-anchor corrections (15 from the 2026.4.20 → 2026.5.2 changelog audit + 6 from the 2026-05-23 r/openclaw deep-read covering the Apr-4 Anthropic subscription cutover, CVE-2026-25253, ClawHavoc supply-chain campaign, destructive `openclaw doctor`, QMD memory shift, and GLM-5 reliability divergence). Use to teach, debug, configure, or build on OpenClaw.
 metadata: {"openclaw": {"emoji": "🧠"}}
 ---
 
 # OpenClaw Expert
 
-**OpenClaw npm latest:** `2026.5.2` (audited 2026-05-04). **Catalog refreshed:** see `catalog.json` `fetchedAt`.
+**OpenClaw npm latest:** `2026.5.2` (audited 2026-05-04; community-corroborated 2026-05-23). **Catalog refreshed:** see `catalog.json` `fetchedAt`.
 
-This skill is a **router**, not a textbook. Upstream docs at `docs.openclaw.ai` are authoritative — we index them, layer JamBot-specific deltas, and surface 15 audit anchors that mark version-specific corrections discovered in production.
+This skill is a **router**, not a textbook. Upstream docs at `docs.openclaw.ai` are authoritative — we index them, layer JamBot-specific deltas, and surface **21 audit anchors** that mark version-specific corrections discovered in production:
+- Anchors 1-15: derived from the changelog audit (`docs/jambot/openclaw-skill-update-2026-05-04.md`)
+- Anchors 16-21: derived from a 2026-05-23 r/openclaw deep-read covering the Apr 4 2026 Anthropic subscription cutover, CVE-2026-25253, the ClawHavoc supply-chain campaign, destructive `openclaw doctor` behavior, community shift to QMD/hybrid memory, and GLM-5 reliability divergence
 
 ## How to use this skill
 
@@ -65,9 +67,11 @@ bash {baseDir}/scripts/refresh-catalog.sh
 
 Exit 0 = no changes. Exit 2 = added/removed/renamed pages — review the diff, decide which new pages need annotations.
 
-## Audit anchors (v2026.4.20 → v2026.5.2)
+## Audit anchors (21 total — 15 from changelog audit + 6 from community deep-read)
 
-15 confirmed deltas from the changelog audit (`docs/jambot/openclaw-skill-update-2026-05-04.md`). When answering ANY question about a topic in this list, the audit anchor wins over the upstream prose:
+When answering ANY question about a topic in this list, the audit anchor wins over the upstream prose:
+
+### Changelog audit (anchors 1-15, v2026.4.20 → v2026.5.2)
 
 | # | Topic | One-liner |
 |---|-------|-----------|
@@ -87,7 +91,18 @@ Exit 0 = no changes. Exit 2 = added/removed/renamed pages — review the diff, d
 | 14 | messages.queue.mode default flipped | v4.29 — default now `steer` with 500ms followup-fallback debounce (was `collect`) |
 | 15 | rotateBytes deprecated | v4.27 — `session.maintenance.rotateBytes` removed; use `session.writeLock.acquireTimeoutMs` (default 60s) |
 
-Each anchor has a full file in `audit-anchors/anchor-NN-<slug>.md` with changelog line numbers, exact config keys, and skill files affected.
+### Community deep-read (anchors 16-21, added 2026-05-23 from r/openclaw)
+
+| # | Topic | One-liner |
+|---|-------|-----------|
+| 16 | Anthropic subscription cutover (Apr 4 2026) | Pro/Max OAuth-token extraction killed; sanctioned replacement is `providers.anthropic.type: "claude-cli"` + `mode: "oauth"`; 5h cap kills cron-on-sub |
+| 17 | CVE-2026-25253 + gateway-bind exposure | ~500k OpenClaw instances exposed on `0.0.0.0`; CVE patched, but config default still needs `gateway.bind: loopback` |
+| 18 | ClawHavoc supply-chain campaign | 1,467 malicious ClawHub skills caught; flagship `capability-evolver` (35k installs) exfiltrating data; **mandatory Skill Vetter + JamBot allowlist** |
+| 19 | `openclaw doctor` is destructive | `--fix` overwrites custom config with defaults; 3+ community gateway-crash incidents; **never let agents edit openclaw.json directly** |
+| 20 | QMD memory default shift | Default markdown+keyword memory under-performs; community converged on QMD plugin or memory-lancedb hybrid via `plugins.slots.memory` |
+| 21 | GLM-5 reliability divergence | Community signal diverges; JamBot triage: rule budget → anti-loop → version migration BEFORE escalating; don't panic-switch primary |
+
+Each anchor has a full file in `audit-anchors/anchor-NN-<slug>.md` with sources (changelog line numbers OR Reddit post IDs), exact config keys, and skill files affected.
 
 ## JamBot-specific overrides
 
@@ -97,6 +112,8 @@ Each anchor has a full file in `audit-anchors/anchor-NN-<slug>.md` with changelo
 - `docker-deployment.md` — `name: jambot-<user>` rule, `jambot-shared` network, NO `external: true` in compose
 - `voice-flow-quirks.md` — single-instance SpeechRecognition rule, wake-word abort loop
 - `multi-tenant-isolation.md` — per-user openclaw + openvoiceui pair, port registry
+- `skill-allowlist.md` *(added 2026-05-23)* — JamBot ClawHub allowlist + blocklist; mandatory vetting before adding to `/mnt/system/base/skills/`
+- `glm5-turbo-pin.md` *(added 2026-05-23)* — primary-model version policy + fallback chain; community-divergence triage
 
 When the user asks about anything in these overrides, **the override wins** — docs may describe a different deployment model.
 
@@ -108,13 +125,17 @@ When the user asks about anything in these overrides, **the override wins** — 
 - `tune-compaction.md` — sizing context window, cache TTL, transcript rotation
 - `provision-new-tenant.md` — full client provisioning flow
 - `add-new-channel.md` — Telegram/Discord/Slack channel onboarding
+- `migrate-to-claude-cli-provider.md` *(added 2026-05-23)* — wire `providers.anthropic.type: "claude-cli"` post-Apr-4-cutover; Docker install caveat
+- `safe-config-edit.md` *(added 2026-05-23)* — atomic, validated, git-tracked `openclaw.json` editing per anchor-19
+- `skill-install-vetting.md` *(added 2026-05-23)* — pre-install vetting workflow with Skill Vetter (anchor-18)
+- `cron-as-sub-agent.md` *(added 2026-05-23)* — heartbeats dispatch sub-agents, never run work directly (anchor-16 5h cap defense)
 
 ## Version metadata
 
 | File | Purpose |
 |------|---------|
 | `catalog.json` | 464 doc pages × {url, section, relevance, annotation, audit_anchors, lastVerified, tags} |
-| `audit-anchors/anchor-NN-*.md` | 15 version-anchor correction files |
+| `audit-anchors/anchor-NN-*.md` | 21 version-anchor correction files (15 changelog + 6 community deep-read) |
 | `annotations/<page-id>.md` | JamBot notes per upstream page (page id = url path with `/` → `__`) |
 | `cache/<page-id>.md` | Lazy-fetched frozen snapshot (24h TTL) |
 | `cache/<page-id>.meta.json` | Fetch metadata (sha256, fetchedAt, bytes) |

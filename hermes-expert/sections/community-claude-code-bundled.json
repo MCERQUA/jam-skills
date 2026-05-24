@@ -1,0 +1,56 @@
+{
+  "id": "community-claude-code-bundled",
+  "title": "Claude Code Bundled Skill + CC-as-doctor Pattern",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1tjarlz",
+  "category": "community",
+  "subcategory": "integrations",
+  "summary": "Hermes ships `autonomous-ai-agents/claude-code` as a bundled skill (community-discovered via u/Sparescrewdriver). Combine Claude Code as the doctor/builder + Hermes as the executor/gateway. With Z.AI routing, this combination survives the June 15 Anthropic clawback.",
+  "key_concepts": [
+    "autonomous-ai-agents/claude-code bundled skill",
+    "CC-as-doctor + Hermes-as-executor",
+    "2-pod security pattern",
+    "CC-with-non-Anthropic-LLM (GLM/DeepSeek)"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "Bundled skill location in Hermes docs",
+      "code": "hermes-agent.nousresearch.com/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-claude-code"
+    },
+    {
+      "language": "text",
+      "caption": "Two-pod orchestration (u/thetomsays)",
+      "code": "Hermes pod (intentional security)  ←─  Claude Code (outside controller)\n  - kanban, code, mattermost           - reviews Hermes kanban\n  - executes tasks                     - DMs corrections via Mattermost\n                                       - teaches Hermes about mistakes"
+    }
+  ],
+  "gotchas": [
+    "u/geofabnz (+19): 'Anthropic is removing the ability to operate Claude Code headless via OAuth on June.' Z.AI routing becomes mandatory after June 15 — see community-anthropic-clawback-2026-06.",
+    "u/leboong (+5): 'if you use Claude Code because of the tool itself, not the LLM that powers it... you can keep using CC combined with another model like GLM or DeepSeek' — confirms CC-with-Z.AI/GLM is a real production path",
+    "u/productboy (+2): OpenCode is a credible drop-in replacement when Anthropic's CC isn't an option"
+  ],
+  "cross_refs": [
+    "subscription-proxy",
+    "provider-routing",
+    "community-anthropic-clawback-2026-06",
+    "skills",
+    "ref-skills-catalog"
+  ],
+  "keywords": [
+    "claude code",
+    "autonomous ai agents",
+    "CC bundled skill",
+    "CC-as-doctor",
+    "two-pod pattern",
+    "z.ai claude code",
+    "GLM claude code",
+    "OpenCode",
+    "geofabnz",
+    "spinsilo"
+  ],
+  "full_text": "Source: r/hermesagent post 1tjarlz by u/spinsilo (164 score, 100 comments).\n\nu/spinsilo installed Claude Code on the same VPS as Hermes, pointed CC at `.hermes` root, and CC one-shotted bug fixes. Pattern: CC = builder/doctor; Hermes = executor/gateway.\n\nu/Sparescrewdriver (+7) surfaced that this is already a bundled skill: `autonomous-ai-agents/claude-code` at hermes-agent.nousresearch.com/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-claude-code.\n\nu/geofabnz's warning sets up the JamBot reasoning: Anthropic removes headless OAuth in June. Z.AI routing makes the CC-on-VPS pattern survive.\n\nu/thetomsays runs the most production-shaped variant: Hermes in a security-isolated pod, Claude Code outside with visibility in, sending DMs through Mattermost to teach Hermes about mistakes."
+}

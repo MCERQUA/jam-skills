@@ -1,7 +1,7 @@
 {
   "schema": "openclaw-expert-catalog/1",
   "upstream": "https://docs.openclaw.ai/llms.txt",
-  "fetchedAt": "2026-05-04T05:53:06+00:00",
+  "fetchedAt": "2026-05-24T01:18:54+00:00",
   "upstreamSha256": "10bf4edc923ef419031a55662a3ce50343192187084e2fb5ab5b728342e64a30",
   "pageCount": 464,
   "relevanceCounts": {
@@ -317,9 +317,10 @@
       "relevance": "high",
       "annotation": null,
       "audit_anchors": [
-        7
+        7,
+        19
       ],
-      "lastVerified": null,
+      "lastVerified": "2026-05-24",
       "tags": []
     },
     {
@@ -373,8 +374,10 @@
       "title": "CLI reference",
       "relevance": "high",
       "annotation": "annotations/cli__index.md",
-      "audit_anchors": [],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "audit_anchors": [
+        19
+      ],
+      "lastVerified": "2026-05-24",
       "tags": [
         "jambot-critical"
       ]
@@ -1738,7 +1741,7 @@
       "id": "gateway__config-agents",
       "url": "https://docs.openclaw.ai/gateway/config-agents.md",
       "section": "Gateway",
-      "title": "Configuration \u2014 agents",
+      "title": "Configuration — agents",
       "relevance": "high",
       "annotation": null,
       "audit_anchors": [],
@@ -1749,7 +1752,7 @@
       "id": "gateway__config-channels",
       "url": "https://docs.openclaw.ai/gateway/config-channels.md",
       "section": "Gateway",
-      "title": "Configuration \u2014 channels",
+      "title": "Configuration — channels",
       "relevance": "high",
       "annotation": null,
       "audit_anchors": [],
@@ -1760,7 +1763,7 @@
       "id": "gateway__config-tools",
       "url": "https://docs.openclaw.ai/gateway/config-tools.md",
       "section": "Gateway",
-      "title": "Configuration \u2014 tools and custom providers",
+      "title": "Configuration — tools and custom providers",
       "relevance": "high",
       "annotation": null,
       "audit_anchors": [],
@@ -1778,9 +1781,11 @@
         3,
         4,
         7,
-        15
+        15,
+        17,
+        19
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-05-24",
       "tags": [
         "jambot-critical"
       ]
@@ -1868,9 +1873,11 @@
       "section": "Gateway",
       "title": "Heartbeat",
       "relevance": "high",
-      "annotation": null,
-      "audit_anchors": [],
-      "lastVerified": null,
+      "annotation": "annotations/gateway__heartbeat.md",
+      "audit_anchors": [
+        16
+      ],
+      "lastVerified": "2026-05-24",
       "tags": []
     },
     {
@@ -2293,8 +2300,10 @@
       "title": "General troubleshooting",
       "relevance": "high",
       "annotation": "annotations/help__troubleshooting.md",
-      "audit_anchors": [],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "audit_anchors": [
+        19
+      ],
+      "lastVerified": "2026-05-24",
       "tags": [
         "jambot-critical"
       ]
@@ -2996,9 +3005,10 @@
       "annotation": "annotations/plugins__architecture.md",
       "audit_anchors": [
         1,
-        11
+        11,
+        18
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-05-24",
       "tags": [
         "jambot-critical"
       ]
@@ -3384,11 +3394,12 @@
       "section": "Providers",
       "title": "Anthropic",
       "relevance": "high",
-      "annotation": null,
+      "annotation": "annotations/providers__anthropic.md",
       "audit_anchors": [
-        10
+        10,
+        16
       ],
-      "lastVerified": null,
+      "lastVerified": "2026-05-24",
       "tags": []
     },
     {
@@ -3518,9 +3529,9 @@
       "section": "Providers",
       "title": "DeepSeek",
       "relevance": "low",
-      "annotation": null,
+      "annotation": "annotations/providers__deepseek.md",
       "audit_anchors": [],
-      "lastVerified": null,
+      "lastVerified": "2026-05-24",
       "tags": []
     },
     {
@@ -4001,9 +4012,10 @@
       "relevance": "high",
       "annotation": "annotations/providers__zai.md",
       "audit_anchors": [
-        9
+        9,
+        21
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-05-24",
       "tags": [
         "jambot-critical"
       ]
@@ -4424,9 +4436,11 @@
       "section": "Security",
       "title": "Threat model (MITRE ATLAS)",
       "relevance": "high",
-      "annotation": null,
-      "audit_anchors": [],
-      "lastVerified": null,
+      "annotation": "annotations/security__prompt-injection.md",
+      "audit_anchors": [
+        18
+      ],
+      "lastVerified": "2026-05-24",
       "tags": []
     },
     {
@@ -4598,7 +4612,7 @@
       "id": "tools__acp-agents-setup",
       "url": "https://docs.openclaw.ai/tools/acp-agents-setup.md",
       "section": "Tools",
-      "title": "ACP agents \u2014 setup",
+      "title": "ACP agents — setup",
       "relevance": "med",
       "annotation": null,
       "audit_anchors": [],
@@ -4710,9 +4724,11 @@
       "section": "Tools",
       "title": "ClawHub",
       "relevance": "high",
-      "annotation": null,
-      "audit_anchors": [],
-      "lastVerified": null,
+      "annotation": "annotations/skills__skill-vetter.md",
+      "audit_anchors": [
+        18
+      ],
+      "lastVerified": "2026-05-24",
       "tags": []
     },
     {
@@ -4813,7 +4829,7 @@
       "id": "tools__exec-approvals-advanced",
       "url": "https://docs.openclaw.ai/tools/exec-approvals-advanced.md",
       "section": "Tools",
-      "title": "Exec approvals \u2014 advanced",
+      "title": "Exec approvals — advanced",
       "relevance": "high",
       "annotation": null,
       "audit_anchors": [],
@@ -5039,9 +5055,10 @@
       "relevance": "high",
       "annotation": "annotations/tools__skills.md",
       "audit_anchors": [
-        11
+        11,
+        18
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-05-24",
       "tags": [
         "jambot-critical"
       ]
@@ -5235,5 +5252,7 @@
       "lastVerified": null,
       "tags": []
     }
-  ]
+  ],
+  "_lastPatchedAt": "2026-05-24T01:18:54+00:00",
+  "_lastPatchSummary": "Added 6 audit anchors (16-21) + community-sourced annotations from r/openclaw deep-read 2026-05-23"
 }

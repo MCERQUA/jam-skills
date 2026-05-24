@@ -1,0 +1,55 @@
+{
+  "id": "community-budget-routing",
+  "title": "Budget Provider Routing Matrix (community)",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1tewdky",
+  "category": "community",
+  "subcategory": "providers",
+  "summary": "Real-world per-provider gotchas at the sub-$20 tier (u/PSyCHoHaMSTeRza, r/hermesagent 1tewdky, 162/119). Winner combo: OpenCode Go + NanoGPT ($18/mo total).",
+  "key_concepts": [
+    "Ollama Cloud 3-connection cap",
+    "OpenCode Go lacks Gemma 4",
+    "NanoGPT model-name strictness",
+    "OpenAI Codex tool-call inflation",
+    "Nous Portal as escape hatch"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "Recommended starter combo (u/dalemugford, +19)",
+      "code": "Main:       OpenAI Codex via subscription, GPT-5.4 (switch to 5.5 for bigger jobs)\nAuxiliary:  OpenCode Go (for everything except main reasoning)\nFallback:   Nous Portal $20 = $22 credits + occasional free models\nEscape:     OpenRouter free model rotation (Tencent Hy3 example)"
+    }
+  ],
+  "gotchas": [
+    "Ollama Cloud $20/mo: charges GPU hours not tokens — gets cheaper as models efficient — but HARD 3-CONCURRENT-CONNECTION CAP. Chat + cron + bg task = exceeds. Consumption rate hiked recently (u/UnicornOnMeth)",
+    "OpenCode Go $10/mo: $60-equivalent credits, no concurrency cap, BUT lacks Gemma 4, DeepSeek has no vision",
+    "NanoGPT $12/mo: passkey + crypto pay = anonymity, tons of uncensored models. BUT model naming non-standard — must specify exact model ID or wrong model picked. Kimi is verbose on NanoGPT.",
+    "OpenAI Codex $20: heavy tool-use bias (random searches/terminal commands) blows weekly quota fast",
+    "OpenRouter free models: unstable but preview models often free 2-3 weeks. Keep a key as fallback.",
+    "u/mixxoh (+57): 'Just use deepseek v4. At most $1 a day.' — pair with non-DeepSeek aux for vision"
+  ],
+  "cross_refs": [
+    "provider-routing",
+    "fallback-providers",
+    "credential-pools",
+    "subscription-proxy",
+    "community-model-tier-list-2026-05",
+    "community-anthropic-clawback-2026-06"
+  ],
+  "keywords": [
+    "budget providers",
+    "ollama cloud",
+    "opencode go",
+    "nanogpt",
+    "nous portal",
+    "openrouter free",
+    "subscription routing",
+    "concurrency cap",
+    "deepseek v4"
+  ],
+  "full_text": "Source: r/hermesagent post 1tewdky by u/PSyCHoHaMSTeRza (162 score, 119 comments). LowEndTalk-sourced $45/yr VPS doing news + comics + dashboard duties. Tested Ollama Cloud / OpenCode Go / NanoGPT / Codex / OpenRouter free.\n\nNotable additional finding: u/SinghCoder — 'Cheap providers look fine until chat + cron + a background task all hit the same limit at once.' Suggest fewer-but-sharper event-triggered runs over many scheduled."
+}

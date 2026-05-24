@@ -1,12 +1,35 @@
 ---
 upstream: https://docs.openclaw.ai/gateway/configuration.md
 relevance: jambot-critical
-last-verified: 2026-05-04
-audit_anchors: [6, 7, 11, 13, 14, 15]
-related_overrides: [openclaw-json-deltas.md]
+last-verified: 2026-05-23
+audit_anchors: [6, 7, 11, 13, 14, 15, 17, 19]
+related_overrides: [openclaw-json-deltas.md, glm5-turbo-pin.md, skill-allowlist.md]
 ---
 
 # gateway/configuration — JamBot annotation
+
+## Anchor #17 — CVE-2026-25253 + default-bind exposure (added 2026-05-23)
+
+Default `gateway.host: 0.0.0.0` historically exposed gateways to the internet — CVE-2026-25253 was the resulting zero-click exploit. ~500k OpenClaw instances were found exposed; one credential set was reportedly sold on BreachForums (r/openclaw 1s976jn).
+
+JamBot's Docker setup is NOT directly exposed because containers bind on `jambot-shared` bridge + `trustedProxies: ["172.0.0.0/8", "10.0.0.0/8"]` + nginx-fronted TLS. But any tenant whose `openclaw.json` falls back to `0.0.0.0` (e.g. after a destructive `openclaw doctor --fix` — see anchor-19) is P1.
+
+Verify per tenant:
+```bash
+docker exec jambot-<tenant> openclaw config get gateway.host
+docker exec jambot-<tenant> openclaw config get | grep -E "host|bind"
+```
+
+Fix:
+```bash
+docker exec jambot-<tenant> openclaw config set gateway.bind loopback
+```
+
+## Anchor #19 — `openclaw doctor` is destructive (added 2026-05-23)
+
+**Never run `openclaw doctor --fix` on a JamBot tenant without a fresh backup + verified rollback path.** Per community reports (r/openclaw 1ri9nt0), the command overwrites custom config with defaults — including the JamBot non-negotiable fields (`thinkingDefault`, `trustedProxies`, `dangerouslyDisableDeviceAuth`, `allowInsecureAuth`). Multiple gateway-won't-start incidents traced to this.
+
+Safe-edit pattern: see `playbooks/safe-config-edit.md`. Never let agents edit `openclaw.json` directly; always use `openclaw config set` (validates) + git-commit before/after.
 
 ## Source of truth
 

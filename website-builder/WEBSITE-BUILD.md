@@ -489,9 +489,10 @@ The project directory already exists (canvas created it). Do these steps:
 
 1. **Copy project template files:**
 ```bash
-cp -r /mnt/shared-skills/website-builder/templates/project/* ~/Websites/<project>/
-cp /mnt/shared-skills/website-builder/templates/project/.gitignore ~/Websites/<project>/
-cp /mnt/shared-skills/website-builder/templates/project/.env.local.example ~/Websites/<project>/
+# IMPORTANT: use trailing /. NOT /* — bash * glob silently skips dotfiles
+# like .gitignore. Worker-a's cheer-insurance scaffold (2026-05-23) committed
+# node_modules wholesale because of this. /. copies hidden files correctly.
+cp -r /mnt/shared-skills/website-builder/templates/project/. ~/Websites/<project>/
 ```
 
 2. **Copy animation wrappers:**

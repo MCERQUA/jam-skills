@@ -1,0 +1,59 @@
+{
+  "id": "community-multi-hermes-orchestration",
+  "title": "Multi-Hermes ACP Orchestration (community)",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1ss20t0",
+  "category": "community",
+  "subcategory": "integrations",
+  "summary": "u/itsdodobitch's pattern for persistent multi-Hermes orchestration via ACP (Agent Client Protocol). `delegate_task` is ephemeral; the alternative is one orchestrator profile that talks to other profiles over ACP with named sessions and persistent per-profile memory. Source 1ss20t0 (131/35).",
+  "key_concepts": [
+    "ACP over subprocess",
+    "named ACP sessions",
+    "persistent per-profile memory",
+    "orchestrator writes prompts (LLM, not human)",
+    "hermes-session-client.py",
+    "hermes-paperclip-adapter"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "Reference orchestration stack",
+      "code": "[YOU] → [ORCHESTRATOR]\n           ├─→ [RESEARCHER]  (web, PDFs)\n           ├─→ [WORK]        (general)\n           └─→ [CODER]       (build, review, PR craft)\n\nTransport:  ACP over subprocess, no external deps\nTimeouts:   generous on orchestrator profile\nDeployment: Pi 4 (orchestrator) + remote profiles"
+    },
+    {
+      "language": "text",
+      "caption": "Production-ready variant",
+      "code": "github.com/NousResearch/hermes-paperclip-adapter\n# More polished than the community hermes-session-client.py"
+    }
+  ],
+  "gotchas": [
+    "`delegate_task` is ephemeral — does NOT persist context between calls; use named ACP sessions for orchestration that needs to remember",
+    "OpenClaw had orchestrator/executor separation natively via 'denying exec/write tools to orchestrator' (u/Neat_Psychology_8418). Hermes lacks the clean equivalent — requires code mods",
+    "u/thetomsays: 'I can't seem to get my orchestrator to stay awake and follow the plot' — orchestrator amnesia is a common failure mode; mem0 + task.md hierarchical memory helps but isn't reliable"
+  ],
+  "cross_refs": [
+    "acp",
+    "dev-acp-internals",
+    "delegation",
+    "kanban",
+    "profiles",
+    "guide-delegation-patterns",
+    "community-claude-code-bundled"
+  ],
+  "keywords": [
+    "ACP",
+    "multi-agent orchestration",
+    "named sessions",
+    "delegate_task ephemeral",
+    "orchestrator",
+    "researcher",
+    "coder",
+    "hermes-paperclip-adapter",
+    "itsdodobitch"
+  ],
+  "full_text": "Source: r/hermesagent post 1ss20t0 by u/itsdodobitch (131 score, 35 comments).\n\nHermes already speaks ACP (Agent Client Protocol) over subprocess. The missing piece for persistent multi-profile orchestration is a client that creates named sessions on any profile, sends prompts, collects streaming responses, handles timeouts.\n\n## Reference implementation\nu/itsdodobitch's `hermes-session-client.py` — no external deps, orchestrator profile with generous timeouts, runs on Pi 4. PR not yet merged at time of post.\n\n## Production-ready variant\nu/TeaBackground5683 (+2): `github.com/NousResearch/hermes-paperclip-adapter` is a more polished alternative.\n\n## Anti-pattern\nUsing `delegate_task` for anything that needs to remember between calls. It's ephemeral. Use named ACP sessions instead.\n\n## OpenClaw comparison\nu/Neat_Psychology_8418 (+2): OpenClaw natively supported orchestrator/executor separation via 'denying exec/write tools to orchestrator.' Hermes doesn't have a clean equivalent and requires code mods.\n\n## Orchestrator amnesia\nu/thetomsays (+1): 'I can't seem to get my orchestrator to stay awake and follow the plot. I'm testing mem0 for long term memory and a task.md for short term hierarchical memory.' Common pain point — orchestrator forgets to use the task.md it created."
+}

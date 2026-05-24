@@ -139,6 +139,13 @@
       "default": "base",
       "description": "Whisper model size: tiny, base, small, medium, large-v3",
       "example": "small"
+    },
+    {
+      "path": "tts.providers.<name>",
+      "type": "object",
+      "default": null,
+      "description": "Pluggable TTS provider registry, added in v0.12. Piper bundled by default for offline local TTS",
+      "example": "tts:\n  providers:\n    piper:\n      enabled: true"
     }
   ],
   "slash_commands": [],
@@ -170,12 +177,14 @@
     "OpenAI and ElevenLabs produce Opus natively — no ffmpeg needed for Telegram",
     "Command providers default to document delivery — set voice_compatible: true for Telegram voice bubbles",
     "ElevenLabs per-model input caps vary (5000-40000 chars) — unknown models fall back to 10000",
-    "Provider-specific speed setting overrides global tts.speed"
+    "Provider-specific speed setting overrides global tts.speed",
+    "v0.12 added pluggable TTS provider registry (`tts.providers.<name>`); Piper ships as the native local TTS provider — no separate install needed for offline voice"
   ],
   "cross_refs": [
     "voice-mode",
     "messaging-telegram",
-    "messaging-discord"
+    "messaging-discord",
+    "community-budget-routing"
   ],
   "keywords": [
     "TTS",
@@ -194,7 +203,11 @@
     "Opus",
     "custom command provider",
     "Doubao",
-    "Voxtral"
+    "Voxtral",
+    "piper bundled",
+    "local TTS",
+    "pluggable provider registry",
+    "v0.12"
   ],
   "full_text": "# Voice & TTS\n\nHermes Agent supports both text-to-speech output and voice message transcription across all messaging platforms.\n\n## Text-to-Speech Providers\n\n| Provider | Quality | Cost | API Key |\n|----------|---------|------|---------|\n| Edge TTS (default) | Good | Free | None |\n| ElevenLabs | Excellent | Paid | `ELEVENLABS_API_KEY` |\n| OpenAI TTS | Good | Paid | `VOICE_TOOLS_OPENAI_KEY` |\n| MiniMax TTS | Excellent | Paid | `MINIMAX_API_KEY` |\n| Mistral (Voxtral TTS) | Excellent | Paid | `MISTRAL_API_KEY` |\n| Google Gemini TTS | Excellent | Free tier | `GEMINI_API_KEY` |\n| xAI TTS | Excellent | Paid | `XAI_API_KEY` |\n| NeuTTS | Good | Free (local) | None |\n| KittenTTS | Good | Free (local) | None |\n| Piper | Good | Free (local) | None |\n\n## Configuration\n\n```yaml\ntts:\n  provider: \"edge\"   # edge | elevenlabs | openai | minimax | mistral | gemini | xai | neutts | kittentts | piper\n  speed: 1.0         # Global speed multiplier\n  edge:\n    voice: \"en-US-AriaNeural\"\n  elevenlabs:\n    voice_id: \"pNInz6obpgDQGcFmaJgB\"\n    model_id: \"eleven_multilingual_v2\"\n  openai:\n    model: \"gpt-4o-mini-tts\"\n    voice: \"alloy\"\n  minimax:\n    model: \"speech-2.8-hd\"\n    voice_id: \"English_Graceful_Lady\"\n  gemini:\n    model: \"gemini-2.5-flash-preview-tts\"\n    voice: \"Kore\"\n  xai:\n    voice_id: \"eve\"\n    language: \"en\"\n  piper:\n    voice: en_US-lessac-medium\n```\n\n## Input Length Limits\n\n| Provider | Cap (chars) |\n|----------|-------------|\n| Edge TTS | 5000 |\n| OpenAI | 4096 |\n| xAI | 15000 |\n| MiniMax | 10000 |\n| Mistral | 4000 |\n| Google Gemini | 5000 |\n| ElevenLabs | Model-aware (5000–40000) |\n| NeuTTS / KittenTTS | 2000 |\n\nOverride per provider with `max_text_length:` under the provider config.\n\n## Telegram Voice Bubbles & ffmpeg\n\nEdge TTS, MiniMax, NeuTTS, KittenTTS, and Piper output need ffmpeg to convert to Opus for Telegram voice bubbles.\n\n```bash\nsudo apt install ffmpeg   # Ubuntu/Debian\nbrew install ffmpeg       # macOS\n```\n\nWithout ffmpeg, audio is sent as regular audio file (rectangular player).\n\n## Custom Command Providers\n\nWire any TTS CLI as a command provider:\n\n```yaml\ntts:\n  provider: voxcpm\n  providers:\n    voxcpm:\n      type: command\n      command: \"voxcpm --ref ~/voice.wav --text-file {input_path} --out {output_path}\"\n      output_format: mp3\n      timeout: 180\n      voice_compatible: true\n```\n\nPlaceholders: `{input_path}`, `{output_path}`, `{format}`, `{voice}`, `{model}`, `{speed}`.\n\n## Voice Message Transcription (STT)\n\nVoice messages on Telegram, Discord, WhatsApp, Slack, or Signal are auto-transcribed.\n\nProviders: Local Whisper (free, `faster-whisper`), Groq Whisper (free tier), OpenAI Whisper (paid), Mistral Voxtral, xAI Grok STT.\n\n```yaml\nstt:\n  provider: \"local\"   # local | groq | openai | mistral | xai\n  local:\n    model: \"base\"     # tiny, base, small, medium, large-v3\n```\n\nCustom STT: `HERMES_LOCAL_STT_COMMAND` with `{input_path}`, `{output_dir}`, `{language}`, `{model}` placeholders.\n\n## Fallback Behavior\n\nIf configured STT provider unavailable: local faster-whisper → local whisper CLI → cloud providers → \"voice messages pass through with note to user\".\n"
 }

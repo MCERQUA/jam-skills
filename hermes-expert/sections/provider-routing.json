@@ -78,18 +78,37 @@
       "language": "yaml",
       "caption": "Preferred order with fallbacks",
       "code": "provider_routing:\n  order:\n    - \"Anthropic\"\n    - \"Google\"\n  require_parameters: true"
+    },
+    {
+      "language": "yaml",
+      "caption": "Single-provider auxiliary override (avoid OpenRouter fallback)",
+      "code": "# Single-provider (Z.AI / Anthropic-only) setups need explicit aux overrides\nauxiliary:\n  vision:        { provider: main }   # use main provider, NOT OpenRouter default\n  web_extract:   { provider: main }\n  compression:   { provider: main }"
+    },
+    {
+      "language": "yaml",
+      "caption": "DeepSeek v4 Flash with required xhigh reasoning",
+      "code": "model:\n  name: deepseek-v4-flash\n  reasoning: xhigh   # required for reliable tool calling"
     }
   ],
   "gotchas": [
     "Provider routing only applies when using OpenRouter — has no effect with direct provider connections",
     "Append :nitro to any model name for throughput sorting (e.g., anthropic/claude-sonnet-4:nitro)",
     "Append :floor to any model name for price sorting",
-    "Provider routing controls sub-providers within OpenRouter; for cross-provider failover use fallback-providers"
+    "Provider routing controls sub-providers within OpenRouter; for cross-provider failover use fallback-providers",
+    "Anthropic OAuth third-party harness usage routes to a separate `extra_usage` billing pool, NOT base subscription allowance (#15080); Claude Pro tier blocked entirely from this path — see community-anthropic-clawback-2026-06",
+    "Single-provider setups silently lose vision / web summarization / compression because auxiliary fallback chain defaults to OpenRouter first. Fix: add OPENROUTER_API_KEY, OR set `provider: \"main\"` in each auxiliary slot (vision, web_extract, compression)",
+    "DeepSeek v4 Flash is unreliable for tool calling unless `reasoning: xhigh` is set — undocumented requirement",
+    "DeepSeek v4 (any) has no vision capability (u/donnthebuilder: 'dead on arrival') — pair with a vision-capable aux model",
+    "GLM endpoint auto-probing: Hermes tries multiple GLM endpoints (global, China, coding variants) automatically — DO NOT pre-set GLM_BASE_URL, let it discover the working endpoint"
   ],
   "cross_refs": [
     "integrations-overview",
     "providers",
-    "fallback-providers"
+    "fallback-providers",
+    "community-anthropic-clawback-2026-06",
+    "community-budget-routing",
+    "community-model-tier-list-2026-05",
+    "subscription-proxy"
   ],
   "keywords": [
     "provider routing",
@@ -103,7 +122,12 @@
     "data collection",
     "require_parameters",
     "provider order",
-    "cost optimization"
+    "cost optimization",
+    "anthropic extra_usage pool",
+    "GLM endpoint auto-probe",
+    "xhigh reasoning",
+    "OPENROUTER_API_KEY",
+    "vision fallback"
   ],
   "full_text": "# Provider Routing\n\nWhen using OpenRouter as your LLM provider, Hermes Agent supports provider routing — fine-grained control over which underlying AI providers handle your requests.\n\n[...full content as read from source...]"
 }

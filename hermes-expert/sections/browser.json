@@ -228,11 +228,14 @@
     "Without `--user-data-dir`, starting Chrome while another instance is running won't open port 9222",
     "Snapshots over 8000 characters are automatically LLM-summarized — may lose detail",
     "Cloud providers (Browserbase, Browser Use, Firecrawl) do not expose CDP to browser_cdp tool",
-    "If paid Browserbase features aren't available, Hermes auto-falls back (keepAlive → proxies)"
+    "If paid Browserbase features aren't available, Hermes auto-falls back (keepAlive → proxies)",
+    "Camoufox is the stealth backend shipped in v0.7.0 (github.com/daijro/camoufox) — anti-fingerprint, auto-installs via `hermes tools`. See community-camoufox"
   ],
   "cross_refs": [
     "vision",
-    "tool-gateway"
+    "tool-gateway",
+    "community-camoufox",
+    "credential-pools"
   ],
   "keywords": [
     "browser automation",
@@ -249,7 +252,9 @@
     "stealth",
     "fingerprint spoofing",
     "local Chrome",
-    "remote debugging"
+    "remote debugging",
+    "camoufox",
+    "anti-fingerprint"
   ],
   "full_text": "# Browser Automation\n\nHermes Agent includes a full browser automation toolset with multiple backend options:\n\n- **Browserbase cloud mode** — managed cloud browsers with anti-bot tooling\n- **Browser Use cloud mode** — alternative cloud browser provider\n- **Firecrawl cloud mode** — cloud browsers with built-in scraping\n- **Camofox local mode** — local anti-detection browsing (Firefox-based fingerprint spoofing)\n- **Local Chrome via CDP** — connect to your own Chrome instance using `/browser connect`\n- **Local browser mode** — `agent-browser` CLI with local Chromium\n\nPages are represented as **accessibility trees** (text-based snapshots). Interactive elements get ref IDs (like `@e1`, `@e2`) for clicking and typing.\n\n## Setup\n\nNous Portal subscribers can use browser automation through the Tool Gateway without separate API keys.\n\n```bash\n# ~/.hermes/.env\nBROWSERBASE_API_KEY=***\nBROWSERBASE_PROJECT_ID=your-project-id\nBROWSER_USE_API_KEY=***       # Alternative provider\nFIRECRAWL_API_KEY=fc-***      # Firecrawl provider\nCAMOFOX_URL=http://localhost:9377  # Local Camofox\n```\n\n## Hybrid Routing\n\nWhen a cloud provider is configured, Hermes auto-spawns a local Chromium sidecar for private/LAN URLs (localhost, 192.168.x.x, etc.). Public URLs use the cloud provider.\n\n```yaml\nbrowser:\n  cloud_provider: browserbase\n  auto_local_for_private_urls: false  # disable hybrid routing\n```\n\n## Local Chrome via CDP (`/browser connect`)\n\n```\n/browser connect              # Connect to Chrome at ws://localhost:9222\n/browser connect ws://host:port  # Connect to specific endpoint\n/browser status               # Check current connection\n/browser disconnect           # Detach\n```\n\nNote: `/browser connect` is CLI-only — not available in gateway/WebUI contexts.\n\n## Available Tools\n\n- **`browser_navigate`** — Navigate to a URL (must be called first)\n- **`browser_snapshot`** — Get accessibility tree snapshot; `full=true` for complete content\n- **`browser_click`** — Click element by ref ID (e.g., `@e5`)\n- **`browser_type`** — Type text into input field (clears first)\n- **`browser_scroll`** — Scroll up or down\n- **`browser_press`** — Press keyboard key (Enter, Tab, Escape, etc.)\n- **`browser_back`** — Navigate back\n- **`browser_get_images`** — List all images on page\n- **`browser_vision`** — Screenshot + AI vision analysis\n- **`browser_console`** — Get JS console output; evaluate JS expressions\n- **`browser_cdp`** — Raw CDP passthrough (CDP endpoint required)\n- **`browser_dialog`** — Respond to native JS dialogs\n\n## Session Management\n\n- Each task gets an isolated browser session\n- Auto-cleanup after 2 minutes of inactivity (background check every 30s)\n- Emergency cleanup on process exit\n- Session recording: `browser.record_sessions: true`\n\n## Limitations\n\n- Text-based only (accessibility tree, not pixel coordinates)\n- Snapshots over 8000 characters are LLM-summarized\n- No file downloads\n- Cloud sessions consume provider credits\n"
 }

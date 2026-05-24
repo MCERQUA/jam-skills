@@ -1,0 +1,42 @@
+{
+  "id": "community-v0.9-debug-leak",
+  "title": "v0.9 /debug Slash Command Log-Leak Warning",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1skl8le",
+  "category": "community",
+  "subcategory": "security",
+  "summary": "v0.9 era: the `/debug` slash command uploaded sensitive logs to a public site with no confirmation prompt. Affects WhatsApp usernames, memory entries with personal info. Status in v0.13/v0.14 unverified — audit before use. Source 1skl8le (259/52).",
+  "key_concepts": [
+    "sensitive log upload",
+    "no confirmation prompt",
+    "WhatsApp username leak",
+    "memory PII leak"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [
+    {
+      "command": "/debug",
+      "purpose": "v0.9 era: uploaded sensitive logs to public site without confirmation — verify behavior in current version before invoking"
+    }
+  ],
+  "code_examples": [],
+  "gotchas": [
+    "u/TheLadDothCallMe (+5): 'The /debug slash command just uploads a bunch of sensitive logs with no confirmation to a public site. WhatsApp usernames, memories containing personal information.' v0.9 confirmed; later versions unverified — DO NOT run /debug without auditing destination + payload first"
+  ],
+  "cross_refs": [
+    "security",
+    "ref-slash-commands",
+    "memory"
+  ],
+  "keywords": [
+    "/debug leak",
+    "v0.9 security",
+    "sensitive logs",
+    "log upload",
+    "PII leak",
+    "TheLadDothCallMe"
+  ],
+  "full_text": "Source: r/hermesagent post 1skl8le on v0.9.0 release thread (259 score, 52 comments).\n\nu/TheLadDothCallMe (+5) reported the /debug slash command uploaded sensitive logs to a public site with no confirmation prompt — WhatsApp usernames, memories containing personal info. v0.9 era. Status in v0.13/v0.14 not verified.\n\n## Recommended check before /debug\n- What endpoint does /debug upload to?\n- Is the upload behind an explicit y/N prompt?\n- Does the payload include memory entries or messaging-platform metadata?\n\nIf any of these are unclear, do not run /debug in a production session."
+}

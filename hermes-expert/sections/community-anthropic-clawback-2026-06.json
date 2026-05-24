@@ -1,0 +1,56 @@
+{
+  "id": "community-anthropic-clawback-2026-06",
+  "title": "Anthropic June 15 2026 Platform Clawback",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1tdb404",
+  "category": "community",
+  "subcategory": "migration",
+  "summary": "On June 15 2026 Anthropic unbundled `claude -p` and Agent SDK calls from subscription pool; programmatic usage meters against separate API credits ($20/$100/$200 by tier, no rollover). Source post 1tdb404 (363 score, 73 comments). This is the operational rationale for JamBot's Z.AI routing.",
+  "key_concepts": [
+    "third-party harness detection",
+    "HERMES.md commit-message signature",
+    "headless `claude -p` silent billing bug",
+    "$200 surprise charge incident"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "JamBot Z.AI routing to dodge the clawback",
+      "code": "# Point Hermes at Z.AI's Anthropic-compatible endpoint\nproviders:\n  anthropic:\n    base_url: https://api.z.ai/api/anthropic\n    api_key: ${Z_AI_CODING_PLAN_KEY}\n    # Z.AI Coding Plan subscription pricing applies; no Anthropic API metering"
+    },
+    {
+      "language": "yaml",
+      "caption": "Post-clawback portable stack (u/LogisticsPositive)",
+      "code": "# 'Outside the walled garden — no runaway cost risks'\nproviders:\n  default:    hermes-agent\n  inference:  ollama-cloud      # 3-connection cap — see budget-routing\n  fallback:   glm-5.1           # via Z.AI\n  rule:       'Models as batteries' — design for provider portability"
+    }
+  ],
+  "gotchas": [
+    "The string 'HERMES.md' appearing in a commit message has triggered $200 in API charges — Anthropic flags accounts as third-party harness usage. Detection mechanism still live.",
+    "`claude -p` headless flag silently routes to API billing even with no ANTHROPIC_API_KEY set + active Max sub — four-figure surprise charges reported",
+    "April 2026: Anthropic briefly removed Claude Code from $20 Pro tier entirely, then walked it back. Pattern: walls move suddenly",
+    "Programmatic usage credits do NOT roll over month-to-month — burn them or lose them"
+  ],
+  "cross_refs": [
+    "subscription-proxy",
+    "provider-routing",
+    "fallback-providers",
+    "community-budget-routing",
+    "community-claude-code-bundled"
+  ],
+  "keywords": [
+    "anthropic clawback",
+    "june 15 2026",
+    "claude -p silent billing",
+    "HERMES.md detection",
+    "third-party harness",
+    "z.ai routing",
+    "api unbundle",
+    "subscription metering",
+    "kenduffy"
+  ],
+  "full_text": "Source: r/hermesagent post 1tdb404 by u/kenduffy (363 score, 73 comments).\n\n## What changed on June 15 2026\n`claude -p` and Agent SDK calls 'get unbundled from the subscription pool. Programmatic usage now meters against a separate monthly credit ($20/$100/$200 by tier) at API rates. No rollover.'\n\n## Documented incidents\n1. **HERMES.md commit-message detection.** A user was billed $200 in API charges because the string 'HERMES.md' appeared in a git commit message. Anthropic backend flagged the account as third-party harness usage. The detection mechanism is still live.\n2. **`claude -p` silent-billing bug.** The headless flag has a known bug routing to API billing even with no ANTHROPIC_API_KEY set and an active Max sub. Four-figure surprise charges reported.\n3. **April 2026 pre-warning.** Anthropic briefly removed Claude Code from $20 Pro tier entirely, then walked it back — pattern of sudden wall changes.\n\n## 'Models as batteries' philosophy\nDesign for provider portability via OpenRouter/abstraction layers. u/LogisticsPositive recommended post-clawback stack: 'Hermes-Agent, Ollama Cloud, GLM 5.1:Cloud — outside the walled garden, no runaway cost risks.'"
+}

@@ -1,0 +1,64 @@
+{
+  "id": "community-obsidian-three-tier-memory",
+  "title": "Obsidian Three-Tier Memory (community pattern)",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1stz6gd",
+  "category": "community",
+  "subcategory": "memory",
+  "summary": "Community pattern (u/Jonathan_Rivera, 946 upvotes) for using an Obsidian markdown vault as Hermes long-term memory. Three tiers: hot per-session memory, vault Living Files for stable preferences, append-only daily notes for timeline.",
+  "key_concepts": [
+    "three-tier memory",
+    "hot memory budget ~6000 chars",
+    "vault Living Files at 67% hot capacity",
+    "daily notes append-only",
+    "content routing rules",
+    "morning briefing cron"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "text",
+      "caption": "Vault folder scaffold",
+      "code": "Vault/\n├── Daily/                    # YYYY-MM-DD.md — append-only\n├── System/Assistant/\n│   ├── context.md            # Operations, health, family overview\n│   ├── preferences.md        # Communication style, delivery rules\n│   └── environment.md        # Hardware, services, known issues\n├── Work/Business/\n├── Personal/{Finance,Health}/\n├── People/                   # MOC\n└── Inbox/                    # Unclassified"
+    },
+    {
+      "language": "yaml",
+      "caption": "Daily note frontmatter + section template",
+      "code": "---\ndate: YYYY-MM-DD\ntype: daily\ntags: [daily]\n---\n## Tasks    (- [ ] checkbox + (p2)/(p3)/(p4) tag)\n## Schedule (time-blocked events)\n## Log      (- HH:MM AM/PM — what happened)\n## Wins     (✅ task description)\n## Context  (backlinks)"
+    },
+    {
+      "language": "text",
+      "caption": "Content routing rules when user says 'log it'",
+      "code": "Operational events           → Daily/.../## Log\nSystem issues / fixes        → System/Assistant/logs/issues-fixes-log.md\nLearned corrections / prefs  → hot memory (or vault if stable)\nRecurring workflow           → save as reusable skill\nUnknown                      → Inbox/"
+    }
+  ],
+  "gotchas": [
+    "Hot memory budget keeps under ~6000 chars; promote to Living Files when hot hits ~67% capacity",
+    "Default hermes memory layer interaction unclear — community open question whether to disable default memory when using this pattern (u/KanoYin)",
+    "Honcho coexistence unconfirmed (u/oryhiou)",
+    "u/EmergencyCelery911 compared mem0 vs Obsidian — Obsidian wins on visibility/audit"
+  ],
+  "cross_refs": [
+    "memory",
+    "memory-providers",
+    "honcho",
+    "cron"
+  ],
+  "keywords": [
+    "obsidian",
+    "three-tier memory",
+    "vault",
+    "daily notes",
+    "living files",
+    "hot memory",
+    "markdown vault",
+    "long-term memory",
+    "morning briefing",
+    "content routing",
+    "jonathan_rivera"
+  ],
+  "full_text": "Source: r/hermesagent post 1stz6gd by u/Jonathan_Rivera (946 score, 159 comments).\n\nThree-tier architecture for Hermes long-term memory using a plain Obsidian vault — no DB, agent reads/writes markdown files directly.\n\n## Tier 1 — Hot Memory\nPer-session, ~9K char ceiling but keep under ~6000 chars. Injected every turn.\n\n## Tier 2 — Vault Living Files\nPromote stable entries when hot memory hits 67% capacity. Lives in System/Assistant/{context,preferences,environment}.md.\n\n## Tier 3 — Daily Notes\nDaily/YYYY-MM-DD.md, append-only timeline.\n\n## Community variants\n- u/Sleepy_Bandit (+17): PowerShell bootstrap script templates context.md / preferences.md / environment.md.\n- u/trainermade (+5): VPS-resident profile folders synced via Syncthing.\n- u/mehdiweb (+2): qdrant + sqlite alternative stack.\n- u/Jan_Vollgod (+2): same three-tier 'Hot/Living/Daily' approach solved his context-window issues.\n\n## Morning briefing cron (6:50 AM)\nFetch Todoist + Calendar + create-or-update daily note.\n\n## Finance briefing cron (9:00 AM weekdays)\nYahoo Finance per ticker → price + headlines + sentiment → Telegram table."
+}

@@ -1,0 +1,72 @@
+{
+  "id": "community-local-model-stacks",
+  "title": "Proven Local-Model Hardware Stacks (community)",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1tegogu",
+  "category": "community",
+  "subcategory": "local-models",
+  "summary": "Five real-hardware Hermes-with-local-models stacks from r/hermesagent 1tegogu (101 score, 103 comments). Each includes hardware spec, model choice, concrete throughput numbers, and config quirks.",
+  "key_concepts": [
+    "GMKtec EVO-X2 unified-memory rig",
+    "dual Blackwell 16GB workstation",
+    "i9 + 3090 Ti WSL2 desktop",
+    "M4 Max 95/5 routing pattern",
+    "always-Docker rule",
+    "$20 codex safety net for default profile"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "GMKtec EVO-X2 + qwen3.5-122b-a10b via LM Studio (u/TexBluBoy +19, 15.79 t/s)",
+      "code": "# Ryzen AI Max+ 395 + Radeon 8060S + 128GB LPDDR5X-8000\n# BIOS pins 96GB VRAM + 32GB system; Vulkan/Mesa RADV native\nprovider:\n  type: custom\n  endpoint: http://localhost:8010\n  model: qwen3.5-122b-a10b\n  context_limit: 49152   # hard cap to prevent memory panics"
+    },
+    {
+      "language": "yaml",
+      "caption": "M4 Max 95/5 routing (u/Britbong1492)",
+      "code": "# qwen3.6:35b-A3b local at TTFT 0.3s, ~80tps\n# 5% goes to Kimi k2.6 at <$1/M = $1/week/agent\nproviders:\n  primary:\n    type: local\n    model: qwen3.6:35b-A3b\n    backend: mlx          # Mac MLX with OptiQ quants\n  escalation:\n    threshold: complex_reasoning\n    model: kimi-k2.6"
+    },
+    {
+      "language": "text",
+      "caption": "Mac MLX optiq link",
+      "code": "huggingface.co/mlx-community/Qwen3.5-9B-OptiQ-4bit"
+    },
+    {
+      "language": "yaml",
+      "caption": "Safety net (u/ang3l12 +35)",
+      "code": "# $20 Codex plan for the default profile — there to help when things break\n# or your local-LLM profile goes awry. Treat as insurance, not primary.\nprofiles:\n  default:\n    provider: codex-subscription\n    model: gpt-5.4\n  local-experiments:\n    provider: local-mlx\n    fallback: default"
+    }
+  ],
+  "gotchas": [
+    "u/logos_flux: 'Always, always, run in docker never on direct bare metal' — local-model deployments specifically",
+    "GMKtec EVO-X2: 49152 context ceiling is required to prevent memory panics, even with 96GB VRAM pinned",
+    "M4 Mac mini (32GB) + Gemma 4 26B 4-bit via oMLX: 'Bit tough getting it set up well to not cause thinking loops locally' (u/310dweller)",
+    "WSL2 Ubuntu-26.04 + RTX 3090 Ti: works at ~150 t/s with Qwen3.6-35b-a3b@iq3_xxs, 256k context — fully usable as primary"
+  ],
+  "cross_refs": [
+    "guide-local-llm-on-mac",
+    "guide-local-ollama-setup",
+    "docker",
+    "configuring-models",
+    "termux"
+  ],
+  "keywords": [
+    "local models",
+    "GMKtec EVO-X2",
+    "M4 Max",
+    "3090 Ti",
+    "Blackwell",
+    "WSL2",
+    "LM Studio",
+    "MLX",
+    "OptiQ quants",
+    "qwen3.6 35b",
+    "always docker",
+    "unified memory",
+    "ryzen ai max"
+  ],
+  "full_text": "Source: r/hermesagent post 1tegogu (101 score, 103 comments). Multiple users sharing real production hardware stacks.\n\n## Stack 1 — GMKtec EVO-X2 (u/TexBluBoy +19)\n- Hardware: Ryzen AI Max+ 395 16-core + Radeon 8060S + 128GB LPDDR5X-8000 on CachyOS\n- BIOS: 96GB VRAM + 32GB system\n- Model: qwen3.5-122b-a10b via LM Studio on port 8010\n- Throughput: 15.79 t/s, 88-90 GB VRAM\n- Context ceiling: 49152 (hard cap to prevent memory panics)\n- Backend: Vulkan/Mesa RADV native\n- Hermes config: 'custom (direct API) mode to communicate locally with LM Studio'\n\n## Stack 2 — Dual Blackwell 16GB (u/mrgreatheart +7)\n- Hardware: 2x 16GB Blackwell GPUs\n- Model: Qwen3.6-27B-Q6_K (NVFP4-MTP version 'wild' speed jump)\n\n## Stack 3 — i9 + 64GB + 3090 Ti WSL2 (u/MyOldAccountWasAwful +2)\n- Hardware: i9-14900KF + 64GB DDR5 + RTX 3090 Ti 24GB in WSL2 Ubuntu-26.04\n- Model: Qwen3.6-35b-a3b@iq3_xxs\n- Throughput: ~150 tok/sec, full 256k context\n- Workload: stock tracking + daily journal + nightly self-eval/self-improvement + research validation\n\n## Stack 4 — M4 Max 95/5 routing (u/Britbong1492 +1)\n- Hardware: M4 Max\n- Primary (95%): qwen3.6:35b-A3b local (TTFT 0.3s, ~80tps)\n- Escalation (5%): Kimi k2.6 at <$1/M = $1/week/agent\n\n## Stack 5 — Mac mini M4 32GB hybrid (u/310dweller +2)\n- Hardware: 32GB M4 Mac mini\n- Easy work: Gemma 4 26B 4-bit MLX via oMLX\n- Hard work: cloud\n- Caveat: 'Bit tough getting it set up well to not cause thinking loops locally'\n\n## Multi-agent broadcast (u/renoturx +12)\n- 2 Hermes agents on local network using free DeepSeek-v4 from Nous Portal + OpenRouter\n- Built skill where agents broadcast on startup and sync skills/memories with each other\n- Can call out for parallel sub-agent help\n\n## Mac MLX OptiQ quants (u/asankhs)\n- huggingface.co/mlx-community/Qwen3.5-9B-OptiQ-4bit\n\n## Always-Docker rule (u/logos_flux +3)\n- 'Always, always, run in docker never on direct bare metal'\n\n## $20 Codex safety net (u/ang3l12 +35)\n- '$20 codex plan for the default profile, there to help when things break or your local LLM profile goes awry'"
+}

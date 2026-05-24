@@ -1,0 +1,68 @@
+{
+  "id": "community-model-tier-list-2026-05",
+  "title": "Community Model Tier List (May 2026)",
+  "source_path": "",
+  "url": "https://reddit.com/comments/1tjeitj",
+  "category": "community",
+  "subcategory": "models",
+  "summary": "Empirical model ranking from u/Puzzleheaded-Gas8179's 6-billion-token Hermes testing (r/hermesagent 1tjeitj, 213/131): GPT-5.5 > Kimi k2.6 > GLM 5.1 > Minimax M2.7 > Qwen 3.6 Max > Gemini. Local pick: Qwen 3.6 35B A3B. Plus a tier-list infographic from post 1sj8hyw.",
+  "key_concepts": [
+    "tier-list ranking",
+    "subscription value per dollar",
+    "fallback model strategy",
+    "DeepSeek v4 Flash requires xhigh reasoning",
+    "Codex via subscription = Tier S for cost"
+  ],
+  "env_vars": [],
+  "cli_commands": [],
+  "config_keys": [
+    {
+      "path": "model.reasoning",
+      "type": "string",
+      "default": null,
+      "description": "Reasoning effort hint — DeepSeek v4 Flash unreliable for tool calling without 'xhigh'",
+      "example": "xhigh"
+    }
+  ],
+  "slash_commands": [],
+  "code_examples": [
+    {
+      "language": "yaml",
+      "caption": "DeepSeek v4 Flash with required xhigh reasoning",
+      "code": "model:\n  name: deepseek-v4-flash\n  reasoning: xhigh   # without this, model is unreliable for tool calling"
+    },
+    {
+      "language": "yaml",
+      "caption": "Codex-via-subscription as Tier S (u/FilthyCasual2k17)",
+      "code": "# Use Codex via subscription + reasoning: xhigh\n# Pays fraction of API cost for same model quality.\nmodel:\n  provider: codex-subscription\n  name: gpt-5.5\n  reasoning: xhigh"
+    }
+  ],
+  "gotchas": [
+    "GLM 5.1 was prone to loops in real testing (u/Puzzleheaded-Gas8179)",
+    "Kimi k2.6 hits 5-hour quotas under sustained load",
+    "Minimax M2.7 needs excellent prompting to perform",
+    "DeepSeek v4 Flash unreliable without reasoning: xhigh — undocumented requirement",
+    "DeepSeek v4 lacks vision (u/donnthebuilder: 'dead on arrival') — pair with vision-capable aux model",
+    "OpenAI Codex sub has heavy tool-use bias: random searches/terminal commands blow weekly quota fast"
+  ],
+  "cross_refs": [
+    "provider-routing",
+    "configuring-models",
+    "ref-model-catalog",
+    "community-budget-routing"
+  ],
+  "keywords": [
+    "tier list",
+    "model ranking",
+    "GPT-5.5",
+    "Kimi k2.6",
+    "GLM 5.1",
+    "Minimax M2.7",
+    "Qwen 3.6",
+    "DeepSeek v4",
+    "xhigh reasoning",
+    "Codex subscription",
+    "6 billion tokens"
+  ],
+  "full_text": "Sources:\n- r/hermesagent post 1tjeitj by u/Puzzleheaded-Gas8179 (213 score, 131 comments) — 6B tokens empirical testing.\n- r/hermesagent post 1sj8hyw (657 score, 58 comments) — tier-list infographic.\n\n## Empirical ranking (6B tokens tested)\n1. GPT-5.5\n2. Kimi k2.6\n3. GLM 5.1\n4. Minimax M2.7\n5. Qwen 3.6 Max\n6. Gemini\n\nLocal pick: Qwen 3.6 35B A3B.\n\n## Tier list infographic\n- Tier 1 (frontier): Claude Opus 4.6, GPT-5.4, GLM-5.1 (MIT license, 8-hour autonomous execution, #1 SWE-Pro)\n- Tier 2 (execution): MiniMax M2.7 ('97% skill adherence, built for agents'), Kimi K2.5, Grok 4.20 (lowest hallucination, native multi-agent API up to 16 parallel, 2M context)\n- Tier 3: Gemini 3.1 Pro, Mistral Small 4 ($0.15/M, Apache 2.0)\n- Tier S (cost): Codex via subscription with reasoning: xhigh\n\n## Subscription value rank (real-world)\nOpenAI $20 > Opencode Go $10 > Minimax $10 > Kimi $20 > GLM $18.\n\n## Fallback model strategy (u/Professional_Bet_279)\nDeepSeek v4 Flash gets stuck looping → bring GPT-4.1 via Copilot subscription to unstick it.\n\n## Notable PRs that improved tool-use\nHermes PRs #6120, #5414, #5931 — 'Self-Optimized GPT/Codex Tool-Use Guidance' landed in 0.8.0. Patched 5 failure modes in GPT and Codex tool calling."
+}

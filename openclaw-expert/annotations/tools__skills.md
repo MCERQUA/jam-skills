@@ -1,9 +1,9 @@
 ---
 upstream: https://docs.openclaw.ai/tools/skills.md
 relevance: jambot-critical
-last-verified: 2026-05-04
-audit_anchors: [11]
-related_pages: [tools__skills-config, tools__creating-skills, tools__clawhub]
+last-verified: 2026-05-23
+audit_anchors: [11, 18]
+related_pages: [tools__skills-config, tools__creating-skills, tools__clawhub, plugins__architecture]
 ---
 
 # Skills — JamBot annotation
@@ -11,6 +11,14 @@ related_pages: [tools__skills-config, tools__creating-skills, tools__clawhub]
 ## What docs say (TL;DR)
 
 Skills = markdown-defined agent plugins with frontmatter, optional `requires.*` gating, `installer` specs. Three types: workspace (per-tenant), managed (system-wide), bundled (with openclaw). Distributed via ClawHub.
+
+## Anchor #18 — Supply-chain risk (added 2026-05-23)
+
+**ALL ClawHub installs are untrusted code.** The ClawHavoc campaign caught 1,467 malicious skills; the flagship case `capability-evolver` (#1 on ClawHub, 35k installs) was exfiltrating to Chinese cloud storage before removal (github.com/openclaw/clawhub#95).
+
+JamBot rule: `/mnt/system/base/skills/` is allowlist-only. New skills go through `playbooks/skill-install-vetting.md`. See `overrides/skill-allowlist.md` for the current allowlist + blocklist.
+
+**Critical injection vector:** skill `DESCRIPTION.md` is injected verbatim into the agent system prompt — bypasses prompt-injection scanners. Treat skill `DESCRIPTION.md` as code-equivalent threat surface, not docs. See `annotations/security__prompt-injection.md`.
 
 ## Anchor #11 — `skills.entries` vs `plugins.entries` (dual-axis)
 
@@ -39,9 +47,15 @@ Shared skills master dir: `/mnt/system/base/skills/` — mounted into all client
 
 Per CLAUDE.md: every JamBot skill MUST be routed in `TOOLS.md` (memory `feedback_tools_md_routing`) — skills invisible to agents without a routing row, even if mounted and API-reachable.
 
+**2026-05-23 addition:** the shared-skills directory is now also an allowlist (see `overrides/skill-allowlist.md`). Adding a skill to `/mnt/system/base/skills/` requires the full vetting playbook + Mike approval.
+
 ## TOOLS.md cap (anchor #5)
 
 Per-file bootstrap cap ≈ 24K chars for TOOLS.md. As we add more JamBot skills, the routing table grows toward this cap. Audit per-client TOOLS.md sizes.
+
+## Mandatory pre-install tool — Skill Vetter
+
+Install **Skill Vetter** (`clawhub.ai/spclaudehome/skill-vetter`) on every new tenant. It's an agent-driven scanner that reviews ClawHub skill source before install. See `annotations/skills__skill-vetter.md` for setup; `playbooks/skill-install-vetting.md` for the full workflow.
 
 ## Skills snapshot invalidation gotcha
 
@@ -56,6 +70,8 @@ openclaw plugins inspect <id>                       # NEW v4.27
 openclaw plugins registry --refresh                 # NEW v4.25
 openclaw plugins deps                                # NEW v4.27/4.29
 ```
+
+**Always pin a version** when installing from ClawHub. Auto-update opens a re-vetting hole — the skill you vetted is NOT the skill you have three weeks later. Per r/openclaw 1ssuze9, OpenClaw auto-updates 2-3x/week, so upstream churn is fast.
 
 ## Skill frontmatter — JamBot conventions
 
@@ -77,8 +93,14 @@ Per memory `feedback_research_latest_versions`: never trust cached version knowl
 
 ## Related JamBot files
 
-- `audit-anchors/anchor-{2,11}.md`
+- `audit-anchors/anchor-02-memory-core-auto-activates.md`
+- `audit-anchors/anchor-11-plugins-entries-vs-skills-entries.md`
+- `audit-anchors/anchor-18-clawhavoc-supply-chain.md`
 - `audit-anchors/anchor-05-per-file-bootstrap-caps.md` — TOOLS.md cap
+- `annotations/skills__skill-vetter.md` — mandatory pre-install tool
+- `annotations/security__prompt-injection.md` — DESCRIPTION.md injection vector
+- `overrides/skill-allowlist.md` — JamBot allowlist + blocklist
+- `playbooks/skill-install-vetting.md` — full vetting workflow
 - `feedback_tools_md_routing.md` (memory) — TOOLS.md routing rule
 - `/maintain-skills` skill — JamBot-side skills audit tool
 - `/setup-skills` skill — JamBot-side skill installer
