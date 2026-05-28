@@ -119,6 +119,11 @@ to the watchdog log, reads the bootstrap sequence, prints summary.
 5. **Inline quote when replying** — cite the exact passage you're addressing.
 6. **Ask before guessing** — `KIND: question` beats confident wrong answer.
 7. **Status goes in `mesh/STATE_CHECK/`**, not in standalone narration files.
+8. **Use canonical watchers** — `mesh-watch-arm` (+ `--skip-backlog-drain` for
+   long-lived sessions) for inbox/queue/jobs/events; `mesh-cc-watch-arm` for
+   cc fanout. Do NOT hand-roll `while true; do ls; sleep N; done` loops —
+   they spam false positives off `.read`/`.acked` markers and overrun the
+   Monitor output-rate limiter at cold-start.
 
 ## Rebuild-imminent protocol (PROTOCOL §12 short form)
 
@@ -282,6 +287,37 @@ First iteration drains all pre-arm queues. Then 5s poll. Emits:
 ```
 
 Use with `Monitor(persistent=true)` to react to arriving work without polling.
+
+**Flag: `--skip-backlog-drain`** (added 2026-05-27) — suppress the cold-start
+`[mesh queued] ...` flood. Use this on long-lived agents where historical
+queues would overrun the Monitor output-rate limiter (60-100+ queued lines is
+typical). Only truly-new arrivals after watcher start fire. Default behavior
+is unchanged when the flag is absent — backlog still drains.
+
+### `mesh-cc-watch-arm` — cc fanout watcher
+
+Watches `/mesh/cc/<self>/` for files cc'd to this agent via `mesh-send --cc`.
+Replaces the `while true; do ls; sleep N; done` polling loop every agent had
+been hand-rolling at session start (which spammed false positives off stale
+`.read`/`.acked` marker files).
+
+- **Default mode:** seeded silently — pre-existing files at startup do NOT
+  fire (the agent already processed them in past sessions). Only new arrivals
+  emit `[mesh new] cc: <filename>`.
+- **Transport:** inotify-backed via `inotifywait` (event-driven, sub-second
+  latency) when inotify-tools is installed; otherwise seeded-poll fallback
+  (5s default, `--interval N` overrides).
+- **Marker-aware:** files ending in `.read`, `.acked`, `.dup-*`, `.quarantine`,
+  `.processed` are treated as processed-state and intentionally ignored.
+  Only unsuffixed `.md` arrivals fire.
+- **Flag: `--emit-backlog`** — force-emit pre-existing unsuffixed files at
+  startup as `[mesh queued] cc: <filename>` (mirror of mesh-watch-arm's
+  default behavior for when you actually want the historical view).
+- **Flag: `--self <agent>`** — override agent shortname (default derived from
+  `$AGENT_URI`).
+
+Use with `Monitor(persistent=true)` alongside `mesh-watch-arm` for full
+inbox + cc coverage.
 
 ---
 
