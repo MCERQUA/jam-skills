@@ -63,33 +63,81 @@ mesh_send_safe() {  # mesh_send_safe <to> <subject> <body> [--end-of-turn ...]
     printf '%s\n' "$body" | mesh-send --to "$to" --kind message --subject "$subject" "$@" >/dev/null 2>&1
 }
 
-email_mike() {  # email_mike <subject> <body>
+email_mike() {  # email_mike <subject> <body> [ar-file]
     # Routes through the canonical email-send-pro wrapper (branded responsive HTML).
-    # Signature unchanged so all callers (cmd_opine dual-escalation, etc.) work as-is.
-    # tenant=system (ops/admin email). The wrapper resolves its own AgentMail key
-    # from .platform-keys.env — no key passed explicitly.
+    # Backward-compatible: callers passing only <subject> <body> work as before.
+    # If a 3rd arg (the AR pending file) is given, the email is built as a FULL
+    # self-contained decision request — the original request + both reviewer
+    # recommendations + how-to-respond, inline — so Mike never has to open a file
+    # or remember context. tenant=system. Wrapper resolves its own AgentMail key.
     command -v /usr/local/bin/email-send-pro >/dev/null 2>&1 || {
         echo "WARN: email-send-pro missing — email skipped" >&2; return 1; }
     local payload
-    payload=$(SUBJ="$1" BODY="$2" TO="$ADMIN_EMAIL" FROM_INBOX="$FROM_INBOX" python3 -c '
-import json, os
-subj = os.environ["SUBJ"]
-body = os.environ["BODY"].strip()
-# Use the first non-empty line as the intro, the remainder as a detail section.
-lines = [l for l in body.splitlines()]
-intro = next((l.strip() for l in lines if l.strip()), subj)
-rest = body[len(intro):].strip() if body.startswith(intro) else body
+    payload=$(SUBJ="$1" BODY="$2" ARFILE="${3:-}" TO="$ADMIN_EMAIL" FROM_INBOX="$FROM_INBOX" python3 -c '
+import json, os, re
+subj   = os.environ["SUBJ"]
+body   = os.environ["BODY"].strip()
+arfile = os.environ.get("ARFILE", "")
+
+def sanitize(s):
+    # Neutralize markdown-leak chars the wrapper refuses (#, **, __)
+    s = re.sub(r"\*\*(.*?)\*\*", r"\1", s, flags=re.DOTALL)
+    s = re.sub(r"__(.*?)__", r"\1", s, flags=re.DOTALL)
+    s = re.sub(r"^\s*#+\s*", "", s, flags=re.MULTILINE)
+    return s.replace("**", "").replace("__", "").strip()
+
+sections = []
+intro = subj
+rid = ""
+
+if arfile and os.path.exists(arfile):
+    content = open(arfile, encoding="utf-8").read()
+    fm = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
+    meta = {}
+    if fm:
+        for line in fm.group(1).splitlines():
+            if ":" in line:
+                k, v = line.split(":", 1); meta[k.strip()] = v.strip()
+    rid = meta.get("id", "")
+    tenant = meta.get("tenant", "")
+    filed = meta.get("filed_at", "")
+    parts = re.split(r"^---\s*$", content, maxsplit=2, flags=re.MULTILINE)
+    body_md = parts[2] if len(parts) >= 3 else content
+    m = re.search(r"##\s*Original request.*?\n(.*?)(?=\n##\s|\Z)", body_md, re.DOTALL)
+    original = sanitize(m.group(1)) if m else sanitize(body)
+    ops = re.findall(r"##\s*Opinion by\s+(\S+)\s*[-—]+\s*(\w+).*?\n(.*?)(?=\n##\s|\Z)", body_md, re.DOTALL)
+    rec = []
+    for agent, vote, text in ops:
+        rm = re.search(r"Reasoning:\s*(.*?)(?=\n[-*]\s|\Z)", sanitize(text), re.DOTALL)
+        reasoning = re.sub(r"\s+", " ", (rm.group(1).strip() if rm else sanitize(text)))[:600]
+        rec.append(f"{agent} voted {vote} - {reasoning}")
+    intro = (f"A client request needs your decision. Here is the full picture so you can "
+             f"decide from this email - the request, what the agent reviewers recommend, "
+             f"and how to respond. No need to open anything.")
+    sections.append({"heading": "What is the request", "body": original[:1800]})
+    if rec:
+        sections.append({"heading": "What the reviewers recommend",
+                         "body": "Reviewed by the agent team before reaching you:",
+                         "bullets": rec})
+    sections.append({"heading": "How to respond",
+                     "body": "Reply with ONE of these as the very first line:",
+                     "bullets": [f"APPROVE {rid}", f"REJECT {rid} (and your reason)"]})
+else:
+    # Generic fallback (callers that pass only subject+body)
+    lines = [l for l in body.splitlines()]
+    intro = next((l.strip() for l in lines if l.strip()), subj)
+    rest = sanitize(body[len(intro):].strip() if body.startswith(intro) else body)
+    sections = [{"heading": "Details", "body": rest or "(no further detail provided)"}]
+
 print(json.dumps({
     "tenant": "system",
     "to": [os.environ["TO"]],
     "from_inbox": os.environ["FROM_INBOX"],
     "subject": subj,
     "intro": intro,
-    "sections": [
-        {"heading": "Details", "body": rest or "See the pending file referenced above for full context."}
-    ],
+    "sections": sections,
     "signature_style": "brief",
-    "labels": ["admin-review"],
+    "labels": ["admin-review"] + ([rid] if rid else []),
 }))')
     echo "$payload" | /usr/local/bin/email-send-pro --send --from-inbox "$FROM_INBOX" >/dev/null 2>&1
 }
@@ -277,8 +325,8 @@ To reject:  reply with first line   REJECT ${id} <reason-back-to-user>
 Re-ping fires every 4hr until you respond.
 EMAIL
 )
-    email_mike "[ADMIN REVIEW — DUAL ESCALATION] ${tenant}: ${summary}" "$body"
-    echo "escalated to Mike (both opinions on file)"
+    email_mike "[ADMIN REVIEW] ${tenant}: ${summary}" "$body" "$file"
+    echo "escalated to Mike (full context inlined in email)"
 }
 
 # ===========================================================================
