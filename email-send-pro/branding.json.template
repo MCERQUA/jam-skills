@@ -1,0 +1,26 @@
+{
+  "_comment": "Per-tenant email brand. Drop at /mnt/clients/<tenant>/openclaw/workspace/branding.json. email-send-pro reads it at send time; any field omitted falls back to branding.default.json. NEVER fabricate brand values — pull hex from the tenant's actual logo, use their real verified NAP, and respect any Mike-directive about what may be surfaced publicly.",
+
+  "logo_url": "https://<public-hosted-logo>.png  (leave empty until a PUBLIC url exists; canvas-pages logos are not public)",
+  "tenant_name": "Exact business name as it should appear in the header",
+
+  "header_bg_color": "#0f172a  (extract from the tenant logo — do not guess)",
+  "header_text_color": "#ffffff",
+  "accent_color": "#3b82f6  (CTA button + section dividers — extract from logo)",
+  "body_font_stack": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+
+  "footer_copy": "Sent by <Business> — <one line>. <domain>",
+  "signature_name": "How the sender signs (e.g. 'Josh's Assistant', 'The Seattle Decking Team')",
+  "signature_title": "Optional role line under the signature",
+
+  "contact_email": "ONLY if the tenant wants it surfaced publicly. Respect Mike-directives (some tenants route inbound via phone + form only).",
+  "contact_phone": "Verified NAP phone",
+  "contact_url": "Public website",
+  "unsubscribe_url": "Recommended for compliance once a list-unsub endpoint exists",
+
+  "email_provider": "agentmail  (default) | inkbox  (paid tier — needs the inkbox_* fields below)",
+  "inkbox_inbox": "<handle>@inkboxmail.com  (only if email_provider == inkbox)",
+  "inkbox_phone": "+1XXXXXXXXXX  (paid InkBox phone, E.164)",
+  "inkbox_phone_id": "InkBox phone UUID (from InkBox dashboard)",
+  "inkbox_api_key_env_var": "INKBOX_API_KEY_<TENANT>  (name of the env var holding this tenant's InkBox key)"
+}

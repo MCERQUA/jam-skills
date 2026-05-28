@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<title>{{ subject | e }}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f9;font-family:{{ b.body_font_stack }};color:#1f2937;-webkit-font-smoothing:antialiased;">
+<!-- Preheader (hidden) -->
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f4f6f9;">{{ intro | e }}</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f4f6f9;padding:24px 0;">
+  <tr>
+    <td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.06);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background-color:{{ b.header_bg_color }};padding:20px 28px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <td align="left" style="vertical-align:middle;">
+                  {% if b.logo_url %}
+                  <img src="{{ b.logo_url }}" alt="{{ b.tenant_name | e }}" height="36" style="display:block;height:36px;max-height:36px;border:0;outline:none;text-decoration:none;">
+                  {% else %}
+                  <span style="color:{{ b.header_text_color }};font-size:20px;font-weight:600;letter-spacing:-0.01em;">{{ b.tenant_name | e }}</span>
+                  {% endif %}
+                </td>
+                {% if b.logo_url %}
+                <td align="right" style="vertical-align:middle;color:{{ b.header_text_color }};font-size:14px;font-weight:500;opacity:0.85;">
+                  {{ b.tenant_name | e }}
+                </td>
+                {% endif %}
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px 32px 8px 32px;font-family:{{ b.body_font_stack }};color:#1f2937;font-size:16px;line-height:1.55;">
+            <p style="margin:0 0 20px 0;font-size:16px;color:#1f2937;">{{ intro | e | replace('\n', '<br>') | safe }}</p>
+          </td>
+        </tr>
+
+        {% for section in sections %}
+        <tr>
+          <td style="padding:8px 32px 4px 32px;font-family:{{ b.body_font_stack }};">
+            <h2 style="margin:24px 0 12px 0;font-size:18px;font-weight:600;color:#0f172a;border-bottom:2px solid {{ b.accent_color }};padding-bottom:8px;display:inline-block;">{{ section.heading | e }}</h2>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 8px 32px;font-family:{{ b.body_font_stack }};color:#374151;font-size:15px;line-height:1.6;">
+            <p style="margin:0 0 14px 0;">{{ section.body | e | replace('\n', '<br>') | safe }}</p>
+            {% if section.bullets %}
+            <ul style="margin:0 0 14px 0;padding-left:22px;color:#374151;">
+              {% for bullet in section.bullets %}
+              <li style="margin:0 0 8px 0;line-height:1.55;">{{ bullet | e }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+            {% if section.canvas_links %}
+              {% for link in section.canvas_links %}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:14px 0;border:1px solid #e5e7eb;border-left:3px solid {{ b.accent_color }};border-radius:8px;background-color:#f8fafc;">
+                <tr>
+                  <td style="padding:14px 16px;font-family:{{ b.body_font_stack }};">
+                    <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:{{ b.accent_color }};margin-bottom:4px;">Canvas page</div>
+                    <a href="{{ link | e }}" style="font-size:14px;color:#0f172a;text-decoration:none;font-weight:500;word-break:break-all;">{{ link | e }}</a>
+                  </td>
+                </tr>
+              </table>
+              {% endfor %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+
+        {% if cta_label and cta_url %}
+        <tr>
+          <td align="center" style="padding:28px 32px 12px 32px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="border-radius:8px;background-color:{{ b.accent_color }};">
+                  <a href="{{ cta_url | e }}" style="display:inline-block;padding:14px 28px;font-family:{{ b.body_font_stack }};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">{{ cta_label | e }}</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        {% endif %}
+
+        <!-- Signature -->
+        <tr>
+          <td style="padding:20px 32px 8px 32px;font-family:{{ b.body_font_stack }};color:#1f2937;font-size:15px;line-height:1.55;">
+            <p style="margin:0 0 4px 0;">{{ sign_off | e }},</p>
+            <p style="margin:0;font-weight:600;color:#0f172a;">{{ b.signature_name | e }}</p>
+            {% if b.signature_title %}<p style="margin:0;color:#6b7280;font-size:14px;">{{ b.signature_title | e }}</p>{% endif %}
+          </td>
+        </tr>
+
+        {% if b.contact_email or b.contact_phone or b.contact_url %}
+        <tr>
+          <td style="padding:8px 32px 24px 32px;font-family:{{ b.body_font_stack }};color:#6b7280;font-size:13px;line-height:1.6;border-top:1px solid #f1f5f9;margin-top:12px;">
+            <div style="padding-top:12px;">
+            {% if b.contact_email %}<div>Email: <a href="mailto:{{ b.contact_email | e }}" style="color:#374151;text-decoration:none;">{{ b.contact_email | e }}</a></div>{% endif %}
+            {% if b.contact_phone %}<div>Phone: {{ b.contact_phone | e }}</div>{% endif %}
+            {% if b.contact_url %}<div>Web: <a href="{{ b.contact_url | e }}" style="color:#374151;text-decoration:none;">{{ b.contact_url | e }}</a></div>{% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+
+        <!-- Footer -->
+        <tr>
+          <td style="background-color:#f8fafc;padding:18px 32px;font-family:{{ b.body_font_stack }};color:#94a3b8;font-size:12px;line-height:1.55;text-align:center;border-top:1px solid #e5e7eb;">
+            <div style="margin-bottom:6px;">{{ b.footer_copy | e }}</div>
+            <div>
+              <a href="https://jam-bot.com" style="color:#94a3b8;text-decoration:underline;">jam-bot.com</a>
+              {% if b.unsubscribe_url %} &nbsp;&middot;&nbsp; <a href="{{ b.unsubscribe_url | e }}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a>{% endif %}
+            </div>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

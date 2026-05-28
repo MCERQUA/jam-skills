@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jam-bot.com/schemas/email-send-pro.branding.json",
+  "title": "EmailSendPro Tenant Branding",
+  "description": "Per-tenant branding profile consumed by /usr/local/bin/email-send-pro. One file per tenant lives at /mnt/clients/<tenant>/openclaw/workspace/branding.json. The fallback default lives at /mnt/system/base/skills/email-send-pro/branding.default.json. Every field has a documented default; missing fields are filled from default.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "logo_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Absolute https URL to a small logo image (recommended 240x60 PNG or SVG hosted on the tenant's domain or jam-bot.com). Rendered top-left of the email header. Optional — when omitted the tenant_name renders as text-only.",
+      "default": null
+    },
+    "tenant_name": {
+      "type": "string",
+      "description": "Display name for the email header and signature. Examples: 'Contractors Choice', 'JamBot', 'Foambot'. Required only via the default fallback — the default value is 'JamBot'.",
+      "default": "JamBot"
+    },
+    "header_bg_color": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "description": "Hex color for the header bar background. Default '#0f172a' (slate-900).",
+      "default": "#0f172a"
+    },
+    "header_text_color": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "description": "Hex color for header text and the small tenant_name label rendered beside the logo. Default '#ffffff'.",
+      "default": "#ffffff"
+    },
+    "accent_color": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "description": "Hex color used for the CTA button background, section heading underline, and canvas-link card borders. Default '#3b82f6' (blue-500).",
+      "default": "#3b82f6"
+    },
+    "body_font_stack": {
+      "type": "string",
+      "description": "CSS font-family stack applied inline to body cells. Default '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif'.",
+      "default": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+    },
+    "footer_copy": {
+      "type": "string",
+      "description": "Free-text footer line rendered above the unsubscribe row. Default 'Sent by JamBot on behalf of the tenant. jam-bot.com'.",
+      "default": "Sent by JamBot — agent-powered communication for local businesses. jam-bot.com"
+    },
+    "signature_name": {
+      "type": "string",
+      "description": "Name on the sign-off line. Examples: \"Josh's Assistant\", 'The Contractors Choice Team', 'JamBot'. Default 'JamBot'.",
+      "default": "JamBot"
+    },
+    "signature_title": {
+      "type": "string",
+      "description": "Optional role line under signature_name. Example: 'Operations Assistant'. Default empty.",
+      "default": ""
+    },
+    "contact_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Optional contact email rendered in the signature block. Default empty.",
+      "default": ""
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Optional contact phone rendered in the signature block. Free-text format. Default empty.",
+      "default": ""
+    },
+    "contact_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional website URL rendered in the signature block. Default empty.",
+      "default": ""
+    },
+    "unsubscribe_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional unsubscribe link. Recommended for CAN-SPAM/CASL compliance on broadcast sends. Default empty (link row hidden when blank).",
+      "default": ""
+    },
+    "email_provider": {
+      "type": "string",
+      "enum": ["agentmail", "inkbox"],
+      "description": "Which provider sends this tenant's outbound email. 'agentmail' = default (jam-bot@agentmail.to or per-inbox label). 'inkbox' = paid InkBox identity (per-tenant inbox + phone provisioned via dashboard). Default 'agentmail'.",
+      "default": "agentmail"
+    },
+    "inkbox_inbox": {
+      "type": "string",
+      "format": "email",
+      "description": "InkBox identity email address (e.g. 'seattleroofing@inkboxmail.com'). REQUIRED if email_provider=='inkbox'. Used as path param to POST /api/v1/mail/mailboxes/{email_address}/messages. Default empty.",
+      "default": ""
+    },
+    "inkbox_phone": {
+      "type": "string",
+      "description": "InkBox-provisioned phone number in E.164 format (e.g. '+15092861499'). Used by SMS pathways, not email-send-pro itself. Default empty.",
+      "default": ""
+    },
+    "inkbox_phone_id": {
+      "type": "string",
+      "description": "InkBox phone_id (UUID) required by the SMS endpoint /api/v1/phone/numbers/{phone_id}/texts. Not used by email-send-pro but tracked here for tenant-config single-source-of-truth. Default empty.",
+      "default": ""
+    },
+    "inkbox_api_key_env_var": {
+      "type": "string",
+      "description": "Name of the env var that holds this tenant's InkBox API key. Per-tenant workspaces commonly use 'INKBOX_API_KEY'; setup-host uses 'SETUP_INKBOX_API_KEY'. Default 'INKBOX_API_KEY'.",
+      "default": "INKBOX_API_KEY"
+    }
+  }
+}

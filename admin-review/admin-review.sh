@@ -33,7 +33,10 @@ PENDING_DIR=$QUEUE_BASE/pending
 RESOLVED_DIR=$QUEUE_BASE/resolved
 AUDIT_LOG=$QUEUE_BASE/audit-admin-bypass.log
 ADMIN_EMAIL="mikecerqua@gmail.com"
-FROM_INBOX="${ADMIN_REVIEW_FROM_INBOX:-jambot-admin-review@agentmail.to}"
+# Default to the canonical host inbox. The previous default (jambot-admin-review@agentmail.to)
+# never existed on the AgentMail account → all sends 404'd silently. Override with
+# ADMIN_REVIEW_FROM_INBOX once a dedicated admin-review inbox is provisioned.
+FROM_INBOX="${ADMIN_REVIEW_FROM_INBOX:-jam-bot@agentmail.to}"
 TMUX_REVIEWER="${ADMIN_REVIEW_TMUX:-bun-desktop@mesh}"
 INTERACTIVE_REVIEWER="${ADMIN_REVIEW_INTERACTIVE:-host@mesh}"
 
@@ -61,20 +64,34 @@ mesh_send_safe() {  # mesh_send_safe <to> <subject> <body> [--end-of-turn ...]
 }
 
 email_mike() {  # email_mike <subject> <body>
-    [[ -z "${AGENTMAIL_API_KEY:-}" ]] && { echo "WARN: AGENTMAIL_API_KEY missing — email skipped" >&2; return 1; }
+    # Routes through the canonical email-send-pro wrapper (branded responsive HTML).
+    # Signature unchanged so all callers (cmd_opine dual-escalation, etc.) work as-is.
+    # tenant=system (ops/admin email). The wrapper resolves its own AgentMail key
+    # from .platform-keys.env — no key passed explicitly.
+    command -v /usr/local/bin/email-send-pro >/dev/null 2>&1 || {
+        echo "WARN: email-send-pro missing — email skipped" >&2; return 1; }
     local payload
-    payload=$(SUBJ="$1" BODY="$2" TO="$ADMIN_EMAIL" python3 -c "
+    payload=$(SUBJ="$1" BODY="$2" TO="$ADMIN_EMAIL" FROM_INBOX="$FROM_INBOX" python3 -c '
 import json, os
+subj = os.environ["SUBJ"]
+body = os.environ["BODY"].strip()
+# Use the first non-empty line as the intro, the remainder as a detail section.
+lines = [l for l in body.splitlines()]
+intro = next((l.strip() for l in lines if l.strip()), subj)
+rest = body[len(intro):].strip() if body.startswith(intro) else body
 print(json.dumps({
-    'to': [os.environ['TO']],
-    'subject': os.environ['SUBJ'],
-    'text': os.environ['BODY'],
-    'labels': ['admin-review'],
-}))")
-    curl -sS --max-time 20 -X POST "https://api.agentmail.to/v0/inboxes/${FROM_INBOX}/messages/send" \
-        -H "Authorization: Bearer ${AGENTMAIL_API_KEY}" \
-        -H "Content-Type: application/json" \
-        -d "$payload" >/dev/null 2>&1
+    "tenant": "system",
+    "to": [os.environ["TO"]],
+    "from_inbox": os.environ["FROM_INBOX"],
+    "subject": subj,
+    "intro": intro,
+    "sections": [
+        {"heading": "Details", "body": rest or "See the pending file referenced above for full context."}
+    ],
+    "signature_style": "brief",
+    "labels": ["admin-review"],
+}))')
+    echo "$payload" | /usr/local/bin/email-send-pro --send --from-inbox "$FROM_INBOX" >/dev/null 2>&1
 }
 
 resolve_request() {  # resolve_request <id> <approved|rejected|escalated> <body-suffix>
