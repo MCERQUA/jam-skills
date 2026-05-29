@@ -30,12 +30,37 @@ There are **three correct methods**:
 |---|---|---|---|---|
 | **Vocal Logo Jingle** (sings the brand) | LIVE — recipe v2 (2026-05-05) | `[JINGLE_GENERATE:]` | `?action=jingle` | 10-15s |
 | Instrumental Audio Logo / Stinger | LIVE — recipe v1 untested | `[JINGLE_GENERATE:...|...|...|true]` | `?action=jingle` (instrumental flag) | 5-10s |
+| **Sound Effect / Stinger (non-vocal SFX)** | LIVE (2026-05-29) | — | `?action=sfx` | ~3-20s |
 | Phone Hold / IVR Greeting | PLANNED | `[PHONE_HOLD:]` | `?action=phone_hold` | 8-15s |
 | Podcast Intro Sting | PLANNED | `[PODCAST_INTRO:]` | `?action=podcast_intro` | 10-15s |
 | Social Media Bumper | PLANNED | `[BUMPER:]` | `?action=bumper` | 5-10s |
 | Brand Sting (very short) | PLANNED | `[STING:]` | `?action=sting` | 3-5s |
 
 Each of those will get its own subsection in this skill once its recipe is tuned. Don't extrapolate from the vocal jingle's recipe to invent prompts for the others — they need their own iteration cycle.
+
+---
+
+## Tool: Sound Effect / Stinger — `?action=sfx` (non-vocal SFX, ~3-20s)
+
+**LIVE 2026-05-29.** Wraps sunoapi.org's `POST /api/v1/generate/sounds` (2.5 credits, model `V5_5`). Produces **non-vocal** game SFX, UI blips, stingers, ambient beds — NOT songs or vocal jingles. This is the right tool for game soundboards (e.g. coin pickups, impacts, game-over stings) instead of synthesized/WebAudio sounds.
+
+**Submit:**
+```
+POST /api/suno   { "action": "sfx", "prompt": "<what the sound is>", "title": "<label>" }
+```
+| Field | Required | Notes |
+|---|---|---|
+| `prompt` | ✅ | What the sound should be (≤500 chars). e.g. `"retro 8-bit coin pickup blip"`, `"wooden mallet thwack impact"`, `"ominous low brass sting, no vocals"` |
+| `title` | — | Label for the saved filename + metadata |
+| `loop` | — | `true` for a seamless looping bed (ambient). Default false. → `soundLoop` |
+| `tempo` | — | BPM 1-300. Omit for auto. → `soundTempo` |
+| `key` | — | Musical key (`Any`,`Cm`,`Am`,`C`,…). Omit for Any. → `soundKey` |
+
+**Response:** `{"action":"generating","job_id":"…","task_id":"…","kind":"sfx"}`. Then poll `?action=status&job_id=<job_id>` (same poller as songs/jingles). On completion the clip is **saved to the server** (`generated_music/<slug>.mp3`) and returned as `url` — never in-memory only. Takes ~20-70s.
+
+**Tip — keep SFX short & literal.** Describe the sound, not a song ("twig snap", "arcade game-over jingle no vocals"). For game soundboards, generate once and reuse the saved file; don't regenerate per play (each gen costs 2.5 credits).
+
+> Note: `routes/story.py` (storytelling skill) calls `/api/v1/generate/sounds` directly for its per-scene ambient+SFX. `?action=sfx` is the same endpoint exposed through the shared `/api/suno` wrapper so any agent/canvas can use it without bespoke httpx code.
 
 ---
 
@@ -324,7 +349,7 @@ The voice user also sees an error banner in the actions panel — but the agent 
 | Endpoint | Credits | Cost | Local action |
 |---|---|---|---|
 | Generate Music (V5.5 / V5 / V4.5+ / V4.5 / V4 / V4.5ALL) | 12 | $0.060 | `?action=generate` |
-| **Sounds Generation (V5)** — short SFX/stingers, NOT vocal jingles | **2.5** | **$0.0125** | not yet wrapped |
+| **Sounds Generation (V5_5)** — short SFX/stingers, NOT vocal jingles | **2.5** | **$0.0125** | `?action=sfx` ✅ |
 | Extend Music (V5 / V4.5+ / V4.5 / V4 / V4.5ALL) | 12 | $0.060 | not yet wrapped |
 | Upload And Cover Audio | 12 | $0.060 | not yet wrapped |
 | Upload And Extend Audio | 12 | $0.060 | not yet wrapped |
