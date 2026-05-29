@@ -40,6 +40,30 @@ Each of those will get its own subsection in this skill once its recipe is tuned
 
 ---
 
+## BEFORE generating an SFX — search the global sound library
+
+Every generation costs credits. There is a shared, reusable library of sounds
+across all clients at `/mnt/agent-mesh/shared/sound-library/` (mounted in every
+container). **Search it first; only generate if nothing fits.**
+
+```
+sound-lib search coin            # /mnt/agent-mesh/shared/sound-library/bin/sound-lib
+sound-lib path coin-pickup-blip  # → abs path to copy into your game
+cp "$(/mnt/agent-mesh/shared/sound-library/bin/sound-lib path coin-pickup-blip)" \
+   ~/openvoiceui/canvas-pages/_data/coin.mp3
+```
+
+After you generate a NEW keeper with `action=sfx`, **promote it back** so the
+next game/client reuses it free:
+```
+/mnt/agent-mesh/shared/sound-library/bin/sound-lib promote \
+  ~/openvoiceui/generated_music/<file>.mp3 --category impacts --name <clean-name> \
+  --desc "what it is" --tags hit,wood --client <you> --prompt "<the prompt>" --approved
+```
+Full guide: `/mnt/agent-mesh/shared/sound-library/README.md`.
+
+---
+
 ## Tool: Sound Effect / Stinger — `?action=sfx` (non-vocal SFX, ~3-20s)
 
 **LIVE 2026-05-29.** Wraps sunoapi.org's `POST /api/v1/generate/sounds` (2.5 credits, model `V5_5`). Produces **non-vocal** game SFX, UI blips, stingers, ambient beds — NOT songs or vocal jingles. This is the right tool for game soundboards (e.g. coin pickups, impacts, game-over stings) instead of synthesized/WebAudio sounds.
