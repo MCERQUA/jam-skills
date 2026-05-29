@@ -9,7 +9,7 @@ import re
 import json
 from datetime import date
 
-_TEMPLATE_PATH = "/mnt/clients/test-dev/openvoiceui/canvas-pages/online-brand-report-template.html"
+_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "..", "template.html")
 
 
 def _extract_css_and_static(template_path: str) -> tuple[str, str]:
