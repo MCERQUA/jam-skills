@@ -1,6 +1,6 @@
 ---
 name: marketing
-description: "Marketing skills for local service companies, insurance agents, and small businesses. Use when the user mentions SEO, marketing, copywriting, landing pages, conversion optimization, schema markup, analytics, email campaigns, content strategy, social media, ads, or any marketing-related task. This is a skill bundle — route to the appropriate sub-skill based on the task."
+description: "Marketing skills for local service companies and small businesses. Use when the user mentions SEO, marketing, copywriting, landing pages, conversion optimization, schema markup, analytics, email campaigns, content strategy, social media, ads, or any marketing-related task. This is a skill bundle — route to the appropriate sub-skill based on the task."
 metadata:
   version: 2.1.0
   source: coreyhaines31/marketingskills (MIT) + custom local business extensions
@@ -8,7 +8,7 @@ metadata:
 
 # Marketing Skills Bundle
 
-You have access to 26 marketing skills optimized for local service companies, insurance agents, and small businesses. Route to the appropriate skill based on the user's request.
+You have access to 25 marketing skills optimized for local service companies and small businesses. Route to the appropriate skill based on the user's request.
 
 ## Skill Router
 
@@ -37,7 +37,6 @@ You have access to 26 marketing skills optimized for local service companies, in
 | A/B test design | ab-test-setup | "A/B test", "split test", "experiment" |
 | **Local SEO** | **local-seo** | "local SEO", "Google Business Profile", "GBP", "map pack", "citations", "NAP", "local rankings", "near me" |
 | **Reviews & Reputation** | **review-management** | "reviews", "reputation", "star rating", "review response", "get more reviews", "review request" |
-| **Insurance Marketing** | **insurance-marketing** | "insurance marketing", "quote funnel", "Medicare", "AEP", "OEP", "carrier", "policy renewal", "cross-sell" |
 | **Service Area Pages** | **service-area-pages** | "service area pages", "city pages", "location pages", "[service] in [city]", "neighborhood pages" |
 | **SMS Marketing** | **sms-marketing** | "SMS marketing", "text marketing", "text message campaigns", "TCPA", "10DLC", "review request text", "appointment reminder text" |
 
@@ -57,9 +56,6 @@ You have access to 26 marketing skills optimized for local service companies, in
 - Cross-reference **review-management** if focus is getting reviews via text
 - Cross-reference **customer-followup** if focus is post-service follow-up sequences
 
-**"insurance" anything:**
-- Use **insurance-marketing** first — it has compliance rules, seasonal campaigns, and industry-specific strategies
-- Cross-reference **local-seo**, **form-cro**, **email-sequence** as needed
 
 ## Workflow
 

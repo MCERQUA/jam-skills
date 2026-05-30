@@ -32,7 +32,7 @@ AI agent skills for local service businesses — built for [OpenClaw](https://gi
 | Advertising | paid-ads, ad-creative |
 | Analytics | analytics-tracking |
 | Strategy | product-marketing-context, marketing-ideas, marketing-psychology |
-| Industry | insurance-marketing, review-management |
+| Industry | review-management |
 
 ### Research & Intelligence
 
