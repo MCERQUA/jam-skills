@@ -32,21 +32,26 @@ curl -s -X POST "https://api.dataforseo.com/v3/endpoint" \
 ## Cost Awareness
 
 This API costs real money. Be efficient:
-- **Batch keywords** — up to 1,000 per Google Ads request ($0.05 total, not per keyword)
-- **Use Labs** for bulk research ($0.01/task) instead of live SERP ($0.002/query)
+- **Batch keywords** — up to 1,000 per Google Ads request ($0.09 total, not per keyword)
+- **Use Labs** for bulk research ($0.012/task) instead of live SERP ($0.002/query)
 - **Use Standard mode** (async) when client isn't waiting for instant results
 - **Limit depth to 10** unless client specifically needs deeper results
 - **Never run exploratory queries** — know what you're looking for before calling
 
+**Pricing below reflects DataForSEO's 2026-07-01 rate update** (most APIs +~20%: Backlinks, Labs, Domain Analytics, Content Analysis +20%; OnPage +18%; Business Data +16%; Merchant +50%). SERP and Search Intent were NOT in that update — unchanged.
+
+**Full access enabled — no plan blocker.** We have full DataForSEO access including the **Backlinks API** and **AI-mention / Google AI Mode SERP** endpoints. There is no longer any monthly-upgrade/activation gate on backlinks or AI data — call them directly.
+
 | API | Cost/task | Best for |
 |-----|-----------|----------|
-| SERP Live | $0.002 | Checking current rankings for specific keywords |
-| Keywords Data | $0.05 | Bulk search volume (up to 1,000 keywords) |
-| Labs | $0.01 | Keyword research, competitor analysis, difficulty scores |
-| Search Intent | $0.001 | Classifying keyword intent |
-| OnPage (basic) | $0.000125/page | Site audits |
-| Business Data | $0.004 | GMB profiles, Google reviews |
-| Backlinks | $0.02 | Link profiles (requires activation) |
+| SERP Live | $0.002 | Checking current rankings for specific keywords (unchanged) |
+| Keywords Data | $0.09 | Bulk search volume (up to 1,000 keywords) |
+| Labs | $0.012 | Keyword research, competitor analysis, difficulty scores |
+| Search Intent | $0.001 | Classifying keyword intent (unchanged) |
+| OnPage (basic) | $0.00015/page | Site audits |
+| Business Data | $0.012 | GMB profiles, Google reviews, business listings |
+| Backlinks | $0.024 | Link profiles — **full access, no activation needed** |
+| AI Mode / AI Mentions | $0.002+ | Google AI Mode SERP + AI-overview brand mentions — **fully enabled** |
 
 ## Quick Reference — Most Useful Endpoints
 
