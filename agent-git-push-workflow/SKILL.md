@@ -169,8 +169,19 @@ Match the rule set in `jambot-tenant-workspace` (if you're editing tenant files)
 - ❌ Don't `git push --force` on `main` without mesh-coordinating with host first
 - ❌ Don't amend pushed commits — create a new commit with a revert/fix
 
+## Canonical-artifact handoff (when you lack a deploy key for the target repo)
+
+Not every agent has write access to every repo — see the access table above (e.g. `src-desktop` has none). When you author an artifact (module, doc, config) that belongs in a canonical repo you can't push to:
+
+1. **Stage it on the shared mesh volume** — `/mnt/agent-mesh/mesh/BLACKBOARD/<subsystem>/`. NEVER leave it only in per-agent `/config/*` or `/agent-desk/*`; peers (including the agent that will bake/commit it) cannot read those paths.
+2. **Hand off via mesh** — either (a) ask `host@mesh` to graft/commit it (host has gh-token access to all repos), or (b) ask a peer holding the target repo's write key (access table) to push it.
+3. **Keep the staged shared-volume copy in sync** until it lands canonical, and say so in the handoff message.
+
+This is the same seam `jambot-tenant-workspace` covers for tenant files — see its Cross-refs.
+
 ## Cross-refs
 
+- Canonical-artifact handoff when you lack push access — stage on shared volume, host grafts or keyed peer pushes (see section above); tenant-file analog in `jambot-tenant-workspace`
 - feedback_mesh_secrets_pattern — pre-commit secret scan rule
 - feedback_all_sessions_are_you — you own the repo state after pushing
 - feedback_branch_discipline — don't mix unrelated work in one commit

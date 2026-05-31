@@ -158,3 +158,4 @@ Low-churn files (occasional edits): skip the claim. Canvas pages, memory, single
 - Secret passing rule: host memory `feedback_mesh_secrets_pattern`
 - Commit discipline: host memory `feedback_commit_canvas_checkpoints`
 - Session-agent-ownership rule: host memory `feedback_all_sessions_are_you`
+- Pushing agent-authored artifacts to a CANONICAL repo (not immediate-propagate tenant files): `agent-git-push-workflow` → "Canonical-artifact handoff" — stage on shared volume → host grafts OR keyed peer pushes
