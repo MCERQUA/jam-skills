@@ -145,16 +145,25 @@ That regenerates `index.json` from the section files. Schema for new sections is
 | `hermes-test-dev` (production) | `jambot/hermes:latest` (= `:0.13.1-rc1`, built 2026-05-16) | **v0.13.0** (`2026.5.7`, "Tenacity") | Only live Hermes tenant. Binary at `/opt/hermes/.venv/bin/hermes` (no PATH symlink — use absolute path in `docker exec`). |
 | `jambot/hermes:0.6.0-rollback` (preserved) | original v0.6 build | **v0.6.0** (`2026.3.30`) | Insurance — retag to `:latest` + recreate hermes-test-dev for emergency revert. Binary at `/usr/local/bin/hermes` in this image. |
 
-**Upstream latest:** `nousresearch/hermes-agent:v2026.5.16` (**v0.14.0**, "Foundation Release", 2026-05-16). JamBot test-dev is one release behind — see §1.1.
+**Upstream latest (verified 2026-05-31):** **v0.15.2** (`2026.5.29.2`), via the GitHub releases page. JamBot test-dev (v0.13.0) is now **two minor versions behind** (0.13 → 0.14 → 0.15) — a ~22-day gap. See §1.1 for the upgrade scope.
 **Docker Hub:** date-based tags only. `v0.X.Y` semver tags do NOT exist on Hub (open question #1 in upgrade doc: confirmed 404 on `:v0.6.0`).
 
 ---
 
-## 1.1 Upstream v0.14 awareness (added 2026-05-23)
+## 1.1 Upstream awareness — now 2 versions behind (updated 2026-05-31)
 
-Production on test-dev is on v0.13.0. v0.14.0 shipped 2026-05-16 (808 commits / 633 PRs / 545 closed issues since v0.13). Not yet swapped into JamBot — captured here so the option is well-scoped.
+Production on test-dev is **v0.13.0** (`2026.5.7`). Upstream has shipped TWO minor releases since; we're ~22 days behind:
 
-**What v0.14 brings:**
+| Version | Date | Codename | Highlights |
+|---|---|---|---|
+| **v0.15.2** | 2026-05-29 | (patch) | Packaging fix — bundled `plugin.yaml` manifests in wheel/sdist. **Current latest.** |
+| **v0.15.1** | 2026-05-29 | "The Patch" | 28 commits/21 PRs — dashboard reload-loop fix, Docker security, MCP compat. |
+| **v0.15.0** | 2026-05-28 | "Velocity" | **MAJOR** — 1,302 commits, core agent code cut **76%**, multi-agent Kanban orchestration, **session search improvements**, security hardening. |
+| **v0.14.0** | 2026-05-16 | "Foundation" | PyPI install, xAI Grok OAuth, OpenAI-compatible local proxy, debloat. |
+
+**Relevance to the 2026-05-31 session-poison fix (§1A):** v0.15.0 "session search improvements" + the 76% core-code rewrite may have changed session-store handling — worth checking whether the empty-turn accumulation that poisoned our session is already mitigated upstream before/while planning the swap.
+
+**v0.14 details (still apply to the swap):**
 - **Canonical install is now PyPI**: `pip install hermes-agent && hermes`. No more clone-and-shell-installer. JamBot's container bake can simplify.
 - **`uv pip install` is BROKEN** at v0.14 — incorrect dep specs trip uv's stricter resolver (Hermes issue #8744). If we adopt v0.14, the bake MUST use vanilla `pip` in a venv, not uv.
 - **Brave Search + DuckDuckGo (DDGS)** as native free web-search providers (PR #21337). Could replace Tavily where we use it.
@@ -184,28 +193,28 @@ sg docker -c "docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes --version
 sg docker -c "docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config show"
 ```
 
-### Status: Hermes path on test-dev is slow/broken — UNRESOLVED since 2026-05-21
+### Status: Hermes voice path on test-dev — ✅ RESOLVED 2026-05-31
 
-Hermes-only voice path on `test-dev` returns empty responses or times out 30–250s on every voice turn. **OpenClaw path is unaffected — still working.** Mike sees "Hey, give me just a moment — I'm getting started" placeholder when the hermes profile is active.
+The long-running "empty responses / 30–250s timeouts on every voice turn" bug is **FIXED**. Verified end-to-end through the browser UI: `tools=5`, 864-char response, `[CANVAS:...]` action tags firing, 2–4s replies, no fallback. Hermes now does tool use and drives canvas/music/desktop just like OpenClaw.
 
-**Symptoms observed during 2026-05-21 session:**
-- Hermes logs show `Invalid API response (response.content invalid (not a non-empty list))` retried 3× and giving up
-- Direct hermes API calls (`urllib` and OVU's `python-requests`) succeed with real text content
-- OVU-side hermes-agent plugin (`gateway.py`) calls hermes but the chain breaks somewhere
-- The 2026-05-16 doc (`hermes-plugin-update-resume.md`) said "Voice working" on the same `:latest` image — either something has drifted in the 5 days since OR the working state was a narrow pre-compression window
+**ROOT CAUSE (it was none of the 2026-05-21 hypotheses):** a **poisoned SQLite session** in `/opt/data/state.db` (tables `sessions`+`messages`), keyed by `X-Hermes-Session-Id`. The OVU voice path uses session-id `main`/`hermes-main`, which had accumulated 77 messages incl. **14 empty-content turns** — because the OVU `gateway.py` stored every assistant reply *including empty ones*. Loading that poisoned history made GLM-5-turbo return `response.content invalid (not a non-empty list)` → 3 retries → ~30s → empty → OVU fell back to its **toolless** `zai-direct-slow-empty` path (hence "no tool use / nothing opens / slow").
 
-**Likely causes (not yet confirmed; do not commit to one without re-testing):**
-1. z.ai returning thinking-only content blocks despite `thinkingDefault: "off"`
-2. Session compression firing every turn (token threshold tripping)
-3. Something OVU-side dropping the streamed response
+**Decisive test:** same message, `X-Hermes-Session-Id: main` → 30s empty; any fresh session-id → 2.6s real reply + action tags. The JSON `session_main.json` is just a serialization — deleting it is futile, `state.db` rebuilds it. `hermes sessions list` is the SQLite store (the JSON file mirrors it).
 
-**Important:** all 2026-05-21 hermes config/code experiments were **rolled back to the 2026-05-16 baseline** at session end. The current state IS the post-revert state. Don't reintroduce reverted fixes blind.
+**THE FIX (10-second recovery if it ever recurs):**
+```bash
+sg docker -c "docker exec -u hermes -e HOME=/opt/data hermes-test-dev /opt/hermes/.venv/bin/hermes sessions delete main --yes"
+sg docker -c "docker exec -u hermes -e HOME=/opt/data hermes-test-dev /opt/hermes/.venv/bin/hermes sessions delete hermes-main --yes"
+```
+**Recurrence prevention shipped:** `plugins/hermes-agent/gateway.py` (live bind-mount copy + source repo) patched to (a) never store empty assistant turns — roll back the user turn on empty, (b) strip empty-content turns before every POST. So `main` can't slowly re-poison.
 
-**Full reports (READ BOTH BEFORE any hermes fix attempt):**
-- [`docs/jambot/hermes-debugging-session-2026-05-21.md`](/home/mike/MIKE-AI/docs/jambot/hermes-debugging-session-2026-05-21.md) — original symptom + dead ends.
-- [`docs/jambot/hermes-debugging-session-2026-05-24.md`](/home/mike/MIKE-AI/docs/jambot/hermes-debugging-session-2026-05-24.md) — **CURRENT HANDOFF.** Confirms `reasoning_effort: none` IS working (`thinking=None` in kwargs, verified via live debug patch). Narrowed bug to content-specific trigger in OVU's 57-msg history. Synthetic 57-msg+27-tool+17K-system payloads return text 6/6 — so trigger isn't request shape. Debug patch v2 LIVE on test-dev waiting to dump first/last 5 messages on next voice turn.
+**PROVEN FACTS — stop re-litigating these:** Hermes uses the SAME `glm-5-turbo` via Z.AI as OpenClaw; the OVU master prompt IS injected (prepended to the message in `routes/conversation.py`); the openclaw workspace IS mounted RW at `/workspace` in the hermes container; Hermes emits `[CANVAS:...]`/`[MUSIC_PLAY:...]` action tags that OVU parses. Tool use is master-prompt-driven and framework-agnostic — any "hermes can't do X" is a session/setup issue, not a capability gap.
 
-**Related memory:** `[[hermes-debugging-session-2026-05-24]]` · `[[hermes-debugging-session-2026-05-21]]` · `[[took-longer-than-expected-fix-2026-05-21]]` · `[[hermes-plugin-update-resume-2026-05-16]]`
+**Watch — plugin drift (§8):** live runtime `gateway.py` (~839 lines) is AHEAD of source/catalog/distribution (~713). Live fix is on the client bind-mount (persists across restart/recreate) but a plugin **reinstall from catalog/distribution regresses** the fix + mid-flight pipeline. Sync live→distribution before any reinstall.
+
+**Full writeup:** `docs/jambot/hermes-setup-issues.md §9`. Historical dead-ends (for context only, superseded): `hermes-debugging-session-2026-05-21.md`, `hermes-debugging-session-2026-05-24.md`.
+
+**Related memory:** `[[hermes-session-poison-empty-response]]` · `[[hermes-zai-key-staleness-on-rotation]]` · `[[hermes-debugging-session-2026-05-24]]`
 
 ### Companion OpenClaw bump — 2026.5.2 → 2026.5.7 SHIPPED on test-dev (2026-05-21)
 
@@ -256,7 +265,7 @@ sg docker -c "docker ps --filter name=hermes --format '{{.Names}}\t{{.Status}}'"
 # → hermes-test-dev   Up <N> hours (healthy)
 ```
 
-Only one Hermes container exists. No fleet roll planned until slow/broken state resolved.
+Only one Hermes container exists (test-dev). The slow/empty/no-tool-use state was **resolved 2026-05-31** (§1A — poisoned session purge + gateway empty-turn guard). A fleet roll is now unblocked on the bug, but still gated on: (a) the v0.13→v0.15 upgrade decision (§1.1), and (b) closing the plugin-catalog/distribution drift (§8) so new tenants get the fixed gateway.py.
 
 ### When debugging next, do this in order
 
@@ -812,12 +821,15 @@ Mounted into container as `/opt/data` (the `HERMES_HOME`).
 ### Per-tenant container
 
 - Name: `hermes-<tenant>`
-- Image: `jambot/hermes:latest` (currently v0.13.0 / `nousresearch/hermes-agent:v2026.5.7`; `:0.6.0-rollback` preserved for emergency revert)
-- Hostname: `hermes` (sibling-resolvable via Docker DNS)
+- Image: `jambot/hermes:latest` (currently v0.13.0 / `nousresearch/hermes-agent:v2026.5.7`; `:0.6.0-rollback` preserved for emergency revert; `:pre-uid1000-20260531` = pre-RW-replacement backup)
+- Hostname: `hermes` + `--network-alias hermes` (OVU reaches it via `HERMES_HOST=hermes`; alias self-heals via `jambot-health-monitor.sh`)
+- **User: uid/gid 1000 (== OpenClaw `node`)** — set via `HERMES_UID`/`HERMES_GID` (Dockerfile ENV + provisioner `-e`). Makes Hermes a true drop-in OpenClaw replacement. NOTE: `docker exec` without `-u` is ROOT; the gateway is gosu-dropped to 1000.
+- **Workspace: `/mnt/clients/<t>/openclaw/workspace → /workspace` READ-WRITE** (was `:ro`). Bidirectional RW with OpenClaw. Shared identity wired in the entrypoint: SOUL.md symlink + `cd /workspace` + `terminal.cwd: /workspace` → Hermes loads/updates OpenClaw's SOUL/AGENTS/IDENTITY/TOOLS/MEMORY/memory.
 - Port: 18790 internal (NOT exposed to host)
 - Memory: 2 GB limit, 1.0 CPU
 - Restart: `unless-stopped`
 - Network: `jambot-<tenant>` bridge (per-tenant isolated)
+- **Full architecture:** `docs/jambot/hermes-setup-issues.md §10`. Recreate: `scripts/hermes-recreate-uid1000-test-dev.sh`.
 
 ### Sibling resolution
 
@@ -1004,7 +1016,7 @@ Capability detection at runtime: `GET /v1/capabilities` (bearer-authed) returns 
 - [ ] Script catalog under `scripts/` parity with openclaw-expert (currently 2/9 — see §13B catalog below).
 - [ ] Audit-anchors for parts most likely to drift — see §13B "Audit anchors" section + `scripts/audit-anchors.sh`.
 - [ ] Cross-link to `hermes-upgrade-2026.4.30.md` from each section mentioning Phase N work (partially done in §1A; complete in §3 + §6).
-- [ ] **Resolve §1A**: hermes path on test-dev still broken. When fix lands, add §1B documenting the resolution + close the loop with `[[hermes-debugging-session-2026-05-21]]` memory.
+- [x] **DONE 2026-05-31 — Resolve §1A**: hermes path on test-dev FIXED. Root cause = poisoned SQLite session (`state.db`, session-id `main`, 14 empty turns). Fix = `hermes sessions delete main` + gateway empty-turn guard. Documented in §1A + `docs/jambot/hermes-setup-issues.md §9` + memory `[[hermes-session-poison-empty-response]]`.
 
 ## 13A. `[[as_document]]` skill directive (v0.13 media routing)
 
