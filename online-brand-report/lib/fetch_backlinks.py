@@ -18,6 +18,10 @@ def fetch_backlinks(domain: str) -> dict:
             "data": [0, 0, 0, 0, 0],
         },
         "dofollow_pct": 0,
+        # Availability flag for scoring: True only when the summary CALL succeeded (even if the
+        # site genuinely has 0 backlinks — a real 0 must score low, not be excluded). Inferring
+        # availability from value>0 made the Brand Health Score swing run-to-run. (Fixed 2026-06-01.)
+        "_backlinks_available": False,
     }
 
     # --- DataForSEO Backlinks Summary ---
@@ -27,6 +31,7 @@ def fetch_backlinks(domain: str) -> dict:
         ])
         r0 = dfs_get_result0(result)
         if r0:
+            out["_backlinks_available"]  = True   # endpoint responded — data is real (incl. real zeros)
             out["domain_rank"]           = int(r0.get("rank") or 0)
             out["backlinks_total"]       = int(r0.get("backlinks") or 0)
             out["referring_domains_total"]= int(r0.get("referring_domains") or 0)

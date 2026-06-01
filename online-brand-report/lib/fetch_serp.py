@@ -11,14 +11,16 @@ def _domain_from_url(url: str) -> str:
         return url
 
 def _serp_for_query(keyword: str, city: str, state: str, client_domain: str) -> dict:
-    location = f"{city},{state},United States"
     results = []
     try:
+        # location_code 2840 (US) + language_code — the old "City,AZ,United States" location_name
+        # (abbreviated state) was rejected → empty SERP tables. The keyword carries the city, so
+        # US-level returns the correct local results. (Fixed skill-wide 2026-06-01.)
         result = dfs_post("serp/google/organic/live/advanced", [
             {
                 "keyword": keyword,
-                "location_name": location,
-                "language_name": "English",
+                "location_code": 2840,
+                "language_code": "en",
                 "depth": 15,
             }
         ])

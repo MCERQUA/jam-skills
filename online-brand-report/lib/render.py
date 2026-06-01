@@ -111,8 +111,113 @@ def _roadmap_items_html(items: list, card_class: str, num: str, title: str, sub:
 """
 
 
-def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> None:
+def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan: dict = None) -> None:
     """Generate and write the full HTML report."""
+    plan = plan or {}
+
+    # ── Build Plan section (the meat): pages + content clusters w/ real article titles ──
+    def _plan_section_html(p):
+        if not p:
+            return ""
+        s = p.get("summary", {})
+        pages = p.get("recommended_pages", [])
+        clusters = p.get("content_clusters", [])
+        qw = p.get("quick_wins", [])
+        page_rows = "".join(
+            f'<tr><td>{_escape(pg.get("title",""))}</td><td><span class="pill pill-ok">{_escape(pg.get("page_type",""))}</span></td>'
+            f'<td>{_escape(pg.get("primary_keyword",""))}</td><td class="num">{int(pg.get("volume") or 0):,}</td></tr>'
+            for pg in pages
+        ) or '<tr><td colspan="4" style="text-align:center;color:var(--brand-muted);padding:16px;">Page set derives from keyword data</td></tr>'
+        qw_rows = "".join(
+            f'<tr><td>{_escape(w.get("keyword",""))}</td><td class="num">{int(w.get("volume") or 0):,}</td><td class="num">#{w.get("position")}</td></tr>'
+            for w in qw
+        ) or '<tr><td colspan="3" style="text-align:center;color:var(--brand-muted);padding:16px;">No page-2 keywords detected</td></tr>'
+        cluster_html = ""
+        for c in clusters:
+            arts = "".join(
+                f'<li><strong>{_escape(a.get("title",""))}</strong><span style="color:var(--brand-muted)"> — “{_escape(a.get("target_keyword",""))}” · {int(a.get("volume") or 0):,}/mo</span></li>'
+                for a in c.get("articles", [])
+            )
+            cluster_html += (
+                f'<div class="plan-cluster"><h4 style="margin:0 0 8px;color:var(--brand-text)">{_escape(c.get("name",""))} '
+                f'<span style="color:var(--brand-muted);font-weight:500">({len(c.get("articles",[]))} articles)</span></h4>'
+                f'<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:0.9rem;line-height:1.45">{arts}</ul></div>'
+            )
+        # ── Coverage scorecard ──
+        cov = p.get("coverage", {})
+        cu, cc, cp, cm = cov.get("universe_size", 0), cov.get("covered", 0), cov.get("partial", 0), cov.get("missing", 0)
+        _miss = [it for it in cov.get("items", []) if it.get("status") == "missing"][:25]
+        miss_rows = "".join(
+            f'<tr><td>{_escape(it["keyword"])}</td><td class="num">{int(it.get("volume") or 0):,}</td>'
+            f'<td><span class="pill pill-bad">✗ missing</span></td></tr>'
+            for it in _miss) or \
+            '<tr><td colspan="3" style="text-align:center;color:var(--brand-muted);padding:12px">—</td></tr>'
+        cov_html = (
+            f'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
+            f'<div class="bl-kpi ok" style="flex:1;min-width:120px"><div class="bl-kpi-label">✓ Covered (top 10)</div><div class="bl-kpi-value">{cc}</div></div>'
+            f'<div class="bl-kpi warn" style="flex:1;min-width:120px"><div class="bl-kpi-label">⚠ Partial (11–30)</div><div class="bl-kpi-value">{cp}</div></div>'
+            f'<div class="bl-kpi bad" style="flex:1;min-width:120px"><div class="bl-kpi-label">✗ Missing</div><div class="bl-kpi-value">{cm}</div></div>'
+            f'<div class="bl-kpi" style="flex:1;min-width:120px"><div class="bl-kpi-label">Target Universe</div><div class="bl-kpi-value">{cu}</div></div></div>'
+            f'<div class="panel" style="padding:0;overflow-x:auto;max-height:320px;overflow-y:auto"><table class="cs-gap-table">'
+            f'<thead><tr><th>Missing Keyword</th><th class="num">Volume</th><th>Status</th></tr></thead><tbody>{miss_rows}</tbody></table></div>'
+        ) if cu else ""
+
+        # ── Service × Area money-page matrix ──
+        matrix = p.get("service_area_matrix", [])
+        services_src = p.get("services_source", "")
+        m_rows = "".join(
+            f'<tr><td>{_escape(m.get("service",""))}</td><td>{_escape(m.get("city",""))}</td>'
+            f'<td>{_escape(m.get("primary_keyword",""))}</td><td class="num">{int(m.get("volume") or 0):,}</td></tr>'
+            for m in matrix)
+        matrix_html = (
+            f'<p class="section-desc" style="margin-top:0">{len(matrix)} geo landing pages — your <strong>money pages</strong> '
+            f'({len(p.get("services",[]))} services × {len(p.get("service_areas",[]))} nearest areas). '
+            f'<span style="color:var(--brand-muted)">Source: {_escape(services_src)}</span></p>'
+            f'<div class="panel" style="padding:0;overflow-x:auto;max-height:380px;overflow-y:auto"><table class="cs-gap-table">'
+            f'<thead><tr><th>Service</th><th>Area</th><th>Target Keyword</th><th class="num">Volume</th></tr></thead><tbody>{m_rows}</tbody></table></div>'
+        ) if matrix else ""
+
+        # ── Interlink silo summary ──
+        il = p.get("interlink_map", [])
+        from collections import Counter
+        ilc = Counter(l.get("type") for l in il)
+        silo_html = (
+            f'<p class="section-desc" style="margin-top:0">{len(il)} internal links planned to concentrate authority on the money pages: '
+            + ", ".join(f"{n} {t.replace('-',' ')}" for t, n in ilc.most_common()) + ". "
+            "Home → service pillars → area pages; supporting blogs link <em>up</em> to their money page; "
+            "money pages cross-link to the same service in nearby cities and other services in the same city.</p>"
+        ) if il else ""
+
+        return f'''
+  <div class="sub-section" id="found-buildplan">
+  <section id="build-plan">
+    <div class="section-eyebrow"><span class="num">11B</span> The Build Plan</div>
+    <h2 class="section-title">Exactly What to Build to Rank #1</h2>
+    <div class="section-divider"></div>
+    <p class="section-desc">The actionable spec derived from the data above — the exact pages, money pages, content, and internal-link plan to cover every keyword and out-rank competitors. {len(matrix)} money pages · {s.get("content_articles",0)} articles · {s.get("keyword_gaps",0)} gaps · {cm} missing keywords to capture.</p>
+
+    {("<h3 class=" + chr(34) + "text-base font-bold uppercase tracking-wider mb-3 mt-2" + chr(34) + " style=" + chr(34) + "color:var(--brand-muted);font-family:var(--font-ui)" + chr(34) + ">Keyword Coverage — What You Rank For vs. What's Missing</h3>" + cov_html) if cov_html else ""}
+
+    {("<h3 class=" + chr(34) + "text-base font-bold uppercase tracking-wider mb-3 mt-6" + chr(34) + " style=" + chr(34) + "color:var(--brand-muted);font-family:var(--font-ui)" + chr(34) + ">Money Pages — Service × Area Landing Pages</h3>" + matrix_html) if matrix_html else ""}
+
+    {("<h3 class=" + chr(34) + "text-base font-bold uppercase tracking-wider mb-3 mt-6" + chr(34) + " style=" + chr(34) + "color:var(--brand-muted);font-family:var(--font-ui)" + chr(34) + ">Internal Link Silo</h3>" + silo_html) if silo_html else ""}
+
+    <h3 class="text-base font-bold uppercase tracking-wider mb-3 mt-6" style="color:var(--brand-muted);font-family:var(--font-ui)">Supporting Pages to Build ({len(pages)})</h3>
+    <div class="panel" style="padding:0;overflow-x:auto"><table class="cs-gap-table">
+      <thead><tr><th>Page</th><th>Type</th><th>Primary Keyword</th><th class="num">Volume</th></tr></thead>
+      <tbody>{page_rows}</tbody></table></div>
+
+    <h3 class="text-base font-bold uppercase tracking-wider mb-3 mt-6" style="color:var(--brand-muted);font-family:var(--font-ui)">Quick Wins — On Page 2, Push to Page 1</h3>
+    <div class="panel" style="padding:0;overflow-x:auto"><table class="cs-gap-table">
+      <thead><tr><th>Keyword</th><th class="num">Volume</th><th class="num">Current</th></tr></thead>
+      <tbody>{qw_rows}</tbody></table></div>
+
+    <h3 class="text-base font-bold uppercase tracking-wider mb-3 mt-6" style="color:var(--brand-muted);font-family:var(--font-ui)">Topical Content Clusters</h3>
+    <div class="plan-clusters" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">{cluster_html or "<p style='color:var(--brand-muted)'>Cluster plan derives from keyword data.</p>"}</div>
+  </section>
+  </div><!-- /found-buildplan -->'''
+
+    plan_section = _plan_section_html(plan)
 
     # Load CSS from template
     head_inner, style_block = _extract_css_and_static(_TEMPLATE_PATH)
@@ -189,6 +294,32 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
     nofollow    = data.get("nofollow_count", 0)
     top_refs    = data.get("top_referring_domains", [])
     anchor_dist = data.get("anchor_text_dist", {"labels": [], "data": []})
+
+    # Backlinks API not in the current DataForSEO plan (40204) → don't render misleading
+    # zeros. Show "N/A — activates July 1, 2026" so the report is honest. (Fixed 2026-06-01.)
+    bl_unavailable = data.get("backlinks_unavailable", False) or (dr == 0 and bl_total == 0 and ref_domains == 0)
+    if bl_unavailable:
+        dr_value_html   = '<span style="color:var(--brand-muted)">N/A</span>'
+        dr_sub          = "Backlink data activates Jul 1, 2026"
+        bl_total_html   = '<span style="color:var(--brand-muted)">N/A</span>'
+        bl_sub          = "Backlinks API not yet active"
+        dofollow_html   = '<span style="color:var(--brand-muted)">N/A</span>'
+        dofollow_sub    = "Pending data"
+        ref_value_html  = '<span style="color:var(--brand-muted)">N/A</span>'
+        ref_sub         = "Activates Jul 1, 2026"
+        dr_gauge_html   = "N/A"
+        bl_pull_html    = ("<strong>Backlink data not yet available.</strong> Referring domains, domain authority, and anchor profile come from the DataForSEO Backlinks API, which activates <strong>July 1, 2026</strong> — this section auto-populates then. (This domain does have an established backlink profile per external tools; it is simply not yet measured here.)")
+    else:
+        dr_value_html   = f'{dr}<span class="unit">/100</span>'
+        dr_sub          = "Strong authority" if dr >= 50 else ("Building — target 30+" if dr >= 20 else "Low — needs backlink investment")
+        bl_total_html   = f'{bl_total:,}'
+        bl_sub          = f'{ref_domains} referring domains'
+        dofollow_html   = f'{dofollow:,}'
+        dofollow_sub    = f'{data.get("dofollow_pct",0):.0f}% of profile'
+        ref_value_html  = f'{ref_domains}'
+        ref_sub         = "Good diversity" if ref_domains >= 50 else "Target 50+ for competitive rankings"
+        dr_gauge_html   = f'{dr}'
+        bl_pull_html    = ("<strong>Backlink profile needs growth.</strong> Domain rank " + str(dr) + " is " + ("competitive" if dr >= 40 else "below the threshold needed to outrank established competitors") + " in local search. Target 10+ new referring domains from local directories, trade associations, and editorial mentions in the next 90 days.") if bl_total < 200 else "<strong>Healthy backlink profile.</strong> Focus on diversifying anchor text and reducing any exact-match anchor concentration."
 
     # Competitive
     competitors = data.get("competitors", [])
@@ -408,7 +539,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
         verdict_detail = f"<strong>{_escape(client_name)}</strong> has a real online presence: rankings, a verified GMB, and a website Google indexes. What's missing is the <strong>density of signals</strong> Google now expects for a local contractor: city pages, review velocity, schema markup, and link diversity. Every fix in this report is mechanical &mdash; you don&rsquo;t need a rebrand, you need a 90-day execution sprint."
     elif score_total >= 45:
         verdict_headline = "You&rsquo;re online &mdash; but mostly invisible to buyers."
-        verdict_detail = f"<strong>{_escape(client_name)}</strong> exists online, but the gaps are significant. Your competitors are winning searches you should own. The fixes are defined &mdash; what&rsquo;s needed is systematic execution: city pages, backlinks, schema, and review velocity. Every item in this report is actionable within 90 days."
+        verdict_detail = f"<strong>{_escape(client_name)}</strong> exists online, but the gaps are significant. Your competitors are winning searches you should own. The fixes are defined &mdash; what&rsquo;s needed is systematic execution: city pages, {'on-page SEO' if bl_unavailable else 'backlinks'}, schema, and review velocity. Every item in this report is actionable within 90 days."
     else:
         verdict_headline = "Critical gaps are costing you leads every day."
         verdict_detail = f"The audit found significant online visibility gaps for <strong>{_escape(client_name)}</strong>. Buyers in {_escape(city)} searching for {_escape(service)} are finding competitors instead. The priority-1 fixes alone &mdash; speed, schema, GMB optimization &mdash; will move the needle in 30-60 days."
@@ -779,7 +910,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
         <table class="ls-gmb-table">
           <thead><tr><th>Element</th><th>Your Profile</th><th>Status</th></tr></thead>
           <tbody>
-            <tr><td>GMB Verified</td><td>{"Yes" if data.get("gmb_found") else "Unverified"}</td><td><span class="pill {"pill-ok" if data.get("gmb_found") else "pill-bad"}">{"Good" if data.get("gmb_found") else "Fix"}</span></td></tr>
+            <tr><td>GMB Verified</td><td>{"Verified" if data.get("gmb_claimed") else ("Listed (unclaimed)" if data.get("gmb_found") else "Not found")}</td><td><span class="pill {"pill-ok" if data.get("gmb_claimed") else "pill-bad"}">{"Good" if data.get("gmb_claimed") else "Fix"}</span></td></tr>
             <tr><td>Reviews</td><td>{rev_count} at {rev_avg:.1f}&star;</td><td><span class="pill {"pill-ok" if rev_count >= 40 else ("pill-warn" if rev_count >= 15 else "pill-bad")}">{"Good" if rev_count >= 40 else ("Fair" if rev_count >= 15 else "Low")}</span></td></tr>
             <tr><td>Schema Markup</td><td>{"Present" if schema_present else "Missing"}</td><td><span class="pill {"pill-ok" if schema_present else "pill-bad"}">{"Good" if schema_present else "Missing"}</span></td></tr>
             <tr><td>llms.txt</td><td>{"Present" if llms_txt else "Missing"}</td><td><span class="pill {"pill-ok" if llms_txt else "pill-bad"}">{"Good" if llms_txt else "Missing"}</span></td></tr>
@@ -816,23 +947,23 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
     <div class="bl-kpi-grid">
       <div class="bl-kpi {dr_class}">
         <div class="bl-kpi-label">Domain Rank</div>
-        <div class="bl-kpi-value">{dr}<span class="unit">/100</span></div>
-        <div class="bl-kpi-sub">{"Strong authority" if dr >= 50 else ("Building — target 30+" if dr >= 20 else "Low — needs backlink investment")}</div>
+        <div class="bl-kpi-value">{dr_value_html}</div>
+        <div class="bl-kpi-sub">{dr_sub}</div>
       </div>
-      <div class="bl-kpi {"ok" if bl_total >= 100 else ("warn" if bl_total >= 30 else "bad")}">
+      <div class="bl-kpi {"warn" if bl_unavailable else ("ok" if bl_total >= 100 else ("warn" if bl_total >= 30 else "bad"))}">
         <div class="bl-kpi-label">Total Backlinks</div>
-        <div class="bl-kpi-value">{bl_total:,}</div>
-        <div class="bl-kpi-sub">{ref_domains} referring domains</div>
+        <div class="bl-kpi-value">{bl_total_html}</div>
+        <div class="bl-kpi-sub">{bl_sub}</div>
       </div>
-      <div class="bl-kpi {"ok" if dofollow > nofollow else "warn"}">
+      <div class="bl-kpi {"warn" if bl_unavailable else ("ok" if dofollow > nofollow else "warn")}">
         <div class="bl-kpi-label">Dofollow Links</div>
-        <div class="bl-kpi-value">{dofollow:,}</div>
-        <div class="bl-kpi-sub">{data.get("dofollow_pct",0):.0f}% of profile</div>
+        <div class="bl-kpi-value">{dofollow_html}</div>
+        <div class="bl-kpi-sub">{dofollow_sub}</div>
       </div>
       <div class="bl-kpi warn">
         <div class="bl-kpi-label">Referring Domains</div>
-        <div class="bl-kpi-value">{ref_domains}</div>
-        <div class="bl-kpi-sub">{"Good diversity" if ref_domains >= 50 else "Target 50+ for competitive rankings"}</div>
+        <div class="bl-kpi-value">{ref_value_html}</div>
+        <div class="bl-kpi-sub">{ref_sub}</div>
       </div>
     </div>
 
@@ -842,7 +973,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
         <div class="sub">DataForSEO rank score 0-100.</div>
         <div class="bl-da-gauge">
           <canvas id="bl-da-gauge"></canvas>
-          <div class="bl-da-overlay"><div class="num">{dr}</div><div class="lbl">DR</div></div>
+          <div class="bl-da-overlay"><div class="num">{dr_gauge_html}</div><div class="lbl">DR</div></div>
         </div>
       </div>
       <div class="bl-card">
@@ -860,7 +991,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
       </table>
     </div>
 
-    <div class="bl-pull"><p>{"<strong>Backlink profile needs growth.</strong> Domain rank " + str(dr) + " is " + ("competitive" if dr >= 40 else "below the threshold needed to outrank established competitors") + " in local search. Target 10+ new referring domains from local directories, trade associations, and editorial mentions in the next 90 days." if bl_total < 200 else "<strong>Healthy backlink profile.</strong> Focus on diversifying anchor text and reducing any exact-match anchor concentration."}</p></div>
+    <div class="bl-pull"><p>{bl_pull_html}</p></div>
   </section>
 
   <section id="competitive-benchmark">
@@ -930,6 +1061,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
 
     <div class="cs-pull"><p>{"<strong>" + str(len(content_gaps)) + " keyword gaps found</strong> where competitors rank in the top 20 and " + _escape(client_name) + " doesn't appear. These are direct content-building opportunities — each gap represents searches buyers are making that your site isn't capturing." if content_gaps else "Content gap analysis requires a top competitor identified from the SERP data. Run generate.py with --competitors flag for detailed gap analysis."}</p></div>
   </section>
+  {plan_section}
 
   <section id="ai-visibility">
     <div class="section-eyebrow"><span class="num">12</span> AI &amp; LLM Visibility</div>
@@ -1054,10 +1186,6 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
     </div>
   </div>
 
-  <div class="page-bottom-callout">
-    <strong>Quite a lot. Pretty complicated metrics, right?</strong>
-    These are all the details your agent already knows about your brand &mdash; reviewed, compared, and ready to walk you through in plain language so none of it feels overwhelming.
-  </div>
 </div><!-- /page=plan -->
 
 <!-- ═══════════════ PAGE 3 — YOUR TOOLS ═══════════════ -->
@@ -1133,10 +1261,6 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
       <div class="cap-card"><h4>AI-Visible Content</h4><p>FAQ blocks, structured schema, and optimized content that makes ChatGPT, Claude, Gemini, and Perplexity start citing your business.</p></div>
     </div>
   </div>
-  <div class="page-bottom-callout">
-    <strong>Quite a lot. Pretty complicated metrics, right?</strong>
-    These are all the details your agent already knows about your brand &mdash; reviewed, compared, and ready to walk you through in plain language.
-  </div>
 </div><!-- /page=team -->
 
 <!-- ═══════════════ PAGE 4 — BUILD WITH YOUR VOICE ═══════════════ -->
@@ -1205,34 +1329,32 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
       <div class="auto-lane"><h5>It Remembers</h5><div class="auto-task">Every build, every conversation, every audit finding stays in context</div><div class="auto-task">Doesn&rsquo;t forget your brand, your preferences, your priorities</div><div class="auto-task">Gets more useful the longer you use it</div></div>
     </div>
   </div>
-  <div class="page-bottom-callout">
-    <strong>Quite a lot. Pretty complicated metrics, right?</strong>
-    These are all the details your agent already knows about your brand &mdash; reviewed and ready to act on.
-  </div>
 </div><!-- /page=day-one -->
 
 <!-- ═══════════════ PAGE 5 — SIGN UP ═══════════════ -->
 <div class="report-page" data-page="signup">
   <div class="sub-section" id="signup-pricing">
-    <div class="section-eyebrow"><span class="num">S1</span> Ready to Get Started?</div>
-    <h2 class="section-title">One Subscription. Everything You Saw in This Report.</h2>
+    <div class="section-eyebrow"><span class="num">S1</span> Turn This Report Into Results</div>
+    <h2 class="section-title">This report found the gaps. JamBot closes them &mdash; for {_escape(client_name)}.</h2>
     <div class="section-divider"></div>
-    <p class="section-desc">JamBot gives {_escape(client_name)} the same enterprise infrastructure that multi-location contractors pay $2,000+/month for &mdash; SEO dashboard, AI assistant, CRM, website management, content, apps &mdash; at a fraction of the cost. Billed monthly, cancel anytime, your data always exports.</p>
+    <p class="section-desc">You just saw exactly where {_escape(client_name)} is winning and where it&rsquo;s leaving money on the table in {_escape(city_state)}. JamBot is the agent that <strong>does the work in this report</strong> &mdash; not another dashboard you have to learn, but an AI team member that ships the fixes, tracks the rankings, answers your calls, and reports back every week. One job a month covers it.</p>
     <div class="pricing-grid">
       <div class="pricing-card featured">
-        <div class="pricing-tier">JamBot Standard</div>
+        <div class="pricing-badge" style="display:inline-block;background:var(--brand-primary,#1E6091);color:#fff;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:4px 12px;border-radius:999px;margin-bottom:10px;">Built for {_escape(client_name)}</div>
+        <div class="pricing-tier">JamBot &mdash; Full Agent</div>
         <div class="pricing-price">$297<span class="pricing-period">/mo</span></div>
-        <div class="pricing-desc">Everything in this report. Built for your market. Running on Day 1.</div>
+        <div class="pricing-desc">Less than the cost of <strong>one job</strong>. Replaces a $2,000+/mo agency stack. No setup fee, cancel anytime, your data always exports.</div>
         <ul class="pricing-features">
-          <li>Full SEO dashboard &amp; rank tracking</li>
-          <li>AI company assistant (voice + SMS + Slack)</li>
-          <li>Self-hosted CRM &mdash; your data</li>
-          <li>Website management &amp; content publishing</li>
-          <li>Custom apps on demand</li>
-          <li>Social media content &amp; planning</li>
-          <li>Monthly brand report refresh</li>
+          <li><strong>Fixes your audit</strong> &mdash; schema, speed, city pages, the Priority 1&ndash;3 list, shipped for you</li>
+          <li><strong>Wins back rankings</strong> &mdash; live SEO tracking on the keywords that bring you jobs</li>
+          <li><strong>Answers every lead</strong> &mdash; AI assistant on voice, SMS &amp; web so you never miss a call</li>
+          <li><strong>Owns your pipeline</strong> &mdash; self-hosted CRM, your data, never held hostage</li>
+          <li><strong>Publishes content</strong> &mdash; the blog &amp; social posts you don&rsquo;t have time to write</li>
+          <li><strong>Builds on demand</strong> &mdash; landing pages, calculators, apps &mdash; just ask</li>
+          <li><strong>Reports weekly</strong> &mdash; what moved, what shipped, what&rsquo;s next &mdash; in plain language</li>
         </ul>
-        <a href="mailto:start@jam-bot.com?subject=JamBot%20Signup%20&mdash;%20{_escape(client_name)}" class="pricing-cta">Get Started &rarr;</a>
+        <a href="mailto:start@jam-bot.com?subject=Start%20JamBot%20&mdash;%20{_escape(client_name)}&body=I%20reviewed%20my%20brand%20report%20and%20I%27m%20ready%20to%20get%20started." class="pricing-cta">Start with {_escape(client_name)} &rarr;</a>
+        <div class="pricing-foot">No contract &middot; First fixes shipped in week one</div>
       </div>
     </div>
   </div>
@@ -1250,13 +1372,13 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str) -> N
   </div>
 
   <div class="sub-section" id="signup-cta">
-    <div class="section-eyebrow"><span class="num">S3</span> Talk to Us</div>
-    <h2 class="section-title">Ready to Move?</h2>
+    <div class="section-eyebrow"><span class="num">S3</span> Your competitors aren&rsquo;t waiting</div>
+    <h2 class="section-title">Every week this sits, those rankings go to someone else.</h2>
     <div class="section-divider"></div>
-    <p class="section-desc">This report was built specifically for {_escape(client_name)} in {_escape(city_state)}. Your agent already knows your market, your competitors, and your priorities. Let&rsquo;s start executing.</p>
+    <p class="section-desc">This report was built specifically for {_escape(client_name)} in {_escape(city_state)} &mdash; your agent already knows your market, your competitors, and your exact priority list. The moment you say go, it starts shipping the fixes. Reply and you&rsquo;ll be live this week.</p>
     <div class="su-cta-block">
-      <a href="mailto:start@jam-bot.com?subject=JamBot%20Signup%20&mdash;%20{_escape(client_name)}&body=I%20reviewed%20my%20brand%20report%20and%20want%20to%20get%20started." class="su-primary-btn">Start My Subscription &rarr;</a>
-      <a href="https://jam-bot.com" class="su-secondary-btn">Learn More at jam-bot.com</a>
+      <a href="mailto:start@jam-bot.com?subject=Start%20JamBot%20&mdash;%20{_escape(client_name)}&body=I%20reviewed%20my%20brand%20report%20and%20I%27m%20ready%20to%20get%20started." class="su-primary-btn">Start with {_escape(client_name)} &rarr;</a>
+      <a href="tel:+15204341343" class="su-secondary-btn">Or call us &mdash; (520) 434-1343</a>
     </div>
   </div>
 

@@ -36,9 +36,12 @@ def fetch_organic(domain: str, location: str = "United States") -> dict:
         result = dfs_post("dataforseo_labs/google/ranked_keywords/live", [
             {
                 "target": domain,
-                "location_name": location,
-                "language_name": "English",
-                "limit": 100,
+                # location_code/language_code (Labs rejects location_name/language_name) + a high
+                # limit so we capture ALL ranked keywords (was truncating at 100; ICA has 280).
+                # (Fixed skill-wide 2026-06-01.)
+                "location_code": 2840,
+                "language_code": "en",
+                "limit": 1000,
                 "order_by": ["keyword_data.keyword_info.search_volume,desc"],
             }
         ])

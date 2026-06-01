@@ -12,10 +12,16 @@ def _try_logo_from_meta(domain: str) -> str | None:
         from bs4 import BeautifulSoup
         r = requests.get(f"https://{domain}", headers={"User-Agent": _UA}, timeout=12, allow_redirects=True)
         soup = BeautifulSoup(r.text, "html.parser")
-        # og:image first
+        # og:image first — resolve relative URLs to absolute (else the logo breaks inside
+        # the canvas iframe). Matches the apple-touch-icon branch below (ica-voice 2026-06-01).
         og = soup.find("meta", property="og:image")
         if og and og.get("content"):
-            return og["content"]
+            href = og["content"].strip()
+            if href.startswith("http"):
+                return href
+            if href.startswith("//"):
+                return f"https:{href}"
+            return f"https://{domain}/{href.lstrip('/')}"
         # apple-touch-icon
         icon = soup.find("link", rel=lambda v: v and "apple-touch-icon" in " ".join(v))
         if icon and icon.get("href"):

@@ -43,10 +43,15 @@ def fetch_web(domain: str) -> dict:
         "lcp_gauge_pct": 0,
         "fid_gauge_pct": 0,
         "cls_gauge_pct": 0,
+        # Availability flag for scoring — True when Lighthouse (or the instant_pages fallback)
+        # actually returned data. (Fixed 2026-06-01: stops the score swinging on flaky endpoints.)
+        "_web_available": False,
     }
 
     try:
-        result = dfs_post("on_page/lighthouse/live", [
+        # Correct endpoint is /live/json — the old /live path 404'd, leaving the web
+        # section empty. /live/json returns 20000 with real Lighthouse data. (Fixed 2026-06-01.)
+        result = dfs_post("on_page/lighthouse/live/json", [
             {"url": f"https://{domain}", "for_mobile": False}
         ])
         # dfs_post returns {} on error (no raise) — check for valid response
@@ -55,6 +60,7 @@ def fetch_web(domain: str) -> dict:
         r0 = dfs_get_result0(result)
         categories = r0.get("categories") or {}
         audits     = r0.get("audits") or {}
+        out["_web_available"] = True   # Lighthouse responded
 
         def _score(cat: str) -> int:
             s = (categories.get(cat) or {}).get("score")
@@ -121,6 +127,7 @@ def fetch_web(domain: str) -> dict:
                 out["lh_seo"] = seo_score
                 # Flag that web data is partial
                 out["lh_data_source"] = "instant_pages_fallback"
+                out["_web_available"] = True   # partial web data still beats excluding the dimension
         except Exception as e2:
             print(f"[WARN] instant_pages fallback also failed: {e2}", file=sys.stderr)
 

@@ -1270,6 +1270,53 @@
       border: 2px solid var(--brand-accent);
       background: linear-gradient(180deg, color-mix(in srgb, var(--brand-accent) 8%, var(--brand-card)) 0%, var(--brand-card) 80%);
     }
+    /* ── Signup section (pricing card body, day-1 grid, CTA) — added 2026-06-01 ── */
+    .pricing-card.featured {
+      border: 2px solid var(--brand-accent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--brand-accent) 10%, var(--brand-card)) 0%, var(--brand-card) 70%);
+      max-width: 560px; margin: 0 auto;
+    }
+    .pricing-tier { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--brand-muted); }
+    .pricing-price { font-size: 2.6rem; font-weight: 800; color: var(--brand-text); line-height: 1.1; margin: 6px 0; }
+    .pricing-period { font-size: 1rem; font-weight: 500; color: var(--brand-muted); }
+    .pricing-desc { font-size: 0.92rem; color: var(--brand-muted); margin-bottom: 16px; line-height: 1.5; }
+    .pricing-features { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-direction: column; gap: 10px; }
+    .pricing-features li { position: relative; padding-left: 26px; font-size: 0.92rem; color: var(--brand-text); line-height: 1.45; }
+    .pricing-features li::before {
+      content: "✓"; position: absolute; left: 0; top: 0;
+      color: #fff; background: var(--brand-accent); width: 18px; height: 18px; border-radius: 50%;
+      font-size: 0.7rem; font-weight: 800; display: grid; place-items: center;
+    }
+    .pricing-cta {
+      display: block; text-align: center; background: var(--brand-accent); color: #fff;
+      font-weight: 700; font-size: 1.02rem; padding: 14px 20px; border-radius: 12px;
+      text-decoration: none; transition: filter .2s; box-shadow: 0 6px 18px -6px var(--brand-accent);
+    }
+    .pricing-cta:hover { filter: brightness(1.08); }
+    .pricing-foot { text-align: center; font-size: 0.8rem; color: var(--brand-muted); margin-top: 10px; }
+    .day1-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .day1-tile {
+      background: var(--brand-card); border: 1px solid var(--brand-border); border-radius: var(--radius);
+      padding: 20px; position: relative;
+    }
+    .day1-num {
+      width: 34px; height: 34px; border-radius: 50%; background: var(--brand-accent); color: #fff;
+      font-weight: 800; display: grid; place-items: center; margin-bottom: 12px; font-size: 1rem;
+    }
+    .day1-tile h4 { margin: 0 0 6px; font-size: 1rem; color: var(--brand-text); }
+    .day1-tile p { margin: 0; font-size: 0.88rem; color: var(--brand-muted); line-height: 1.5; }
+    .su-cta-block { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+    .su-primary-btn {
+      background: var(--brand-accent); color: #fff; font-weight: 700; font-size: 1.05rem;
+      padding: 16px 28px; border-radius: 12px; text-decoration: none; transition: filter .2s;
+      box-shadow: 0 8px 22px -6px var(--brand-accent);
+    }
+    .su-primary-btn:hover { filter: brightness(1.08); }
+    .su-secondary-btn {
+      background: transparent; color: var(--brand-text); font-weight: 600; font-size: 1.05rem;
+      padding: 16px 28px; border-radius: 12px; text-decoration: none; border: 1px solid var(--brand-border);
+    }
+    .su-secondary-btn:hover { border-color: var(--brand-accent); color: var(--brand-accent); }
     @media (min-width: 1000px) {
       .pricing-card.is-recommended { transform: translateY(-4px); }
     }
@@ -2366,10 +2413,6 @@
   </div><!-- /found-content -->
 
 
-<div class="page-bottom-callout">
-  <strong>Quite a lot. Pretty complicated metrics, right?</strong>
-  These are all the details your agent already knows about your brand — reviewed, compared, and ready to walk you through in plain language so none of it feels overwhelming.
-</div>
 
 </div><!-- /page=found -->
 
@@ -2535,10 +2578,6 @@
 
 
 
-<div class="page-bottom-callout">
-  <strong>Quite a lot. Pretty complicated metrics, right?</strong>
-  These are all the details your agent already knows about your brand — reviewed, compared, and ready to walk you through in plain language so none of it feels overwhelming.
-</div>
 
 </div><!-- /page=plan -->
 
@@ -2723,10 +2762,6 @@
   </div>
 
 
-<div class="page-bottom-callout">
-  <strong>Quite a lot. Pretty complicated metrics, right?</strong>
-  These are all the details your agent already knows about your brand — reviewed, compared, and ready to walk you through in plain language so none of it feels overwhelming.
-</div>
 
 </div><!-- /page=team -->
 
@@ -2884,10 +2919,6 @@
   <!-- ░░ Sub-section: Proof ░░ -->
 
 
-<div class="page-bottom-callout">
-  <strong>Quite a lot. Pretty complicated metrics, right?</strong>
-  These are all the details your agent already knows about your brand — reviewed, compared, and ready to walk you through in plain language so none of it feels overwhelming.
-</div>
 
 </div><!-- /page=day-one -->
 
@@ -3032,10 +3063,6 @@
   </div>
 
 
-<div class="page-bottom-callout">
-  <strong>Quite a lot. Pretty complicated metrics, right?</strong>
-  These are all the details your agent already knows about your brand — reviewed, compared, and ready to walk you through in plain language so none of it feels overwhelming.
-</div>
 
 </div><!-- /page=signup -->
 

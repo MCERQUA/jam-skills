@@ -17,8 +17,8 @@ def fetch_content(domain: str, service: str, location: str, top_competitor: str 
         result = dfs_post("dataforseo_labs/google/keyword_suggestions/live", [
             {
                 "keyword": service,
-                "location_name": location,
-                "language_name": "English",
+                "location_code": 2840,
+                "language_code": "en",
                 "limit": 30,
                 "order_by": ["keyword_info.search_volume,desc"],
             }
@@ -44,29 +44,34 @@ def fetch_content(domain: str, service: str, location: str, top_competitor: str 
                 {
                     "target1": domain,
                     "target2": top_competitor,
-                    "location_name": location,
-                    "language_name": "English",
-                    "limit": 30,
-                    "filters": [
-                        ["ranked_serp_element.serp_item.rank_absolute", ">", 20],
-                    ],
+                    "location_code": 2840,
+                    "language_code": "en",
+                    "limit": 100,
                     "order_by": ["keyword_data.keyword_info.search_volume,desc"],
                 }
             ])
             items = dfs_get_items(result)
-            for item in items[:15]:
+            # domain_intersection returns first_domain_serp_element (target1 = us) +
+            # second_domain_serp_element (target2 = competitor). A content GAP = competitor
+            # outranks us. The old code read ranked_serp_element.serp_item (wrong path) + an
+            # invalid API filter → always empty. Filter in Python instead. (Fixed 2026-06-01.)
+            for item in items:
                 kd = item.get("keyword_data") or {}
                 ki = kd.get("keyword_info") or {}
-                # Find the competitor (target2) ranked position
-                serp_data = item.get("ranked_serp_element") or {}
-                si = serp_data.get("serp_item") or {}
-                competitor_pos = int(si.get("rank_absolute") or 0)
-                # Gap: competitor ranks in top 20, we rank > 20 (filtered above)
-                out["content_gaps"].append({
-                    "keyword":      kd.get("keyword", ""),
-                    "volume":       int(ki.get("search_volume") or 0),
-                    "competitor_pos": competitor_pos,
-                })
+                our_pos  = int((item.get("first_domain_serp_element") or {}).get("rank_absolute") or 0)
+                comp_pos = int((item.get("second_domain_serp_element") or {}).get("rank_absolute") or 0)
+                if not comp_pos:
+                    continue
+                # gap: competitor ranks, and either we don't rank or we rank worse than them
+                if our_pos == 0 or comp_pos < our_pos:
+                    out["content_gaps"].append({
+                        "keyword":        kd.get("keyword", ""),
+                        "volume":         int(ki.get("search_volume") or 0),
+                        "competitor_pos": comp_pos,
+                        "your_pos":       our_pos or None,
+                    })
+                if len(out["content_gaps"]) >= 15:
+                    break
             out["gap_count"] = len(out["content_gaps"])
         except Exception as e:
             print(f"[WARN] Domain intersection/gaps failed: {e}", file=sys.stderr)

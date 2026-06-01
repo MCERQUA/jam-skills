@@ -91,9 +91,24 @@ def generate_roadmap(data: dict, score_result: dict) -> dict:
             "tag": "Local SEO",
         })
 
+    # If nothing critical triggered, say so plainly instead of a blank section.
+    # (Mike 2026-06-01: "if there's nothing critical we should just say congrats you're in
+    # good shape, nothing critical.")
+    if not p1:
+        p1.append({
+            "title": "No critical issues — you're in good shape on the fundamentals",
+            "detail": "Nice work. The site is fast, the Google Business Profile is solid, and the core technical signals check out — none of the make-or-break items need fixing right now. The opportunities below (Priority 2 & 3) are about pulling ahead of competitors, not patching problems.",
+            "icon": "✅",
+            "tag": "All Clear",
+        })
+
     # ── PRIORITY 2 — Next 60-90 days ─────────────────────────────────────────
 
-    if domain_rank < 20:
+    # Only recommend a backlink campaign if we actually MEASURED low authority. When the
+    # Backlinks API isn't active (data unavailable → all zeros), don't treat it as a real
+    # gap — that's pending data, not a deficiency. (Fixed 2026-06-01.)
+    bl_unavailable = data.get("backlinks_unavailable", False) or (domain_rank == 0 and referring_domains == 0)
+    if domain_rank < 20 and not bl_unavailable:
         p2.append({
             "title": f"Backlink building campaign needed — Domain Authority {domain_rank}",
             "detail": "Low domain authority limits how fast new content can rank. Focus on local citations (Chamber of Commerce, trade directories), supplier link exchanges, and 2-3 local press placements in the first 90 days.",

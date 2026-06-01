@@ -15,10 +15,13 @@ _PLATFORMS = {
     "tiktok":    "https://www.tiktok.com/@{slug}",
 }
 
+# Match social URLs ANYWHERE in the page (href, JSON-LD sameAs, data-attrs, plain text) —
+# not just href="https://www." . ICA links FB/IG via structured data, which the old
+# href-only regex missed → false "no profile found". (Fixed 2026-06-01.)
 _SOCIAL_LINK_RE = re.compile(
-    r'href=["\']https?://(?:www\.)?'
+    r'(?:https?:)?//(?:www\.)?'
     r'(facebook\.com|instagram\.com|linkedin\.com|youtube\.com|twitter\.com|x\.com|tiktok\.com)'
-    r'/([^"\'?\s]+)',
+    r'/([A-Za-z0-9_.@/\-]+)',
     re.I
 )
 
@@ -57,10 +60,15 @@ def fetch_social(domain: str, brand_name: str) -> dict:
     found_from_site: dict[str, str] = {}
     try:
         r = requests.get(f"https://{domain}", headers={"User-Agent": _UA}, timeout=12, allow_redirects=True)
+        # non-profile path segments (share buttons, tracking pixels, post/video permalinks)
+        _JUNK = {"share", "sharer", "sharer.php", "intent", "tr", "plugins", "p", "reel",
+                 "embed", "watch", "dialog", "login", "home", "help", "about", "privacy",
+                 "policy", "hashtag", "explore", "search", "v"}
         for m in _SOCIAL_LINK_RE.finditer(r.text):
             site_domain = m.group(1).lower()
             path = m.group(2).strip("/")
-            if not path or path in ("share", "sharer", "intent"):
+            first = path.split("/")[0].split("?")[0].lower()
+            if not path or first in _JUNK:
                 continue
             for plat, url_tmpl in _PLATFORMS.items():
                 if plat in site_domain or (plat == "twitter" and "x.com" in site_domain):
@@ -94,4 +102,7 @@ def fetch_social(domain: str, brand_name: str) -> dict:
             claimed += 1
 
     out["platforms_claimed"] = claimed
+    # We always probe every platform, so social is always a real (deterministic) measurement —
+    # mark available so the dimension is scored consistently rather than flipping in/out. (2026-06-01)
+    out["_social_available"] = True
     return out

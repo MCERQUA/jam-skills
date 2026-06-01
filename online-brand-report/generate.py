@@ -40,9 +40,11 @@ from lib import (
     fetch_content,
     fetch_ai,
     fetch_social,
+    fetch_geo,
     score as score_mod,
     roadmap as roadmap_mod,
     render as render_mod,
+    plan as plan_mod,
 )
 
 TEMPLATE_PATH = "/mnt/clients/test-dev/openvoiceui/canvas-pages/online-brand-report-template.html"
@@ -58,7 +60,10 @@ def parse_args():
     p.add_argument("--state",       default="",     help="State abbreviation")
     p.add_argument("--phone",       default="",     help="Phone number")
     p.add_argument("--email",       default="",     help="Email address")
-    p.add_argument("--service",     default="",     help="Primary service (e.g. 'spray foam insulation')")
+    p.add_argument("--service",     default="",     help="Primary service (drives keyword research, e.g. 'spray foam insulation')")
+    p.add_argument("--services",    default="",     help="Comma-separated FULL service list for the service×area money-page matrix "
+                                                         "(e.g. 'rim repair,curb rash,bent rim straightening'). If omitted, the "
+                                                         "matrix expands only the primary --service across areas.")
     p.add_argument("--competitors", default="",     help="Comma-separated competitor domains")
     p.add_argument("--output",      default="",     help="Full output path for the HTML file")
     p.add_argument("--tenant",      default="test-dev", help="JamBot tenant name (for default output path)")
@@ -141,6 +146,7 @@ def main():
                                                                                 comp_data.get("top_competitor", ""))
     ai_data         = _run("AI/llms.txt",       fetch_ai.fetch_ai,             domain, name)
     social_data     = _run("social",            fetch_social.fetch_social,     domain, name)
+    geo_data        = _run("geo/city-volumes",  fetch_geo.fetch_geo,           service, city, state)
 
     t_fetch = time.time() - t_start
     print(f"\n    Total fetch time: {t_fetch:.1f}s", file=sys.stderr)
@@ -148,7 +154,7 @@ def main():
     # ── Merge into single data dict ───────────────────────────────────────────
     data: dict = {}
     for d in (brand_data, web_data, organic_data, serp_data, local_data,
-              backlink_data, comp_data, content_data, ai_data, social_data):
+              backlink_data, comp_data, content_data, ai_data, social_data, geo_data):
         data.update(d)
 
     # If fetch_local couldn't get reviews, fall back to GMB data from fetch_brand
@@ -170,6 +176,13 @@ def main():
         "tenant":       tenant,
     })
 
+    # Full service list → drives the service×area money-page matrix (plan.py reads data["services"]).
+    # Without it the matrix expands only the single primary service across areas (core-only).
+    services_list = [s.strip() for s in args.services.split(",") if s.strip()]
+    if services_list:
+        data["services"] = services_list
+        print(f"    [INFO] Service matrix from {len(services_list)} services: {', '.join(services_list)}", file=sys.stderr)
+
     # ── Score + Roadmap ───────────────────────────────────────────────────────
     print("\n--- Scoring ---", file=sys.stderr)
     score_result = score_mod.calculate_score(data)
@@ -180,6 +193,13 @@ def main():
     roadmap = roadmap_mod.generate_roadmap(data, score_result)
     print(f"    P1 items: {len(roadmap['p1'])}   P2: {len(roadmap['p2'])}   P3: {len(roadmap['p3'])}", file=sys.stderr)
 
+    # ── Build plan (the meat) — machine-readable spec for the website builder ──
+    print("\n--- Build Plan ---", file=sys.stderr)
+    plan = plan_mod.build_plan(data)
+    s = plan["summary"]
+    print(f"    {s['keyword_gaps']} gaps · {s['quick_wins']} quick-wins · "
+          f"{s['recommended_pages']} pages · {s['content_articles']} articles", file=sys.stderr)
+
     # ── Render ────────────────────────────────────────────────────────────────
     print("\n--- Rendering HTML ---", file=sys.stderr)
 
@@ -187,11 +207,32 @@ def main():
     out_path = Path(output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Write the machine-readable plan next to the HTML report (builder consumes this).
+    import json as _json2
+    plan_path = out_path.with_name("seo-plan.json")
+    plan_path.write_text(_json2.dumps(plan, indent=2))
+    print(f"    seo-plan.json → {plan_path}", file=sys.stderr)
+
+    # Write the human-readable background plan (gold-standard style) alongside it.
+    try:
+        from lib import plan_md as plan_md_mod
+        identity = {"name": name, "owner": owner, "city": city, "state": state,
+                    "phone": phone, "email": email, "brand_name": name}
+        md = plan_md_mod.render_plan_md(plan, identity, score_result, roadmap,
+                                        generated_at=datetime.utcnow().strftime("%Y-%m-%d"))
+        md_path = out_path.with_name("website-plan.md")
+        md_path.write_text(md)
+        print(f"    website-plan.md → {md_path}", file=sys.stderr)
+    except Exception as _md_e:
+        print(f"    website-plan.md FAILED: {_md_e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+
     render_mod.render(
         data=data,
         score_result=score_result,
         roadmap=roadmap,
         output_path=str(out_path),
+        plan=plan,
     )
 
     t_total = time.time() - t_start

@@ -23,18 +23,37 @@ def fetch_competitive(domain: str, location: str = "United States") -> dict:
         result = dfs_post("dataforseo_labs/google/competitors_domain/live", [
             {
                 "target": domain,
-                "location_name": location,
-                "language_name": "English",
-                "limit": 5,
+                # location_name/language_name removed: competitors_domain/live (Labs) rejects them →
+                # 404. Labs endpoints take location_code/language_code or nothing (ica-voice 2026-06-01).
+                "location_code": 2840,
+                "language_code": "en",
+                "limit": 25,
             }
         ])
         items = dfs_get_items(result)
-        for item in items[:5]:
+        # Filter out the domain ITSELF + generic platforms/directories/social/video sites —
+        # those aren't real local competitors (they rank for everything). Keep the first 5
+        # genuine competitor domains. (Fixed 2026-06-01 — was showing self + youtube/yelp/angi.)
+        _self = domain.lower().lstrip("www.")
+        _BLOCK = (
+            "youtube.com", "facebook.com", "instagram.com", "linkedin.com", "twitter.com",
+            "x.com", "tiktok.com", "pinterest.com", "reddit.com", "yelp.com", "angi.com",
+            "angieslist.com", "bbb.org", "homeadvisor.com", "thumbtack.com", "homeguide.com",
+            "houzz.com", "nextdoor.com", "mapquest.com", "yellowpages.com", "manta.com",
+            "homedepot.com", "lowes.com", "amazon.com", "wikipedia.org", "indeed.com",
+            "glassdoor.com", "google.com", "apple.com", "bing.com", "porch.com", "buildzoom.com",
+        )
+        for item in items:
+            dom = (item.get("domain") or "").lower().lstrip("www.")
+            if not dom or dom == _self or dom in _BLOCK:
+                continue
             competitors_raw.append({
                 "domain": item.get("domain") or "",
-                "keyword_count": int(item.get("avg_position") or 0),  # we'll overwrite with traffic
+                "keyword_count": int(item.get("avg_position") or 0),  # overwritten with traffic
                 "intersections": int(item.get("intersections") or 0),
             })
+            if len(competitors_raw) >= 5:
+                break
     except Exception as e:
         print(f"[WARN] Competitors fetch failed: {e}", file=sys.stderr)
 
@@ -44,12 +63,17 @@ def fetch_competitive(domain: str, location: str = "United States") -> dict:
     if targets:
         try:
             result = dfs_post("dataforseo_labs/google/bulk_traffic_estimation/live", [
-                {"targets": targets[:10]}
+                {"targets": targets[:10], "location_code": 2840, "language_code": "en"}
             ])
             items = dfs_get_items(result)
             for item in items:
                 t = item.get("target") or ""
-                est = int(item.get("estimated_traffic_per_month") or item.get("traffic") or 0)
+                # ETV lives at metrics.organic.etv (verified 2026-06-01) — the old flat
+                # estimated_traffic_per_month/traffic fields don't exist → was always 0.
+                m = item.get("metrics") or {}
+                est = int((m.get("organic") or {}).get("etv") or 0)
+                if not est:
+                    est = int((m.get("paid") or {}).get("etv") or 0)
                 traffic_map[t] = est
         except Exception as e:
             print(f"[WARN] Traffic estimation failed: {e}", file=sys.stderr)

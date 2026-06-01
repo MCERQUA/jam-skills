@@ -33,7 +33,7 @@ Phase 1.5 BRAND-EXTRACT may still write `.brand/colors.json` for reference + fav
 
 **RULE 6 — Supplied media wins over generated.** Phase 6 ASSETS uses `intake.heroImage`, `intake.teamImage`, `intake.gallery[]` for slots that match. Only generate AI images for slots Stitch left empty AND no user media exists for. Never replace a user-supplied image with an AI-generated one.
 
-**RULE 7 — Quality gate is functional, not static.** Phase 7 runs `pnpm build` (prod, in webdev container), curls every URL in `sitemap.xml`, runs color allowlist + Stitch fidelity check. `tsc --noEmit` alone is theater.
+**RULE 7 — Quality gate is functional, not static.** Phase 7 runs `pnpm build` (prod, in webdev container), curls every URL in `sitemap.xml`, runs color allowlist + Stitch fidelity check, AND the host-side **visual gate** (`quality-review/visual-check.py` via the build-watchdog: WCAG contrast, mobile overflow, broken images, clipped/empty sections — the Quality Officer's eyes). `tsc --noEmit` alone is theater. A build is NOT done until the visual gate returns `pass` — see Phase 7 A6.
 
 **RULE 8 — Deploy reconciles the webdev container's environment.** Phase 8 calls `tools/webdev-deploy.sh <client> <project>` which inspects `WEBDEV_PROJECT_NAME`, rewrites compose if mismatched, ensures `.env.local` exists, recreates the service, HTTP 200-checks. The site MUST serve at the client's webdev URL after Phase 8 completes — verified by curl, not by trust.
 
@@ -316,6 +316,21 @@ To update, read the current file, modify the relevant fields, write it back. Alw
 ## Phase 1: RESEARCH (sub-agent, ~3-5 minutes)
 
 **Update status:** `currentPhase: "research"`, `phases.research.status: "in_progress"`, `phases.research.message: "Starting market research..."`
+
+### Step 0 — CONSUME the Brand Report's plan if present (skip re-research)
+
+The Online Brand Report is the single SEO research engine (see `instructions/` + the system map). If its `seo-plan.json` was produced for this domain, **consume it instead of re-querying DataForSEO** — same data, one pass, and it carries the money-page matrix + interlink silo the live research doesn't.
+
+```bash
+# The brand report writes seo-plan.json next to its HTML. The build trigger drops it at
+# ~/Websites/<project>/ai/seo-plan.json (copy it there if you have it from the report run).
+if [ -f ~/Websites/<project>/ai/seo-plan.json ]; then
+  python3 /mnt/shared-skills/website-builder/tools/seo-plan-to-research.py ~/Websites/<project>
+fi
+```
+
+- If it **succeeds (exit 0)**, the research files (`keywords.md`, `topical-map.md`, `faq-research.md`, `page-recommendations.md`, `competitors.md`, `content-strategy.md`, `.dfs/volumes.json`) are written, `ai/build-plan.json` (money pages + interlink map + supporting content) is written, and `intake.pages` is seeded with the supporting pages **+ the service×area money pages**. **Skip the DataForSEO sub-agent below — go straight to the Phase 1 GATE.** Set `phases.research.message: "Consumed Brand Report seo-plan.json (money-page matrix + coverage + silo)"`.
+- If there's **no `seo-plan.json`** (exit 1, greenfield with no prior report), run the full DataForSEO research sub-agent below as normal.
 
 **Create research directory:**
 ```
@@ -1083,6 +1098,7 @@ HARD RULES:
 10. **SECTION COMPONENT ALLOWLIST**: `src/components/sections/` IS the allowlist. You may ONLY import section components that already exist in that directory. Run `ls src/components/sections/` FIRST. If a Stitch section type needs a component that doesn't exist (e.g. Stitch has a 'before-after' section but no BeforeAfter.tsx in sections/), COPY a similar canonical template from `/mnt/shared-skills/website-builder/templates/sections/<name>.tsx` to your project's `src/components/sections/<name>.tsx` AS THE BASE, then customize.
 11. **FORBIDDEN imports for 1.A and 1.B builds**: TrustBar, Features, FeaturesBento, HowItWorks, Stats, Pricing, BlogList, ErrorPage, NotFound, ThemeToggle. These live in `/mnt/shared-skills/website-builder/templates/sections-fallback-1c/` and are ONLY for 1.C generate-from-controls builds. If you import any of these in a 1.A/1.B build, the build fails. Stitch did not call for them — do not invent them.
 12. **No section additions, no section removals.** Per the structure.json sectionCount target. If Stitch has 5 sections, build 5. If 7, build 7. The number is fixed by the supplied design.
+13. **INTERNAL-LINK SILO (if `ai/build-plan.json` exists — from the consumed Brand Report plan).** Read `ai/build-plan.json` → `interlink_map`. For every entry whose `from` matches the page you're building, add an internal `<Link href="/<to>">` using the entry's `anchor` text. Concentrate these in a **"Related Services & Areas"** section near the page bottom (one block, not stuffed inline): money pages link to the same service in nearby cities + other services in the same city + up to their pillar; supporting blog posts link up to their money page. This is the ranking lever — money pages must accumulate these inbound internal links. Every `href` must resolve to a real page in page-map.json (skip any that don't). This adds links, not new sections — it lives inside the page's existing footer/related area.
 
 STANDARD INFRASTRUCTURE (build these once, NOT in any per-page section):
 - src/app/layout.tsx: metadataBase=new URL('https://<intake.domain>'), JSON-LD per BUSINESS_TYPE (LocalBusiness for service-local; include address, telephone, openingHours, areaServed from intake), openGraph.images=[{url:'/og/default.png',width:1200,height:630}], icons={icon:'/favicon.ico',apple:'/apple-touch-icon.png'}
@@ -1611,9 +1627,34 @@ grep -q '<Logo ' "$PROJECT_DIR/src/components/sections/Navbar.tsx" || \
     { echo "GATE FAIL: Navbar does not reference <Logo /> and layout doesn't pass logoSrc"; exit 1; }
 ```
 
+### A6. Visual Quality Officer gate (rendered-DOM — the part HTTP can't see)
+
+This is the gate that catches **light-on-light / dark-on-dark text, invisible buttons, mobile overflow (squished content), and broken/missing images** — the failures that pass every check above and still look broken to a human. It renders each route in headless Chromium at mobile + desktop and checks computed styles.
+
+**Playwright + Chromium live on the HOST, not in this build container** (same as A1's `pnpm build` and A2's URL curls). So you **request** the gate and the host build-watchdog runs it against the serving site, then stamps the result back. Pattern is identical to `githubPush`.
+
+```bash
+# The webdev container is already serving this project at .devUrl (Phase 6 made it
+# the active project). Request the visual gate by flagging .build-status.json.
+python3 - "$PROJECT_DIR" <<'PY'
+import json, sys
+sf = sys.argv[1] + "/.build-status.json"
+d = json.load(open(sf))
+d["visualGate"] = {"status": "requested", "viewports": "390,1440"}  # routes auto-resolve from .quality-gate/urls.txt
+json.dump(d, open(sf, "w"), indent=2)
+print("visualGate.status=requested — host watchdog will run visual-check.py")
+PY
+```
+
+NOTE for the host: `jambot-build-watchdog.sh` detects `visualGate.status=="requested"` and runs `tools/visual-gate.sh "$project_dir"` (resolves the URL from `.devUrl`, routes from `.quality-gate/urls.txt`, viewports 390/1440), writes `.quality-gate/visual/visual-review.json` + full-page screenshots, and stamps `visualGate.status` back to `pass` or `fail` with `top_findings`.
+
+**LOOP-BACK ON FAIL (do not ship a visual fail):** after requesting, poll `.build-status.json` until `visualGate.status` is `pass` or `fail`.
+- `pass` → proceed to section B.
+- `fail` → read `.quality-gate/visual/visual-review.json`, FIX each finding (raise contrast to ≥4.5:1 / ≥3:1 large; kill the horizontal overflow so the page fits 390px; replace the broken `<img>`; fill the empty section), re-run the relevant build step, set `visualGate.status="requested"` again, and re-poll. **Loop until `pass`.** A `fail` left unresolved means the build is NOT done — never advance to deploy/report-done on a visual fail.
+
 ---
 
-### B (legacy, content sweeps — run after A1-A5 ALL pass)
+### B (legacy, content sweeps — run after A1-A6 ALL pass)
 
 ### 0. Image asset check (run FIRST):
 ```bash

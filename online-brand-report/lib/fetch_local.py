@@ -13,6 +13,12 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
         "review_dist_pcts": {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0},
         "map_pack_positions": {},  # city -> int or None
         "recent_reviews": [],      # list of {rating, text, author, date}
+        "gmb_found": False,        # GMB profile located at all
+        "gmb_claimed": False,      # is_claimed (verified) per Google Business data
+        # Availability flag for scoring: True when a local query (reviews / my_business_info /
+        # map pack) actually EXECUTED — "no GMB / no reviews" is a real local finding that must
+        # score low, not be excluded. (Fixed 2026-06-01: was a top driver of the score swing.)
+        "_local_available": False,
     }
 
     cities = [city] + (extra_cities or [])[:2]
@@ -31,6 +37,7 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
             raise ValueError("reviews/live not available")
         r0 = dfs_get_result0(result)
         if r0:
+            out["_local_available"] = True   # reviews endpoint responded
             rating_info = r0.get("rating") or {}
             out["review_avg"]   = float(rating_info.get("value") or 0)
             out["review_count"] = int(rating_info.get("votes_count") or 0)
@@ -85,17 +92,29 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
         print(f"[INFO] GMB reviews/live unavailable ({e}), trying my_business_info fallback", file=sys.stderr)
         # Fallback: use my_business_info/live which includes rating summary
         try:
+            # my_business_info/live REQUIRES language_code (not language_name) + a location.
+            # Verified 2026-06-01: keyword + location_name + language_code:"en" returns the real
+            # GMB (e.g. ICA → "Insulation Contractors of Arizona LLC", 4.9★, 47 reviews).
+            # Use location_code 2840 (US) — DataForSEO rejects abbreviated state names like
+            # "Phoenix,AZ,United States" (needs full "Arizona"), returning 0 items → false
+            # "no GMB". location_code + the brand-name keyword reliably finds the GMB.
+            # Verified 2026-06-01: ICA → "Insulation Contractors of Arizona LLC", 4.9★, 47 reviews.
             result2 = dfs_post("business_data/google/my_business_info/live", [
                 {
                     "keyword": f"{brand_name}",
-                    "location_name": f"{city},{state},United States",
-                    "language_name": "English",
+                    "location_code": 2840,
+                    "language_code": "en",
                 }
             ])
             if result2.get("tasks"):
+                out["_local_available"] = True   # my_business_info responded (GMB may or may not exist — both real)
                 r0 = dfs_get_result0(result2)
                 items = r0.get("items") or []
                 for item in items:
+                    # The business was located → GMB exists; is_claimed = verified status.
+                    out["gmb_found"] = True
+                    if item.get("is_claimed"):
+                        out["gmb_claimed"] = True
                     rating_info = item.get("rating") or {}
                     rv = float(rating_info.get("value") or 0)
                     rc = int(rating_info.get("votes_count") or 0)
@@ -141,10 +160,11 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
                 {
                     "keyword": service,
                     "location_name": f"{c},{state},United States",
-                    "language_name": "English",
+                    "language_code": "en",
                 }
             ])
             items = dfs_get_items(result)
+            out["_local_available"] = True   # map pack query executed (a no-match is a real local finding)
             clean_domain = domain.lower().replace("www.", "")
             for item in items:
                 d = (item.get("domain") or "").lower().replace("www.", "")
