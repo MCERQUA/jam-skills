@@ -12,7 +12,7 @@ gate or the build fails.
 |---|---|---|
 | **1.A — Stitch supplied** | `intake.stitchScreens` non-empty | The user gave you existing Stitch screens by ID. FETCH them via `get_screen` and use them as the LITERAL blueprint. DO NOT call `create_project` or `generate_screen_from_text`. DO NOT add pages that aren't in the supplied screens. DO NOT mix in any "PAGE COMPOSITION BY BUSINESS TYPE" boilerplate from this doc. |
 | **1.B — Design Template** | `intake.designTemplate` non-empty AND `stitchScreens` empty | The user picked a built-in template. Use its `designMd` tokens as the design source for Phase 3 generation. |
-| **1.C — Generate from brand controls** | both empty | Phase 3 generates Stitch screens from scratch using brand controls (theme, colors, fonts) below. Only this path may consult the boilerplate "PAGE COMPOSITION BY BUSINESS TYPE" section as a structural fallback. |
+| **1.C — Generate from brand controls** | both empty | Phase 3 **MUST call Stitch** (`generate_screen_from_text` per page, with a shared design system — see Phase 3 Steps 3b–5) to generate every screen, using the design-director prompt in `instructions/stitch-auto-brief.md`. Building pages from the `sections-fallback-1c/` section library INSTEAD of generating with Stitch is **FORBIDDEN** unless Stitch genuinely fails — that flat output is exactly what we avoid. The "PAGE COMPOSITION BY BUSINESS TYPE" boilerplate is a STRUCTURAL REFERENCE for which sections a page needs — NOT a substitute for generating the design. Section library = LAST-RESORT fallback ONLY when Stitch errors (e.g. STITCH_API_KEY unavailable / create_project fails after retry); if you skip Stitch without a documented failure, the build is INVALID. |
 
 Every phase below branches on this winner. Mix-and-match is forbidden — never use 1.A's Stitch HTMLs alongside 1.C's boilerplate templates.
 
@@ -487,6 +487,38 @@ Update `phases.brand-extract.status: "complete"`, message: `"Logo colors extract
 
 The project directory already exists (canvas created it). Do these steps:
 
+0. **Normalize the intake — BLOG IS MANDATORY (the one sanctioned expansion of `intake.pages`):**
+Every JamBot site ships with a blog. This is the ONLY place the pipeline is allowed to add to `intake.pages` (Phase 3.5 still treats the result as authoritative; the no-silent-expansion rule in Phase 1 is about *research recommendations*, not this fixed policy). Ensure `"blog"` is present, then write `.blog-seed.json` so Phase 5.5 knows which intro post to write:
+```bash
+python3 <<'PY'
+import json, os, glob, re
+proj = os.path.expanduser('~/Websites/<project>')
+intake = json.load(open(f"{proj}/.intake.json"))
+pages = intake.get('pages') or []
+if 'blog' not in [p.lower() for p in pages]:
+    pages.append('blog')
+    intake['pages'] = pages
+    json.dump(intake, open(f"{proj}/.intake.json",'w'), indent=2)
+    print("intake.pages: appended 'blog'")
+else:
+    print("intake.pages: blog already present")
+# Pick the intro-post topic from research (topical map → first foundational topic),
+# falling back to a sensible industry-intro title. Phase 5.5 writes the actual post.
+topic = None
+tm = sorted(glob.glob(f"{proj}/ai/research/topical-map.md"))
+if tm:
+    txt = open(tm[0]).read()
+    m = re.search(r'^\s*[-*\d.]+\s+(.{8,80})$', txt, re.M)
+    if m: topic = m.group(1).strip().rstrip('.')
+biz = intake.get('businessName') or intake.get('industry') or 'our company'
+if not topic:
+    topic = f"What to Know About {intake.get('industry','Our Services').title()}"
+slug = re.sub(r'[^a-z0-9]+','-', topic.lower()).strip('-')[:60]
+json.dump({"slug": slug, "title": topic, "business": biz}, open(f"{proj}/.blog-seed.json",'w'), indent=2)
+print(f"blog-seed: /{('blog/'+slug)} — \"{topic}\"")
+PY
+```
+
 1. **Copy project template files:**
 ```bash
 # IMPORTANT: use trailing /. NOT /* — bash * glob silently skips dotfiles
@@ -560,6 +592,15 @@ cd ~/Websites/<project> && git checkout -b web-dev
 ---
 
 ## Phase 3: STITCH PAGES (inline, ~2-4 minutes per page) — MANDATORY
+
+> **⚠️ PRIMARY FLOW (default since 2026-06-01): `instructions/stitch-flow-primary.md`.**
+> Per-page **plan → brief-review loop → generate-from-brief → output-review loop → serve the WHOLE
+> Stitch HTML as a static site** (do NOT chop it into the Next scaffold). Briefs live in
+> `ai/page-briefs/<name>.md`; one shared design system across all pages; bold art direction +
+> strict contrast/brand rules baked into every prompt. The Next-scaffold/StitchPage embedding +
+> section-library is now a FALLBACK only (Stitch unavailable after retries). Read
+> `instructions/stitch-flow-primary.md` BEFORE executing this phase — it has the why, the rubric,
+> and the gotchas (capture-from-response index, file-based args, FAQ/cost seesaw, font links).
 
 **Why this runs BEFORE Design System:** Stitch is the design source of truth. Phase 4 (DESIGN SYSTEM) reads palette + typography from the fetched Stitch HTMLs. Building tokens first and asking Stitch later produces visual conflicts.
 
@@ -719,6 +760,26 @@ Save the returned project ID into a variable. You'll use it for every page gener
 
 If `create_project` returns an error, mark `phases.stitch-pages.status: "failed"` with the error message and HALT the build (top-level `status: "failed"`). Per the NON-NEGOTIABLE RULES, Stitch is the design source of truth — Phase 5 (BUILD PAGES) refuses to run without `.stitch-pages/structure.json`. Do NOT continue.
 
+### Step 3b — Establish ONE shared design system (the consistency anchor)
+
+All pages MUST share a single design system or they come out as N different styles. Get a
+design-system asset id ONCE, then attach it to EVERY page generate (Step 4). Two ways:
+
+**Path 1 — explicit (Case B template, or compose one from brand/research):**
+```bash
+exec("bash .../stitch-mcp.sh create_design_system_from_design_md '{\"projectId\":\"<PID>\",\"designMd\":\"<compactDesignMd or a designMd composed from brand colors/fonts + the stitch-auto-brief art direction>\"}'")
+exec("bash .../stitch-mcp.sh list_design_systems '{\"projectId\":\"<PID>\"}'")   # → designSystems[0].name = assets/<DSID>
+```
+
+**Path 2 — derive from the home page (Mike's autonomous recipe):** generate the HOME page first
+(Step 4, with a rich `stitch-auto-brief` art-direction prompt). Stitch auto-creates a design
+system from it. Then `list_design_systems` → grab `assets/<DSID>`. Use that DSID for ALL
+remaining pages. This makes each site's style distinctive (driven by the home prompt) yet
+internally consistent.
+
+Save `<DSID>`. If neither path yields a design-system asset id, you may proceed passing brand
+colors in each prompt, but consistency will be weaker — prefer getting a DSID.
+
 ### Step 4 — Generate one screen per page
 
 Read `intake.pages` (a string array like `["home","about","services","contact","faq"]`).
@@ -760,38 +821,80 @@ Mobile-first, production-ready, accessible. No placeholder copy — write real h
 
 For any page name not in the table, infer required sections from the page name and the site type (`intake.siteType`).
 
-**Run the generation:**
+**Run the generation** — attach the shared `designSystem` (Step 3), use `GEMINI_3_1_PRO`
+(`GEMINI_3_PRO` is DEPRECATED), DESKTOP only, and TEE the response to a per-page file so
+Step 5 can capture the screen from it:
 
 ```bash
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_screen_from_text '{\"projectId\": \"<PID>\", \"deviceType\": \"DESKTOP\", \"modelId\": \"GEMINI_3_PRO\", \"prompt\": \"<escaped-prompt>\"}'")
+mkdir -p ~/Websites/<project>/.stitch-pages
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_screen_from_text '{\"projectId\": \"<PID>\", \"designSystem\": \"<DSID from Step 3>\", \"deviceType\": \"DESKTOP\", \"modelId\": \"GEMINI_3_1_PRO\", \"prompt\": \"<escaped-prompt>\"}' > ~/Websites/<project>/.stitch-pages/<page>.resp.json 2>&1")
 ```
 
 Critical JSON-escape rules: replace `"` with `\"` and newlines with `\\n` inside the prompt before embedding.
+Attaching the SAME `designSystem` to every page is what makes all pages share one consistent
+style (verified 2026-06-01). Build the prompt from `instructions/stitch-auto-brief.md`
+(design-director persona + per-page layout variety) so pages are distinctive, not generic.
+NOTE: each `generate_screen_from_text` returns the finished screen in its response (~1-3 min) —
+do NOT poll list_screens; Step 5 reads `<page>.resp.json`.
 
-### Step 5 — Poll for the screen, then download HTML
+### Step 5 — CAPTURE THE SCREEN FROM THE GENERATE RESPONSE (do NOT poll list_screens)
 
-After `generate_screen_from_text` returns (it may return success before the screen is indexed):
+**⚠️ The `generate_screen_from_text` RESPONSE already contains the finished screen + its HTML
+download URL. Capture it from the response. DO NOT call `list_screens` — it returns `{}` (empty)
+for API-generated screens and ALWAYS HAS. The old "wait 60s, poll list_screens, retry 3×" flow
+is what made every build falsely conclude Stitch failed and fall back to the section library.
+Verified 2026-06-01.** (See stitch skill v2.0.0 rule #1.)
 
-1. Wait 60 seconds.
-2. Call `list_screens`:
-   ```bash
-   exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh list_screens '{\"projectId\": \"<PID>\"}'")
-   ```
-3. Find the new screen (compare against the screen IDs you've already processed for this project — the new one is whichever wasn't there before).
-4. If the screen list is still empty or unchanged, wait 30 more seconds and retry. Up to 3 retries.
-5. Once you have the new screen ID, call `get_screen`:
-   ```bash
-   exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh get_screen '{\"name\": \"projects/<PID>/screens/<SID>\", \"projectId\": \"<PID>\", \"screenId\": \"<SID>\"}'")
-   ```
-6. The response includes `htmlCode.downloadUrl` — download it:
-   ```bash
-   mkdir -p ~/Websites/<project>/.stitch-pages
-   curl -L -s -o ~/Websites/<project>/.stitch-pages/<page>.html '<htmlCode.downloadUrl>'
-   ```
-7. Save the screenshot too if you want it for debugging:
-   ```bash
-   curl -L -s -o ~/Websites/<project>/.stitch-pages/<page>.png '<screenshot.downloadUrl>'
-   ```
+In Step 4 you teed the generate response to `~/Websites/<project>/.stitch-pages/<page>.resp.json`.
+Parse it for the screen + HTML URL and download immediately:
+
+```bash
+mkdir -p ~/Websites/<project>/.stitch-pages
+URL=$(python3 - ~/Websites/<project>/.stitch-pages/<page>.resp.json <<'PY'
+import json,sys,re
+raw=open(sys.argv[1]).read()
+try:
+    o=json.loads(raw); inner=json.loads(o["result"]["content"][0]["text"])
+    # CRITICAL: outputComponents is a MIXED list — it can contain {designSystem}, {design},
+    # {text}, and {suggestion} members in ANY order. The design is NOT always index [0]
+    # (when a design system is returned it is usually [0] and the design is [1]). SEARCH for
+    # the member that has a design.screens[].htmlCode — never hardcode [0]. (Verified against a
+    # real surveillanceinsurance home response 2026-06-01: [0]=designSystem, [1]=design.)
+    # ALSO: design.screens[] can hold MULTIPLE screens where only ONE (often the LAST) carries
+    # htmlCode — the others are screenshot-only. SEARCH screens for the one with htmlCode;
+    # do NOT assume screens[0]. (Verified 2026-06-01: a brief-driven generate returned 4 screens,
+    # only screens[3] had htmlCode.downloadUrl.)
+    url=""
+    for comp in inner.get("outputComponents", []):
+        d=comp.get("design")
+        if not (d and d.get("screens")): continue
+        for scr in d["screens"]:
+            hc=(scr.get("htmlCode") or {})
+            if hc.get("downloadUrl"): url=hc["downloadUrl"]; break
+        if url: break
+    print(url)
+except Exception:
+    m=re.search(r'https://contribution\.usercontent\.google\.com/download\?[^"\\ ]+', raw)
+    print(m.group(0) if m else "")
+PY
+)
+[ -n "$URL" ] && curl -L -s -o ~/Websites/<project>/.stitch-pages/<page>.html "$URL"
+```
+
+**Bonus — the HOME response carries the design system for free.** The same `outputComponents`
+list includes a `{designSystem: {name, designSystem, version}}` member. Grab its `name` here and
+reuse it as the `designSystem` arg on every subsequent page generate — you do NOT need a separate
+`list_design_systems` call after the home page:
+```bash
+DSID=$(python3 -c "import json,sys;o=json.load(open(sys.argv[1]));inner=json.loads(o['result']['content'][0]['text']);print(next((c['designSystem'].get('name','') for c in inner.get('outputComponents',[]) if c.get('designSystem')),''))" ~/Websites/<project>/.stitch-pages/home.resp.json 2>/dev/null)
+```
+
+Also grab the screenshot for the manifest/debug (same response → search the `design` member's `screens[0].screenshot.downloadUrl`).
+Record the screen `id` from the response for the manifest. A page is DONE when its
+`.stitch-pages/<page>.html` exists and is non-empty — verify that, NOT list_screens.
+
+DESKTOP-ONLY: generate every page with `deviceType: DESKTOP`. Never iterate responsive/mobile
+inside Stitch (it wipes the desktop version) — responsive is handled in the build/code stage.
 
 ### Step 6 — Failure handling per page (HALT-ON-FAIL)
 
@@ -1019,16 +1122,73 @@ print('OK: all', len(m['pages']), 'pages built')
 
 ---
 
+## Phase 5.5: WRITE INTRO BLOG POST (sub-agent, ~2-3 minutes)
+
+**Purpose:** Every JamBot site ships with a blog and at least ONE real intro post (policy from Phase 2 step 0). The `/blog` index was already designed by Stitch + built by Phase 5; this phase writes the actual first post and wires it in. A blog with zero posts is a 404 trap and dead SEO weight — never ship one.
+
+**Update status:** `currentPhase: "blog-post"`, `phases.blog-post.status: "in_progress"`.
+
+**Prereqs:** `~/Websites/<project>/.blog-seed.json` exists (Phase 2 wrote it) and `src/app/blog/page.tsx` exists (Phase 5 built the index). If `.blog-seed.json` is missing, regenerate it inline from research, do not skip.
+
+Spawn a sub-agent:
+```
+task: "You are an SEO content writer. Project: ~/Websites/<PROJECT>.
+1. Read .blog-seed.json (slug, title, business) and ai/research/{keywords,content-strategy,topical-map}.md.
+2. Write ONE genuine intro blog post at src/app/blog/<slug>/page.tsx (a real Next.js App-Router route — NO MDX dependency):
+   - export const metadata = { title, description } — title ≤ 60 chars incl. brand, description ≤ 155 chars, both keyword-rich from keywords.md.
+   - 700–1000 words of REAL, specific, non-fluff copy about the topic, grounded in the research (use actual services, target markets, and 2–4 target keywords naturally — no keyword stuffing, no lorem, no fabricated stats/quotes).
+   - Structure: H1 = post title, a 2–3 sentence intro, 3–5 H2 sections, a short closing. Use the SAME design-system components/classes the other built pages use (import the site's Section/Container/Button components; match the Stitch palette + type — do NOT introduce a new style).
+   - Add JSON-LD (BlogPosting schema) via a <script type='application/ld+json'> with headline, datePublished (use the build date string passed in BUILD_DATE), author = business name, publisher = business name.
+   - End with the standard conversion CTA (link to /contact + click-to-call the intake phone).
+   - 2–3 internal links into the body pointing to real built routes (/services, a service page, /about).
+3. Update the /blog index (src/app/blog/page.tsx): if it has Stitch placeholder post cards, make the FIRST card a real link to /blog/<slug> with the post title + a 1-line excerpt; remove/comment any other placeholder cards that link nowhere (no card may link to a 404).
+4. Add the post route to src/app/sitemap.ts (one new entry: /blog/<slug>).
+5. Do NOT run pnpm build (Phase 7 does the functional gate). End with: OUTPUT_SAVED: src/app/blog/<slug>/page.tsx",
+  label: "blog-post-<project>"
+```
+Pass `BUILD_DATE` = today's UTC date (`date -u +%Y-%m-%d`) into the sub-agent prompt so the schema date is not fabricated.
+
+**Host-side post-check:**
+```bash
+PROJ=~/Websites/<project>
+SLUG=$(python3 -c "import json;print(json.load(open('$PROJ/.blog-seed.json'))['slug'])")
+test -f "$PROJ/src/app/blog/$SLUG/page.tsx" || { echo "GATE FAIL: intro blog post not written"; exit 1; }
+grep -q "blog/$SLUG" "$PROJ/src/app/blog/page.tsx" || echo "WARN: /blog index does not link the new post — sub-agent must fix before Phase 7"
+grep -q "blog/$SLUG" "$PROJ/src/app/sitemap.ts" || echo "WARN: post route missing from sitemap.ts"
+echo "OK: intro blog post at /blog/$SLUG"
+```
+
+**Mark complete:** `phases.blog-post.status: "complete"`, `message: "Intro post /blog/<slug> written + linked from index + sitemap"`.
+
+---
+
 ## Phase 6: ASSETS (inline, ~3-4 minutes) — was Phase 5
 
 **Update status:** `currentPhase: "assets"`, `phases.assets.status: "in_progress"`, `phases.assets.message: "Copying logo, generating favicons, generating brand images..."`
 
 **Read:** `/mnt/shared-skills/website-builder/instructions/images.md`
 
-This phase ships the visual assets the site needs: (1) the actual logo file copied into `public/`, (2) favicons sized for browsers/iOS/Android, (3) AI-generated brand-specific imagery. Every asset is saved to disk — nothing is held in memory.
+This phase ships the visual assets the site needs: (1) the actual logo file copied into `public/`, (2) favicons, (3) page imagery. Every asset is saved to disk — nothing is held in memory.
+
+### IMAGE SOURCE PRIORITY (2026-06-01 — read first)
+Fill each image slot from the FIRST available source, in this order:
+1. **Supplied media (RULE 6)** — `intake.heroImage/teamImage/gallery[]` / logo. Always wins.
+2. **Stitch's OWN images (primary for the Stitch design path).** Every `<img>` in the Stitch
+   HTML is a public AIDA URL Stitch generated — **download it (keyless), appending `=w1600`** for
+   full resolution → `public/images/`. Step 4 below already does this; it is the MAIN image source
+   for Stitch-built sites. No image-gen API needed.
+3. **HF z-image-turbo** — generate ONLY for genuinely empty slots (or the section-library
+   fallback path where there are no Stitch images). Use `gr1_z_image_turbo_generate` (HF). Feed it
+   the `<img data-alt="...">` prompt Stitch baked in, or a per-business-type prompt.
+4. **Programmatic** — OG card + favicon via Next `ImageResponse` (no key needed).
+
+**⚠️ DEPRECATED — do NOT use Gemini image-gen.** The `gemini-2.0-flash-exp-image-generation`
+calls below are DEAD (quota 0 / stale model name, verified 2026-06-01). Treat every Gemini
+`generateContent` image-gen block in this phase as **replaced by HF z-image-turbo**. Mike's
+decision: image-gen stays on HF.
 
 ### Prerequisites
-- `GEMINI_API_KEY` must be set in the environment (injected via `.platform-keys.env`)
+- An image generator for empty slots = **HF z-image-turbo** (`gr1_z_image_turbo_generate`). Gemini image-gen is dead — do not require `GEMINI_API_KEY`.
 - Phase 5 (Build Pages) must be complete — we need to know which pages exist
 - `.brand/logo.png` (or `.brand/logo.svg`) must exist from Phase 1.5
 
@@ -1165,8 +1325,13 @@ for html_path in sorted(glob.glob(f"{proj}/.stitch-pages/*.html")):
         ext = os.path.splitext(src.split('?')[0])[1] or '.jpg'
         dest_name = f"stitch-{page}-{h}{ext}"
         dest = f"{proj}/public/images/{dest_name}"
+        # AIDA/googleusercontent URLs serve a downscaled preview by default — append
+        # =w1600 for full resolution (the bare URL is ~40x512). See stitch skill.
+        dl = src
+        if 'googleusercontent.com/aida' in src and '=w' not in src.split('/')[-1]:
+            dl = src + '=w1600'
         try:
-            urllib.request.urlretrieve(src, dest)
+            urllib.request.urlretrieve(dl, dest)
             page_imgs.append({'original': src, 'local': f'/images/{dest_name}'})
         except Exception as e:
             print(f"stitch-img {page}: SKIP {src[:60]}... ({e})")
@@ -1693,50 +1858,38 @@ Read the current status file, then write:
 
 ---
 
-## Phase 8.5: GITHUB PUSH (exec, ~30 seconds) — NEW
+## Phase 8.5: GITHUB PUSH (exec, ~30 seconds) — host-assisted, AUTOMATIC
 
-**Purpose:** Per RULE 10, the build is not complete until the code is pushed to GitHub. This makes the work durable, reviewable, and recoverable.
+**Purpose:** Per RULE 10, the build is not complete until the code is on GitHub — durable, reviewable, recoverable.
 
-**Update status:** `currentPhase: "github-push"`, `phases.github-push.status: "in_progress"`, `phases.github-push.message: "Creating/updating GitHub repo and pushing..."`
+**Why this phase only COMMITS + FLAGS (does not push directly):** the build runs *inside* the openclaw container, which has **no GitHub auth**. `gh` is authed on the **host** as `MCERQUA`. So the container commits locally and raises a flag; the host (`jambot-build-watchdog.sh`, cron) detects the flag and runs `scripts/jambot-website-github-push.sh <tenant> <project>`, which creates the private repo (if needed) and pushes `HEAD → main` via a token URL. The flag-then-host-push design means the push naturally captures the FINAL committed state — including any Phase 9 verification fixes and Phase 9.5 SEO-review fixes committed after this phase.
 
-**Step 1 — Configure git identity (idempotent):**
+**Step 1 — Configure git identity + commit everything (idempotent):**
 ```bash
 cd ~/Websites/<project>
 git config user.email "agent@$(hostname).jam-bot.com"
 git config user.name "JamBot Build Agent"
+git add -A
+git commit -m "feat: build <project> — pages, blog, assets, SEO" 2>/dev/null || echo "nothing new to commit"
 ```
 
-**Step 2 — Determine target repo:**
-- Org/user: Mike's GitHub user `MCERQUA` (default; override per-client by setting `intake.githubOrg` in future).
-- Repo name: `intake.projectName` (e.g. `the-seattle-decking-company`).
-
-**Step 3 — Create repo if it doesn't exist:**
+**Step 2 — Raise the push-request flag** in `.build-status.json` so the host watchdog picks it up:
 ```bash
-PROJECT=<project>
-gh auth status >/dev/null 2>&1 || { echo "GATE FAIL: gh CLI not authenticated"; exit 1; }
-if ! gh repo view "MCERQUA/$PROJECT" >/dev/null 2>&1; then
-    gh repo create "MCERQUA/$PROJECT" --private \
-        --description "$(python3 -c "import json;print(json.load(open('.intake.json')).get('description','')[:200])")" \
-        --source . --remote origin
-else
-    git remote get-url origin >/dev/null 2>&1 || git remote add origin "git@github.com:MCERQUA/$PROJECT.git"
-fi
+python3 - <<'PY'
+import json, os
+f = os.path.expanduser('~/Websites/<project>/.build-status.json')
+d = json.load(open(f)) if os.path.exists(f) else {}
+d['githubPush'] = {"status": "requested", "org": "MCERQUA"}
+json.dump(d, open(f, 'w'), indent=2)
+print("githubPush: requested — host watchdog will push HEAD->main")
+PY
 ```
 
-**Step 4 — Push the working branch:**
-```bash
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)
-git push -u origin "$BRANCH" 2>&1 | tee /tmp/git-push.log
-```
+**Do NOT run `gh` or `git push` from inside the container — it has no auth and will fail the gate.**
 
-**Step 5 — Verify push succeeded:**
-```bash
-REMOTE_SHA=$(git ls-remote origin "$BRANCH" 2>/dev/null | awk '{print $1}')
-LOCAL_SHA=$(git rev-parse HEAD)
-[ "$REMOTE_SHA" = "$LOCAL_SHA" ] && echo "GitHub: pushed $LOCAL_SHA to $BRANCH" || { echo "GATE FAIL: remote SHA $REMOTE_SHA != local $LOCAL_SHA"; exit 1; }
-```
+**Mark this phase:** `phases.github-push.status: "requested"`, `message: "Committed locally; host will push to github.com/MCERQUA/<project>"`. (The watchdog flips `githubPush.status` to `pushed` with the SHA once the host push completes — within one watchdog cycle. A later interaction can read `.build-status.json -> githubPush` to confirm the live repo URL + SHA.)
 
-**Mark complete:** `phases.github-push.status: "complete"`, `message: "Pushed to github.com/MCERQUA/<project> @ <sha>"`.
+> **Manual / immediate push** (host operator, e.g. to push right after a watched build instead of waiting for the cron cycle): `bash /home/mike/MIKE-AI/scripts/jambot-website-github-push.sh <tenant> <project>`.
 
 ---
 
@@ -1880,6 +2033,87 @@ Report what you checked, what you fixed, and confirm the site is ready.
 3. If the sub-agent reported it couldn't fix something critical, set status to `"failed"` instead
 
 **Update the time estimate table:**
+
+---
+
+## Phase 9.5: FINAL SEO REVIEW (inline crawl + fix, ~2-3 minutes)
+
+**Purpose:** Close the loop between "we researched X in Phase 1" and "the built site actually does X." This is an ON-PAGE audit of the *deployed* site (not external rank data — that was Phase 1). It catches the gap where research targeted keywords the build never surfaced. Findings are **fix-forward** (the site is already live on the dev URL) — fix the cheap misses inline, log the rest as TODOs; only a total SEO collapse (no titles/sitemap anywhere) HALTs.
+
+**Update status:** `currentPhase: "seo-review"`, `phases.seo-review.status: "in_progress"`.
+
+**Step 1 — Crawl the deployed routes and extract on-page signals:**
+```bash
+PROJ=~/Websites/<project>
+DEV_URL=$(python3 -c "import json; print(json.load(open('$PROJ/.quality-gate/deploy.json'))['finalUrl'])")
+python3 <<PY
+import json, os, re, urllib.request, glob
+proj = os.path.expanduser('~/Websites/<project>')
+base = "$DEV_URL".rstrip('/')
+# routes from page-map + the blog post
+routes = [p['route'] for p in json.load(open(f"{proj}/ai/page-map.json"))['pages']]
+try:
+    seed = json.load(open(f"{proj}/.blog-seed.json")); routes.append(f"/blog/{seed['slug']}")
+except Exception: pass
+# target keywords from research
+kw = []
+kf = f"{proj}/ai/research/keywords.md"
+if os.path.exists(kf):
+    kw = [w.strip().lower() for w in re.findall(r'^\s*[-*\d.]+\s+([A-Za-z][^|\n]{3,60})', open(kf).read(), re.M)][:25]
+def fetch(u):
+    try:
+        req = urllib.request.Request(u, headers={'User-Agent':'jambot-seo-audit'})
+        return urllib.request.urlopen(req, timeout=15).read().decode('utf-8','ignore')
+    except Exception as e:
+        return f"__ERR__{e}"
+report, issues = [], []
+for r in routes:
+    u = base + ('' if r=='/' else r)
+    html = fetch(u)
+    if html.startswith('__ERR__'):
+        issues.append(f"{r}: UNREACHABLE ({html[7:60]})"); continue
+    title = (re.search(r'<title>([^<]*)</title>', html, re.I) or [None,''])[1].strip()
+    desc  = (re.search(r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']*)', html, re.I) or [None,''])[1].strip()
+    h1s   = re.findall(r'<h1[^>]*>(.*?)</h1>', html, re.I|re.S)
+    has_ld = 'application/ld+json' in html
+    has_canon = bool(re.search(r'rel=["\']canonical["\']', html, re.I))
+    body = re.sub(r'<[^>]+>',' ', html).lower()
+    kw_hits = [k for k in kw if k in body]
+    if not title: issues.append(f"{r}: missing <title>")
+    elif len(title) > 65: issues.append(f"{r}: title too long ({len(title)} chars)")
+    if not desc: issues.append(f"{r}: missing meta description")
+    elif len(desc) > 160: issues.append(f"{r}: meta description too long ({len(desc)})")
+    if len(h1s) != 1: issues.append(f"{r}: has {len(h1s)} <h1> (want exactly 1)")
+    if not has_ld: issues.append(f"{r}: no JSON-LD schema")
+    report.append({"route":r,"title":title,"desc":desc[:120],"h1":len(h1s),"jsonld":has_ld,"canonical":has_canon,"kw_hits":kw_hits})
+# sitemap + robots reachable
+for path in ("/sitemap.xml","/robots.txt"):
+    if fetch(base+path).startswith('__ERR__'): issues.append(f"{path}: NOT served")
+# keyword coverage across the whole site
+covered = sorted(set(k for p in report for k in p['kw_hits']))
+missing_kw = [k for k in kw if k not in covered]
+out = {"devUrl":base,"pagesAudited":len(report),"issues":issues,
+       "keywordsTargeted":len(kw),"keywordsCovered":len(covered),"keywordsMissing":missing_kw[:15],
+       "pages":report}
+json.dump(out, open(f"{proj}/ai/seo-final-review.json","w"), indent=2)
+md = [f"# Final SEO Review — {base}", "",
+      f"- Pages audited: {len(report)}",
+      f"- On-page issues: {len(issues)}",
+      f"- Target keywords covered: {len(covered)}/{len(kw)}", ""]
+if issues: md += ["## Issues (fix-forward)"] + [f"- {i}" for i in issues] + [""]
+if missing_kw: md += ["## Target keywords NOT surfaced anywhere"] + [f"- {k}" for k in missing_kw[:15]] + [""]
+md += ["## Per-page"] + [f"- `{p['route']}` — title:{'Y' if p['title'] else 'N'} desc:{'Y' if p['desc'] else 'N'} h1:{p['h1']} jsonld:{'Y' if p['jsonld'] else 'N'} kw:{len(p['kw_hits'])}" for p in report]
+open(f"{proj}/ai/seo-final-review.md","w").write("\n".join(md))
+print(f"SEO review: {len(report)} pages, {len(issues)} issues, {len(covered)}/{len(kw)} keywords covered")
+print("CRITICAL" if (len(report)==0 or all(not p['title'] for p in report)) else "OK")
+PY
+```
+
+**Step 2 — Act on the findings:**
+- If the last line printed `CRITICAL` (zero pages reachable, or NO page has a title): set `phases.seo-review.status: "failed"`, surface to canvas console, HALT — something is structurally broken.
+- Otherwise: fix the **cheap, safe** misses inline (missing/overlong title or meta description, missing JSON-LD, >1 `<h1>`) by editing the relevant `page.tsx`, then `pnpm build` to confirm, commit `fix: SEO review — titles/meta/schema`. Log keyword-coverage gaps and anything structural to `ai/seo-final-review.md` as fix-forward TODOs (do NOT block the build on them — they become next-iteration content work).
+
+**Mark complete:** `phases.seo-review.status: "complete"`, `message: "<N> pages audited, <X> issues fixed, <Y>/<Z> keywords covered — report at ai/seo-final-review.md"`.
 
 ---
 

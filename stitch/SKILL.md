@@ -2,156 +2,231 @@
 name: stitch
 description: "Google Stitch AI-powered UI design generation. Use when the user mentions stitch, UI design generation, design-to-code, screen generation, or wants to create/edit UI mockups programmatically."
 metadata:
-  version: 1.1.0
+  version: 2.0.0
 ---
 
 # Google Stitch — AI UI Design Generation
 
-Generate production-ready UI designs from text prompts. Outputs HTML with Tailwind CSS.
+Generate production-ready UI designs (HTML + Tailwind) from text prompts, OR fetch designs a
+human built in the Stitch web UI. v2.0.0 rewrite (2026-06-01) — corrects three errors that
+silently broke every automated build for months. Read the #1 rule.
 
-## ⚠️ CRITICAL RULES — READ FIRST
+## ⚠️ THE #1 RULE — `generate` RETURNS the screen; DO NOT verify via `list_screens`
 
-1. **Call stitch-mcp.sh DIRECTLY via `exec`.** NEVER spawn a z-code/maxcode sub-agent to use Stitch. The API calls are simple HTTP requests — a sub-agent adds unnecessary polling layers and will hit the 300s timeout. Just `exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh ...")`.
+**`generate_screen_from_text` returns the generated screen — with its `htmlCode.downloadUrl`
+— INSIDE ITS OWN RESPONSE. Capture the design FROM THAT RESPONSE. `list_screens` returns
+`{}` (empty) for API-generated screens and always has — DO NOT use it to "verify" generation.**
 
-2. **Use DESKTOP for website mockups.** Set `"deviceType": "DESKTOP"` when creating projects for website designs. MOBILE is for app mockups only.
+The old skill said "generate, then poll `list_screens` to confirm success." `list_screens`
+stays empty for API-gen screens → every build concluded "Stitch failed" → silently fell back
+to the section-library templates — even though generate had **succeeded** and the real design
+HTML was in the response. Verified 2026-06-01: one `generate_screen_from_text` returned a full
+navy "Surveillance Insurance — Landing" design (HTML downloads fine, correct fonts/colors)
+while `list_screens` returned `{}`. **The response IS the result. Parse it, download the HTML.**
 
-3. **Generation is ASYNC — verify before claiming success.** After `generate_screen_from_text`, the response may say "success" before the screen is fully ready. You MUST verify with `list_screens` — if the list is empty, wait 30 seconds and check again (up to 3 retries). NEVER tell the user "generated successfully" until `list_screens` returns actual screen data.
+`list_screens` / `get_screen` DO work — but only for screens a human created in the **web UI**
+(persisted, listable). API-generated screens are returned inline, not reliably listed.
+So: **generate → read the response. supply → list/get.**
 
-4. **One screen at a time.** Generate one screen, verify it exists, THEN generate the next. Don't batch.
-
-5. **Every `<img>` in a Stitch HTML has a `data-alt` attribute = the full image-generation prompt.** Stitch bakes long-form descriptions (style, subject, lighting, setting) into `data-alt` on every image tag. This is your ready-to-use prompt for either regenerating the image (feed to `gr1_z_image_turbo_generate`) or sourcing a matching real photo. Example: `data-alt="A sprawling, multi-level high-end cedar deck overlooking a lush Washington state forest during the golden hour..."`. The `src=` URL also points to Stitch's rendered AIDA image — append `=w1600` for native resolution. Always read the HTML and grep `data-alt` before guessing what an image is supposed to be.
-
-6. **AIDA image URL sizing.** Bare `lh3.googleusercontent.com/aida/...` URLs return a heavily downscaled preview (~40x512). Append `=w1200` / `=w2048` / `=w4096` to get the native resolution. Stitch caps mobile screens at 780px wide, desktop at 2560px — `=w1600` is a safe default.
-
-## How To Use
-
-Run the helper script with `exec` (ALWAYS exec, never sub-agents):
-
-```bash
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh <tool_name> '<json_arguments>'")
-```
-
-### Quick Start — Website Mockup
-
-Follow this exact sequence for website design mockups:
+## Call it via `stitch-mcp.sh` (raw HTTP) — NOT the claude.ai MCP, NOT a sub-agent
 
 ```bash
-# Step 1: Create project (DESKTOP for websites)
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh create_project '{\"title\": \"My Website\", \"deviceType\": \"DESKTOP\"}'")
-# → Save the project ID from the response
-
-# Step 2: (Optional) Create design system for consistency
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh create_design_system '{\"projectId\": \"PID\", \"colorMode\": \"DARK\", \"font\": \"INTER\", \"roundness\": \"ROUND_EIGHT\", \"customColor\": \"#3b82f6\"}'")
-
-# Step 3: Generate a screen with a DETAILED prompt
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_screen_from_text '{\"projectId\": \"PID\", \"prompt\": \"Homepage for a tech e-commerce store. Full-width hero with gradient background and bold headline. Navigation bar with logo left, links center, cart icon right. Featured products grid below hero with 4 cards showing product image, name, price, and Add to Cart button. Dark theme, modern typography.\", \"modelId\": \"GEMINI_3_PRO\"}'")
-
-# Step 4: WAIT then verify — generation takes 1-3 minutes
-# Wait 60 seconds, then check:
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh list_screens '{\"projectId\": \"PID\"}'")
-# If empty, wait 30s more and retry (up to 3 times)
-
-# Step 5: Get screen HTML + screenshot
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh get_screen '{\"name\": \"projects/PID/screens/SID\", \"projectId\": \"PID\", \"screenId\": \"SID\"}'")
-
-# Step 6: Download the HTML and save as canvas page
-exec("curl -L 'DOWNLOAD_URL' -o /app/runtime/canvas-pages/mockup-homepage.html")
+exec("bash /mnt/shared-skills/stitch/stitch-mcp.sh <tool> '<json>'")
+#   (also at /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh)
 ```
+- `stitch-mcp.sh` = raw JSON-RPC over HTTP; it returns the FULL response (screen + htmlCode).
+  This is the path that works. Verified.
+- Do NOT use the claude.ai MCP `mcp__stitch__generate_screen_from_text` — that wrapper TIMES
+  OUT and returns nothing usable. (Its read tools are fine; its generate is not.)
+- Never spawn a z-code sub-agent to drive Stitch.
 
-### More Examples
+## Models
+- **`GEMINI_3_1_PRO`** (best) or `GEMINI_3_FLASH` (faster). **`GEMINI_3_PRO` is DEPRECATED** —
+  do NOT use it (the old skill defaulted to it).
+
+## DESKTOP vs MOBILE
+- Request `"deviceType": "DESKTOP"` for websites (MOBILE for app mockups). Note: a DESKTOP
+  request may still return a 780px screen labeled "Mobile" — the HTML is responsive Tailwind,
+  so it renders fine; the device hint guides composition only.
+
+---
+
+## PATH A — AUTO-GENERATE (routes 1.B template+expand / 1.C generate): the working flow
 
 ```bash
-# List all projects
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh list_projects '{}'")
+# 1. Create project
+stitch-mcp.sh create_project '{"title":"<Brand> — <project>"}'      # → result.name = projects/<PID>
 
-# Edit an existing screen
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh edit_screens '{\"projectId\": \"PID\", \"selectedScreenIds\": [\"SID\"], \"prompt\": \"Change the button color to blue\"}'")
+# 2. Create/attach a DESIGN SYSTEM first (consistency; informs every screen).
+#    NOTE: design-system tools DO exist (the old skill wrongly said they were removed).
+#    From a DESIGN.md / your composed brief (route 1.B template = pass its designMd; "expand on
+#    this base style and elevate it"):
+stitch-mcp.sh create_design_system_from_design_md '{"projectId":"<PID>","designMd":"<md>"}'
+#    Then get its asset id:
+stitch-mcp.sh list_design_systems '{"projectId":"<PID>"}'           # → designSystems[].name = assets/<DSID>
+#    (If you skip step 2, the first generate auto-derives a design system — grab its asset id
+#     from list_design_systems and pass it to all subsequent generates for consistency.)
 
-# Generate design variants
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_variants '{\"projectId\": \"PID\", \"selectedScreenIds\": [\"SID\"], \"prompt\": \"Explore different layouts\", \"variantOptions\": {\"variantCount\": 3, \"creativeRange\": \"EXPLORE\"}}'")
+# 3. Generate EACH page — pass designSystem + model. THE RESPONSE CONTAINS THE SCREEN.
+stitch-mcp.sh generate_screen_from_text '{
+  "projectId":"<PID>", "designSystem":"assets/<DSID>",
+  "deviceType":"DESKTOP", "modelId":"GEMINI_3_1_PRO",
+  "prompt":"<design-director prompt for THIS page — see instructions/stitch-auto-brief.md>"
+}'
+#   Parse the response: result.content[0].text (JSON) → outputComponents[] →
+#   ⚠️ outputComponents is a MIXED list in ANY order: {designSystem}, {design}, {text},
+#      {suggestion}×N. SEARCH for the member with `design.screens[]` — do NOT hardcode [0]
+#      (when a design system is returned, [0]=designSystem and [1]=design). Verified 2026-06-01.
+#        design.screens[0].htmlCode.downloadUrl   ← download THIS = the page HTML
+#        design.screens[0].screenshot.downloadUrl ← preview PNG
+#        design.screens[0].id/.title/.prompt
+#      The {designSystem} member carries {name} — reuse it as designSystem on later pages
+#      (no separate list_design_systems call needed after the home generate).
+#   Capture htmlCode.downloadUrl FROM THIS RESPONSE immediately. Do NOT call list_screens.
+
+# 4. Download each screen's HTML:
+curl -sL "<htmlCode.downloadUrl>" -o .stitch-pages/<slug>.html
 ```
 
-## Available Tools (verified against live API)
+- **15 pages = 15 generate calls** (loop the page list). A single API prompt returns ONE
+  screen — the "one prompt → 15 pages" behavior is the WEB UI only.
+- Each generate takes ~1–3 min; `stitch-mcp.sh` blocks until the response returns the screen.
+  If a single call truly errors (not just slow), retry that one page once.
+- Prompt quality is the whole game — use `instructions/stitch-auto-brief.md` (design-director
+  persona + art direction + SEO plan + per-page layout variety). Generic prompts → samey output.
 
-| Tool | Description |
-|------|-------------|
-| `list_projects` | List all projects. Optional: `{"filter": "view=owned"}` or `"view=shared"` |
-| `get_project` | Get project details. `{"name": "projects/{id}"}` |
-| `create_project` | Create project. `{"title": "Name"}` |
-| `list_screens` | List screens. `{"projectId": "ID"}` |
-| `get_screen` | Get screen HTML/image. `{"name": "projects/P/screens/S", "projectId": "P", "screenId": "S"}` |
-| `generate_screen_from_text` | Generate from prompt. `{"projectId": "ID", "prompt": "...", "modelId": "GEMINI_3_PRO", "deviceType": "DESKTOP"}` |
-| `edit_screens` | Edit screens with prompt. `{"projectId": "ID", "selectedScreenIds": ["SID"], "prompt": "..."}` |
-| `generate_variants` | Create variants. `{"projectId": "ID", "selectedScreenIds": ["SID"], "prompt": "...", "variantOptions": {...}}` |
+## PATH B — SUPPLY (route 1.A): human designs in web UI, you fetch (rock-solid)
 
-**⚠️ These tools do NOT exist in the API (removed):** `delete_project`, `upload_screens_from_images`, `create_design_system`, `update_design_system`, `list_design_systems`, `apply_design_system`. The design system is created automatically when generating screens — pass brand colors/style info in the prompt instead.
+Human builds pages at **stitch.withgoogle.com**, supplies the project ID (one prompt there can
+yield all 15 pages). Then:
+```bash
+stitch-mcp.sh list_screens '{"projectId":"<PID>"}'     # WORKS for web-UI screens — lists all
+stitch-mcp.sh get_screen '{"name":"projects/<PID>/screens/<SID>","projectId":"<PID>","screenId":"<SID>"}'
+curl -sL "<htmlCode.downloadUrl>" -o .stitch-pages/<slug>.html
+```
+Verified: pulled 27 real web-UI screens this way. Use when a human wants design control, or as
+the design path when auto-generate isn't wanted.
 
-**⚠️ `deviceType` goes on `generate_screen_from_text`**, NOT on `create_project`. Use `"DESKTOP"` for website mockups, `"MOBILE"` for app mockups.
+---
 
-## Writing Effective Prompts
+## IMAGES (keep — still accurate + valuable)
+1. **Every `<img>` has `data-alt`** = the full image-gen prompt Stitch baked in (style, subject,
+   lighting, setting). Use it to regenerate (HF z-image-turbo / working image gen) or source a
+   matching real photo. Always grep `data-alt` before guessing what an image should be.
+2. **AIDA URL sizing:** bare `lh3.googleusercontent.com/aida/...` is downscaled; append `=w1600`
+   / `=w2048` for native res (mobile cap 780, desktop 2560).
+3. **Supplied logo/client images — two paths:**
+   - **API generate (`stitch-mcp.sh`) is TEXT-only** — it does not ingest an uploaded file. So
+     for the automated path, supplied assets are wired in at BUILD time (website-builder Phase 6,
+     RULE 6 "supplied media wins"): Stitch lays out the image SLOTS, the build fills them with the
+     real files. Reference the brand in the prompt.
+   - **Web UI Experimental Mode DOES accept image references** (Gemini Pro/3 path) — so for
+     route 1.A (manual), you can upload the logo/competitor screenshots and use an image-anchored
+     prompt: *"Redesign this; keep the layout structure but use my brand colors [hex list] and
+     this logo."* That's the way to get supplied assets baked directly into Stitch output.
 
-### Prompt Structure (in order)
-1. **Screen purpose** — dashboard, login, landing page, settings, profile
-2. **Core UI components** — buttons, cards, charts, nav bars, forms, lists
-3. **Layout** — grid, stacked, scrollable, centered, sidebar+content, 2-column
-4. **Style & theme** — dark/light, colors, rounded corners, typography
-5. **Data content** — placeholder data, prices, status labels, sample text
-6. **Branding** — app name, logo placement, accent colors
+## Writing effective prompts
+Structure (in order): purpose → core components → layout → style/theme → data/content → branding.
+- GOOD: "Dashboard, left sidebar nav, 4 KPI cards top, line chart below, recent-activity table.
+  Dark theme, Inter, rounded-8." · BAD: "Create a dashboard / make it better."
+- Seed design tokens: "8-pt grid, radius 12, Inter, primary #3b82f6, surface #1e1e2e."
+- Keep prompts < ~5000 chars (longer drops components).
 
-### Good Prompts
-- "Design a login page with email and password fields, a 'Remember Me' checkbox, a 'Forgot Password' link, and a gradient purple-to-blue background"
-- "Dashboard with sidebar nav on left, main content area showing 4 KPI cards at top, line chart below, and recent activity table at bottom. Dark theme, Inter font, rounded-8 corners"
-- "Product detail page for a Japandi-styled tea store. Hero image top, product info below. Neutral minimal colors, black buttons, soft elegant serif font"
+## Iterating: `edit_screens` + `generate_variants`
+```bash
+stitch-mcp.sh edit_screens '{"projectId":"P","selectedScreenIds":["S"],"prompt":"Change hero bg to navy gradient"}'
+stitch-mcp.sh generate_variants '{"projectId":"P","selectedScreenIds":["S"],"prompt":"Explore layouts","variantOptions":{"variantCount":3,"creativeRange":"EXPLORE"}}'
+```
+- One change at a time, surgical, directional ("left/right/above"), reference precisely.
+- creativeRange: REFINE (subtle) · EXPLORE (balanced) · REIMAGINE (radical).
+- variant aspects: LAYOUT, COLOR_SCHEME, IMAGES, TEXT_FONT, TEXT_CONTENT.
 
-### Bad Prompts (avoid these)
-- "Create a login page" (too vague)
-- "Make it better" (not specific)
-- "Add more details" (no direction)
+## Research synthesis — quality, modes, failure modes (web-UI + general)
+Merged from a 2026-06-01 web/reddit research pass (residential-laptop@mesh; sources at bottom).
+Applies mostly to the **web UI** (route 1.A) + prompt quality generally.
 
-### Iteration Rules
-1. **One change at a time** — never combine layout changes with component additions
-2. **Be surgical** — "Change the hero section background to gradient" not "update the page styling"
-3. **Reference precisely** — "primary button on sign-up form" not "the button"
-4. **Use directional language** — "left/middle/right", "above/below"
-5. **Keep prompts under 5000 characters** — longer prompts drop components
+**Two levers that actually move quality:**
+1. **DESIGN.md / design system FIRST** — without it, 10 pages = 10 button styles; with it they
+   look like one designer made them. You can **EXTRACT a DESIGN.md from any reference URL** whose
+   aesthetic the client admires (web UI) — huge lift, and it's the natural source for route 1.B
+   ("base this on [reference], then expand/elevate"). For the API path, this = `create_design_system_from_design_md` then attach to every generate.
+2. **One change per prompt; EDIT-first** — Stitch's own guide: combining layout + component
+   changes makes it recreate the whole layout. For edits, use `edit_screens` (API) / click the
+   design's Edit button first (web UI) — otherwise it regenerates instead of editing. Prompts
+   >5000 chars silently drop components. Split internally: layout → colors → type → polish.
 
-### Design Token Seeding
-For consistency: "8-pt grid, border-radius 12, font Inter, sizes sm/md/lg, primary #3b82f6, surface #1e1e2e"
+**Modes (web UI):** Standard (Gemini Flash, ~350 gen/mo, Figma export, NO image upload) for
+ideation; **Experimental (Gemini Pro/3, ~50-200/mo, accepts IMAGE references, NO Figma)** for
+"redesign this screenshot in our style" + final polish. Manual canvas nudges don't burn gens —
+only AI prompts do.
 
-## Generation Notes
-- **GEMINI_3_PRO** = higher quality, **GEMINI_3_FLASH** = faster
-- Generation takes 1-3 minutes — do NOT retry on connection errors
-- If you get a timeout, wait and check with `list_screens` then `get_screen`
-- If response has `output_components` with suggestions, present them to the user
-- Create a design system FIRST for consistent multi-screen projects
-- **After calling `generate_screen_from_text`:** Wait 60 seconds, then call `list_screens`. If empty, wait 30s and retry up to 3 times. The API may return before the screen is indexed.
-- **NEVER say "generated successfully" until you have confirmed the screen exists in `list_screens`**
-- If after 3 retries the screen list is still empty, tell the user the generation may have failed and offer to retry with a different prompt
+**Prompt patterns:** vibe > specs ("premium & minimalist, like Stripe" beats RGB triples);
+image-anchored ("keep layout, use my colors [hex]"); "Map the user flow for X, then design all
+pages" forces flow-thinking; clicking an interactive element auto-generates the next screen in
+the same style (free design-system propagation).
 
-## Device Types & Variant Options
-- **deviceType** (on `generate_screen_from_text`)**: MOBILE, DESKTOP, TABLET, AGNOSTIC
-- **modelId:** GEMINI_3_PRO (quality) or GEMINI_3_FLASH (speed)
-- **creativeRange (variants):** REFINE (subtle), EXPLORE (balanced), REIMAGINE (radical)
-- **aspects (variants):** LAYOUT, COLOR_SCHEME, IMAGES, TEXT_FONT, TEXT_CONTENT
+**Known failure modes (build pipeline passes to compensate):** output is often **fixed-width /
+non-responsive** → responsive pass needed; **a11y/contrast/touch-targets fail WCAG** → a11y audit
+pass; **vague prompts → generic Material-3 look** → always specify tone keywords + reference;
+**mobile vs web don't share context** → separate threads, shared DESIGN.md; **"Stitch
+unavailable"** → region/eligibility gate, clear stitch.withgoogle.com cookies; code export is
+**structural scaffold, not production** → needs token mapping (a `stitch-to-react` community
+skill exists as a converter reference).
 
-### Design System via Prompts
-There is no `create_design_system` API tool. Instead, specify design tokens directly in your generation prompts:
-- Colors: "primary green #22c55e, secondary amber #f59e0b, background #0a0a0a"
-- Typography: "Use Space Grotesk for headlines, Inter for body"
-- Corners: "border-radius 8px rounded corners"
-- Spacing: "8-pt grid spacing system"
+**Where Stitch fits:** it's the **art-director stage** — design exploration + Figma/code export.
+Responsive, a11y, code-quality, backend, deploy all belong DOWNSTREAM (the website-builder
+pipeline). Don't try to make Stitch do a full-stack tool's job.
 
-## Downloading Screen Assets
-The `get_screen` response includes download URLs:
-- `htmlCode.downloadUrl` — full HTML with Tailwind CSS
-- `screenshot.downloadUrl` — PNG screenshot
-- `figmaExport.downloadUrl` — Figma export
-Use `curl -L <url>` to download.
+## Addendum — reddit deep-dive findings (residential-laptop, 2nd pass; high-signal)
+- **Stitch PM (rustin0303) confirms:** consistency/design-system support is weak and is a Q1
+  focus. Annotations on a screen preserve the IMAGE context but NOT your written reasoning —
+  **put the "why" in CHAT, not in annotations.** Chat edits keep full context.
+- **Chat-driven, NOT one-shot:** iterate via Stitch's chat/edit mode; re-prompting from scratch
+  loses context and regresses. Treat Stitch as a conversation, not a render endpoint.
+- **NO responsive iteration inside Stitch (HARD GUARD):** generating mobile/responsive variants
+  mid-flow WIPES the desktop version and reverts to 1998-table grids. **Generate DESKTOP-only in
+  Stitch; do responsive in the code stage** (Tailwind responsive utils). Refuse "make it mobile"
+  prompts mid-flow.
+- **Mode budget split (free tier):** the Redesign/Pro model caps ~4-5 screens/day; Flash
+  continues 15+ at "still really good" quality. **Spend Pro gens on the hero/style-setter
+  screen(s), then propagate via Flash** — the design system carries the Pro quality forward.
+- **Seed-page consistency trick (when no design system):** build the first page polished, then
+  "build [other page] using the SAME base layout, components, and style as [first page]." Cheaper
+  than a design-system round-trip for short flows.
+- **Auto-suggest chaining:** Stitch ends each generation with next-step suggestions; accepting
+  them yields cohesive multi-screen flows "for free" (one user got 20 coherent screens this way).
+- **Post-gen QA is mandatory:** art directors confirm colors/styles drift + WCAG/contrast/
+  touch-targets routinely fail. Run an a11y/contrast audit (axe-core / pa11y) before "done."
+- **Landscape is broken** — Stitch can't do landscape layouts (kiosk/TV/in-car). Route away.
+- **Downstream Stitch→code applicator (waxman555's 4-prompt sequence — use in the build):**
+  1. *Extract:* "Read the Stitch DESIGN.md and extract a production design system → design-tokens.md
+     (tokens, typography, spacing, cards, buttons, sections). Don't touch business logic."
+  2. *Primitives:* "Using design-tokens.md, build/improve reusable primitives (buttons, cards,
+     badges, section containers, headings, form fields). Minimal, aligned to project structure."
+  3. *Pilot one page:* "Apply the design to [one page] only — preserve data bindings, auth, APIs."
+  4. *Rollout:* compare the piloted page vs others, fan out shared patterns.
+  Decouples token-extract → primitives → single-page pilot → fan-out (safe vs "redo whole app").
+- **Bulletproof fallback to MCP:** if the MCP path misbehaves, export the Stitch .zip and drop it
+  in the project. (MCP capture-from-response is preferred; this corroborates skill v2's #1 rule.)
 
-## Canvas Page Integration
-To use Stitch HTML as a canvas page:
-1. Download HTML via `get_screen` → `htmlCode.downloadUrl`
-2. Strip any `<script src="cdn.tailwindcss.com">` tags
-3. Inline the CSS styles
-4. Add the postMessage bridge for interactive elements
-5. Save as a canvas page
+## Tool reference (verified live 2026-06-01)
+| Tool | Notes |
+|---|---|
+| `create_project` | `{"title":"..."}` → result.name=projects/{id} |
+| `list_projects` / `get_project` | `{"filter":"view=owned"}` ; `{"name":"projects/{id}"}` |
+| `create_design_system_from_design_md` | `{"projectId","designMd"}` — EXISTS (old skill was wrong) |
+| `list_design_systems` | `{"projectId"}` → designSystems[].name=assets/{id} — EXISTS |
+| `apply_design_system` / `update_design_system` | exist; verify per use |
+| `generate_screen_from_text` | `{projectId, designSystem, deviceType, modelId:GEMINI_3_1_PRO, prompt}` — **screen returned IN the response** |
+| `list_screens` / `get_screen` | web-UI screens only; NOT for API-gen |
+| `edit_screens` / `generate_variants` | iterate on existing screens |
+
+## TROUBLESHOOTING
+- "list_screens empty after generate" → NOT a failure. The screen is in the generate RESPONSE
+  (`result.content[0].text → outputComponents[].design.screens[].htmlCode.downloadUrl`).
+- claude.ai MCP generate times out → use `stitch-mcp.sh` instead.
+- `GEMINI_3_PRO` error → deprecated; use `GEMINI_3_1_PRO`.
+
+## Canvas-page integration
+Download `htmlCode.downloadUrl` → strip `<script src="cdn.tailwindcss.com">` → inline CSS →
+add postMessage bridge → save as canvas page.

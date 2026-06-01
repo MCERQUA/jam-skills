@@ -57,6 +57,11 @@ if [[ ! -f "$COMPOSE_FILE" ]]; then
 fi
 
 # --- Discover webdev service name ---------------------------------------------
+# Two deploy mechanisms exist across clients:
+#   (a) WEBDEV_PROJECT_NAME env var in compose  -> rewrite the env, recreate.
+#   (b) older `.active-project` file (e.g. test-dev) -> write the file, restart.
+# Detect which one this client uses.
+USE_ACTIVE_PROJECT=0
 if [[ -z "$SERVICE" ]]; then
   SERVICE="$(awk '
     /^services:/ { in_services=1; next }
@@ -67,15 +72,30 @@ if [[ -z "$SERVICE" ]]; then
   ' "$COMPOSE_FILE")"
 fi
 if [[ -z "$SERVICE" ]]; then
-  echo "ERROR: no service in $COMPOSE_FILE references WEBDEV_PROJECT_NAME" >&2
+  # Fallback: find the webdev service by image and use the .active-project mechanism.
+  SERVICE="$(awk '
+    /^services:/ { in_services=1; next }
+    in_services && /^  [a-z][a-z0-9_-]+:/ { svc=$1; sub(/:$/, "", svc); current=svc; next }
+    in_services && current && /image:[[:space:]]*jambot\/webdev/ { print current; exit }
+  ' "$COMPOSE_FILE")"
+  [[ -n "$SERVICE" ]] && USE_ACTIVE_PROJECT=1
+fi
+if [[ -z "$SERVICE" ]]; then
+  echo "ERROR: no webdev service found in $COMPOSE_FILE (no WEBDEV_PROJECT_NAME and no jambot/webdev image)" >&2
   echo "       (pass --service <name> to override discovery)" >&2
   exit 2
 fi
-echo "[deploy] client=$CLIENT  project=$PROJECT  service=$SERVICE"
+echo "[deploy] client=$CLIENT  project=$PROJECT  service=$SERVICE  mode=$([[ $USE_ACTIVE_PROJECT == 1 ]] && echo active-project || echo env-var)"
 
 # --- Read current state -------------------------------------------------------
-CURRENT_PROJECT="$(grep -E "^\s*-\s*WEBDEV_PROJECT_NAME=" "$COMPOSE_FILE" | head -1 | sed -E 's/.*=([^[:space:]]+).*/\1/' || true)"
-echo "[deploy] current WEBDEV_PROJECT_NAME=$CURRENT_PROJECT"
+ACTIVE_PROJECT_FILE="/mnt/clients/$CLIENT/openclaw/workspace/Websites/.active-project"
+if [[ "$USE_ACTIVE_PROJECT" == "1" ]]; then
+  CURRENT_PROJECT="$(cat "$ACTIVE_PROJECT_FILE" 2>/dev/null | tr -d '[:space:]' || true)"
+  echo "[deploy] current .active-project=$CURRENT_PROJECT"
+else
+  CURRENT_PROJECT="$(grep -E "^\s*-\s*WEBDEV_PROJECT_NAME=" "$COMPOSE_FILE" | head -1 | sed -E 's/.*=([^[:space:]]+).*/\1/' || true)"
+  echo "[deploy] current WEBDEV_PROJECT_NAME=$CURRENT_PROJECT"
+fi
 
 NEEDS_REWRITE=0
 if [[ "$CURRENT_PROJECT" != "$PROJECT" ]]; then NEEDS_REWRITE=1; fi
@@ -91,8 +111,13 @@ if [[ ! -f "$TARGET_ENV_LOCAL" ]]; then
   echo "[deploy] created empty $TARGET_ENV_LOCAL"
 fi
 
-# --- Rewrite compose if needed ------------------------------------------------
-if [[ "$NEEDS_REWRITE" == "1" ]]; then
+# --- Reconcile the target project ---------------------------------------------
+if [[ "$USE_ACTIVE_PROJECT" == "1" ]]; then
+  # .active-project mechanism: just (re)write the file. Always write it (idempotent)
+  # so a re-run on the same project still asserts the intended target.
+  echo "$PROJECT" > "$ACTIVE_PROJECT_FILE"
+  echo "[deploy] wrote .active-project=$PROJECT"
+elif [[ "$NEEDS_REWRITE" == "1" ]]; then
   BACKUP="$COMPOSE_FILE.bak.$(date +%Y%m%d-%H%M%S)"
   cp "$COMPOSE_FILE" "$BACKUP"
   echo "[deploy] backup written: $BACKUP"
@@ -115,6 +140,20 @@ else
   echo "[deploy] compose already targets $PROJECT, no rewrite needed"
 fi
 
+# --- Clear stale .next so `next dev` boots clean ------------------------------
+# CRITICAL: the webdev container mounts the openclaw workspace directly
+# (/mnt/clients/<client>/openclaw/workspace/Websites -> /app/websites) and runs
+# `next dev`. Phase 7 (quality-gate) runs `next build`, leaving a PRODUCTION `.next`
+# in that SAME dir. `next dev` then serves mismatched chunks ("Cannot find module
+# './NNN.js'", stray pages-router _document.js) -> 500. Move the stale build aside
+# (preserve, don't delete) so the dev server compiles a fresh dev .next.
+PROJ_DIR="/mnt/clients/$CLIENT/openclaw/workspace/Websites/$PROJECT"
+if [[ -d "$PROJ_DIR/.next" ]]; then
+  mv "$PROJ_DIR/.next" "$PROJ_DIR/.next.stale-$(date +%Y%m%d-%H%M%S)" 2>/dev/null \
+    && echo "[deploy] cleared stale .next (moved aside)" \
+    || echo "[deploy] WARN: could not move .next aside"
+fi
+
 # --- Recreate the service -----------------------------------------------------
 COMPOSE_ARGS=(-f "$COMPOSE_FILE")
 if [[ -f "$ENV_FILE" ]]; then COMPOSE_ARGS+=(--env-file "$ENV_FILE"); fi
@@ -131,6 +170,17 @@ if [[ "$DOCKER" == "docker" ]]; then
   docker compose "${COMPOSE_ARGS[@]}" up -d --no-deps "$SERVICE"
 else
   sg docker -c "docker compose ${COMPOSE_ARGS[*]} up -d --no-deps $SERVICE"
+fi
+
+# Force a restart so `next dev` re-execs against the cleaned .next. Required for
+# SAME-PROJECT re-runs: when compose is unchanged, `up -d` is a no-op and the old
+# `next dev` keeps running against the dir whose .next we just moved aside -> 500
+# until it restarts. `compose restart` re-runs the entrypoint (install + next dev).
+echo "[deploy] restarting $SERVICE for a clean dev compile"
+if [[ "$DOCKER" == "docker" ]]; then
+  docker compose "${COMPOSE_ARGS[@]}" restart "$SERVICE" || true
+else
+  sg docker -c "docker compose ${COMPOSE_ARGS[*]} restart $SERVICE" || true
 fi
 
 # --- Discover the host port ---------------------------------------------------
@@ -161,7 +211,8 @@ echo "[deploy] webdev exposed at host port $HOST_PORT"
 
 # --- Wait for HTTP 200 --------------------------------------------------------
 URL="http://127.0.0.1:$HOST_PORT/"
-DEADLINE=$(( $(date +%s) + 60 ))
+# 120s: a cold `next dev` recompile after restart (+ possible pnpm install) can exceed 60s.
+DEADLINE=$(( $(date +%s) + 120 ))
 LAST_CODE=""
 while [[ $(date +%s) -lt $DEADLINE ]]; do
   LAST_CODE="$(curl -sS -o /dev/null -w "%{http_code}" --max-time 5 "$URL" || echo "000")"
@@ -169,7 +220,7 @@ while [[ $(date +%s) -lt $DEADLINE ]]; do
   sleep 2
 done
 if [[ "$LAST_CODE" != "200" ]]; then
-  echo "[deploy] ERROR: webdev did not return 200 within 60s (last=$LAST_CODE)" >&2
+  echo "[deploy] ERROR: webdev did not return 200 within 120s (last=$LAST_CODE)" >&2
   exit 1
 fi
 echo "[deploy] webdev healthy at $URL"
