@@ -170,11 +170,16 @@ def main():
         "owner_name":   owner,
         "city":         city,
         "state":        state,
-        "phone":        phone,
-        "email":        email,
         "service":      service,
         "tenant":       tenant,
     })
+    # phone / email: CLI WINS when supplied, else keep what the GMB fetcher found
+    # (fetch_local sets data["phone"]/["address"] from my_business_info). Non-clobbering
+    # so a report still shows the real NAP when the caller didn't pass --phone. (ica-voice 2026-06-01)
+    if phone:
+        data["phone"] = phone
+    if email:
+        data["email"] = email
 
     # Full service list → drives the service×area money-page matrix (plan.py reads data["services"]).
     # Without it the matrix expands only the single primary service across areas (core-only).

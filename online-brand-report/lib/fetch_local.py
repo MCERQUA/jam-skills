@@ -115,6 +115,15 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
                     out["gmb_found"] = True
                     if item.get("is_claimed"):
                         out["gmb_claimed"] = True
+                    # Real NAP straight from the GMB profile (ica-voice 2026-06-01 wanted these
+                    # in the report). Stored as both gmb_* (for the local section) and bare
+                    # phone/address (generate.py falls back to these when --phone/--address absent).
+                    if item.get("phone"):
+                        out["gmb_phone"] = out["phone"] = item["phone"]
+                    if item.get("address"):
+                        out["gmb_address"] = out["address"] = item["address"]
+                    if item.get("category"):
+                        out["gmb_category"] = item["category"]
                     rating_info = item.get("rating") or {}
                     rv = float(rating_info.get("value") or 0)
                     rc = int(rating_info.get("votes_count") or 0)
