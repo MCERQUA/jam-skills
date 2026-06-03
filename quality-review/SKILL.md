@@ -1,3 +1,11 @@
+---
+name: quality-review
+description: "The ship/no-ship quality gate — run on ANY finished deliverable (website, app, brand report, canvas page) BEFORE telling Mike or a client it's done. Catches dead endpoints, missing/broken images, dead nav links, incomplete sections, fabricated/placeholder content, and brand violations via headless visual + functional checks. Use whenever you're about to report something as complete or shipped."
+metadata:
+  version: 1.0.0
+  openclaw:
+    emoji: "✅"
+---
 # Skill: quality-review (Quality Officer)
 
 The ship/no-ship gate. Run this on ANY finished deliverable — a website, an app, a
