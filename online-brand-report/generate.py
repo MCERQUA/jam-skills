@@ -47,7 +47,10 @@ from lib import (
     plan as plan_mod,
 )
 
-TEMPLATE_PATH = "/mnt/clients/test-dev/openvoiceui/canvas-pages/online-brand-report-template.html"
+# Template ships WITH the skill (template.html alongside this script) so it resolves in
+# ANY tenant container — not just test-dev's host canvas-pages, which isn't mounted in
+# tenant containers. (Fixed 2026-06-03 — was hardcoded to test-dev's host path.)
+TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "template.html")
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
@@ -87,9 +90,18 @@ def slugify(text: str) -> str:
 def resolve_output(args) -> str:
     if args.output:
         return args.output
-    # Default: canvas-pages for the given tenant
     slug = args.domain.replace("www.", "").replace(".", "-").replace("_", "-").lower()
-    return f"/mnt/clients/{args.tenant}/openvoiceui/canvas-pages/brand-report-{slug}.html"
+    fname = f"brand-report-{slug}.html"
+    # Tenant openclaw containers mount the OVU canvas-pages at these IN-CONTAINER paths;
+    # /mnt/clients is NOT mounted inside tenant containers. Prefer a mounted canvas-pages
+    # dir, fall back to the host path for host-side runs. (Fixed 2026-06-03 — the otm
+    # agent had to pass --output because the /mnt/clients default wasn't writable in-container.)
+    for d in ("/home/node/.openclaw/workspace/canvas-pages",
+              "/app/runtime/canvas-pages",
+              f"/mnt/clients/{args.tenant}/openvoiceui/canvas-pages"):
+        if os.path.isdir(d):
+            return os.path.join(d, fname)
+    return f"/mnt/clients/{args.tenant}/openvoiceui/canvas-pages/{fname}"
 
 
 # ── Fetcher runner ────────────────────────────────────────────────────────────
