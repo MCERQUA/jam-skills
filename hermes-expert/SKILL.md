@@ -142,10 +142,11 @@ That regenerates `index.json` from the section files. Schema for new sections is
 
 | Where | Image | Hermes version | Notes |
 |---|---|---|---|
-| `hermes-test-dev` (production) | `jambot/hermes:latest` (= `:0.13.1-rc1`, built 2026-05-16) | **v0.13.0** (`2026.5.7`, "Tenacity") | Only live Hermes tenant. Binary at `/opt/hermes/.venv/bin/hermes` (no PATH symlink — use absolute path in `docker exec`). |
-| `jambot/hermes:0.6.0-rollback` (preserved) | original v0.6 build | **v0.6.0** (`2026.3.30`) | Insurance — retag to `:latest` + recreate hermes-test-dev for emergency revert. Binary at `/usr/local/bin/hermes` in this image. |
+| `hermes-test-dev` (production) | **`jambot/hermes:v0.15.2`** (built 2026-06-03 from `/mnt/system/base/hermes-v015-build/`) | **v0.15.2** (`2026.5.29.2`) | **CUT OVER 2026-06-03.** s6-overlay; uid 1000 BAKED at build (NOT via runtime HERMES_UID — that re-arms stage2's per-boot chown); seeding via s6 `cont-init.d/05-jambot-seed`. Binary `/opt/hermes/.venv/bin/hermes`. **NEW file-resolution behavior — see §1C.** |
+| `jambot/hermes:latest` (preserved) | v0.13.0 build (`2026.5.7`) | **v0.13.0** | **Now the ROLLBACK image.** Recreate test-dev with this tag to revert. Backup of pre-cutover `/opt/data`: `/mnt/clients/test-dev/hermes-backup-20260603-064318-pre-v0.15.2`. |
+| `jambot/hermes:0.6.0-rollback` (preserved) | original v0.6 build | **v0.6.0** (`2026.3.30`) | Deep insurance. Binary at `/usr/local/bin/hermes` in this image. |
 
-**Upstream latest (verified 2026-05-31):** **v0.15.2** (`2026.5.29.2`), via the GitHub releases page. JamBot test-dev (v0.13.0) is now **two minor versions behind** (0.13 → 0.14 → 0.15) — a ~22-day gap. See §1.1 for the upgrade scope.
+**Upstream latest (verified 2026-05-31):** **v0.15.2** (`2026.5.29.2`). **test-dev is now ON v0.15.2 (cut over 2026-06-03 after a 4-round Quality-Council review).** Build/review/cutover record: `docs/jambot/hermes-v0.15-upgrade-research.md`, `-REVIEW.md`, `-cutover-checklist.md`. §1.1 below documents the upgrade scope (historical). Fleet still on OpenClaw; test-dev is the only Hermes tenant.
 **Docker Hub:** date-based tags only. `v0.X.Y` semver tags do NOT exist on Hub (open question #1 in upgrade doc: confirmed 404 on `:v0.6.0`).
 
 ---
@@ -316,6 +317,34 @@ MiniMax was the primary LLM provider from JamBot inception until **2026-04-20** 
 The original integration used `Authorization: Bearer` header (not `x-api-key`). The Ollama-Cloud MiniMax beta variant was also dropped at the same time — not recommended for restoration since the direct API works fine.
 
 Related memory: `[[llm-provider-current]]` · `[[feedback_env_file_is_a_system_tool]]` (annotation discipline applies when re-adding the key).
+
+---
+
+## 1C. v0.15 FILE-TOOL PATH RESOLUTION — bare names resolve to HERMES_HOME, NOT cwd (NEW 2026-06-03)
+
+**Discovered during the v0.15.2 test-dev cutover. This is a behavior change from v0.13 that breaks the shared-workspace bare-name access the OpenClaw-replacement model relied on.**
+
+- **v0.13:** the entrypoint ran the gateway with `cd /workspace`, and the file tool resolved relative/bare paths against the process cwd → "read IDENTITY.md" hit `/workspace/IDENTITY.md`. Worked.
+- **v0.15:** `/opt/hermes/agent/skill_utils.py:307` — *"Resolve relative paths against HERMES_HOME, not cwd."* The file tool now roots bare/relative names at **HERMES_HOME (`/opt/data`)**, NOT `terminal.cwd` and NOT the process cwd. `main-wrapper.sh` cd's to `/opt/data`; the gateway process cwd ends up `/opt/hermes`. So "read IDENTITY.md" hits `/opt/data/IDENTITY.md` → **"doesn't exist"** → the agent (whose SOUL.md tells it to read brain files by bare name) flounders with no tool result. Symptom looks identical to the session-poison empty-response, but it's a PATH problem.
+- **There is NO config to point just the file tool at /workspace.** Only `terminal.cwd` exists (controls the TERMINAL/exec tool's cwd, verified via the corpus — no `file.root`/`workspace_dir` key). `HERMES_HOME=/workspace` is NOT viable: it collides on `skills/` (both Hermes and OpenClaw have one) and dumps Hermes state (state.db/.env/auth.json/config.yaml/sessions/cache) into the shared workspace.
+
+### What actually works (verified on test-dev v0.15.2, 2026-06-03)
+- **`/workspace` IS fully read+write** — raw uid-1000 writes succeed (mount is RW, not `:ro`), and file_safety does NOT block it (see below). Agent wrote `/workspace/hermes-rw-proof.md` via full path and it landed; full-path reads work too.
+- **Full `/workspace/<path>` and the terminal tool give complete RW** to every workspace file incl. new ones. **This is the reliable access method** — instruct the agent to use `/workspace/` paths, not bare names.
+- **Bare-name READS** work ONLY via symlinks from `/opt/data` → `/workspace` (the cont-init hook in `hermes-v015-build/` symlinks `*.md` + `memory/` + `business/`). Convenience for SOUL.md's "read IDENTITY.md" instinct.
+- **Bare-name WRITES are a LANDMINE:** the write tool does NOT follow symlinks — it REPLACES `/opt/data/<name>` (the symlink) with a real file, so the write lands in `/opt/data`, NOT `/workspace`, and severs the symlink. Never rely on bare-name writes to workspace files.
+
+### file_safety write guardrail (`/opt/hermes/agent/file_safety.py`)
+- `get_safe_write_root()` reads env **`HERMES_WRITE_SAFE_ROOT`**. If SET, file-tool writes are blocked outside it. If UNSET (our default), no safe-root restriction — writes allowed anywhere except the denylist.
+- **Write denylist (always blocked):** `auth.json`, `config.yaml`, `webhook_subscriptions.json` (under HERMES_HOME and root), `<root>/.env`, `~/.ssh/config`, `mcp-tokens/`. So the agent CANNOT clobber Hermes' own credential/config plane even with full workspace RW.
+- Implication: to fence the agent's writes to ONLY /workspace, set `HERMES_WRITE_SAFE_ROOT=/workspace` (file-tool writes then must resolve under /workspace; gateway-internal writes to /opt/data are NOT via the file tool, so unaffected). Bare-name writes to symlinked brain files would then be allowed (realpath under /workspace) while new bare-name `/opt/data` writes get blocked rather than silently mislocated.
+
+### The fix — APPLIED + VERIFIED on test-dev 2026-06-03
+The agent has full RW via `/workspace/` paths + terminal tool. Two pieces shipped in the cont-init hook (`/mnt/system/base/hermes-v015-build/cont-init-jambot.sh`):
+1. **Brain read-symlinks** — `*.md` + `memory/` + `business/` from `/workspace` linked into `/opt/data`, so SOUL.md's bare-name READS ("read IDENTITY.md") resolve. Verified: agent reads IDENTITY.md and knows its operator is Mike.
+2. **`HERMES_WRITE_SAFE_ROOT=/workspace`** (seeded in `.env`, plumbed to CENV) — fences file-tool WRITES to /workspace. **Verified live:** full `/workspace/x` write succeeds + lands; a BARE-name write is **denied** ("blocked by the guard") instead of clobbering a symlink into /opt/data. Hermes' own `/opt/data` state (state.db/sessions/cache) is written by the gateway internals, NOT the file tool, so it's unaffected; `auth.json`/`config.yaml`/`.env` stay denylisted.
+
+Net: the agent reads its brain by bare name, reads+writes the whole workspace by `/workspace/` path, and bare-name writes fail loudly (agent retries with a path) instead of silently mislocating. Do NOT set `HERMES_HOME=/workspace` (skills/ collision + state clutter).
 
 ---
 
@@ -686,6 +715,13 @@ admin UI "Install hermes-agent"
 - test-dev's runtime copy is **newest** (713 lines gateway.py, Apr 18 — has mid-flight pipeline)
 - plugin-catalog was stale (557 lines, Apr 10) — **fixed in this session**
 - GitHub openvoiceui-plugins distribution was stale (557 lines) — **fixed by PR #4 (https://github.com/MCERQUA/openvoiceui-plugins/pull/4) in this session**
+
+### Plugin pinned to Hermes v0.15.2 — 2026-06-03
+
+- **manifest:** `plugin.json` → `version 1.1.0`, `hermes_version 0.15.2` across ALL copies (plugin-catalog, per-tenant runtime, distribution clone, OVU-repo seed). gateway.py is current (34015B, empty-turn fix, md5 245ce97c) across catalog/runtime/distribution — **NO gateway.py code change needed for v0.15** (protocol backward-compatible; voice verified). The stale OVU-repo disk gateway.py (gitignored) was synced to match.
+- **image tag** is pinned in `jambot-provision-service.py` → `jambot/hermes:v0.15.2` (and `-e HERMES_UID` DROPPED — see §1C / §10 note). plugin.json `hermes_version` is informational metadata; the provisioner is the actual image source.
+- **git:** distribution committed local main `137b1fd` (NOT pushed); OVU-repo pin on isolated local branch `chore/hermes-v0.15.2-plugin-pin` (NOT pushed, feature branch left pristine). Both pending Mike's push/PR — metadata-only, the catalog+provisioner install path already yields correct v0.15.2 tenants without them.
+- Full record: `docs/jambot/hermes-v0.15-cutover-checklist.md`.
 
 ---
 
