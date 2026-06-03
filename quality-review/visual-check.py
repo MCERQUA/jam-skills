@@ -99,6 +99,20 @@ def review(url, routes, viewports, out_dir):
                         findings.append({"severity": "fail", "check": "route", "where": tag, "detail": f"HTTP {code}"})
                         page.close(); continue
                     page.wait_for_timeout(800)
+                    # Trigger scroll-reveal animations (IntersectionObserver / FadeIn etc.)
+                    # BEFORE checking + screenshotting. Reveal sections start at opacity:0 and
+                    # only animate in on scroll — a static capture leaves them blank and the
+                    # checks false-flag them as "empty/low-contrast". Scroll through, then top.
+                    try:
+                        page.evaluate(
+                            "async () => { const h = document.body.scrollHeight;"
+                            " for (let y = 0; y < h; y += 400) { window.scrollTo(0, y);"
+                            " await new Promise(r => setTimeout(r, 80)); }"
+                            " window.scrollTo(0, 0); }"
+                        )
+                        page.wait_for_timeout(600)
+                    except Exception:
+                        pass
                     shot = os.path.join(out_dir, f"{route.strip('/').replace('/','_') or 'home'}_{vw}.png")
                     page.screenshot(path=shot, full_page=True)
                     r = page.evaluate(JS)
