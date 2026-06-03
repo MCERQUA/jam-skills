@@ -111,6 +111,14 @@ The skill fetches from 10 DataForSEO endpoint categories:
     verified GMB listing (exact name, rating + review count, phone, street address, website,
     category) and a NAP phone cross-check (flags a caller-supplied phone that disagrees with
     the verified GMB number). Authoritative for the GMB listing fields when present.
+    `fetch_connected_and_mentions()` also runs a Serper /search fan-out (brand + phone + address),
+    brand-matches result snippets, and returns connected-site candidates + a full mention inventory.
+13. **Reverse-analytics — hidden site network** (`fetch_dnslytics.py`) — headless-renders the
+    site (Playwright) to capture its Google Analytics / GTM / AdSense IDs (JS-injected, so a raw
+    fetch misses them), then reverses each via DNSlytics (`reverseganalytics` / `reverseadsense`)
+    to find every other domain the same operator runs — the DBA / lead-gen / supporting sites
+    keyword search can't surface. Requires `DNSLYTICS_API_KEY` (`.openclaw-keys.env`); no-key-safe
+    (skips the headless render entirely when absent).
 
 Credentials: DataForSEO from `/mnt/system/base/.platform-keys.env`; `SERPER_API_KEY` from
 `/mnt/system/base/.openclaw-keys.env` (or the environment). Serper enrichment is additive — if

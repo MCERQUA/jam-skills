@@ -42,6 +42,7 @@ from lib import (
     fetch_social,
     fetch_discovery,
     fetch_serper,
+    fetch_dnslytics,
     fetch_geo,
     score as score_mod,
     roadmap as roadmap_mod,
@@ -185,6 +186,12 @@ def main():
     serper_web      = _run("serper/connected+mentions", fetch_serper.fetch_connected_and_mentions,
                            domain, name, phone, serper_gmb.get("gmb_address", ""), serper_gmb.get("gmb_phone", ""))
 
+    # Reverse-analytics — the operator's HIDDEN site network via shared GA/AdSense ID (catches
+    # JS-rendered DBA/leadgen sites that target other keywords, which search can't find). No-key-
+    # safe: skips the headless render entirely without DNSLYTICS_API_KEY. (2026-06-03.)
+    dns_net         = _run("dnslytics/reverse-analytics", fetch_dnslytics.fetch_connected_via_analytics,
+                           domain, name)
+
     t_fetch = time.time() - t_start
     print(f"\n    Total fetch time: {t_fetch:.1f}s", file=sys.stderr)
 
@@ -218,6 +225,9 @@ def main():
         "other_mentions": list(_mentions.values()),
         "social_profiles": discovery_data.get("social_profiles", {}),
         "query_count":    discovery_data.get("discovery_query_count", 0),
+        # Reverse-analytics: domains sharing the brand's GA/AdSense ID = same operator.
+        "connected_network": (dns_net.get("connected", []) if dns_net else []),
+        "tracking_ids":      (dns_net.get("tracking_ids", {}) if dns_net else {}),
     }
 
     # If fetch_local couldn't get reviews, fall back to GMB data from fetch_brand

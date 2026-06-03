@@ -421,8 +421,21 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     footprint = data.get("web_footprint", {}) or {}
     fp_dirs = footprint.get("directories", {}) or {}
     fp_mentions = footprint.get("other_mentions", []) or []
+    fp_network = footprint.get("connected_network", []) or []
     _cat_label = {"review": "Review Site", "directory": "Directory", "industry": "Industry Directory"}
     footprint_html = ""
+    # Connected site network — domains sharing the brand's Google Analytics / AdSense ID
+    # (same operator). This is the highest-confidence "supporting / DBA / leadgen site" signal.
+    if fp_network:
+        net_rows = ""
+        for n in fp_network:
+            via = "Google Analytics" if n.get("via") == "google-analytics" else "AdSense"
+            seen = f"{n.get('firstseen','')}&ndash;{n.get('lastseen','')}".strip("&ndash;")
+            net_rows += f"""<tr><td><strong>{_escape(n.get('domain',''))}</strong></td><td>{via} <code>{_escape(n.get('id',''))}</code></td><td>{_escape(seen)}</td></tr>\n"""
+        footprint_html += f"""
+    <h3 style="margin:28px 0 6px;font-size:18px;">Connected Site Network &mdash; {len(fp_network)} domain(s)</h3>
+    <p class="muted" style="margin:0 0 14px;">Other websites sharing {_escape(client_name)}'s Google Analytics / AdSense tracking ID &mdash; a strong signal these are <strong>owned or operated by the same team</strong> (supporting, DBA, or lead-gen sites). Verify and fold into one SEO strategy so they reinforce rather than compete.</p>
+    <table class="ls-gmb-table" style="width:100%;"><thead><tr><th>Domain</th><th>Shared via</th><th>Seen</th></tr></thead><tbody>{net_rows}</tbody></table>"""
     if fp_dirs:
         cards = ""
         for label, info in sorted(fp_dirs.items(), key=lambda kv: (kv[1].get("category", ""), kv[0])):
