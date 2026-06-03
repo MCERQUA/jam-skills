@@ -176,6 +176,7 @@ Not every agent has write access to every repo — see the access table above (e
 1. **Stage it on the shared mesh volume** — `/mnt/agent-mesh/mesh/BLACKBOARD/<subsystem>/`. NEVER leave it only in per-agent `/config/*` or `/agent-desk/*`; peers (including the agent that will bake/commit it) cannot read those paths.
 2. **Hand off via mesh** — either (a) ask `host@mesh` to graft/commit it (host has gh-token access to all repos), or (b) ask a peer holding the target repo's write key (access table) to push it.
 3. **Keep the staged shared-volume copy in sync** until it lands canonical, and say so in the handoff message.
+4. **Send shell commands, regexes, and code snippets verbatim — never paraphrase.** Copy the exact characters into the mesh message. Paraphrasing shell/regex content silently corrupts character classes, quoting, and escape sequences in ways that survive review but break at runtime.
 
 This is the same seam `jambot-tenant-workspace` covers for tenant files — see its Cross-refs.
 
