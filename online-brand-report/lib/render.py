@@ -440,11 +440,14 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     <div class="sc-channel-grid">{cards}</div>"""
     if fp_mentions:
         rows = ""
-        for m in fp_mentions:
-            rows += f"""<tr><td>{_escape(m.get('domain',''))}</td><td><a href="{_escape(m.get('url',''))}" target="_blank" rel="noopener">{_escape(m.get('title','') or m.get('url',''))}</a></td></tr>\n"""
+        for m in sorted(fp_mentions, key=lambda x: (not x.get("shares_phone"), x.get("domain", ""))):
+            phone_tag = ' <span class="pill pill-ok">📞 shares your phone</span>' if m.get("shares_phone") else ""
+            rows += f"""<tr><td>{_escape(m.get('domain',''))}{phone_tag}</td><td><a href="{_escape(m.get('url',''))}" target="_blank" rel="noopener">{_escape(m.get('title','') or m.get('url',''))}</a></td></tr>\n"""
+        n_phone = sum(1 for m in fp_mentions if m.get("shares_phone"))
+        phone_note = f" {n_phone} share your exact phone number (a strong signal of a connected/owned listing or site &mdash; worth verifying)." if n_phone else ""
         footprint_html += f"""
-    <h3 style="margin:28px 0 6px;font-size:18px;">Other Web Mentions &mdash; {len(fp_mentions)} found</h3>
-    <p class="muted" style="margin:0 0 14px;">Additional places {_escape(client_name)} shows up online &mdash; state registration, press, video features, data aggregators, and partner pages.</p>
+    <h3 style="margin:28px 0 6px;font-size:18px;">Brand Mentions Across the Web &mdash; {len(fp_mentions)} found</h3>
+    <p class="muted" style="margin:0 0 14px;">Every place {_escape(client_name)} shows up online &mdash; state registration, press, video features, data aggregators, review sites, and partner pages.{phone_note}</p>
     <table class="ls-gmb-table" style="width:100%;"><thead><tr><th>Source</th><th>Page</th></tr></thead><tbody>{rows}</tbody></table>"""
 
     # ── Map pack table ────────────────────────────────────────────────────────

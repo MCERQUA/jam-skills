@@ -179,6 +179,12 @@ def main():
     if serper_gmb.get("gmb_found"):
         fetch_serper.apply_serper_gmb(brand_data, serper_gmb)
 
+    # Connected/supporting sites + full brand-mention inventory via Serper search ("find
+    # everything connected to this brand"). Uses the VERIFIED GMB phone/address for the
+    # NAP-reverse. (2026-06-03 — Mike: find supporting/leadgen sites + every brand mention.)
+    serper_web      = _run("serper/connected+mentions", fetch_serper.fetch_connected_and_mentions,
+                           domain, name, phone, serper_gmb.get("gmb_address", ""), serper_gmb.get("gmb_phone", ""))
+
     t_fetch = time.time() - t_start
     print(f"\n    Total fetch time: {t_fetch:.1f}s", file=sys.stderr)
 
@@ -190,9 +196,26 @@ def main():
 
     # Off-site footprint inventory (directories/citations + long-tail mentions) — the
     # "you forgot you had this" section. Kept under explicit keys so render/plan can surface it.
+    # Merge the long-tail mention inventory from both lanes (DataForSEO discovery + Serper
+    # search), de-duped by domain. Serper's are brand-snippet-verified; mark phone-sharers.
+    _mentions = {}
+    for m in discovery_data.get("other_mentions", []):
+        _mentions[m.get("domain", "")] = {**m, "shares_phone": False}
+    for m in (serper_web.get("connected_sites", []) if serper_web else []):
+        dom = m.get("domain", "")
+        prev = _mentions.get(dom, {})
+        _mentions[dom] = {
+            "domain": dom, "url": m.get("url", "") or prev.get("url", ""),
+            "title": m.get("title", "") or prev.get("title", ""),
+            "shares_phone": ("shares-phone" in (m.get("signals") or [])) or prev.get("shares_phone", False),
+        }
+    for m in (serper_web.get("mentions", []) if serper_web else []):
+        _mentions.setdefault(m.get("domain", ""), {**m, "shares_phone": False})
+    _mentions.pop("", None)
+
     data["web_footprint"] = {
         "directories":    discovery_data.get("directories", {}),
-        "other_mentions": discovery_data.get("other_mentions", []),
+        "other_mentions": list(_mentions.values()),
         "social_profiles": discovery_data.get("social_profiles", {}),
         "query_count":    discovery_data.get("discovery_query_count", 0),
     }

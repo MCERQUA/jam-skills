@@ -16,8 +16,16 @@ import os
 import sys
 import json
 import urllib.request
+from urllib.parse import urlparse
 
-_SERPER_URL = "https://google.serper.dev/places"
+from .fetch_discovery import (
+    _brand_slugs, _matches_brand, _host,
+    _PLATFORM_HOSTS, _DIRECTORY_SITES,
+)
+
+_SERPER_PLACES = "https://google.serper.dev/places"
+_SERPER_SEARCH = "https://google.serper.dev/search"
+_SERPER_URL = _SERPER_PLACES  # back-comat for the places call below
 _OPENCLAW_KEYS = "/mnt/system/base/.openclaw-keys.env"
 
 
@@ -117,6 +125,117 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
     print(f"[INFO] Serper GMB: {out['gmb_name']} — {out['gmb_rating']}★ "
           f"({out['gmb_review_count']} reviews) {out['gmb_phone']} | {out['gmb_address']}"
           + ("  [NAP PHONE MISMATCH]" if out['nap_phone_mismatch'] else ""), file=sys.stderr)
+    return out
+
+
+def _serper_search(key: str, query: str, num: int = 30) -> list:
+    """POST to Serper /search; return the organic results list (each: link/title/snippet)."""
+    try:
+        body = json.dumps({"q": query, "gl": "us", "num": num}).encode()
+        req = urllib.request.Request(
+            _SERPER_SEARCH, data=body, method="POST",
+            headers={"X-API-KEY": key, "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=25) as r:
+            data = json.loads(r.read().decode())
+        return data.get("organic") or []
+    except Exception as e:
+        print(f"[WARN] Serper search '{query}': {e}", file=sys.stderr)
+        return []
+
+
+def fetch_connected_and_mentions(domain: str, brand_name: str, phone: str = "",
+                                 address: str = "", gmb_phone: str = "") -> dict:
+    """Find supporting/leadgen/DBA sites + every brand mention, via Serper search.
+
+    Two things the brand-SERP discovery can't do on its own:
+      1) Catch a DBA / leadgen site whose URL+title DON'T contain the brand (e.g.
+         tampasprayfoaminsulation.com) — we catch it because Google indexes the brand name
+         in its on-page CONTENT (the result SNIPPET), which the discovery's URL/title filter
+         misses. A non-directory, non-social domain that publishes the brand name on its own
+         pages is a strong "owned/affiliated site" candidate.
+      2) Reverse the verified phone/address — domains that share the exact NAP are connected.
+
+    Serper is the search lane Mike wants for this now (DataForSEO can be layered in later).
+    Returns:
+        {
+          "available": bool,
+          "connected_sites": [{domain, url, title, signals:[...]}],  # candidates to verify
+          "mentions":        [{domain, url, title}],                  # full mention inventory
+        }
+    """
+    out = {"available": False, "connected_sites": [], "mentions": []}
+    key = _serper_key()
+    if not key:
+        return out
+
+    slugs = _brand_slugs(brand_name, domain)
+    primary = (domain or "").lower().replace("www.", "")
+    phones = {_norm_phone(p) for p in (phone, gmb_phone) if _norm_phone(p)}
+    known_dir_hosts = set()
+    for hosts, _c in _DIRECTORY_SITES.values():
+        known_dir_hosts.update(hosts)
+    social_hosts = set()
+    for hosts in _PLATFORM_HOSTS.values():
+        social_hosts.update(hosts)
+
+    # Query fan-out — prefer Serper search. Brand (+place), bare phone, address.
+    loc = " ".join(p for p in (address,) if p).strip()
+    queries = [q for q in [
+        brand_name,
+        f'"{phone}"' if phone else "",
+        f'"{gmb_phone}"' if gmb_phone and _norm_phone(gmb_phone) not in {_norm_phone(phone)} else "",
+        f'"{address}"' if address else "",
+    ] if q]
+
+    organic = []
+    for q in queries:
+        organic.extend(_serper_search(key, q))
+    if not organic:
+        return out
+    out["available"] = True
+
+    connected: dict[str, dict] = {}
+    mentions: dict[str, dict] = {}
+    for o in organic:
+        link = o.get("link") or ""
+        host = _host(link)
+        if not host or host == primary or primary in host:
+            continue
+        if any(h in host for h in social_hosts):
+            continue  # socials handled elsewhere
+        title = o.get("title") or ""
+        snippet = o.get("snippet") or ""
+        blob_url_title = link + " " + title
+        blob_full = blob_url_title + " " + snippet
+
+        is_dir = any(h in host for h in known_dir_hosts)
+        # brand match on the FULL text incl. snippet (this is what catches the DBA site)
+        brand_hit = _matches_brand(link, title + " " + snippet, slugs)
+        phone_hit = bool(phones) and any(p in _norm_phone(blob_full) or p in "".join(ch for ch in blob_full if ch.isdigit()) for p in phones)
+
+        # every non-directory brand mention goes in the inventory
+        if brand_hit and not is_dir and host not in mentions:
+            mentions[host] = {"domain": host, "url": link, "title": title[:90]}
+
+        # connected candidate = a non-directory site that publishes the brand name OR shares the NAP
+        if (brand_hit or phone_hit) and not is_dir:
+            sig = []
+            if brand_hit:
+                sig.append("publishes-brand-name")
+            if phone_hit:
+                sig.append("shares-phone")
+            prev = connected.get(host)
+            if prev is None:
+                connected[host] = {"domain": host, "url": link, "title": title[:90], "signals": sig}
+            else:
+                prev["signals"] = sorted(set(prev["signals"]) | set(sig))
+
+    out["connected_sites"] = list(connected.values())[:12]
+    out["mentions"] = list(mentions.values())[:15]
+    cs = ", ".join(c["domain"] for c in out["connected_sites"]) or "none"
+    print(f"[INFO] Serper connected/mentions: connected=[{cs}] mentions={len(out['mentions'])}",
+          file=sys.stderr)
     return out
 
 

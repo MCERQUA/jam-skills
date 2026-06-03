@@ -76,6 +76,15 @@ _DIRECTORY_SITES = {
     "DexKnows":        (["dexknows.com"],         "directory"),
     "Bizcommunity":    (["bizcommunity.com"],    "directory"),
     "SprayFoam.org":   (["sprayfoam.org", "sprayfoam.com"], "industry"),
+    "ZoomInfo":        (["zoominfo.com"],         "directory"),
+    "Yahoo Local":     (["local.yahoo.com", "yahoo.com/local"], "directory"),
+    "Procore":         (["procore.com"],          "directory"),
+    "Movoto":          (["movoto.com"],           "directory"),
+    "FMCSA (USDOT)":   (["fmcsa.dot.gov", "safer.fmcsa"], "directory"),
+    "USDOT / Trucking": (["otrucking.com", "fleetseek.com", "carrier411.com"], "directory"),
+    "Sunbiz (State Reg)": (["sunbiz.org"],        "directory"),
+    "Wallist":         (["wallist.com"],          "review"),
+    "BuildZoom Reviews": (["editorlistings.com"], "directory"),
 }
 
 # path first-segments that are NOT a profile (share buttons, generic nav, content permalinks)
