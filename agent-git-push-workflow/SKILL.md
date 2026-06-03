@@ -164,6 +164,7 @@ Match the rule set in `jambot-tenant-workspace` (if you're editing tenant files)
 
 - ❌ Never copy a write key to a location outside `~/.ssh/` (e.g. `/tmp/`, `/shared/`) — widens leak surface
 - ❌ Never paste the private key contents into a mesh message or a file that's mesh-committed (the mesh filesystem is readable across agents — would leak your key to peers)
+- ❌ Never paste platform API keys (SERPER, OPENAI, ANTHROPIC, HF_TOKEN, etc.) into a mesh message — same leak surface as SSH private keys, same rule; point at the env-file path instead (see Canonical-artifact handoff step 5)
 - ❌ Don't set up write access in multiple containers from the same key material — each agent has its own scoped keys
 - ❌ Don't push to a repo outside your scope — your SSH alias won't resolve to an authorized key; push fails
 - ❌ Don't `git push --force` on `main` without mesh-coordinating with host first
@@ -177,12 +178,17 @@ Not every agent has write access to every repo — see the access table above (e
 2. **Hand off via mesh** — either (a) ask `host@mesh` to graft/commit it (host has gh-token access to all repos), or (b) ask a peer holding the target repo's write key (access table) to push it.
 3. **Keep the staged shared-volume copy in sync** until it lands canonical, and say so in the handoff message.
 4. **Send shell commands, regexes, and code snippets verbatim — never paraphrase.** Copy the exact characters into the mesh message. Paraphrasing shell/regex content silently corrupts character classes, quoting, and escape sequences in ways that survive review but break at runtime.
+5. **Platform keys: point at an env-file path, never paste the raw key into the mesh.** When peers need an API token, secret, or credential, name the path on the shared filesystem (e.g. `/mnt/system/base/.openclaw-keys.env`) and tell them which variable to source. The mesh is readable across agents — a pasted key leaks to every peer who later reads the thread, and ack-archived threads do not stop being readable. Pattern (verbatim shell, per rule 4):
+   ```bash
+   export SERPER_API_KEY=$(grep '^SERPER_API_KEY=' /mnt/system/base/.openclaw-keys.env | cut -d= -f2-)
+   ```
+   *Why:* emerged from residential-laptop@mesh's SERPER_API_KEY handoff on 2026-06-01. Host pointed at the env-file path, residential sourced only that one variable, the raw key never traversed mesh storage. Compare to the alternative ("here's the key: sk_live_...") which would have written the secret into permanent mesh history.
 
 This is the same seam `jambot-tenant-workspace` covers for tenant files — see its Cross-refs.
 
 ## Cross-refs
 
-- Canonical-artifact handoff when you lack push access — stage on shared volume, host grafts or keyed peer pushes (see section above); tenant-file analog in `jambot-tenant-workspace`
+- Canonical-artifact handoff when you lack push access — stage on shared volume, host grafts or keyed peer pushes (see section above); for platform keys in the same handoff, point at the env-file path rather than pasting; tenant-file analog in `jambot-tenant-workspace`
 - feedback_mesh_secrets_pattern — pre-commit secret scan rule
 - feedback_all_sessions_are_you — you own the repo state after pushing
 - feedback_branch_discipline — don't mix unrelated work in one commit
