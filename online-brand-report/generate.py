@@ -40,6 +40,8 @@ from lib import (
     fetch_content,
     fetch_ai,
     fetch_social,
+    fetch_discovery,
+    fetch_serper,
     fetch_geo,
     score as score_mod,
     roadmap as roadmap_mod,
@@ -160,6 +162,23 @@ def main():
     social_data     = _run("social",            fetch_social.fetch_social,     domain, name)
     geo_data        = _run("geo/city-volumes",  fetch_geo.fetch_geo,           service, city, state)
 
+    # ── Brand-name SERP discovery — "what anyone Googles" (grab everything) ─────
+    # ONE source of ground truth for the obvious stuff the fragile probes miss: the real
+    # social profiles, the full directory/citation footprint, and Google Business presence.
+    # Applied AUTHORITATIVELY over the homepage-scrape/HEAD-probe/exact-GMB-lookup results so
+    # the report never again falsely says "no Facebook / no GMB" for a business that's trivially
+    # findable on Google. (2026-06-03 — Mike: "missing the obvious stuff anyone can find".)
+    discovery_data  = _run("discovery/brand-serp", fetch_discovery.fetch_discovery, domain, name, city, state)
+    if discovery_data.get("_discovery_available"):
+        fetch_social.apply_discovery(social_data, discovery_data.get("social_profiles", {}))
+        fetch_brand.apply_discovery(brand_data,  discovery_data.get("gmb", {}))
+
+    # Serper Places enrichment — the richest verified GMB (full NAP + real review count +
+    # category) and a NAP phone cross-check. Authoritative for the listing fields when present.
+    serper_gmb      = _run("serper/places-GMB", fetch_serper.fetch_serper_gmb, domain, name, city, state, phone)
+    if serper_gmb.get("gmb_found"):
+        fetch_serper.apply_serper_gmb(brand_data, serper_gmb)
+
     t_fetch = time.time() - t_start
     print(f"\n    Total fetch time: {t_fetch:.1f}s", file=sys.stderr)
 
@@ -168,6 +187,15 @@ def main():
     for d in (brand_data, web_data, organic_data, serp_data, local_data,
               backlink_data, comp_data, content_data, ai_data, social_data, geo_data):
         data.update(d)
+
+    # Off-site footprint inventory (directories/citations + long-tail mentions) — the
+    # "you forgot you had this" section. Kept under explicit keys so render/plan can surface it.
+    data["web_footprint"] = {
+        "directories":    discovery_data.get("directories", {}),
+        "other_mentions": discovery_data.get("other_mentions", []),
+        "social_profiles": discovery_data.get("social_profiles", {}),
+        "query_count":    discovery_data.get("discovery_query_count", 0),
+    }
 
     # If fetch_local couldn't get reviews, fall back to GMB data from fetch_brand
     if data.get("review_avg", 0) == 0 and data.get("gmb_rating", 0) > 0:

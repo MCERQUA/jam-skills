@@ -92,3 +92,28 @@ def fetch_brand(domain: str, brand_name: str, city: str, state: str) -> dict:
         print(f"[WARN] GMB fetch failed: {e}", file=sys.stderr)
 
     return out
+
+
+def apply_discovery(brand_out: dict, gmb_serp: dict) -> dict:
+    """Backfill GMB presence from the brand SERP knowledge panel (AUTHORITATIVE for existence).
+
+    `gmb_serp` = fetch_discovery()["gmb"]. The strict my_business_info/live lookup needs a
+    valid keyword + city,state location_name; a missing/wrong --state makes it return nothing
+    → false "no Google Business Profile". But if the brand-name SERP shows a knowledge_graph /
+    local_pack panel, the business DEMONSTRABLY has a Google presence — so assert gmb_found and
+    fill any field the strict lookup didn't. Never overwrites a real value already fetched.
+    """
+    if not gmb_serp:
+        return brand_out
+    if gmb_serp.get("gmb_found"):
+        brand_out["gmb_found"] = True
+        if not brand_out.get("gmb_name") and gmb_serp.get("gmb_name"):
+            brand_out["gmb_name"] = gmb_serp["gmb_name"]
+        if not brand_out.get("gmb_rating") and gmb_serp.get("gmb_rating"):
+            brand_out["gmb_rating"] = gmb_serp["gmb_rating"]
+        if not brand_out.get("gmb_review_count") and gmb_serp.get("gmb_review_count"):
+            brand_out["gmb_review_count"] = gmb_serp["gmb_review_count"]
+        if not brand_out.get("gmb_address") and gmb_serp.get("gmb_address"):
+            brand_out["gmb_address"] = gmb_serp["gmb_address"]
+        brand_out.setdefault("gmb_source", gmb_serp.get("gmb_source") or "serp")
+    return brand_out

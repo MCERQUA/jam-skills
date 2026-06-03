@@ -99,8 +99,31 @@ The skill fetches from 10 DataForSEO endpoint categories:
 8. `dataforseo_labs/google/competitors_domain` + `bulk_traffic_estimation` — competitive analysis
 9. `dataforseo_labs/google/keyword_suggestions` + `domain_intersection` — content gaps
 10. Direct HTTP checks — llms.txt, JSON-LD schema, social profiles
+11. **Brand-name SERP discovery** (`fetch_discovery.py`) — runs a small fan-out of brand-name
+    Google SERPs ("what anyone types in") via DataForSEO and harvests the FULL off-site
+    footprint: real social profiles, directory/citation/review listings (Yelp, BBB, Angi,
+    HomeAdvisor, Houzz, MapQuest, YellowPages, Manta, SprayFoam.org…), Google Business presence
+    (knowledge_graph / local_pack), and long-tail mentions (state registration, FMCSA, press,
+    video). A distinctive **brand-slug filter** rejects look-alike competitors and generic
+    category pages so "grab everything" stays accurate. This is the deterministic ground truth
+    that fixed the old fragile "no Facebook / no GMB" false negatives.
+12. **Serper Places enrichment** (`fetch_serper.py`) — Serper.dev `/places` returns the rich,
+    verified GMB listing (exact name, rating + review count, phone, street address, website,
+    category) and a NAP phone cross-check (flags a caller-supplied phone that disagrees with
+    the verified GMB number). Authoritative for the GMB listing fields when present.
 
-Credentials are loaded automatically from `/mnt/system/base/.platform-keys.env`.
+Credentials: DataForSEO from `/mnt/system/base/.platform-keys.env`; `SERPER_API_KEY` from
+`/mnt/system/base/.openclaw-keys.env` (or the environment). Serper enrichment is additive — if
+the key is absent it's skipped and the DataForSEO data stands.
+
+### Detection robustness (why it no longer misses the obvious)
+
+The Local/GMB + Social dimensions are now multi-sourced and authoritative-merged so the report
+never again flips between "GMB 4.8★ / Facebook found" and "no GMB / no Facebook" run-to-run:
+- **GMB existence**: union of my_business_info + brand-SERP knowledge panel + Serper Places.
+  Found by ANY = found. Listing fields (NAP/rating/reviews) prefer Serper Places.
+- **Social**: SERP-discovered profiles override the fragile homepage-scrape + HEAD-probe — a
+  profile Google returns for the brand EXISTS regardless of what a flaky bot probe concluded.
 
 ## Error handling
 

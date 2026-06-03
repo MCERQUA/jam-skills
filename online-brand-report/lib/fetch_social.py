@@ -106,3 +106,41 @@ def fetch_social(domain: str, brand_name: str) -> dict:
     # mark available so the dimension is scored consistently rather than flipping in/out. (2026-06-01)
     out["_social_available"] = True
     return out
+
+
+def apply_discovery(social_out: dict, discovered: dict) -> dict:
+    """Overlay SERP-discovered social profiles onto the probe result (AUTHORITATIVE).
+
+    `discovered` = fetch_discovery()["social_profiles"] = {platform: {"url","signal"}}.
+    A profile that shows up in Google's results for the brand name EXISTS — full stop —
+    regardless of what the flaky homepage-scrape + HEAD-probe concluded. This is what kills
+    the "no Facebook when there obviously is" false negative: Google found it, so we trust it.
+    Platforms beyond the original 6 (pinterest, nextdoor) get added to the platform set so
+    the count reflects the real footprint. Never downgrades an already-found platform.
+    """
+    if not discovered:
+        return social_out
+    platforms = social_out.setdefault("platforms", {})
+    for plat, info in discovered.items():
+        url = info.get("url")
+        if not url:
+            continue
+        existing = platforms.get(plat)
+        if existing and existing.get("exists"):
+            # keep whichever URL is present; prefer a clean profile URL from discovery
+            if info.get("signal") == "profile" and existing.get("url") != url:
+                existing["url"] = url
+            existing["source"] = existing.get("source") or "serp"
+            continue
+        platforms[plat] = {
+            "exists": True,
+            "url": url,
+            "status": "active",
+            "source": "serp",
+            "signal": info.get("signal", "profile"),
+        }
+    social_out["platforms"] = platforms
+    social_out["platforms_claimed"] = sum(1 for p in platforms.values() if p.get("exists"))
+    social_out["platforms_total"] = max(social_out.get("platforms_total", 0), len(platforms))
+    social_out["_social_available"] = True
+    return social_out

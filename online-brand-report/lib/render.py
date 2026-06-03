@@ -405,12 +405,47 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
         status_class = "active" if info.get("exists") else "absent"
         status_text  = "Active" if info.get("exists") else "Not Found"
         icon = platform_icons.get(plat, plat[:2].upper())
+        url = info.get('url', '') or ''
+        note = f'<a href="{_escape(url)}" target="_blank" rel="noopener">{_escape(url)}</a>' if url else 'No profile found'
         sc_html += f"""
         <div class="sc-channel">
           <div class="nm">{plat.title()}</div>
           <span class="status {status_class}">{status_text}</span>
-          <div class="note">{_escape(info.get('url','') or 'No profile found')}</div>
+          <div class="note">{note}</div>
         </div>"""
+
+    # ── Off-site web footprint ("you forgot you had this") ─────────────────────
+    # Directory/citation/review listings + long-tail mentions harvested from the brand-name
+    # SERP. This is the section that makes the report feel exhaustive — it surfaces the Yelp,
+    # BBB, MapQuest, DOT, industry-directory, and press pages the client often forgot existed.
+    footprint = data.get("web_footprint", {}) or {}
+    fp_dirs = footprint.get("directories", {}) or {}
+    fp_mentions = footprint.get("other_mentions", []) or []
+    _cat_label = {"review": "Review Site", "directory": "Directory", "industry": "Industry Directory"}
+    footprint_html = ""
+    if fp_dirs:
+        cards = ""
+        for label, info in sorted(fp_dirs.items(), key=lambda kv: (kv[1].get("category", ""), kv[0])):
+            url = info.get("url", "")
+            cat = _cat_label.get(info.get("category", ""), "Listing")
+            cards += f"""
+        <div class="sc-channel">
+          <div class="nm">{_escape(label)}</div>
+          <span class="status active">{_escape(cat)}</span>
+          <div class="note"><a href="{_escape(url)}" target="_blank" rel="noopener">{_escape(url[:60])}</a></div>
+        </div>"""
+        footprint_html += f"""
+    <h3 style="margin:28px 0 6px;font-size:18px;">Directory &amp; Citation Listings &mdash; {len(fp_dirs)} found</h3>
+    <p class="muted" style="margin:0 0 14px;">Where {_escape(client_name)} already appears across review sites, maps, and industry directories. Consistent name/address/phone (NAP) across these is a direct local-ranking signal.</p>
+    <div class="sc-channel-grid">{cards}</div>"""
+    if fp_mentions:
+        rows = ""
+        for m in fp_mentions:
+            rows += f"""<tr><td>{_escape(m.get('domain',''))}</td><td><a href="{_escape(m.get('url',''))}" target="_blank" rel="noopener">{_escape(m.get('title','') or m.get('url',''))}</a></td></tr>\n"""
+        footprint_html += f"""
+    <h3 style="margin:28px 0 6px;font-size:18px;">Other Web Mentions &mdash; {len(fp_mentions)} found</h3>
+    <p class="muted" style="margin:0 0 14px;">Additional places {_escape(client_name)} shows up online &mdash; state registration, press, video features, data aggregators, and partner pages.</p>
+    <table class="ls-gmb-table" style="width:100%;"><thead><tr><th>Source</th><th>Page</th></tr></thead><tbody>{rows}</tbody></table>"""
 
     # ── Map pack table ────────────────────────────────────────────────────────
     map_rows = ""
@@ -758,7 +793,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
           {"<li><strong>llms.txt missing</strong> &mdash; AI assistants can't reliably cite your brand.</li>" if not llms_txt else ""}
           {"<li><strong>No structured schema detected</strong> &mdash; Google can't tie reviews to the entity.</li>" if not schema_present else ""}
           {"<li><strong>No Google Knowledge Panel</strong> &mdash; brand entity not strongly established.</li>" if not has_kp else ""}
-          <li><strong>Social channel gaps</strong> &mdash; {6 - data.get("platforms_claimed", 0)} of 6 major platforms not claimed.</li>
+          <li><strong>Social channel gaps</strong> &mdash; {max(0, data.get("platforms_total", 6) - data.get("platforms_claimed", 0))} of {data.get("platforms_total", 6)} major platforms not claimed.</li>
         </ul>
       </div>
     </div>
@@ -912,6 +947,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
           <tbody>
             <tr><td>GMB Verified</td><td>{"Verified" if data.get("gmb_claimed") else ("Listed (unclaimed)" if data.get("gmb_found") else "Not found")}</td><td><span class="pill {"pill-ok" if data.get("gmb_claimed") else "pill-bad"}">{"Good" if data.get("gmb_claimed") else "Fix"}</span></td></tr>
             <tr><td>Reviews</td><td>{rev_count} at {rev_avg:.1f}&star;</td><td><span class="pill {"pill-ok" if rev_count >= 40 else ("pill-warn" if rev_count >= 15 else "pill-bad")}">{"Good" if rev_count >= 40 else ("Fair" if rev_count >= 15 else "Low")}</span></td></tr>
+            <tr><td>NAP Consistency</td><td>{"Phone mismatch across listings &mdash; GMB shows " + _escape(data.get("gmb_phone","")) if data.get("nap_phone_mismatch") else ("Consistent &mdash; " + _escape(data.get("gmb_phone","")) if data.get("gmb_phone") else "Verify name/address/phone match everywhere")}</td><td><span class="pill {"pill-bad" if data.get("nap_phone_mismatch") else ("pill-ok" if data.get("gmb_phone") else "pill-warn")}">{"Fix" if data.get("nap_phone_mismatch") else ("Good" if data.get("gmb_phone") else "Check")}</span></td></tr>
             <tr><td>Schema Markup</td><td>{"Present" if schema_present else "Missing"}</td><td><span class="pill {"pill-ok" if schema_present else "pill-bad"}">{"Good" if schema_present else "Missing"}</span></td></tr>
             <tr><td>llms.txt</td><td>{"Present" if llms_txt else "Missing"}</td><td><span class="pill {"pill-ok" if llms_txt else "pill-bad"}">{"Good" if llms_txt else "Missing"}</span></td></tr>
           </tbody>
@@ -1101,6 +1137,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     </div>
 
     <div class="sc-pull"><p>{str(data.get("platforms_claimed", 0))} of {data.get("platforms_total", 6)} major social platforms claimed for {_escape(client_name)}. {"Excellent social coverage." if data.get("platforms_claimed", 0) >= 5 else ("Good start — fill remaining gaps." if data.get("platforms_claimed", 0) >= 3 else "Significant social presence gaps. Claimed profiles (even with minimal activity) improve local trust signals and prevent brand squatting.")}</p></div>
+    {footprint_html}
   </section>
 
   <section id="roadmap-section">
