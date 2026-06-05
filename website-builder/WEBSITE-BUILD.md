@@ -836,19 +836,30 @@ Mobile-first, production-ready, accessible. No placeholder copy — write real h
 
 For any page name not in the table, infer required sections from the page name and the site type (`intake.siteType`).
 
-**Run the generation** — attach the shared `designSystem` (Step 3), use `GEMINI_3_1_PRO`
-(`GEMINI_3_PRO` is DEPRECATED), DESKTOP only, and TEE the response to a per-page file so
-Step 5 can capture the screen from it:
+**Run the generation** — use `GEMINI_3_PRO` (NOT 3_1_PRO — see note), DESKTOP only, and TEE the response to a per-page file so Step 5 can capture the screen from it:
 
 ```bash
 mkdir -p ~/Websites/<project>/.stitch-pages
-exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_screen_from_text '{\"projectId\": \"<PID>\", \"designSystem\": \"<DSID from Step 3>\", \"deviceType\": \"DESKTOP\", \"modelId\": \"GEMINI_3_1_PRO\", \"prompt\": \"<escaped-prompt>\"}' > ~/Websites/<project>/.stitch-pages/<page>.resp.json 2>&1")
+exec("bash /home/node/.openclaw/workspace/skills/stitch/stitch-mcp.sh generate_screen_from_text '{\"projectId\": \"<PID>\", \"deviceType\": \"DESKTOP\", \"modelId\": \"GEMINI_3_PRO\", \"prompt\": \"<escaped-prompt>\"}' > ~/Websites/<project>/.stitch-pages/<page>.resp.json 2>&1")
 ```
 
+**⚠️ MODEL RULE (verified 2026-06-04 — this was wrong before):**
+- Use `"GEMINI_3_PRO"` — produces full 9-section pages (~14,000px, ~36KB HTML)
+- `"GEMINI_3_1_PRO"` silently falls back to Flash and produces TRUNCATED 3-section pages (~6,000px). The previous instruction saying it was the correct model was WRONG.
+- `GEMINI_3_FLASH` or omitting modelId = same truncated output. Always specify `GEMINI_3_PRO`.
+
+**⚠️ DESIGN SYSTEM RULE (verified 2026-06-04):**
+- Do NOT attach `designSystem` when generating content-rich pages — it reduces output height by ~25%.
+- Describe colors, fonts, and style in the prompt itself instead.
+- Only use a design system if you need strict visual consistency across 10+ pages in a batch AND are willing to accept shorter per-page content.
+
+**⚠️ SECTION ENUMERATION RULE (verified 2026-06-04):**
+- The prompt MUST contain a numbered list of every section: "Generate ALL N sections: 1. HERO: ... 2. SERVICES: ... 3. ..."
+- Without this explicit list, even GEMINI_3_PRO truncates to 3-4 sections.
+- Typical full page: 8-10 sections. Name them all.
+
 Critical JSON-escape rules: replace `"` with `\"` and newlines with `\\n` inside the prompt before embedding.
-Attaching the SAME `designSystem` to every page is what makes all pages share one consistent
-style (verified 2026-06-01). Build the prompt from `instructions/stitch-auto-brief.md`
-(design-director persona + per-page layout variety) so pages are distinctive, not generic.
+Build the prompt from `instructions/stitch-auto-brief.md` (design-director persona + per-page layout variety + mandatory numbered section list) so pages are distinctive and full-length, not generic stubs.
 NOTE: each `generate_screen_from_text` returns the finished screen in its response (~1-3 min) —
 do NOT poll list_screens; Step 5 reads `<page>.resp.json`.
 

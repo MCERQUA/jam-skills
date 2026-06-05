@@ -225,7 +225,7 @@ When the user asks you to inventory, audit, catalog, or collect data from a webs
 4. Then follow the **Browser Extension Data** instructions in TOOLS.md:
    - Spawn a `browser-data-processor` sub-agent to parse the raw data
    - Read the structured output
-   - Delegate to maxcode to build a proper canvas page
+   - Delegate to z-code to build a proper canvas page
 
 ### What you NEVER do with collected data:
 - NEVER dump raw `bodyText` or `page_text` into a `<pre>` block

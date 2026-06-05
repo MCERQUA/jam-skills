@@ -412,12 +412,12 @@ export default defineConfig({
 });
 ```
 
-## Using maxcode for Large Games
+## Using z-code for Large Games
 
-For games over ~500 lines, delegate to maxcode (MiniMax M2.7 high-speed coder):
+For games over ~500 lines, delegate to z-code:
 
 ```bash
-exec("maxcode -p 'Build a complete 3D space shooter game as a single HTML file at /app/runtime/canvas-pages/space-shooter.html.
+exec("z-code -p 'Build a complete 3D space shooter game as a single HTML file at /app/runtime/canvas-pages/space-shooter.html.
 
 Requirements:
 - Use Three.js loaded via import map from cdn.jsdelivr.net/npm/three@0.170.0

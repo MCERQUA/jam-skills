@@ -58,15 +58,30 @@ For each page state: the **target keyword + search intent** (from keywords.md), 
 must **convey** to rank + earn trust, and the **conversion path** (every page leads + ends with
 "Get a Quote" + click-to-call [PHONE]). Tell Stitch the page's job, not just its looks.
 
-### 5. Per-page composition
+### 5. Per-page composition — NUMBERED SECTION LIST (REQUIRED for full pages)
 From `page-recommendations.md`: the exact sections this page needs, in order, each with a
-1-line design intent. Enumerate the FULL site so every page is generated:
-> Generate these [N] pages — produce ALL [N], none skipped:
-> 1. [Home] — [archetype] — [target kw/intent] — [sections...]
-> 2. [About] — [archetype] — ...
+1-line design intent. **The numbered list is not optional** — without it Stitch truncates to
+3-4 sections even with the Pro model. Enumerate every section explicitly:
+
+> Generate ALL [N] sections in one scrollable page:
+> 1. HERO: [headline] [subhead] [CTA] [trust indicators]
+> 2. [SECTION NAME]: [content description]
+> 3. [SECTION NAME]: [content description]
 > ... through [N]
 
+Typical full homepage has 8-10 sections: Hero, Services/Features, Comparison or Stats,
+Proof/Gallery, How It Works, Testimonials, FAQ, CTA close, Footer.
+
 ## Hard requirements (every screen)
+
+**MODEL — HARD RULE (verified 2026-06-04):**
+- **ALWAYS use `modelId: "GEMINI_3_PRO"`** — this is not optional
+- `GEMINI_3_1_PRO` silently falls back to Flash and produces 3-section truncated output
+- `GEMINI_3_FLASH` or omitting modelId = 3-4 sections (~6,000px). GEMINI_3_PRO = 9 sections (~14,000px)
+- Do NOT attach a `designSystem` when maximizing content depth — it reduces output by ~25%.
+  Describe colors/fonts in the prompt instead. Use design system only for multi-page consistency.
+
+**CONTENT:**
 - Premium/distinctive, NOT template-y. Real cinematic imagery, confident type, depth, craft.
 - Per-page layout variety (no two pages the same skeleton).
 - "Get a Quote" CTA + click-to-call [PHONE] in header (sticky) + page top + page bottom.

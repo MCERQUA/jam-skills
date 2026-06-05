@@ -1,6 +1,6 @@
 ---
 name: coding-delegation
-description: When and how to delegate coding tasks to sub-agents (maxcode, z-code, claude_launch). Use for canvas pages, games, dashboards, websites, or any task over 100 lines of code.
+description: When and how to delegate coding tasks to z-code or claude_launch. Use for canvas pages, games, dashboards, websites, or any task over 100 lines of code.
 ---
 
 # Coding Delegation — Sub-Agents for Heavy Work
@@ -14,12 +14,12 @@ You MUST delegate these tasks — do NOT try to write them yourself:
 
 **Why:** You run on GLM-4.7 with limited context. Sub-agents are built for code generation — they have file tools, can iterate, and cost less per token.
 
-## MaxCode — High-Speed Coding CLI
+## Z-Code — Coding CLI
 
-`maxcode` is a command-line tool (NOT an ACP agent). Run it with `exec()`:
+`z-code` is a command-line tool (NOT an ACP agent). Run it with `exec()`:
 
 ```
-exec("maxcode -p 'Build a dashboard at /app/runtime/canvas-pages/my-dashboard.html. Dark theme, inline CSS/JS, no CDN.' --allowedTools 'Edit,Write,Read' 2>&1 | tail -20")
+exec("z-code -p 'Build a dashboard at /app/runtime/canvas-pages/my-dashboard.html. Dark theme, inline CSS/JS, no CDN.' --allowedTools 'Edit,Write,Read' 2>&1 | tail -20")
 ```
 
 **Flags:**
@@ -28,6 +28,8 @@ exec("maxcode -p 'Build a dashboard at /app/runtime/canvas-pages/my-dashboard.ht
 - `2>&1 | tail -20` — capture output
 
 **When to use:** Full canvas pages, games, dashboards, any 500+ line file, complex interactive pages.
+
+**Large file tip:** If z-code times out on a very large file, break it into sections — have it write the HTML structure first, then append CSS, then JS. Each section is a separate exec call.
 
 ## Claude Launch — Background Coding Sessions
 
@@ -51,12 +53,6 @@ claude_launch({
 | `claude_output` | Read session output |
 | `claude_fg` / `claude_bg` | Foreground/background |
 
-**Backends:**
-| Backend | Best For |
-|---------|----------|
-| `z-code` (default) | General coding — Z.AI credits |
-| `maxcode` | High-speed bulk — MiniMax M2.7 |
-
 ## Critical Rules
 
 1. **Always include the full absolute path** in your prompt. Canvas pages go to `/app/runtime/canvas-pages/<name>.html`.
@@ -71,7 +67,7 @@ claude_launch({
 
 ## Passing Skill Context to Spawned Agents
 
-Spawned agents (z-code/maxcode) have ZERO access to your skills, TOOLS.md, or conversation context. They only know what you put in the prompt.
+Spawned z-code agents have ZERO access to your skills, TOOLS.md, or conversation context. They only know what you put in the prompt.
 
 **When a task needs skill knowledge:**
 1. Read the skill first: `exec("cat /mnt/shared-skills/<skill>/SKILL.md")`
