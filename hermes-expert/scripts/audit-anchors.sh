@@ -25,12 +25,12 @@ check() {
     fi
 }
 
-echo "=== hermes-expert audit-anchors (2026-05-23 baseline) ==="
+echo "=== hermes-expert audit-anchors (2026-06-05 baseline — post v0.15.2 cutover) ==="
 echo
 
 # Hermes runtime version
 ver=$(sg docker -c "docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes --version 2>/dev/null" 2>/dev/null || echo "unreachable")
-check "hermes version" "0.13" "$ver"
+check "hermes version" "0.15" "$ver"
 
 # OpenClaw runtime version
 ocver=$(sg docker -c "docker exec openclaw-test-dev openclaw --version 2>/dev/null" 2>/dev/null || echo "unreachable")
@@ -83,15 +83,19 @@ fi
 
 # Config schema version
 schema=$(sg docker -c "docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config check 2>&1" 2>/dev/null | grep -i "version" | head -1)
-check "config schema" "23" "$schema"
+check "config schema" "24" "$schema"
 
-# Live tenant inventory (count must match docs)
+# Live tenant inventory (count must match docs).
+# 2026-06-05: Hermes rollout expanded — test-dev + adrian both on v0.15.2.
 count=$(sg docker -c "docker ps --filter name=hermes --format '{{.Names}}'" 2>/dev/null | wc -l)
-check "live hermes containers (count)" "1" "$count"
+check "live hermes containers (count)" "2" "$count"
 
-# Rollback image present
-rollback=$(sg docker -c "docker images jambot/hermes --format '{{.Repository}}:{{.Tag}}' 2>/dev/null" 2>/dev/null | grep rollback || echo "missing")
-check "rollback image preserved" "jambot/hermes:0.6.0-rollback" "$rollback"
+# Rollback image present.
+# 2026-06-05: :0.6.0-rollback was pruned. Modern insurance = the preserved
+# pre-cutover image jambot/hermes:pre-uid1000-20260531 (v0.13 build) and
+# jambot/hermes:latest (also v0.13 — the documented recreate-to-revert tag).
+rollback=$(sg docker -c "docker images jambot/hermes --format '{{.Repository}}:{{.Tag}}' 2>/dev/null" 2>/dev/null | grep -E "pre-uid1000|0\.6\.0-rollback" | head -1 || echo "missing")
+check "rollback image preserved" "jambot/hermes:pre-uid1000-20260531" "$rollback"
 
 # MiniMax key must NOT be active in env (it's dropped)
 mxguard=$(grep -E "^MINIMAX_API_KEY=" /mnt/system/base/.openclaw-keys.env 2>/dev/null || echo "absent-good")
