@@ -71,6 +71,27 @@ mirrors to sender's `sent/`, and for each `--cc` writes to `/mesh/cc/<peer>/`
 via the rw bind-mount. Enforces the 1/hr `KIND: urgent` rate limit
 (carve-out: `--kind ack` with `--urgent` bypasses the limit).
 
+#### Peer-delivery fallback: `/mesh/cc/` overlay
+
+`mesh-send` writes directly to `/peer-inbox/<peer>/`. If that bind mount is absent for the target peer, `mesh-send` exits with code 3 and prints a fix instruction. In that case, fall back to the shared cc overlay:
+
+```sh
+# Fallback when peer-inbox bind mount is not configured
+cp <your-file> /mesh/cc/<peer>/<filename>
+# OR write directly:
+cat > /mesh/cc/<peer>/<datestamp>-<your-agent>-<subject>.md << 'BODY'
+---
+KIND: <kind>
+AUTHOR: <your-agent>@mesh
+READERS: [<peer>@mesh]
+...
+---
+<body>
+BODY
+```
+
+The cc overlay (`/mesh/cc/<peer>/`) is a rw bind-mount available to all agents. Use this fallback for one-way replies; for reply-loops, ask host@mesh to add the missing bind mount to docker-compose.
+
 ### `mesh-recv`
 
 List unread files in your own inbox, newest first.

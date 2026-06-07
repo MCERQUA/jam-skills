@@ -29,6 +29,31 @@ If you cannot answer "what already exists and who/what already maintains it," yo
 
 ---
 
+## Step 0.5 — Write the Shared Contract Before Fan-Out
+
+Before dispatching any workers, write a `BRIEF.md` at the project root containing:
+- Data schema (field names, types, example values)
+- API surface (endpoint paths, request/response shapes)
+- File output paths and port
+- Any shared constants (e.g. SHEET_WIDTH, pricing formula)
+
+Workers read `BRIEF.md` as their first instruction. This ensures parallel workers build against a single contract rather than guessing at interfaces.
+
+```bash
+cat > /workspace/Websites/my-app/BRIEF.md << 'BRIEFEOF'
+# My App — Build Brief
+## Stack: Next.js 14, port 3099
+## Data schema: { id, title, address, lat, lng, date }
+## API: GET/POST /api/items
+BRIEFEOF
+```
+
+Without a shared contract, workers A–D guess at each other's data shapes and API contracts, causing type mismatches caught only at runtime after all workers complete.
+
+Also add one sentence to `coding-delegation`: "Before fan-out, write a shared `BRIEF.md` (see submesh-control Step 0.5) so parallel workers build against a single data/API contract."
+
+---
+
 ## Step 1 — Always Check Pane State First
 
 Before doing anything, see what's actually running:
@@ -61,6 +86,17 @@ tmux capture-pane -t submesh:grid.1 -p | tail -5
 ```
 
 Do NOT send the task until you see claude's prompt. If you send early it goes to bash, not claude.
+
+**Capture the pane's stable `%id` before proceeding:**
+```bash
+PANE_A=$(tmux list-panes -a -F '#{pane_index} #{pane_id} #{session_name}:#{window_name}' | awk '/submesh:grid/{print}' | awk 'NR==2{print $2}')
+echo "Worker A pane id: $PANE_A"
+```
+Use `$PANE_A` for all subsequent `paste-buffer`, `send-keys`, and `capture-pane` calls instead of `submesh:grid.1` slot notation. Slot indices shift when you open new windows; `%id` is stable across layout changes.
+
+| Mistake | What Happened | Fix |
+|---|---|---|
+| Using `grid.N` slot after opening a new tmux window | Grid indices remapped; C-c hit wrong worker | Capture `%id` at start, use it for all subsequent commands |
 
 ---
 

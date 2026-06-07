@@ -451,3 +451,4 @@ The voice user also sees an error banner in the actions panel — but the agent 
 - ❌ Poll for status after firing a tag — async, just tell the user to wait
 - ❌ Tell the user "I made a jingle" before the system has confirmed completion — wait for the queue notification on next turn, OR check the canvas at `/pages/jingle-maker.html`
 - ❌ Silently ignore a failure — when `[Suno generation FAILED: ...]` appears in your context, ALWAYS tell the user
+- ❌ **Include real artist or band names in any prompt, style, or tags** — Suno rejects prompts containing known artist names (e.g. "Taylor Swift style", "like The Beatles", "Metallica-inspired"). Describe the sound instead using genre, mood, instruments, tempo, and era (e.g. "heavy distorted guitar riffs, double kick drums, aggressive thrash metal" instead of "like Metallica").

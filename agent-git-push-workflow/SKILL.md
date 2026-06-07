@@ -186,6 +186,27 @@ Not every agent has write access to every repo — see the access table above (e
 
 This is the same seam `jambot-tenant-workspace` covers for tenant files — see its Cross-refs.
 
+### Algorithmic patch handoff format
+
+When the artifact is an algorithm, packer, or scoring function, include a conformance block so the receiver can verify the port before building:
+
+```
+## Conformance
+Run after porting. All cases must match exactly (not ranges):
+
+packItems([{id:'a', printWidth:11, printHeight:5, quantity:2}])
+  → sheets=1, heightUsed≈5.02, placements[0].rotated=false
+
+packItems([{id:'b', printWidth:12, printHeight:19, quantity:1}])
+  → placements[0].rotated=true, h=12.00
+```
+
+Rules:
+1. Cases are pre-verified by the SENDER before sending.
+2. The receiver runs the exact cases (not paraphrased) before building.
+3. Use exact numeric values, not ranges (5.02 not "~5").
+4. A mismatch = implementation divergence, not a test failure — debug the port.
+
 ## Cross-refs
 
 - Canonical-artifact handoff when you lack push access — stage on shared volume, host grafts or keyed peer pushes (see section above); for platform keys in the same handoff, point at the env-file path rather than pasting; tenant-file analog in `jambot-tenant-workspace`

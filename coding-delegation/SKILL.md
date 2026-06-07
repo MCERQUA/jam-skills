@@ -14,6 +14,8 @@ You MUST delegate these tasks — do NOT try to write them yourself:
 
 **Why:** You run on GLM-4.7 with limited context. Sub-agents are built for code generation — they have file tools, can iterate, and cost less per token.
 
+**Before fan-out:** write a shared `BRIEF.md` (see submesh-control Step 0.5) so parallel workers build against a single data/API contract rather than guessing at each other's interfaces.
+
 ## Z-Code — Coding CLI
 
 `z-code` is a command-line tool (NOT an ACP agent). Run it with `exec()`:
