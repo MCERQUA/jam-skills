@@ -58,12 +58,17 @@ exec("bash /mnt/shared-skills/stitch/stitch-mcp.sh <tool> '<json>'")
 stitch-mcp.sh create_project '{"title":"<Brand> — <project>"}'      # → result.name = projects/<PID>
 
 # 2. Create/attach a DESIGN SYSTEM first (consistency; informs every screen).
-#    NOTE: design-system tools DO exist (the old skill wrongly said they were removed).
-#    From a DESIGN.md / your composed brief (route 1.B template = pass its designMd; "expand on
-#    this base style and elevate it"):
-stitch-mcp.sh create_design_system_from_design_md '{"projectId":"<PID>","designMd":"<md>"}'
-#    Then get its asset id:
-stitch-mcp.sh list_design_systems '{"projectId":"<PID>"}'           # → designSystems[].name = assets/<DSID>
+#    ⚠️ USE `create_design_system` (full theme object incl. designMd field) — NOT
+#    `create_design_system_from_design_md`, which requires a `selectedScreenInstance`
+#    (an already-uploaded screen) and FAILS on fresh projects. This trap cost test-dev
+#    a full debugging round on 2026-06-07.
+stitch-mcp.sh create_design_system '{
+  "projectId":"<PID>",
+  "designSystem":{"displayName":"<name>","theme":{
+    "colorMode":"DARK|LIGHT","headlineFont":"SPACE_GROTESK","bodyFont":"WORK_SANS",
+    "roundness":"ROUND_TWELVE","customColor":"#hex",
+    "designMd":"<your DESIGN.md / style brief goes HERE as a theme field>"}}
+}'   # → result.name = assets/<DSID> (returned directly — no list call needed)
 #    (If you skip step 2, the first generate auto-derives a design system — grab its asset id
 #     from list_design_systems and pass it to all subsequent generates for consistency.)
 
@@ -92,6 +97,57 @@ curl -sL "<htmlCode.downloadUrl>" -o .stitch-pages/<slug>.html
   screen — the "one prompt → 15 pages" behavior is the WEB UI only.
 - Each generate takes ~1–3 min; `stitch-mcp.sh` blocks until the response returns the screen.
   If a single call truly errors (not just slow), retry that one page once.
+
+### ⚠️ HARD GOTCHAS (every one of these wedged an agent on 2026-06-07)
+1. **projectId is BARE NUMERIC** (`15150567938732718645`) in EVERY tool param named
+   `projectId` — passing `projects/<id>` returns "entity not found" with zero hint why.
+   The `projects/` prefix belongs ONLY in `name`-format params (`get_project`, `get_screen`).
+2. **TIMEOUTS ARE NORMAL, NEVER RETRY A GENERATE.** Via MCP-server transport the call times
+   out at ~60s while generation keeps running server-side for 1–3 min. On timeout: do NOT
+   re-fire — poll `list_screens` every 30–90s until the screen appears. Re-firing duplicates
+   work, burns quota, and triggers transient 401 "auth errors" (rate limiting) that look like
+   credential failure but aren't. If you see a 401 mid-batch: WAIT 60s, poll — don't re-auth,
+   don't re-fire.
+3. **Model: `GEMINI_3_1_PRO`.** `GEMINI_3_PRO` is hard-deprecated in the API enum now.
+4. **Multi-variant runs**: ONE project + ONE design system + N generate calls, each prompt
+   carrying a DISTINCT layout archetype label (V1 minimal-cards / V2 HUD-gauges / V3
+   timeline-board / V4 map-first / V5 bento-stats…). Fire, then poll `list_screens` once for
+   all of them — don't poll per-screen.
+
+## 🤐 COMMS CONTRACT — how to talk to the user during ANY Stitch build (Mike, 2026-06-07)
+
+The user asked for an app, not a build log. **Exactly TWO user-facing messages for a normal build:**
+1. **Ack** (one line): "I'll design and build that — give me a few minutes."
+2. **Done** (one line): "Done — <name> is open in your canvas." (+ open it: write the canvas
+   page and emit the canvas-open tag so it's already on screen when they read the message.)
+
+**NEVER narrate:** "looking at the Stitch skill", "creating a project", "setting up a design
+system", "generation takes 1-3 minutes", "polling", "got an entity-not-found, retrying",
+sub-agent spin-ups, API errors you recovered from. ALL of that is silent internal work.
+- Errors you can recover from (timeouts, rate limits, one bad variant): recover silently.
+- Only surface a problem if you need a DECISION from the user — one concise question, no
+  tool-level detail ("Want it dark or light?" not "the design-system API returned 401").
+- Progress pings only if the build exceeds ~10 min: one line, no internals ("Still building —
+  a couple more minutes.").
+
+## END-TO-END "make a webapp for this" recipe (the whole flow, silent)
+1. One-line ack (per contract above).
+2. Stitch: create project → create_design_system (style fitting the subject) →
+   generate (deviceType MOBILE unless told otherwise, GEMINI_3_1_PRO) → download HTML.
+3. Adapt the HTML into a canvas page: single file, fix asset/CDN links, any persistence goes
+   to server APIs (NEVER localStorage), save to canvas-pages + register in the manifest.
+4. Open it in the canvas (canvas-open tag) — THEN send the done message.
+5. Keep the Stitch project URL in your notes; offer it only if the user asks for variants.
+
+## MOBILE APP CONCEPTS recipe (webapp/app-style asks — NOT a separate skill)
+"Design a mobile app / webapp" asks use the exact same flow as websites with 3 changes:
+- `deviceType":"MOBILE"` (or `TABLET`) on every generate.
+- Prompts describe APP chrome, not page sections: bottom nav (5 items max), floating action
+  buttons, bottom sheets, gauges/cards — enumerate sections in order like website prompts.
+- Concept exploration = the multi-variant pattern above (gotcha 4): one shared design system,
+  one generate per style variant. Deliverable to the user = the project URL:
+  `https://stitch.withgoogle.com/projects/<PID>` (all variants browsable there).
+Reference run: project 15150567938732718645 (2026-06-07, 5 sprayfoam-ops layouts, zero retries).
 - Prompt quality is the whole game — use `instructions/stitch-auto-brief.md` (design-director
   persona + art direction + SEO plan + per-page layout variety). Generic prompts → samey output.
 
@@ -149,7 +205,7 @@ Applies mostly to the **web UI** (route 1.A) + prompt quality generally.
 1. **DESIGN.md / design system FIRST** — without it, 10 pages = 10 button styles; with it they
    look like one designer made them. You can **EXTRACT a DESIGN.md from any reference URL** whose
    aesthetic the client admires (web UI) — huge lift, and it's the natural source for route 1.B
-   ("base this on [reference], then expand/elevate"). For the API path, this = `create_design_system_from_design_md` then attach to every generate.
+   ("base this on [reference], then expand/elevate"). For the API path, this = `create_design_system` (designMd goes in theme.designMd) then attach to every generate.
 2. **One change per prompt; EDIT-first** — Stitch's own guide: combining layout + component
    changes makes it recreate the whole layout. For edits, use `edit_screens` (API) / click the
    design's Edit button first (web UI) — otherwise it regenerates instead of editing. Prompts
@@ -214,7 +270,7 @@ pipeline). Don't try to make Stitch do a full-stack tool's job.
 |---|---|
 | `create_project` | `{"title":"..."}` → result.name=projects/{id} |
 | `list_projects` / `get_project` | `{"filter":"view=owned"}` ; `{"name":"projects/{id}"}` |
-| `create_design_system_from_design_md` | `{"projectId","designMd"}` — EXISTS (old skill was wrong) |
+| `create_design_system_from_design_md` | `REQUIRES selectedScreenInstance (an uploaded screen) — FAILS on fresh projects; use `create_design_system` instead |
 | `list_design_systems` | `{"projectId"}` → designSystems[].name=assets/{id} — EXISTS |
 | `apply_design_system` / `update_design_system` | exist; verify per use |
 | `generate_screen_from_text` | `{projectId, designSystem, deviceType, modelId:GEMINI_3_1_PRO, prompt}` — **screen returned IN the response** |
