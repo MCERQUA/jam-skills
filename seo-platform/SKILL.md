@@ -148,6 +148,12 @@ curl -s "http://172.17.0.1:6350/api/seo/accumulated/backlinks?tenant=<USER>&doma
 ```
 Returns: summary (total, referring_domains, rank, dofollow/nofollow), individual backlinks (url_from, url_to, anchor, type).
 
+### Domain Rating (Ahrefs — free, external, no API key)
+```bash
+curl -s "https://api.ahrefs.com/v3/public/domain-rating-free?target=<DOMAIN>"
+```
+Returns: `{"domain_rating": {"domain_rating": 34.0}}` — Ahrefs DR on a 0–100 log scale, free and uncapped. Use as the headline authority number alongside the DataForSEO backlink detail above. Verified live 2026-06-10.
+
 ### Competitors
 ```bash
 curl -s "http://172.17.0.1:6350/api/seo/accumulated/competitors?tenant=<USER>&domain=<DOMAIN>"

@@ -133,6 +133,14 @@ curl -s -X POST "https://api.dataforseo.com/v3/dataforseo_labs/google/competitor
   }]"
 ```
 
+### Free Domain Rating (Ahrefs — no API key, no cost)
+Ahrefs' Domain Rating (DR) is now exposed as a free public endpoint — no auth, no DataForSEO cost. Use it to size up domain authority (0–100 log scale) alongside the DataForSEO backlink profile.
+```bash
+curl -s "https://api.ahrefs.com/v3/public/domain-rating-free?target=DOMAIN"
+```
+**Returns:** `{"domain_rating": {"domain_rating": 34.0}}` — DR on a 0–100 log scale.
+**Verified live 2026-06-10:** ahrefs.com → 91, CCA → 34, jam-bot.com → 0. Pair with the Backlinks API below for a fuller authority picture (DR = headline number; DataForSEO = the link detail).
+
 ### Keyword Difficulty Scores
 ```bash
 curl -s -X POST "https://api.dataforseo.com/v3/dataforseo_labs/google/bulk_keyword_difficulty/live" \
