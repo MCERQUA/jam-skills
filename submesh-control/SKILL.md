@@ -312,3 +312,9 @@ tmux send-keys -t submesh:grid.2 "" Enter
 sleep 5
 tmux capture-pane -t submesh:grid.2 -p | tail -15
 ```
+
+---
+
+## See also
+
+- **agent-git-push-workflow** — how dispatched worker agents push their completed work to MCERQUA canonical repos using SSH deploy keys. Load this skill when wiring the final push step of any worker build.

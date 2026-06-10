@@ -83,5 +83,9 @@ def dfs_get_result0(result: dict) -> dict:
     except (KeyError, IndexError, TypeError):
         return {}
 
+# ── Ahrefs DR API (free endpoint) ────────────────────────────────────────────
+# Get a free key at docs.ahrefs.com — set AHREFS_API_KEY in .platform-keys.env
+AHREFS_API_KEY = os.environ.get("AHREFS_API_KEY", "")
+
 # ── Social Dashboard (cc-backlinks) ──────────────────────────────────────────
 CC_BACKLINKS_URL = "http://172.17.0.1:6350/api/seo/cc-backlinks"

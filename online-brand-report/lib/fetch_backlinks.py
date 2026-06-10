@@ -3,16 +3,19 @@
 import sys
 import requests
 from .config import dfs_post, dfs_get_result0, dfs_get_items, CC_BACKLINKS_URL
+from .fetch_ahrefs import fetch_domain_rating, enrich_domains_with_dr
 
 def fetch_backlinks(domain: str) -> dict:
     """Return backlink data. Never raises."""
     out = {
         "domain_rank": 0,
+        "ahrefs_dr": 0,           # Ahrefs Domain Rating 0-100 (authoritative authority signal)
+        "ahrefs_rank": 0,         # Ahrefs global rank
         "backlinks_total": 0,
         "referring_domains_total": 0,
         "dofollow_count": 0,
         "nofollow_count": 0,
-        "top_referring_domains": [],  # list of {domain, rank, backlinks}
+        "top_referring_domains": [],  # list of {domain, rank, backlinks, dr}
         "anchor_text_dist": {         # for doughnut chart
             "labels": ["Branded", "Exact match", "Partial", "Generic", "Naked URL"],
             "data": [0, 0, 0, 0, 0],
@@ -23,6 +26,14 @@ def fetch_backlinks(domain: str) -> dict:
         # availability from value>0 made the Brand Health Score swing run-to-run. (Fixed 2026-06-01.)
         "_backlinks_available": False,
     }
+
+    # --- Ahrefs Domain Rating (free API endpoint) ---
+    try:
+        ahrefs = fetch_domain_rating(domain)
+        out["ahrefs_dr"]   = ahrefs["dr"]
+        out["ahrefs_rank"] = ahrefs["ahrefs_rank"]
+    except Exception as e:
+        print(f"[INFO] Ahrefs DR fetch skipped: {e}", file=sys.stderr)
 
     # --- DataForSEO Backlinks Summary ---
     try:
@@ -58,9 +69,20 @@ def fetch_backlinks(domain: str) -> dict:
                 "domain": item.get("domain") or "",
                 "rank": int(item.get("rank") or 0),
                 "backlinks": int(item.get("backlinks") or 1),
+                "dr": 0,  # populated below
             })
     except Exception as e:
         print(f"[WARN] Referring domains fetch failed: {e}", file=sys.stderr)
+
+    # --- Ahrefs DR enrichment for top referring domains ---
+    try:
+        rd_domains = [d["domain"] for d in out["top_referring_domains"] if d.get("domain")]
+        if rd_domains:
+            dr_map = enrich_domains_with_dr(rd_domains)
+            for entry in out["top_referring_domains"]:
+                entry["dr"] = dr_map.get(entry["domain"], {}).get("dr", 0)
+    except Exception as e:
+        print(f"[INFO] Ahrefs DR enrichment for referring domains skipped: {e}", file=sys.stderr)
 
     # --- Anchor Text Distribution ---
     try:

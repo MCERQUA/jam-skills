@@ -121,3 +121,7 @@ When you discover a reliable multi-step workflow, add it to the **Tested Workflo
 3. Any timing notes or gotchas
 
 This skill is the evolving library. Refine it as you learn what works.
+
+
+## Session bootstrap (desktop agents)
+Desktop agents dispatched via this skill should bootstrap their mesh session with `mesh-start` (canonical wrapper: `/config/claude-mesh-session.sh`). See: `/mnt/system/base/mesh-commands/mesh-start.md`.

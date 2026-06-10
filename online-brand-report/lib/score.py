@@ -59,10 +59,13 @@ def calculate_score(data: dict) -> dict:
 
     # ── Backlinks (15%) ──────────────────────────────────────────────────────
     domain_rank = data.get("domain_rank", 0)
+    ahrefs_dr   = data.get("ahrefs_dr", 0)
     ref_domains = data.get("referring_domains_total", 0)
-    rank_score = _clamp(domain_rank)
+    # Ahrefs DR is a better authority signal than DataForSEO's internal rank.
+    # Use DR when available; fall back to DataForSEO rank (also 0-100 scale).
+    authority_score = _clamp(ahrefs_dr if ahrefs_dr > 0 else domain_rank)
     rd_score   = _clamp(min(100, (ref_domains / 100) * 100))
-    bl_score   = _clamp((rank_score * 0.6) + (rd_score * 0.4))
+    bl_score   = _clamp((authority_score * 0.6) + (rd_score * 0.4))
 
     # ── Content (10%) ────────────────────────────────────────────────────────
     gap_count      = data.get("gap_count", 0)
@@ -94,7 +97,7 @@ def calculate_score(data: dict) -> dict:
         "local":     avail("_local_available",
                            review_count > 0 or review_avg > 0
                            or any(v is not None for v in (map_positions or {}).values())),
-        "backlinks": avail("_backlinks_available", domain_rank > 0 or ref_domains > 0),
+        "backlinks": avail("_backlinks_available", domain_rank > 0 or ref_domains > 0 or ahrefs_dr > 0),
         # platforms_total defaults to 6 so it's always truthy — useless as a signal. Available only
         # if at least one platform was actually found/claimed (ica-voice 2026-06-01).
         "social":    avail("_social_available", platforms_claimed > 0),

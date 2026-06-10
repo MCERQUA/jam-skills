@@ -224,3 +224,7 @@ cp /tmp/screenshot.png /app/runtime/uploads/screenshot.png
 5. **Timeout** — default is 30s, increase for slow sites: `timeout: 60000`
 6. **SPA content missing** — use `waitForSelector` or `waitForFunction` after navigation
 7. **Cookie banners blocking content** — click dismiss button first, or use `page.evaluate` to remove overlay
+
+
+## Session bootstrap (desktop agents)
+Desktop agents dispatched via this skill should bootstrap their mesh session with `mesh-start` (canonical wrapper: `/config/claude-mesh-session.sh`). See: `/mnt/system/base/mesh-commands/mesh-start.md`.
