@@ -43,6 +43,8 @@ Phase 1.5 BRAND-EXTRACT may still write `.brand/colors.json` for reference + fav
 
 **RULE 11 — Failure stops the pipeline.** "Marked complete with warnings" is forbidden. If a phase gate fails, set `status: failed` with the failing gate name and HALT.
 
+**RULE 12 — Conversion rules are MANDATORY.** Every client is a home-service business, and a beautiful site that doesn't make the phone ring is a failed build. **Read `CONVERSION-RULES.md` (this skill dir) and apply all 8 rules on every build** — above-the-fold trust-stack + `tel:` phone (sticky, no modal), ≤4 form fields, mobile PageSpeed >70 / <2s, reviews at every scroll depth, real photos (never stock), financing on service pages, sticky CTAs. The Phase 7 visual gate (RULE 7) MUST also verify: a clickable `tel:` link above the fold, form ≤4 fields, no auto-play hero video, no first-visit popup, hero image <500KB. A build that violates a conversion rule fails the gate.
+
 ---
 
 ## ⚠️ CONTAINER RULE — NON-NEGOTIABLE
