@@ -1,0 +1,34 @@
+# Effects Library — liftable, commented design references
+
+Self-contained HTML references the builder can **study and lift from** when a brief calls
+for premium/modern visual polish (dark "AI-product" aesthetics, glassmorphism, glow). Open
+the file in a browser to see each effect live; every technique is commented inline. Lift the
+specific block you need — don't paste a whole kit into a client site.
+
+> When to reach for these: a brief asks for a sleek/modern/premium/"SaaS" or AI-tool feel,
+> dark UI, glass panels, or tasteful glow. **Do NOT** use on home-service conversion sites
+> where speed + clarity win (see [CONVERSION-RULES.md](../CONVERSION-RULES.md)) — heavy
+> blur/glow hurts mobile PageSpeed and buries the phone CTA. Match the tool to the brief.
+
+---
+
+## glow-glass-kit.html — gradient borders · cursor spotlight · colored glass · ambient bloom
+
+Six techniques, each driven by **one accent custom property** (raw RGB triplet, e.g.
+`--violet: 168 85 247`) so any block re-themes to a brand color in one line via
+`rgb(var(--a) / <alpha>)`.
+
+| # | Technique | What it is | Lift when |
+|---|-----------|-----------|-----------|
+| 1 | **Gradient glow border** (`.glow-border`) | A `::before` with `padding:1px` painted with a gradient, then `mask-composite: exclude` keeps only the 1px ring; a blurred `::after` clone is the glow. No real border, no extra markup. Theme per-instance with `--edge`. | Feature cards, pricing tiles, hero panels that need a lit edge. |
+| 2 | **Cursor-spotlight border** (`.spotlight`) | Same mask trick, but a `radial-gradient` centered on `--mx/--my` updated by ~6 lines of JS on `mousemove`; a faint white ring keeps the edge visible at rest. | Interactive card grids, "pick a plan/tool" selectors. |
+| 3 | **Colored glass pills** (`.pill`, `--a` accent) | Translucent base + `backdrop-filter: blur+saturate`, 1px white edge, inset top highlight, hover→colored tint + bloom shadow. `.is-active` = persistent selected state. | Toolbars, filter/segment controls, tag chips. |
+| 4 | **Glass tooltip** (`.tooltip`, pure CSS) | Hover/`focus-within` reveal, glass surface + gradient edge, sprung scale-in. Accessible (works on focus). | Inline help, control labels. |
+| 5 | **Ambient bloom** (`.bloom`) | A blurred radial blob behind content for cheap depth. | Section/hero backgrounds. |
+| 6 | **Solid colored-glass button** (`.btn-solid`) | Always-lit gradient fill + inset highlight + outer glow. | Primary CTA on dark surfaces. |
+
+**Conventions to copy:**
+- Define accents as **space-separated RGB triplets** (`--violet: 168 85 247`), not hex — lets you build `rgb(var(--violet) / .3)` tints at any opacity from one value.
+- The `mask-composite` ring trick (blocks 1, 2, 4) is the reusable primitive — learn it once, reuse everywhere a gradient/animated border is wanted.
+- Always ship the `@media (prefers-reduced-motion: reduce)` guard (already in the kit) — required for accessibility.
+- All effects are GPU-cheap **except** stacked `backdrop-filter` blurs; use sparingly on mobile and never on a conversion-critical hero.

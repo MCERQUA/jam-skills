@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glow + Glass Kit — Effects Reference</title>
+<style>
+/* ============================================================
+   GLOW + GLASS KIT
+   Reference component library: gradient borders, cursor-spotlight
+   edges, colored glass buttons, glass tooltips, ambient bloom.
+   Every technique is commented. Lift what you need.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. TOKENS — change accents here, everything follows.
+   Each accent gets a raw RGB triplet so we can build
+   rgba() tints at any opacity from one value.
+   ------------------------------------------------------------ */
+:root {
+  --bg: #0c0c0f;
+  --surface: #141418;
+  --surface-2: #1a1a20;
+  --text: #ececf1;
+  --text-dim: #8b8b95;
+
+  --violet: 168 85 247;    /* primary accent */
+  --ember: 249 115 22;     /* warm accent (the orange pill) */
+  --cyan: 34 211 238;
+  --lime: 163 230 53;
+
+  --radius: 14px;
+  --radius-pill: 999px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  padding: 56px 24px 120px;
+  /* subtle dot grid like the reference UI */
+  background-image: radial-gradient(rgba(255 255 255 / .035) 1px, transparent 1px);
+  background-size: 22px 22px;
+  overflow-x: hidden;
+}
+
+.wrap { max-width: 880px; margin: 0 auto; }
+
+h1 {
+  font-size: 30px; font-weight: 650; letter-spacing: -.02em;
+  margin-bottom: 6px;
+}
+.sub { color: var(--text-dim); font-size: 14px; margin-bottom: 48px; }
+
+section { margin-bottom: 64px; }
+
+.label {
+  font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-dim);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+}
+.label::after { content: ""; flex: 1; height: 1px; background: rgba(255 255 255 / .07); }
+
+code.inline {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px; color: rgb(var(--violet) / 1);
+  background: rgb(var(--violet) / .1);
+  padding: 2px 7px; border-radius: 6px;
+}
+.note { font-size: 13px; color: var(--text-dim); line-height: 1.65; margin-top: 14px; max-width: 64ch; }
+
+/* ------------------------------------------------------------
+   2. THE CORE TRICK — gradient border with mask-composite.
+   You can't color a normal border with a gradient + glow, so:
+   a ::before is inset 0 with `padding: 1px`, painted with a
+   gradient, then masked so ONLY the 1px padding ring survives.
+   Glow comes from a second ::after copy that's blurred.
+   ------------------------------------------------------------ */
+.glow-border {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+.glow-border::before,
+.glow-border::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;                       /* = border thickness */
+  background: var(--edge,
+    linear-gradient(135deg,
+      rgb(var(--violet) / .9),
+      rgb(var(--violet) / .15) 40%,
+      rgb(var(--cyan) / .6)));
+  /* keep only the padding ring: */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask-composite: exclude;
+  pointer-events: none;
+}
+.glow-border::after {
+  filter: blur(7px);                  /* the glow = blurred clone */
+  opacity: .8;
+}
+
+.demo-panel {
+  padding: 28px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.demo-panel strong { font-size: 15px; font-weight: 600; }
+.demo-panel span { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+/* ------------------------------------------------------------
+   3. SPOTLIGHT BORDER — border lights where the cursor is.
+   Same mask trick, but the gradient is a radial-gradient whose
+   center is driven by --mx / --my custom props set from JS.
+   A faint static ring (rgba white) keeps the edge visible
+   when the cursor is elsewhere.
+   ------------------------------------------------------------ */
+.spotlight {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--radius);
+  --mx: 50%; --my: 50%;
+  --spot: var(--violet);
+}
+.spotlight::before {
+  content: "";
+  position: absolute; inset: 0; border-radius: inherit;
+  padding: 1px;
+  background:
+    radial-gradient(240px circle at var(--mx) var(--my),
+      rgb(var(--spot) / 1), rgb(var(--spot) / .25) 45%, transparent 70%),
+    linear-gradient(rgba(255 255 255 / .08) 0 0);   /* resting edge */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.spotlight:hover::before { opacity: 1; }
+/* inner wash that follows the cursor too — very low alpha */
+.spotlight::after {
+  content: "";
+  position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(320px circle at var(--mx) var(--my),
+    rgb(var(--spot) / .07), transparent 65%);
+  pointer-events: none;
+  opacity: 0; transition: opacity .35s ease;
+}
+.spotlight:hover::after { opacity: 1; }
+
+.spot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.spot-card { padding: 24px; min-height: 130px; }
+.spot-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.spot-card p { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
+
+/* ------------------------------------------------------------
+   4. GLASS PILL BUTTONS — the toolbar from the reference UI.
+   Recipe per button:
+     - translucent base + backdrop-filter blur/saturate
+     - 1px rgba(white) edge
+     - inset top highlight = the "glass" read
+     - hover: colored tint + colored edge + outer bloom shadow
+   Accent is one custom prop (--a) so variants are one line.
+   ------------------------------------------------------------ */
+.pillbar { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.pill {
+  --a: 255 255 255;                          /* accent RGB, override per variant */
+  position: relative;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 20px;
+  font: 600 13.5px/1 inherit;
+  font-family: inherit;
+  color: var(--text);
+  background: rgba(255 255 255 / .045);
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  border: 1px solid rgba(255 255 255 / .09);
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 1px 0 rgba(255 255 255 / .08);   /* top glass highlight */
+  cursor: pointer;
+  transition: background .25s, border-color .25s, box-shadow .25s, color .25s, transform .15s;
+}
+.pill:hover {
+  background: rgb(var(--a) / .13);                      /* colored glass tint */
+  border-color: rgb(var(--a) / .55);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255 255 255 / .14),
+    0 0 0 1px rgb(var(--a) / .12),
+    0 0 22px rgb(var(--a) / .35),                       /* the bloom */
+    0 4px 16px rgb(0 0 0 / .4);
+}
+.pill:active { transform: scale(.97); }
+.pill:focus-visible { outline: 2px solid rgb(var(--a) / .8); outline-offset: 2px; }
+
+/* persistent "selected" state — like the purple Creative Upscaler pill */
+.pill.is-active {
+  background: rgb(var(--a) / .16);
+  border-color: rgb(var(--a) / .65);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255 255 255 / .15),
+    0 0 18px rgb(var(--a) / .4);
+}
+
+.pill--violet { --a: var(--violet); }
+.pill--ember  { --a: var(--ember); }
+.pill--cyan   { --a: var(--cyan); }
+.pill--lime   { --a: var(--lime); }
+
+.pill .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgb(var(--a) / .9);
+  box-shadow: 0 0 8px rgb(var(--a) / .8);
+}
+
+/* ------------------------------------------------------------
+   5. GLASS TOOLTIP — same gradient-edge + glow treatment,
+   pure CSS, appears above the trigger on hover/focus.
+   ------------------------------------------------------------ */
+.tip-host { position: relative; }
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  width: 240px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(20 20 26 / .85);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: 0 12px 40px rgb(0 0 0 / .55), 0 0 24px rgb(var(--a) / .15);
+  opacity: 0;
+  transform: translateY(6px) scale(.97);
+  transform-origin: bottom left;
+  transition: opacity .22s ease, transform .22s cubic-bezier(.2, .9, .3, 1.2);
+  pointer-events: none;
+  z-index: 10;
+}
+.tooltip::before {                       /* gradient edge on the tooltip itself */
+  content: "";
+  position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+  background: linear-gradient(160deg,
+    rgb(var(--a) / .7), rgba(255 255 255 / .08) 45%, rgb(var(--a) / .25));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask-composite: exclude;
+  pointer-events: none;
+}
+.tooltip h4 {
+  font-size: 13px; font-weight: 600; margin-bottom: 5px;
+  display: flex; align-items: center; gap: 7px;
+}
+.tooltip p { font-size: 12px; color: var(--text-dim); line-height: 1.55; }
+.tip-host:hover .tooltip,
+.tip-host:focus-within .tooltip {
+  opacity: 1; transform: translateY(0) scale(1);
+}
+
+/* ------------------------------------------------------------
+   6. AMBIENT BLOOM — the soft corner glow behind the panel.
+   A blurred radial blob, absolutely positioned, behind content.
+   Cheap and very effective for depth.
+   ------------------------------------------------------------ */
+.stage {
+  position: relative;
+  border-radius: 18px;
+  background: var(--surface);
+  overflow: hidden;
+  padding: 48px 32px 64px;
+}
+.stage .bloom {
+  position: absolute;
+  width: 420px; height: 420px;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+.bloom--1 { right: -140px; bottom: -180px; background: rgb(var(--violet) / .28); }
+.bloom--2 { left: -160px; top: -160px; background: rgb(var(--cyan) / .12); }
+.stage > .inner { position: relative; z-index: 1; }
+
+/* hero composition inside the stage */
+.stage h2 { font-size: 24px; font-weight: 650; text-align: center; letter-spacing: -.02em; margin-bottom: 24px; }
+.stage .pillbar { justify-content: center; margin-bottom: 36px; }
+.dropzone {
+  max-width: 520px; margin: 0 auto;
+  padding: 44px 24px;
+  text-align: center;
+  border-radius: var(--radius);
+  --spot: var(--violet);
+}
+.dropzone p { color: var(--text-dim); font-size: 13.5px; margin: 14px 0 20px; }
+.dz-actions { display: flex; gap: 10px; justify-content: center; }
+
+/* solid primary button — colored glass, always lit */
+.btn-solid {
+  --a: var(--violet);
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px;
+  font: 600 13.5px/1 inherit; font-family: inherit;
+  color: #fff;
+  border: 1px solid rgb(var(--a) / .7);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgb(var(--a) / .55), rgb(var(--a) / .35));
+  box-shadow: inset 0 1px 0 rgba(255 255 255 / .25), 0 0 20px rgb(var(--a) / .35);
+  cursor: pointer;
+  transition: box-shadow .25s, transform .15s;
+}
+.btn-solid:hover {
+  box-shadow: inset 0 1px 0 rgba(255 255 255 / .3), 0 0 34px rgb(var(--a) / .55);
+}
+.btn-solid:active { transform: scale(.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Glow + Glass Kit</h1>
+  <p class="sub">Four layered techniques — gradient borders, cursor-spotlight edges, colored glass, ambient bloom. View source; every block is commented.</p>
+
+  <!-- ===================== 1. GRADIENT GLOW BORDER ===================== -->
+  <section>
+    <div class="label">01 · Gradient glow border</div>
+    <div class="glow-border">
+      <div class="demo-panel">
+        <strong>The mask-composite trick</strong>
+        <span>A <code class="inline">::before</code> with <code class="inline">padding: 1px</code> is painted with a gradient, then masked so only the 1px ring survives. A blurred <code class="inline">::after</code> clone of the same ring is the glow. No real border, no extra markup.</span>
+      </div>
+    </div>
+    <p class="note">Swap the gradient via the <code class="inline">--edge</code> custom property per component — one container class, infinite border styles.</p>
+  </section>
+
+  <!-- ===================== 2. SPOTLIGHT BORDER ===================== -->
+  <section>
+    <div class="label">02 · Cursor spotlight border — move your mouse over these</div>
+    <div class="spot-grid">
+      <div class="spotlight spot-card" style="--spot: var(--violet)">
+        <h3>Violet</h3>
+        <p>The border gradient is a radial-gradient centered at --mx/--my, updated by ~6 lines of JS on mousemove.</p>
+      </div>
+      <div class="spotlight spot-card" style="--spot: var(--ember)">
+        <h3>Ember</h3>
+        <p>A faint white ring underneath keeps the edge readable when the spotlight isn't lit.</p>
+      </div>
+      <div class="spotlight spot-card" style="--spot: var(--cyan)">
+        <h3>Cyan</h3>
+        <p>The ::after adds a low-alpha inner wash that tracks the cursor — depth without noise.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3. GLASS PILLS + TOOLTIPS ===================== -->
+  <section>
+    <div class="label">03 · Colored glass pills — hover, and hold on the first two for the tooltip</div>
+    <div class="pillbar">
+      <span class="tip-host pill pill--ember" tabindex="0" style="--a: var(--ember)">
+        ↗ Standard Upscaler
+        <span class="tooltip">
+          <h4><span class="dot"></span> Standard Upscaler</h4>
+          <p>Clean, reliable upscaling across a wide range of image types while maintaining true-to-input detail and structure.</p>
+        </span>
+      </span>
+      <span class="tip-host pill pill--cyan" tabindex="0" style="--a: var(--cyan)">
+        ✦ Sharpen
+        <span class="tooltip">
+          <h4><span class="dot"></span> Sharpen</h4>
+          <p>Edge-aware sharpening that boosts micro-contrast without halos or crunchy artifacts.</p>
+        </span>
+      </span>
+      <button class="pill pill--lime">✧ Wonder 3</button>
+      <button class="pill pill--violet is-active">❋ Creative Upscaler</button>
+      <button class="pill">More +</button>
+    </div>
+    <p class="note">One <code class="inline">--a</code> RGB custom property drives the tint, edge, dot, bloom, and tooltip accent. Adding a brand color = one line. The tooltip is pure CSS (hover/focus-within), glass + gradient edge, with a sprung scale-in.</p>
+  </section>
+
+  <!-- ===================== 4. FULL COMPOSITION ===================== -->
+  <section>
+    <div class="label">04 · Everything together — ambient bloom + spotlight dropzone</div>
+    <div class="glow-border" style="--edge: linear-gradient(135deg, rgb(var(--violet) / .6), rgba(255 255 255 / .06) 50%, rgb(var(--violet) / .3))">
+      <div class="stage">
+        <div class="bloom bloom--1"></div>
+        <div class="bloom bloom--2"></div>
+        <div class="inner">
+          <h2>Hey Mike, ready to enhance?</h2>
+          <div class="pillbar">
+            <button class="pill pill--ember">↗ Standard</button>
+            <button class="pill pill--cyan">✦ Sharpen</button>
+            <button class="pill pill--violet is-active">❋ Creative</button>
+          </div>
+          <div class="spotlight dropzone">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgb(168 85 247)" stroke-width="1.6" style="opacity:.85">
+              <rect x="3" y="3" width="18" height="18" rx="4"/>
+              <path d="M12 8v8M8 12h8"/>
+            </svg>
+            <p>Add assets to enhance</p>
+            <div class="dz-actions">
+              <button class="btn-solid">⬆ Upload</button>
+              <button class="pill">Select asset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* Spotlight driver — the only JS in the kit.
+   Writes the cursor position into --mx/--my on every .spotlight,
+   which the border + inner-wash gradients read. */
+document.querySelectorAll('.spotlight').forEach(el => {
+  el.addEventListener('mousemove', e => {
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+});
+</script>
+</body>
+</html>

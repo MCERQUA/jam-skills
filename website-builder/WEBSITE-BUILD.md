@@ -45,6 +45,8 @@ Phase 1.5 BRAND-EXTRACT may still write `.brand/colors.json` for reference + fav
 
 **RULE 12 — Conversion rules are MANDATORY.** Every client is a home-service business, and a beautiful site that doesn't make the phone ring is a failed build. **Read `CONVERSION-RULES.md` (this skill dir) and apply all 8 rules on every build** — above-the-fold trust-stack + `tel:` phone (sticky, no modal), ≤4 form fields, mobile PageSpeed >70 / <2s, reviews at every scroll depth, real photos (never stock), financing on service pages, sticky CTAs. The Phase 7 visual gate (RULE 7) MUST also verify: a clickable `tel:` link above the fold, form ≤4 fields, no auto-play hero video, no first-visit popup, hero image <500KB. A build that violates a conversion rule fails the gate.
 
+**RULE 13 — Effects library for premium/modern briefs.** When a brief calls for a sleek, modern, premium, "SaaS", or AI-product aesthetic (dark UI, glassmorphism, tasteful glow), study `references/EFFECTS-LIBRARY.md` + `references/glow-glass-kit.html` (this skill dir) and **lift the specific commented technique** you need — gradient `mask-composite` glow borders, cursor-spotlight edges, colored-glass pills/tooltips, ambient bloom. All are accent-driven by one RGB-triplet custom property, so they re-theme to the brand in one line. **Caveat:** these are for premium-aesthetic briefs ONLY — never on a home-service conversion site (RULE 12), where heavy `backdrop-filter` blur/glow hurts mobile PageSpeed and buries the phone CTA. Match the tool to the brief.
+
 ---
 
 ## ⚠️ CONTAINER RULE — NON-NEGOTIABLE
