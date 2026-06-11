@@ -10,6 +10,20 @@ specific block you need — don't paste a whole kit into a client site.
 > where speed + clarity win (see [CONVERSION-RULES.md](../CONVERSION-RULES.md)) — heavy
 > blur/glow hurts mobile PageSpeed and buries the phone CTA. Match the tool to the brief.
 
+> ## 📥 INTAKE — this is a GROWING collection (Mike is gathering more Fable examples)
+> **Status (2026-06-11):** 2 Fable reference files saved (`glow-glass-kit.html`,
+> `off-catalog-components.html`). More incoming — Mike is collecting examples to review the
+> full set in one pass before the component break-out runs. **Batch extraction is DEFERRED
+> until then** (tracked in the void: `ovh-fable-components`).
+>
+> **To add a new example later:** (1) save the raw HTML verbatim as `references/<kebab-name>.html`
+> — it is a PRESERVED ORIGINAL, never edited/deleted; (2) append each of its components to
+> `components/_manifest.json` (slug, name, source, category, `conversion_safe`, `vars`,
+> `status:"pending"`, + `conversion_note` if it maps to a CONVERSION-RULE); (3) add a one-row
+> summary to the catalog below. When the collection is complete, run the break-out per
+> `components/README.md` (delegate to a cheaper LLM; `components/magnetic-cta.html` is the
+> worked exemplar of the generic + `{{vars}}` + RGB-triplet-accent pattern).
+
 ---
 
 ## glow-glass-kit.html — gradient borders · cursor spotlight · colored glass · ambient bloom
