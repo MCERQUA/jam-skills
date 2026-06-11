@@ -1,0 +1,76 @@
+<!-- ============================================================
+     COMPONENT: Magnetic Call CTA   (generic / brandable)
+     Source: off-catalog-components.html · SPEC 21
+     The button leans toward the cursor inside a field radius and
+     springs home on leave, with a slow radar ping so it reads live.
+
+     VARIABLES (edit the :root block + the two {{ }} slots):
+       --cta-rgb     button color, space-separated RGB triplet
+       --cta-ink     text/icon color on the button
+       --cta-field   magnetic pull radius in px (0 disables pull)
+       {{LABEL}}     button text (keep a phone verb for trade sites)
+       {{HREF}}      tel:+1XXXXXXXXXX  ← a REAL clickable phone link (RULE 12)
+
+     This is the RULE 12 primary CTA. Always a real tel: anchor — the
+     magnetism is enhancement, never a replacement for the dialer link.
+     ============================================================ -->
+<style>
+.magcta-stage{ /* the pull field; size it to your hero/section */
+  --cta-rgb: 255 180 84;
+  --cta-ink: #14161c;
+  --cta-field: 140;
+  display:flex;align-items:center;justify-content:center;
+  min-height:160px;position:relative;
+}
+.magcta{
+  position:relative;display:inline-flex;align-items:center;gap:10px;
+  text-decoration:none;border:none;cursor:pointer;
+  font:600 14px/1 system-ui,sans-serif;letter-spacing:.06em;
+  padding:19px 38px;border-radius:100px;
+  background:rgb(var(--cta-rgb));color:var(--cta-ink);
+  box-shadow:0 12px 34px rgb(var(--cta-rgb) / .35);
+  will-change:transform;
+}
+.magcta::before{ /* radar ping — reads as live even at rest */
+  content:'';position:absolute;inset:-3px;border-radius:inherit;
+  border:2px solid rgb(var(--cta-rgb) / .8);
+  animation:magcta-ping 2.2s cubic-bezier(.2,.6,.4,1) infinite;
+  pointer-events:none;
+}
+@keyframes magcta-ping{
+  0%{transform:scale(1);opacity:.9}
+  70%,100%{transform:scale(1.45);opacity:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .magcta::before{animation:none}
+  .magcta{transition:none!important}
+}
+</style>
+
+<div class="magcta-stage" id="magctaStage">
+  <a class="magcta" id="magctaBtn" href="{{HREF}}">📞 {{LABEL}}</a>
+</div>
+
+<script>
+(function(){
+  const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const stage=document.getElementById('magctaStage'), btn=document.getElementById('magctaBtn');
+  const FIELD=parseFloat(getComputedStyle(stage).getPropertyValue('--cta-field'))||140;
+  const home='transform .5s cubic-bezier(.2,1.6,.4,1)';
+  stage.addEventListener('pointermove',e=>{
+    const r=btn.getBoundingClientRect();
+    const dx=e.clientX-(r.left+r.width/2), dy=e.clientY-(r.top+r.height/2);
+    const d=Math.hypot(dx,dy);
+    if(d<FIELD && !reduced){
+      const pull=(1-d/FIELD)*0.42;
+      btn.style.transition='none';
+      btn.style.transform=`translate(${dx*pull}px,${dy*pull}px)`;
+    }else{
+      btn.style.transition=home; btn.style.transform='translate(0,0)';
+    }
+  });
+  stage.addEventListener('pointerleave',()=>{
+    btn.style.transition=home; btn.style.transform='translate(0,0)';
+  });
+})();
+</script>

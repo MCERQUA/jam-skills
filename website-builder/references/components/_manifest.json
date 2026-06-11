@@ -1,0 +1,342 @@
+{
+  "_doc": "Extraction manifest for the Fable design references. The two source HTML files in references/ are the PRESERVED ORIGINALS (never edit/delete). This manifest drives breaking each component out into a GENERIC, variable-driven standalone snippet under components/. Each entry lists the variables that must replace the hardcoded (spray-foam) demo content so the component drops into ANY brand. Status: 'pending' = not yet extracted, 'done' = generic snippet exists. Safe to batch-process (e.g. delegate extraction to a cheaper LLM) one entry at a time.",
+  "convention": {
+    "accents": "Colors become CSS custom properties as space-separated RGB triplets (e.g. --accent: 168 85 247) so rgb(var(--accent) / <alpha>) builds any tint. One property re-themes the whole component.",
+    "content": "Client-specific text/numbers become {{HANDLEBARS}} placeholders (e.g. {{PHONE}}, {{RATE_PER_UNIT}}, {{HEADLINE}}). NO FoamOps / spray-foam / R-40 strings survive in a generic component.",
+    "file": "components/<slug>.html \u2014 self-contained: scoped CSS + minimal JS, a :root var block at top listing every knob, and a leading comment documenting variables + the conversion-rule note where relevant.",
+    "reduced_motion": "Always keep the @media (prefers-reduced-motion: reduce) guard."
+  },
+  "components": [
+    {
+      "slug": "glow-border",
+      "name": "Gradient Glow Border",
+      "source": "glow-glass-kit.html",
+      "category": "surface",
+      "conversion_safe": true,
+      "vars": [
+        "--edge (gradient)",
+        "--accent-rgb"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "spotlight-border",
+      "name": "Cursor Spotlight Border",
+      "source": "glow-glass-kit.html",
+      "category": "surface",
+      "conversion_safe": true,
+      "vars": [
+        "--spot-rgb"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "glass-pill",
+      "name": "Colored Glass Pill",
+      "source": "glow-glass-kit.html",
+      "category": "action",
+      "conversion_safe": false,
+      "vars": [
+        "--accent-rgb",
+        "label"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "glass-tooltip",
+      "name": "Glass Tooltip",
+      "source": "glow-glass-kit.html",
+      "category": "surface",
+      "conversion_safe": true,
+      "vars": [
+        "--accent-rgb",
+        "title",
+        "body"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "ambient-bloom",
+      "name": "Ambient Bloom",
+      "source": "glow-glass-kit.html",
+      "category": "surface",
+      "conversion_safe": true,
+      "vars": [
+        "--bloom-rgb",
+        "position"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "solid-glass-cta",
+      "name": "Solid Glass CTA",
+      "source": "glow-glass-kit.html",
+      "category": "action",
+      "conversion_safe": true,
+      "vars": [
+        "--accent-rgb",
+        "label",
+        "href"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "gravity-type",
+      "name": "Gravity Variable Type",
+      "source": "off-catalog-components.html",
+      "category": "type",
+      "conversion_safe": false,
+      "vars": [
+        "{{TEXT}}",
+        "--accent-rgb"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "dead-mans-switch",
+      "name": "Hold-to-Confirm Button",
+      "source": "off-catalog-components.html",
+      "category": "action",
+      "conversion_safe": true,
+      "vars": [
+        "{{LABEL}}",
+        "{{DONE_LABEL}}",
+        "--danger-rgb",
+        "hold_ms"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "inertia-dial",
+      "name": "Momentum Dial Input",
+      "source": "off-catalog-components.html",
+      "category": "input",
+      "conversion_safe": false,
+      "vars": [
+        "min",
+        "max",
+        "--accent-rgb"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "metaball-menu",
+      "name": "Metaball FAB Menu",
+      "source": "off-catalog-components.html",
+      "category": "nav",
+      "conversion_safe": false,
+      "vars": [
+        "items[]",
+        "--accent-rgb"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "specular-card",
+      "name": "Specular Tilt Card",
+      "source": "off-catalog-components.html",
+      "category": "surface",
+      "conversion_safe": true,
+      "vars": [
+        "{{TITLE}}",
+        "{{BODY}}",
+        "{{CHIPS}}"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "elastic-slider",
+      "name": "Elastic Spring Slider",
+      "source": "off-catalog-components.html",
+      "category": "input",
+      "conversion_safe": false,
+      "vars": [
+        "--accent-rgb"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "gum-tabs",
+      "name": "Gum-Stretch Tabs",
+      "source": "off-catalog-components.html",
+      "category": "nav",
+      "conversion_safe": true,
+      "vars": [
+        "tabs[]",
+        "--accent-rgb"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "stained-glass-set",
+      "name": "Stained Glass Buttons",
+      "source": "off-catalog-components.html",
+      "category": "action",
+      "conversion_safe": false,
+      "vars": [
+        "--t1-rgb",
+        "--t2-rgb",
+        "label"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "prism-edge",
+      "name": "Prism Refraction Pill",
+      "source": "off-catalog-components.html",
+      "category": "action",
+      "conversion_safe": false,
+      "vars": [
+        "{{LABEL}}"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "gradient-frost",
+      "name": "Progressive Blur Panel",
+      "source": "off-catalog-components.html",
+      "category": "surface",
+      "conversion_safe": false,
+      "vars": [
+        "{{FEED_ITEMS}}",
+        "{{CAPTION}}",
+        "gradient"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "tint-swap-pane",
+      "name": "Re-tintable Glass Pane",
+      "source": "off-catalog-components.html",
+      "category": "surface",
+      "conversion_safe": false,
+      "vars": [
+        "tints{}",
+        "{{TITLE}}",
+        "{{BODY}}"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "fluted-glass",
+      "name": "Fluted (Reeded) Glass",
+      "source": "off-catalog-components.html",
+      "category": "surface",
+      "conversion_safe": false,
+      "vars": [
+        "{{WORD}}",
+        "gradient"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "condensation",
+      "name": "Wipe-to-Reveal Fog",
+      "source": "off-catalog-components.html",
+      "category": "reveal",
+      "conversion_safe": false,
+      "vars": [
+        "{{ART}}",
+        "fog_density"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "shatter-pane",
+      "name": "Tempered Shatter Pane",
+      "source": "off-catalog-components.html",
+      "category": "surface",
+      "conversion_safe": false,
+      "vars": [
+        "{{LABEL}}",
+        "hits_to_break"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "jewelers-loupe",
+      "name": "Magnifying Loupe",
+      "source": "off-catalog-components.html",
+      "category": "reveal",
+      "conversion_safe": false,
+      "vars": [
+        "{{FINE_PRINT}}",
+        "zoom"
+      ],
+      "status": "pending"
+    },
+    {
+      "slug": "before-after-wipe",
+      "name": "Before/After Wipe",
+      "source": "off-catalog-components.html",
+      "category": "reveal",
+      "conversion_safe": true,
+      "vars": [
+        "{{BEFORE_IMG}}",
+        "{{AFTER_IMG}}",
+        "{{BEFORE_LABEL}}",
+        "{{AFTER_LABEL}}"
+      ],
+      "status": "pending",
+      "conversion_note": "Highest-converting element on a trade site (RULE 12 proof element)."
+    },
+    {
+      "slug": "instant-estimate",
+      "name": "Instant Estimate Odometer",
+      "source": "off-catalog-components.html",
+      "category": "input",
+      "conversion_safe": true,
+      "vars": [
+        "{{RATE}}",
+        "{{UNIT}}",
+        "{{MIN}}",
+        "{{MAX}}",
+        "{{STEP}}",
+        "{{SUBLABEL}}"
+      ],
+      "status": "pending",
+      "conversion_note": "Live ballpark, stickier than a quote form. Strong RULE 12 fit."
+    },
+    {
+      "slug": "magnetic-cta",
+      "name": "Magnetic Call CTA",
+      "source": "off-catalog-components.html",
+      "category": "action",
+      "conversion_safe": true,
+      "vars": [
+        "{{LABEL}}",
+        "{{HREF}}",
+        "--accent-rgb",
+        "field_px"
+      ],
+      "status": "done",
+      "conversion_note": "The call button. tel: href, sticky-friendly. RULE 12 primary CTA."
+    },
+    {
+      "slug": "decode-phone",
+      "name": "Decode Phone Reveal",
+      "source": "off-catalog-components.html",
+      "category": "action",
+      "conversion_safe": true,
+      "vars": [
+        "{{PHONE}}",
+        "--accent-rgb"
+      ],
+      "status": "pending",
+      "conversion_note": "Scraper-resistant phone reveal; MUST still wrap a real tel: link for RULE 12 (clickable phone). Use as enhancement, not the only phone path."
+    },
+    {
+      "slug": "soft-accordion",
+      "name": "Soft FAQ Accordion",
+      "source": "off-catalog-components.html",
+      "category": "surface",
+      "conversion_safe": true,
+      "vars": [
+        "{{QA_ITEMS}}",
+        "--accent-rgb"
+      ],
+      "status": "pending",
+      "conversion_note": "No-jump FAQ. Good for service-page trust content."
+    }
+  ]
+}

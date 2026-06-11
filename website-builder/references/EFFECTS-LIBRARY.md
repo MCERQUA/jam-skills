@@ -32,3 +32,25 @@ Six techniques, each driven by **one accent custom property** (raw RGB triplet, 
 - The `mask-composite` ring trick (blocks 1, 2, 4) is the reusable primitive — learn it once, reuse everywhere a gradient/animated border is wanted.
 - Always ship the `@media (prefers-reduced-motion: reduce)` guard (already in the kit) — required for accessibility.
 - All effects are GPU-cheap **except** stacked `backdrop-filter` blurs; use sparingly on mobile and never on a conversion-critical hero.
+
+---
+
+## off-catalog-components.html — 20 original interaction specimens
+
+A larger foundry of from-scratch interactions across **type · reveal · action · input · nav ·
+surface · glass**, each with a live telemetry readout. Highlights:
+- **Conversion "Workhorses"** (safe on home-service sites, map onto CONVERSION-RULES):
+  Before/After Wipe (highest-converting trade element), Instant Estimate odometer, Magnetic
+  Call CTA, scraper-resistant Decode-Phone, no-jump Soft Accordion FAQ.
+- **Glassworks** (premium-aesthetic only — heavy blur, RULE 13 caveat): stained-glass
+  buttons, prism edge, progressive frost, fluted glass, condensation wipe, shatter pane,
+  jeweler's loupe, re-tintable pane.
+- **Showpieces:** gravity variable-type, momentum dial, metaball menu, specular tilt card,
+  elastic spring slider, gum-stretch tabs.
+
+### Breaking these into reusable components
+The originals above are **preserved, never edited**. `components/` holds each effect broken
+out as a **generic, variable-driven snippet** (`{{placeholders}}` + RGB-triplet accents).
+`components/_manifest.json` catalogs all 26 with their variables + status and is built to be
+**batch-processed (delegate extraction to a cheaper LLM)** one at a time; `components/magnetic-cta.html`
+is the worked exemplar of the pattern. Lift a finished component, set its vars, ship.
