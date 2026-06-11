@@ -150,6 +150,92 @@ For key elements (headlines, CTAs), provide 2-3 alternatives with rationale.
 
 ---
 
+## Home Service / Local Contractor Sites
+
+> Most home service sites convert under 1% despite adequate traffic. The conversion problem is almost always bigger than the traffic problem. Same SEO, same budget — fix the site and you add 50–200% to inbound call volume.
+
+### Above the Fold (80% of conversions decided here)
+
+Three seconds. That's how long you have for the visitor to answer: what do you do, where do you do it, are you trustworthy, how do I call you right now.
+
+- **Headline:** `"[Service] in [City]"` — never a tagline like "Your Trusted Partner Since 2003"
+- **Phone:** Top right, large, sticky as user scrolls — direct `tel:` link, never a modal or popup confirmation (one modal cost a client 30% of their inbound calls)
+- **Trust bar:** Star rating + review count + years in business + license number + service area — all in the hero
+- **CTA:** `"Call Now"` or `"Get Free Quote"` — phone number visible on or immediately below the button
+- **Hero image:** Real team photos, branded trucks, actual job sites — stock photos of smiling families signal inauthenticity and flip trust negative
+
+### Phone as the Primary CTA
+
+For home service businesses, the phone call IS the conversion. Design around it:
+
+- Wire all `"Call Now"` links directly to `tel:` — no modal, no confirmation
+- Sticky header: phone always visible as user scrolls on mobile
+- Sticky footer bar on mobile: `"Call Now"` and `"Book Online"` — always one tap away
+- Floating action button on long pages
+- This typically adds 15–25% to call volume vs. non-sticky designs
+
+### Forms — 4 Fields Max
+
+Every additional field costs ~10% of conversions on that page.
+
+**What to ask:**
+1. Name
+2. Phone
+3. Service needed (dropdown)
+4. Address
+
+**Never ask:** email, "how did you hear about us", "best time to call", comments, or any qualifying questions. The qualifying happens on the call — the form's only job is to get the phone number.
+
+### Mobile Speed
+
+PageSpeed below 50 → lose 2–3 Map Pack spots. Below 70 → lose 20–30% of visitors before the page loads.
+
+- **Target:** PageSpeed 70+ mobile, < 2s load time
+- Compress hero images: target 200–400KB (most sites ship 2–3MB)
+- Remove unnecessary plugins and tracking scripts
+- Use a real CDN
+- Lazy load below-fold content
+- Minimize third-party widgets (live chat, social embeds) — they load late, cover the phone number, and add no value for service businesses
+
+### Social Proof — Every Scroll Depth
+
+Single testimonial section halfway down the page is not enough. Visitors need to see proof at every level:
+
+- Above fold: `"4.9 stars · 312 Google reviews"` in the hero trust bar
+- Hero zone: 2–3 short pull quotes from real customers
+- Service pages: reviews that mention the specific service
+- Near the form: proof immediately before the ask
+- Goal: by the time they hit the form, they've seen proof 5–6 times
+
+### Photos Matter More Than Any Other Trust Signal
+
+Visitors can spot stock photos instantly. The trust signal inverts — it signals low-budget template, not professional business.
+
+Use instead:
+- Real team in branded shirts on actual job sites
+- Trucks at customer driveways with real homes visible
+- Before-and-after shots (drain cleaning, panel, AC installs, roofing)
+- Photos of license docs, certifications, insurance certificates
+
+### Financing for High-Ticket Services
+
+For any service with tickets $5K+ (HVAC replacement, roofing, panel upgrades), ~60% of customers want financing. If a competitor shows a Synchrony or Wisetack logo and you don't, they close deals you never got to quote.
+
+- Financing partner logo above the fold on service pages
+- `"0% financing available"` or `"Payments as low as $X/month"` callout in the hero
+- Separate financing page linked from nav
+- Pre-qualification widget on high-ticket service pages
+
+### Conversion Killers (Remove Immediately)
+
+- Making forms longer to "qualify" leads — you're losing them, not qualifying them
+- Hiding the phone number to force form fills — they just leave
+- Auto-playing video in the hero section — kills mobile speed, annoys users
+- Pop-ups on first visit — immediate back-button trigger on mobile
+- Live chat widgets that take 4+ seconds to load and cover the phone number
+
+---
+
 ## Experiment Ideas
 
 When recommending experiments, consider tests for:

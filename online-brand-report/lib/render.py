@@ -286,8 +286,8 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     rev_pcts   = data.get("review_dist_pcts", {"5":0,"4":0,"3":0,"2":0,"1":0})
     map_pos    = data.get("map_pack_positions", {})
 
-    # Backlinks
-    dr          = data.get("domain_rank", 0)
+    # Backlinks — prefer ahrefs_dr (free, no-cost) over domain_rank (DataForSEO internal)
+    dr          = data.get("ahrefs_dr") or data.get("domain_rank", 0)
     bl_total    = data.get("backlinks_total", 0)
     ref_domains = data.get("referring_domains_total", 0)
     dofollow    = data.get("dofollow_count", 0)
@@ -998,7 +998,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
 
     <div class="bl-kpi-grid">
       <div class="bl-kpi {dr_class}">
-        <div class="bl-kpi-label">Domain Rank</div>
+        <div class="bl-kpi-label">Domain Rating (Ahrefs)</div>
         <div class="bl-kpi-value">{dr_value_html}</div>
         <div class="bl-kpi-sub">{dr_sub}</div>
       </div>
@@ -1022,7 +1022,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     <div class="bl-grid-2">
       <div class="bl-card">
         <h4>Domain Authority Gauge</h4>
-        <div class="sub">DataForSEO rank score 0-100.</div>
+        <div class="sub">Ahrefs Domain Rating (DR) 0-100 logarithmic scale.</div>
         <div class="bl-da-gauge">
           <canvas id="bl-da-gauge"></canvas>
           <div class="bl-da-overlay"><div class="num">{dr_gauge_html}</div><div class="lbl">DR</div></div>

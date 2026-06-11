@@ -48,6 +48,94 @@ Identify during intake — it changes everything:
 | **Portfolio** | Showcase work | Hero + ProjectGrid + About + Process + Contact | Visual, minimal copy, let work speak |
 | **SaaS / Product** | Signups / trials | Hero + Features + Pricing + Testimonials + FAQ + CTA | Benefit-focused, comparison-driven |
 
+> **Local Service sites**: See the [Local Service CRO Rules](#local-service-cro-rules) section below before building any home service or contractor site. Most local sites convert under 1%. These rules get to 3–5%.
+
+---
+
+## Local Service CRO Rules
+
+> Source: Noah Igler (@noahiglerSEO) conversion audit of home service sites (plumbers, HVAC, roofers, electricians, landscapers, etc.). Most sites get fine traffic but the phone doesn't ring — because the site leaks leads, not traffic.
+
+**Most home service sites convert under 1%. These rules target 3–5% with the same traffic.**
+
+### Above the Fold (80% of conversions won or lost here)
+
+Within 3 seconds of landing, visitors must know: what you do, where you do it, that you're trustworthy, and how to call you. Every element below is required — not optional.
+
+- **Headline format:** `"[Service] in [City]"` or `"[City]'s Trusted [Service] Company"` — NOT `"Your Trusted Home Service Partner Since 2003"`
+- **Phone number:** Top right, large font, sticky as user scrolls — wire directly to `tel:` link (NO modal, NO popup, NO confirmation step — a modal caused one client a 30% drop in calls)
+- **Trust bar / subheadline:** Star rating + review count + years in business + license number + service area — all in the hero
+- **Primary CTA:** `"Call Now"` or `"Get Free Quote"` — show the phone number ON the button or immediately below it
+- **Hero image:** Real photos of your team in branded shirts, trucks on job sites, or actual work — NO stock photos of smiling families (visitors spot them instantly; trust flips negative)
+
+### Phone Visibility — The Single Biggest Lever
+
+- Sticky header: phone number always visible on mobile as user scrolls
+- Sticky footer bar on mobile: two buttons — `"Call Now"` (tel: link) and `"Book Online"` — always in view
+- Floating action button on long pages
+- Adds 15–25% to call volume in practice
+
+### Forms — Every Extra Field Costs ~10% of Conversions
+
+**Maximum 4 fields for any home service lead form:**
+1. Name
+2. Phone
+3. Service needed (dropdown — not free text)
+4. Address
+
+**Never add:** email, "best time to call", "how did you hear about us", comments box, address proof, or any qualifying questions. You're not running a credit application — you're getting their phone number so you can call back. The qualifying happens on the call.
+
+### Mobile Speed — Non-Negotiable
+
+- Below PageSpeed 50 on mobile = lose 2–3 Map Pack spots
+- Below PageSpeed 70 = lose 20–30% of mobile visitors before page loads
+- **Target: PageSpeed 70+ mobile, page load < 2 seconds**
+
+Speed fixes (in order of impact):
+1. Compress hero image to 200–400KB (most sites ship 2–3MB hero images)
+2. Remove unnecessary plugins and tracking scripts
+3. Use a real CDN (not just the host's bundled option)
+4. Lazy load everything below the fold
+5. Minimize third-party widgets (live chat, social embeds, review aggregators) — they load late and cover the phone number
+
+### Reviews / Social Proof — Must Appear at Every Scroll Depth
+
+Don't put all proof in one testimonial section halfway down. Visitors need to see it at every level:
+
+- **Above fold:** `"4.9 stars from 312 Google reviews"` — count + rating in the hero trust bar
+- **Hero section:** 2–3 short pull quotes from real reviews, preferably dynamic from GBP
+- **Service pages:** dedicated review section pulling quotes that mention that specific service
+- **By the form:** repeat proof right before the ask
+
+The goal: by the time they reach the form, they've seen proof 5–6 times.
+
+### Photos — Real Images Over Stock Every Time
+
+- Real photos of team in branded shirts on job sites
+- Trucks parked at actual customer homes
+- Before-and-after shots (drain cleaning, panel work, AC installs, ductwork, roof replacements)
+- License documents, manufacturer certifications, insurance certificates photographed and displayed
+- The site should look like a physical business with real people, not a template a marketing agency dropped a logo into
+
+### Financing — Required for High-Ticket Services ($5K+)
+
+~60% of customers for replacement-level jobs want financing. If your competitor shows the Synchrony / GreenSky / Wisetack logo and you don't, they close the deal before you get to quote.
+
+- Logo of financing partner visible above the fold on service pages
+- `"0% financing available"` or `"Payments as low as $89/month"` callout in the hero
+- Separate financing page linked from main nav
+- Pre-qualification widget embedded on high-ticket service pages
+
+### Common Mistakes That Kill Conversions
+
+These appear constantly in audits — do not ship any of them:
+
+- **Longer forms to "qualify" leads** — you're not qualifying them, you're losing them
+- **Hiding the phone to force form fills** — they just leave instead
+- **Auto-playing video in the hero section** — kills mobile speed, annoys the visitor
+- **Pop-ups on first visit** — immediate back-button trigger on mobile
+- **Live chat widgets** — take 4s to load, cover the phone number, add zero value for home service
+
 ---
 
 ## Tech Stack (every project)
@@ -178,6 +266,7 @@ Write ALL copy BEFORE building pages. Save to `ai/content/` — one file per pag
 
 ### Phase 8: BUILD PAGES
 **Read:** `instructions/animations.md`, `instructions/scroll-effects.md`
+**If Local Service / Home Service site:** ALSO read `instructions/home-service-conversion.md` — contains required implementation patterns for phone wiring, form fields, sticky CTAs, hero images, and trust placement. Do not build a local service site without reading this first.
 **Use:** `templates/sections/`, `templates/animations/`, `templates/pages/`
 
 Now — and ONLY now — you write code. For each page:

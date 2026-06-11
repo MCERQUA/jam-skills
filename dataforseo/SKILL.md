@@ -346,6 +346,45 @@ When the client wants to run a new query:
 
 ---
 
+## Free Authority Signal: Ahrefs DR
+
+For quick domain authority checks without API cost, use the free Ahrefs DR endpoint via `/mnt/system/base/scripts/ahrefs_dr.py`.
+
+**DR 0-100 logarithmic scale** — measures domain authority based on backlink quantity and quality. No API key, no DataForSEO cost, no rate limit beyond courtesy delays.
+
+### Use for:
+- Qualifying link prospects before investing in outreach
+- Enriching backlink reports with headline authority numbers
+- Setting client benchmarks ("your DR is X, top competitor is Y")
+- Tiering niche linker databases (tier1/tier2/tier3 by DR)
+
+### DR tier thresholds:
+| DR | Tier | What it means |
+|----|------|---------------|
+| 50+ | Tier 1 | Premium — high equity, harder to earn |
+| 30–49 | Tier 2 | Strong — worth active pursuit |
+| <30 | Tier 3 | Local/niche — still valuable for local SEO |
+
+### Quick usage:
+```bash
+# Single domain
+python3 /mnt/system/base/scripts/ahrefs_dr.py example.com
+
+# In Python (stdlib only, no pip deps)
+import sys; sys.path.insert(0, '/mnt/system/base/scripts')
+from ahrefs_dr import get_dr, get_dr_bulk
+dr = get_dr("example.com")              # → float e.g. 34.0
+scores = get_dr_bulk(["a.com","b.com"]) # → {"a.com": 12.0, "b.com": 67.0}
+
+# Raw curl
+curl -s "https://api.ahrefs.com/v3/public/domain-rating-free?target=example.com&output=json"
+# → {"domain_rating": {"domain_rating": 34.0}}
+```
+
+**Pairs with DataForSEO for comprehensive SEO reporting:** DR = headline authority number; DataForSEO Backlinks API = the detailed link profile, anchor text, and referring page data.
+
+---
+
 ## Rules
 - **Always tell the client the cost** before running expensive queries
 - **Batch keywords** — never send 50 individual search volume requests when you can send 1 with 50 keywords

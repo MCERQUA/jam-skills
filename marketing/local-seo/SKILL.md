@@ -167,9 +167,14 @@ The highest-ROI local link building approach: build a network of partner busines
 - For any local business: other non-competing businesses serving the same customer base
 
 **Qualification criteria (check before outreach):**
-- Domain Authority/Rating 15+ (gold if 30+)
+- **DR (Ahrefs Domain Rating) thresholds:**
+  - DR 15+ = decent local link — worth pursuing for local relevance
+  - DR 30+ = strong local link — prioritize these in outreach
+  - DR 50+ = premium link opportunity — high equity, invest significant effort
 - 50+ referring domains (their site has trust equity to pass)
 - 60+ indexed pages (topical authority)
+
+*Check DR for free (no API key needed): `python3 /mnt/system/base/scripts/ahrefs_dr.py domain.com` or `curl -s "https://api.ahrefs.com/v3/public/domain-rating-free?target=domain.com&output=json"`*
 
 **Outreach script:**
 "Hey [Name], I run [Business] here in [City]. I'm putting together a trusted local partners page — a list of the best [trades] in [City] that we recommend to our customers. Your company stood out and I'd love to feature you. No cost, no catch. If you're interested, I'll send the draft. And if you ever want to do something similar, happy to help you set it up too."
@@ -307,6 +312,23 @@ Check: links still live, still dofollow, partner page still indexed, their DA ha
 - Week 4+: Execute — build pages, fix citations, upload photos, outreach
 
 ---
+
+## Website CRO for Home Service Sites
+
+Ranking is only half the equation. Most home service sites convert under 1% of traffic. These rules target 3-5% with the same traffic (source: Noah Igler @noahiglerSEO audits).
+
+**Critical rules when evaluating or building a local service website:**
+- Headline must be `"[Service] in [City]"` — never vague branding
+- Phone top-right, `tel:` link directly to dialer (NO modal — one client lost 30% of calls from a modal)
+- Trust bar above fold: star rating + review count + years + license + service area
+- Form: max 4 fields — Name, Phone, Service (dropdown), Address. No email, no comments box.
+- Hero image: real team/truck photos, not stock. Stock photos flip trust negative.
+- Mobile PageSpeed: below 50 = lose 2-3 Map Pack positions. Below 70 = lose 20-30% of visitors.
+- Reviews at every scroll depth — not just one testimonial section
+- Sticky footer bar on mobile: "Call Now" + "Book Online"
+
+Full conversion rules: `/mnt/system/base/skills/website-builder/instructions/home-service-conversion.md`
+Full build system with quality gate: `/mnt/system/base/skills/website-builder/SKILL.md`
 
 ## References
 

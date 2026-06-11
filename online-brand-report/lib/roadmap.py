@@ -25,6 +25,7 @@ def generate_roadmap(data: dict, score_result: dict) -> dict:
     review_avg  = data.get("review_avg", 0.0)
     map_positions = data.get("map_pack_positions", {})
     domain_rank = data.get("domain_rank", 0)
+    ahrefs_dr   = data.get("ahrefs_dr", 0)
     gap_count   = data.get("gap_count", 0)
     platforms_claimed = data.get("platforms_claimed", 0)
     kw_top3     = data.get("kw_top3", 0)
@@ -107,10 +108,13 @@ def generate_roadmap(data: dict, score_result: dict) -> dict:
     # Only recommend a backlink campaign if we actually MEASURED low authority. When the
     # Backlinks API isn't active (data unavailable → all zeros), don't treat it as a real
     # gap — that's pending data, not a deficiency. (Fixed 2026-06-01.)
-    bl_unavailable = data.get("backlinks_unavailable", False) or (domain_rank == 0 and referring_domains == 0)
-    if domain_rank < 20 and not bl_unavailable:
+    # Use Ahrefs DR as primary authority signal; fall back to DataForSEO domain_rank
+    authority = ahrefs_dr if ahrefs_dr > 0 else domain_rank
+    bl_unavailable = data.get("backlinks_unavailable", False) or (authority == 0 and referring_domains == 0)
+    if authority < 20 and not bl_unavailable:
+        dr_label = f"DR {int(ahrefs_dr)}" if ahrefs_dr > 0 else f"Domain Authority {domain_rank}"
         p2.append({
-            "title": f"Backlink building campaign needed — Domain Authority {domain_rank}",
+            "title": f"Backlink building campaign needed — {dr_label}",
             "detail": "Low domain authority limits how fast new content can rank. Focus on local citations (Chamber of Commerce, trade directories), supplier link exchanges, and 2-3 local press placements in the first 90 days.",
             "icon": "🔗",
             "tag": "Off-Page SEO",

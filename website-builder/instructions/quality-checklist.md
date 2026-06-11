@@ -98,6 +98,56 @@ Run EVERY check before presenting the site to the client. Fix all failures.
 
 ---
 
+## Local Service Sites (Home Service / Contractors) — Run if site type is "Local Service"
+
+Most local service sites convert under 1%. This checklist targets 3–5%.
+
+### Above the Fold
+- [ ] Headline follows `"[Service] in [City]"` or `"[City]'s Trusted [Service]"` format — NOT generic tagline
+- [ ] Phone number is top-right, large, and **wired directly to `tel:` link** — no modal, no popup, no confirmation step
+- [ ] Phone number is sticky — stays visible as user scrolls (sticky header or persistent top bar)
+- [ ] Trust bar includes: star rating + review count + years in business + license number + service area
+- [ ] Primary CTA is `"Call Now"` or `"Get Free Quote"` — phone number visible on or near the button
+- [ ] Hero image uses REAL photos (team, trucks, jobs) — NOT stock photos of smiling homeowners
+
+### Phone Visibility
+- [ ] Sticky header shows phone at all scroll depths on mobile
+- [ ] Sticky footer bar on mobile has `"Call Now"` (tel: link) + `"Book Online"` always in view
+- [ ] No modal or confirmation step between tap and dialer launch on mobile
+
+### Forms
+- [ ] Contact/quote form has 4 fields MAX: Name, Phone, Service (dropdown), Address
+- [ ] No email field, no "how did you hear about us", no "best time to call", no comments box
+- [ ] Service field is a dropdown (not free text) — reduces friction and helps routing
+
+### Mobile Speed
+- [ ] PageSpeed mobile score ≥ 70 (check at pagespeed.web.dev)
+- [ ] Page loads in < 2 seconds on mobile (throttled connection)
+- [ ] Hero image is ≤ 400KB (never 2–3MB)
+- [ ] No auto-playing video in hero section
+- [ ] Third-party widgets (live chat, social embeds, review aggregators) load lazily or are removed if not essential
+
+### Social Proof Placement
+- [ ] Review count + star rating visible above the fold (`"4.9 stars · 312 Google reviews"`)
+- [ ] 2–3 short review pull quotes in or near the hero section
+- [ ] Service pages have reviews that mention that specific service
+- [ ] Proof appears at multiple scroll depths (not just in one testimonials section)
+
+### Photos
+- [ ] At least one photo of real team members (branded shirts, job site, or truck) — not stock
+- [ ] No obvious stock photos anywhere on the page (smiling generic family, generic tool photos, etc.)
+
+### First-Visit UX
+- [ ] No popup or modal on first visit — immediate back-button trigger on mobile
+- [ ] No auto-playing video or audio
+
+### Financing (if applicable — any service with tickets $5K+)
+- [ ] Financing partner logo visible above the fold on relevant service pages
+- [ ] Callout text present: `"0% financing available"` or `"Payments as low as $X/month"`
+- [ ] Separate financing page linked from main nav (if high-ticket services are core)
+
+---
+
 ## How to Audit
 
 ### Quick visual scan:
