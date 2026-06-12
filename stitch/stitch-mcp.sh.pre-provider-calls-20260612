@@ -69,11 +69,5 @@ USAGE
   *)
     EMPTY_OBJ='{}'
     call_tool "$1" "${2:-$EMPTY_OBJ}"
-    # provider-call receipt → JamFlow Watch (additive, best-effort — Fable 2026-06-12).
-    # Host-side runs only: inside tenant containers the emitter path doesn't exist,
-    # so this silently no-ops there. Reached only after a successful call (set -e).
-    [ -x /home/mike/MIKE-AI/scripts/provider-call-log.sh ] \
-      && /home/mike/MIKE-AI/scripts/provider-call-log.sh stitch "${JAMBOT_TENANT:-host}" "$1" >/dev/null 2>&1 \
-      || true
     ;;
 esac
