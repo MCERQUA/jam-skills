@@ -385,6 +385,187 @@ curl -s "https://api.ahrefs.com/v3/public/domain-rating-free?target=example.com&
 
 ---
 
+## Deep Endpoint Recipes — the high-value calls we're NOT using yet
+
+The pipeline + dashboard currently use ~25 of the ~445 v3 endpoints. These are the proven-valuable ones we already pay access for. Costs are approximate (post 2026-07-01 rates); verify with `GET /v3/appendix/user_data` before bulk runs.
+
+### Domain Rank Overview — ONE cheap call for the whole authority/traffic headline
+Replaces `ranked_keywords limit:1` hacks. Returns organic + paid metrics in one shot.
+```bash
+bash dataforseo.sh "dataforseo_labs/google/domain_rank_overview/live" \
+  '[{"target":"clientsite.com","location_name":"United States","language_name":"English"}]'
+```
+**Returns:** `items[0].metrics.organic` = `{pos_1, pos_2_3, pos_4_10, pos_11_20, ..., count, etv, estimated_paid_traffic_cost}` + same for `paid`. ~$0.012. **Use for:** dashboard KPI headers, monthly client snapshots, competitor scorecards (one call per domain).
+
+### Historical Rank Overview — the REAL trend line (up to 5 years monthly)
+The only way to show "your SEO is improving" without waiting months to accumulate snapshots.
+```bash
+bash dataforseo.sh "dataforseo_labs/google/historical_rank_overview/live" \
+  '[{"target":"clientsite.com","location_name":"United States","language_name":"English","date_from":"2025-06-01"}]'
+```
+**Returns:** monthly `items[]` each with `metrics.organic.{count,etv,pos_1,pos_2_3,...}`. **Cost: ~$0.12 + ~$0.001/row — EXPENSIVE, run once per domain onboarding, then monthly.** The single highest-impact missing chart in both the brand report and the dashboard Position view.
+
+### Keyword Ideas + Related Keywords — the two research modes we claim but never call
+```bash
+# Broader brainstorm (category-level expansion, multiple seeds allowed)
+bash dataforseo.sh "dataforseo_labs/google/keyword_ideas/live" \
+  '[{"keywords":["spray foam insulation","attic insulation"],"location_name":"United States","language_name":"English","limit":200}]'
+
+# Depth-N semantic graph (what Google's "searches related to" builds from)
+bash dataforseo.sh "dataforseo_labs/google/related_keywords/live" \
+  '[{"keyword":"spray foam insulation","location_name":"United States","language_name":"English","depth":2,"limit":100}]'
+```
+**Gotcha:** `related_keywords` items nest under `keyword_data` (`item.keyword_data.keyword`) — unlike suggestions/ideas which are flat. `depth:2` ≈ 4^2=16 seed expansions; depth 3+ explodes cost. ~$0.012 each.
+
+### Keywords For Site — seed research from a URL instead of a guess
+```bash
+bash dataforseo.sh "dataforseo_labs/google/keywords_for_site/live" \
+  '[{"target":"competitor.com","location_name":"United States","language_name":"English","limit":300}]'
+```
+What a domain COULD rank for based on its content (vs `ranked_keywords` = what it DOES rank for). Run both on a competitor; the difference = their unrealized strategy. ~$0.012.
+
+### SERP Competitors — who actually wins the keywords you care about
+```bash
+bash dataforseo.sh "dataforseo_labs/google/serp_competitors/live" \
+  '[{"keywords":["roof repair phoenix","roof replacement phoenix"],"location_name":"United States","language_name":"English","limit":20}]'
+```
+**Returns:** `items[]` = `{domain, avg_position, median_position, rating, etv, keywords_count}` ranked by visibility for YOUR keyword set — finds the real SERP-level rivals that `competitors_domain` (profile-similarity) misses. ~$0.012.
+
+### Backlinks you're missing (all ~$0.024 base)
+```bash
+# Growth over time — the backlink trend chart nobody can draw today
+bash dataforseo.sh "backlinks/timeseries_summary/live" \
+  '[{"target":"clientsite.com","date_from":"2025-06-01","group_range":"month"}]'
+
+# New vs lost — churn detection ("you lost 12 links last month")
+bash dataforseo.sh "backlinks/timeseries_new_lost_summary/live" \
+  '[{"target":"clientsite.com","date_from":"2025-06-01","group_range":"month"}]'
+
+# Toxic-link screening — spam score 0-100 per domain, up to 1000 targets
+bash dataforseo.sh "backlinks/bulk_spam_score/live" \
+  '[{"targets":["clientsite.com","competitor1.com","competitor2.com"]}]'
+
+# Link gap — who links to BOTH competitors but NOT you (instant outreach list)
+bash dataforseo.sh "backlinks/domain_intersection/live" \
+  '[{"targets":{"1":"competitor1.com","2":"competitor2.com"},"exclude_targets":["clientsite.com"],"limit":50}]'
+
+# Backlink-profile competitors (similar link profiles = same niche authorities)
+bash dataforseo.sh "backlinks/competitors/live" \
+  '[{"target":"clientsite.com","limit":10}]'
+
+# Bulk authority compare — rank for up to 1000 domains in ONE call
+bash dataforseo.sh "backlinks/bulk_ranks/live" \
+  '[{"targets":["clientsite.com","comp1.com","comp2.com","comp3.com"]}]'
+```
+**`domain_intersection` gotcha:** `targets` is an OBJECT keyed "1","2"… not an array.
+
+### Google AI Mode SERP — what Google's AI search actually says (GEO ground truth)
+```bash
+bash dataforseo.sh "serp/google/ai_mode/live/advanced" \
+  '[{"keyword":"best spray foam insulation company phoenix","location_name":"Phoenix,Arizona,United States","language_name":"English"}]'
+```
+**Returns:** the AI Mode answer with `references[]` (cited domains/urls). Is the client cited? Are competitors? ~$0.002 — as cheap as a normal SERP. **This is the AI-visibility check for Google specifically; pair with `llm_mentions` for ChatGPT/Claude/Gemini/Perplexity.**
+
+### LLM Mentions suite — brand visibility across AI assistants
+```bash
+# Where the domain is mentioned across LLM answers
+bash dataforseo.sh "ai_optimization/llm_mentions/search/live" \
+  '[{"target":[{"domain":"clientsite.com"}],"location_name":"United States","language_name":"English","limit":50}]'
+
+# Top domains LLMs cite for a topic — who owns the AI answer box in your niche
+bash dataforseo.sh "ai_optimization/llm_mentions/top_domains/live" \
+  '[{"keyword":"spray foam insulation","location_name":"United States","language_name":"English","limit":20}]'
+
+# Aggregated mention metrics (share-of-voice number for reports)
+bash dataforseo.sh "ai_optimization/llm_mentions/aggregated_metrics/live" \
+  '[{"target":[{"domain":"clientsite.com"}],"location_name":"United States","language_name":"English"}]'
+
+# Ask the actual model and read the answer (per-platform spot check)
+bash dataforseo.sh "ai_optimization/chat_gpt/llm_responses/live" \
+  '[{"user_prompt":"who is the best spray foam insulation company in phoenix?","model_name":"gpt-4.1-mini","max_output_tokens":500}]'
+# same shape: ai_optimization/{claude,gemini,perplexity}/llm_responses/live
+```
+`llm_responses` is priced per call + model tokens (≈$0.005–0.05 depending on model) — use for monthly spot checks, not loops.
+
+### Google Trends — seasonality the client can SEE
+```bash
+bash dataforseo.sh "keywords_data/google_trends/explore/live" \
+  '[{"keywords":["spray foam insulation"],"location_name":"United States","date_from":"2025-06-01","date_to":"2026-06-01","type":"web"}]'
+```
+**Returns:** `items[0].data[]` weekly interest values 0-100. Free-tier-cheap (~$0.001-0.005). Perfect for "book insulation jobs before October" seasonal advice and report sparklines.
+
+### Local SEO deep cuts
+```bash
+# GMB Q&A — unanswered questions = free local content + trust wins
+bash dataforseo.sh "business_data/google/questions_and_answers/live" \
+  '[{"keyword":"Business Name City State","location_name":"City,State,United States","language_name":"English"}]'
+
+# GMB posts/updates the business has published (async task flow)
+bash dataforseo.sh "business_data/google/my_business_updates/task_post" \
+  '[{"keyword":"Business Name City State","location_name":"City,State,United States","language_name":"English"}]'
+
+# Competitor density — every business in a category + area, with ratings
+bash dataforseo.sh "business_data/business_listings/search/live" \
+  '[{"categories":["insulation_contractor"],"location_coordinate":"33.4484,-112.0740,10","limit":50}]'
+
+# Local Finder — full local ranking beyond the 3-pack
+bash dataforseo.sh "serp/google/local_finder/live/advanced" \
+  '[{"keyword":"spray foam insulation","location_name":"Phoenix,Arizona,United States","language_name":"English","depth":20}]'
+```
+**`my_business_info` gotcha (hard-won):** the live endpoint accepts `location_name`/`language_name` for SERP-style lookups BUT some param combos return 40501 — when it errors, retry with `location_code` (e.g. 2840 = US) + `language_code:"en"` instead of names.
+
+### OnPage one-shots (no crawl task needed)
+```bash
+# Instant single-page audit — checks, meta, content stats in one live call
+bash dataforseo.sh "on_page/instant_pages" \
+  '[{"url":"https://clientsite.com/service-page","enable_javascript":false}]'
+
+# Structured-data extraction — what schema a page ACTUALLY exposes (pairs with /schema-markup skill)
+bash dataforseo.sh "on_page/microdata" '[{"id":"<crawl-task-id>","url":"https://clientsite.com/"}]'
+
+# Parsed content (headings, word count, links) for any URL — content brief raw material
+bash dataforseo.sh "on_page/content_parsing/live" \
+  '[{"url":"https://clientsite.com/blog/post","enable_javascript":false}]'
+```
+After a full crawl (`on_page/task_post`), also free-to-read: `redirect_chains`, `duplicate_content`, `keyword_density`, `waterfall` — all GET with the task id, already paid for by the crawl.
+
+### Domain intelligence
+```bash
+# WHOIS + visibility enrichment (age, expiry, registrar + backlink/rank data)
+bash dataforseo.sh "domain_analytics/whois/overview/live" \
+  '[{"filters":[["domain","=","clientsite.com"]],"limit":1}]'
+
+# Tech stack (CMS, analytics, CDN, frameworks)
+bash dataforseo.sh "domain_analytics/technologies/domain_technologies/live" \
+  '[{"target":"clientsite.com"}]'
+```
+**WHOIS gotcha:** takes a `filters` array, NOT a bare `target` param.
+
+### Brand monitoring extras
+```bash
+# Review-site rating distribution across the web (not just Google)
+bash dataforseo.sh "content_analysis/rating_distribution/live" \
+  '[{"keyword":"Brand Name","search_mode":"as_is"}]'
+
+# What topics trend in citations of your niche over time
+bash dataforseo.sh "content_analysis/category_trends/live" \
+  '[{"category_code":10994,"date_from":"2026-01-01"}]'
+```
+
+### Recommended adoption order (value ÷ cost)
+1. **`domain_rank_overview`** — cheapest full-domain headline; use everywhere.
+2. **`serp/google/ai_mode`** — $0.002 GEO ground truth; add to brand report + dashboard AI view.
+3. **`backlinks/timeseries_summary` + `timeseries_new_lost_summary`** — unlocks the growth charts both UIs stub today.
+4. **`historical_rank_overview`** — once per onboarding + monthly; the proof-of-progress chart.
+5. **`bulk_spam_score`** — toxic-link flag in every backlink section.
+6. **`backlinks/domain_intersection`** — turnkey link-prospect list (feeds niche-backlinks DB).
+7. **`serp_competitors`** — true SERP rivals for the money keywords.
+8. **`business_data/google/questions_and_answers`** — local content goldmine, near-free.
+9. **`google_trends/explore`** — seasonality visuals.
+10. **`llm_mentions` aggregated + `keyword_ideas`/`related_keywords`** — round out AI share-of-voice + research modes.
+
+---
+
 ## Rules
 - **Always tell the client the cost** before running expensive queries
 - **Batch keywords** — never send 50 individual search volume requests when you can send 1 with 50 keywords

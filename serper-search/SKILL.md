@@ -326,3 +326,48 @@ if __name__ == "__main__":
 - **Lead Generation** - Find businesses in target markets
 - **News Monitoring** - Track industry news mentions
 - **Local SEO Audit** - Analyze local pack results
+
+## Which search lane? (decision tree)
+
+JamBot has THREE Google-data lanes. Pick deliberately:
+
+1. **`web_search` (Brave, built-in)** — default for general research/fact-finding. Free-ish,
+   but rate-limited and NOT Google data.
+2. **Serper (this skill)** — when you need GOOGLE-specific structure cheaply: knowledge graph,
+   People Also Ask, local pack/Places, autocomplete, or when Brave hits limits. ~$0.001/query.
+   Also the API lane the brand report uses for verified GMB listings (`/places`) and brand
+   mention fan-outs (`fetch_serper.py`).
+3. **DataForSEO SERP (`dataforseo` skill)** — when the POSITION data must be precise and
+   persistent: exact rank_group/rank_absolute per result, depth to 100, location-coded SERPs,
+   auto-saved to the tenant SEO database, SERP-feature item types enumerated. ~$0.002/query.
+   Use for anything a client report or the seo-platform dashboard will cite.
+
+Rule of thumb: **exploring → Brave; Google-shaped questions → Serper; client-facing rank claims
+→ DataForSEO** (it's the system of record — Serper results are NOT auto-saved to the SEO DB).
+
+## Reading the SERP features (what the JSON means)
+
+- `answerBox` — Google answered inline; ranking #1 below an answer box gets far fewer clicks.
+  If the client owns the answer box, protect that content; if a competitor does, that exact
+  question is the content target.
+- `knowledgeGraph` — entity recognition. A brand query WITHOUT a knowledge graph = weak entity
+  presence (GBP/Wikipedia/schema work needed). The brand report uses this exact signal.
+- `peopleAlsoAsk` — free content brief: each PAA question that no client page answers is a
+  section or FAQ to write. Re-query a PAA question itself to get its child questions (2 levels
+  deep is usually plenty).
+- `places` / local pack — presence here matters more than organic rank for "near me" intent.
+  Note position AND rating/review-count of who's above the client.
+- `relatedSearches` — query-expansion seeds; feed the best into DataForSEO Labs
+  (`keyword_suggestions`/`search_intent`) for volume + intent.
+- `sitelinks` on the client's own result — sign Google trusts the site structure; missing
+  sitelinks on a brand query suggests architecture/internal-linking work.
+
+## Cost & quota discipline
+
+- Free tier = 2,500/month; paid ≈ $0.001/query. Cheap, but fan-outs multiply fast
+  (10 keywords × 5 cities × 2 endpoints = 100 calls).
+- Prefer `"num": 100` (one call, more results) over paging multiple calls.
+- Cache to the tenant workspace (server filesystem, e.g. `seo/serper-cache/<query-hash>.json`)
+  when re-using results within a session — NEVER browser storage.
+- Re-query only when freshness matters (rank checks); PAA/autocomplete/related-searches are
+  stable for weeks — cache aggressively.

@@ -330,6 +330,43 @@ Ranking is only half the equation. Most home service sites convert under 1% of t
 Full conversion rules: `/mnt/system/base/skills/website-builder/instructions/home-service-conversion.md`
 Full build system with quality gate: `/mnt/system/base/skills/website-builder/SKILL.md`
 
+## Measuring Local SEO with JamBot's Paid Data (DataForSEO)
+
+Don't guess local rankings — measure them. All via the `dataforseo` skill
+(`scripts/dataforseo.sh`; results auto-save to the tenant's SEO database):
+
+```bash
+# Map-pack position for a money keyword (~$0.002)
+bash dataforseo.sh "serp/google/maps/live/advanced" \
+  '[{"keyword":"roof repair","location_name":"Tempe,Arizona,United States","language_name":"English"}]'
+
+# Beyond the 3-pack — full Local Finder ranking (who's #4-20)
+bash dataforseo.sh "serp/google/local_finder/live/advanced" \
+  '[{"keyword":"roof repair","location_name":"Tempe,Arizona,United States","language_name":"English","depth":20}]'
+
+# GBP profile snapshot — rating, review count, categories, attributes, photos (~$0.012)
+bash dataforseo.sh "business_data/google/my_business_info/live" \
+  '[{"keyword":"Business Name Tempe AZ","location_name":"Tempe,Arizona,United States","language_name":"English"}]'
+# If it errors 40501, retry with location_code (2840=US) + language_code "en" instead of names.
+
+# Unanswered GBP Q&A — each one is a free trust win + content idea
+bash dataforseo.sh "business_data/google/questions_and_answers/live" \
+  '[{"keyword":"Business Name Tempe AZ","location_name":"Tempe,Arizona,United States","language_name":"English"}]'
+
+# Competitor density — every listed business in the category near a point, with ratings
+bash dataforseo.sh "business_data/business_listings/search/live" \
+  '[{"categories":["roofing_contractor"],"location_coordinate":"33.4147,-111.9093,10","limit":50}]'
+```
+
+**Practical grid-check pattern:** run the maps call for the same keyword from 3–5
+`location_name` values (the client's city + neighboring cities) — local rank varies sharply by
+searcher location, and a single-point check misleads clients.
+
+**Free authority signals for link prospecting:** Ahrefs DR
+(`curl -s "https://api.ahrefs.com/v3/public/domain-rating-free?target=<domain>&output=json"`,
+$0, no key, no rate-limit drama) to tier local link prospects (DR 30+ = pursue actively), and the
+`cc-backlinks` skill for a zero-cost view of who links to local competitors.
+
 ## References
 
 - [Local Link Building Guide](references/local-link-building.md): Complete partner network strategy with outreach scripts, page templates, and tracking

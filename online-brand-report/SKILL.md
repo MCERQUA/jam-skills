@@ -120,6 +120,21 @@ The skill fetches from 10 DataForSEO endpoint categories:
     keyword search can't surface. Requires `DNSLYTICS_API_KEY` (`.openclaw-keys.env`); no-key-safe
     (skips the headless render entirely when absent).
 
+14. **Ahrefs Domain Rating — FREE** (`fetch_ahrefs.py`) — pulls true Ahrefs DR (0–100 log scale)
+    from the free public endpoint `https://api.ahrefs.com/v3/public/domain-rating-free` (no auth,
+    no cost, verified live 2026-06-12). Used three ways:
+    - **Authority scoring** (`score.py`): the Backlinks dimension scores on `ahrefs_dr` when > 0,
+      falling back to DataForSEO's internal `domain_rank` only when DR is unavailable.
+    - **Roadmap labeling** (`roadmap.py`): action items cite "DR 34" instead of the opaque
+      internal rank when DR is present.
+    - **Referring-domain enrichment** (`fetch_backlinks.py` → `enrich_domains_with_dr`): each top
+      referring domain in the report carries its own DR, process-cached + 0.2s rate-limited.
+    Optional: if `AHREFS_API_KEY` is set in `.platform-keys.env`, the paid
+    `site-explorer/domain-rating` endpoint also populates `ahrefs_rank`. Failure-safe: any
+    error → DR 0 → DataForSEO rank fallback; report never breaks.
+    **Known gap (flagged for host):** competitor domains (`fetch_competitive.py`) are NOT yet
+    DR-enriched — the competitive table can't show "your DR 12 vs their DR 38" until that's wired.
+
 Credentials: DataForSEO from `/mnt/system/base/.platform-keys.env`; `SERPER_API_KEY` from
 `/mnt/system/base/.openclaw-keys.env` (or the environment). Serper enrichment is additive — if
 the key is absent it's skipped and the DataForSEO data stands.

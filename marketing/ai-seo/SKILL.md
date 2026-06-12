@@ -486,6 +486,42 @@ For implementation, see the [tools registry](../../tools/REGISTRY.md).
 | `gsc` | Search Console performance data, query tracking |
 | `ga4` | Referral traffic from AI sources |
 
+### JamBot in-house AI-visibility data (we already pay for this — use it FIRST)
+
+Before reaching for third-party AI monitoring tools, run the DataForSEO AI Optimization lane via
+the `dataforseo` skill (`scripts/dataforseo.sh` — all calls auto-save to the tenant's SEO DB):
+
+```bash
+# 1. Google AI Mode SERP — is the client cited in Google's AI answer? (~$0.002/query)
+bash dataforseo.sh "serp/google/ai_mode/live/advanced" \
+  '[{"keyword":"best <service> company <city>","location_name":"<City,State,United States>","language_name":"English"}]'
+# → check result items' references[] for the client domain vs competitors
+
+# 2. LLM mentions — where the domain appears across AI assistant answers
+bash dataforseo.sh "ai_optimization/llm_mentions/search/live" \
+  '[{"target":[{"domain":"clientsite.com"}],"location_name":"United States","language_name":"English","limit":50}]'
+
+# 3. Who owns the AI answer box in the niche (top cited domains for a topic)
+bash dataforseo.sh "ai_optimization/llm_mentions/top_domains/live" \
+  '[{"keyword":"<niche topic>","location_name":"United States","language_name":"English","limit":20}]'
+
+# 4. Per-model spot check — read what ChatGPT/Claude/Gemini/Perplexity actually answer
+bash dataforseo.sh "ai_optimization/chat_gpt/llm_responses/live" \
+  '[{"user_prompt":"who is the best <service> company in <city>?","model_name":"gpt-4.1-mini","max_output_tokens":500}]'
+```
+
+Workflow: run #1 + #2 in the audit phase (cheap), #3 to pick citation targets, #4 monthly per
+client as a qualitative check. Full recipes + costs: `dataforseo` skill → "Deep Endpoint Recipes".
+
+### llms.txt — the AI-discovery file (use the `llms-txt-writer` skill)
+
+Every client site should ship `/llms.txt` (and ideally `/llms-full.txt`) — a curated,
+markdown-formatted map of the site's most important content for LLM crawlers. The
+**`llms-txt-writer` skill** has the full format spec, templates by industry, and testing steps;
+the JamBot brand report already checks for its presence (`fetch_ai.py` → "llms.txt present"
+signal). Treat a missing llms.txt as an automatic AI-SEO action item, same tier as missing
+schema.
+
 ---
 
 ## Task-Specific Questions
@@ -503,6 +539,8 @@ For implementation, see the [tools registry](../../tools/REGISTRY.md).
 
 - **seo-audit**: For traditional technical and on-page SEO audits
 - **schema-markup**: For implementing structured data that helps AI understand your content
+- **llms-txt-writer** (top-level skill): For creating the /llms.txt AI-discovery file
+- **dataforseo** (top-level skill): For AI Mode SERP + LLM-mention measurement (paid data we already have)
 - **content-strategy**: For planning what content to create
 - **competitor-alternatives**: For building comparison pages that get cited
 - **programmatic-seo**: For building SEO pages at scale

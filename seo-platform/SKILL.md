@@ -58,6 +58,41 @@ Brand monitoring across the web. KPI cards (total mentions, positive, neutral, n
 
 ---
 
+## Accuracy Notes — what the dashboard actually shows (audited 2026-06-12)
+
+Know these before promising features to a client:
+
+- **"Domain Rating" on the Backlinks view is DataForSEO's internal rank, NOT Ahrefs DR.** The KPI
+  reads `rank`/`domain_rank` from `backlinks/summary` (0–1000-ish internal scale). True Ahrefs DR
+  (0–100, the number clients recognize) is not surfaced in the dashboard yet — fetch it yourself
+  with the free endpoint below when a client asks "what's my DR". Don't present the two numbers as
+  the same scale.
+- **Backlink "growth chart" builds from saved snapshots only** — there is no
+  `backlinks/timeseries_summary` call wired, so a fresh project shows no history until weekly
+  refreshes accumulate.
+- **Keyword Magic runs on `keyword_suggestions` (+ intent/difficulty)** — the `keyword_ideas` and
+  `related_keywords` Labs modes are not wired into the page yet; run them via the `dataforseo`
+  skill ("Deep Endpoint Recipes") when a client needs broader ideation, and the results still
+  auto-save to their history.
+- **Google Trends sparklines are not wired** (`google_trends/explore` is never called by the page).
+- **Position-tracking trends accumulate from snapshots** — there's no `historical_rank_overview`
+  backfill, so trend charts start at first refresh, not from history.
+- **AI Visibility view = `llm_mentions/search` web-mention data**; the per-model
+  ChatGPT/Claude/Gemini/Perplexity response panels populate only after a paid AI Model Scan, and
+  Google **AI Mode SERP** presence isn't checked at all yet.
+- Treat the "--" placeholders honestly: they mean "never fetched for this project," not zero.
+
+### Free Ahrefs DR (agent-side, $0)
+```bash
+curl -s "https://api.ahrefs.com/v3/public/domain-rating-free?target=<DOMAIN>&output=json"
+# → {"domain_rating": {"domain_rating": 34.0}}
+```
+No auth, no cost, verified live 2026-06-12. **Server-side/agent-side only — the endpoint sends no
+CORS headers, so browser JS cannot call it.** Use it for client-facing authority talk (DR is the
+industry-standard number); cite the dashboard's DataForSEO rank as "internal link-index rank".
+
+---
+
 ## Managing Projects (FREE)
 
 You can add, list, and batch-import projects for your client. This is how domains get into the SEO dashboard.

@@ -56,6 +56,25 @@ You have access to 25 marketing skills optimized for local service companies and
 - Cross-reference **review-management** if focus is getting reviews via text
 - Cross-reference **customer-followup** if focus is post-service follow-up sequences
 
+## Data Tools (top-level skills — pair with the strategy skills above)
+
+These live OUTSIDE this bundle but power its skills with real data:
+
+| Need | Skill | Notes |
+|------|-------|-------|
+| Keyword/SERP/backlink/local/AI-visibility DATA | **dataforseo** | The paid system of record — every call auto-saves to the tenant SEO DB. See its "Deep Endpoint Recipes". |
+| Full client SEO report + build plan | **online-brand-report** | THE brand-report engine (real data, scored A–F) — never hand-write a report |
+| Ongoing SEO dashboard for the client | **seo-platform** | 12-view canvas dashboard; read accumulated data FREE |
+| Google-specific quick lookups (PAA, knowledge graph, local pack) | **serper-search** | ~$0.001/query secondary lane |
+| Free backlink discovery / competitor link gap | **cc-backlinks** | $0, Common Crawl graph; pair with free Ahrefs DR |
+| /llms.txt AI-discovery file | **llms-txt-writer** | Pairs with ai-seo for GEO work |
+| Free domain authority (Ahrefs DR) | — | `curl -s "https://api.ahrefs.com/v3/public/domain-rating-free?target=<domain>&output=json"` — $0, no key |
+
+**Typical project flows:**
+- *Local service client onboarding:* online-brand-report → local-seo → service-area-pages → schema-markup → page-cro → analytics-tracking
+- *AI visibility push:* ai-seo (+ dataforseo AI Mode/LLM-mention recipes) → llms-txt-writer → schema-markup → content-strategy
+- *Link building:* cc-backlinks (free gap) → dataforseo backlinks (depth) → local-seo partner network
+
 
 ## Workflow
 

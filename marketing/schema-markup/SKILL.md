@@ -63,8 +63,15 @@ Before implementing schema, understand:
 | LocalBusiness | Local business pages | name, address |
 | Event | Events, webinars | name, startDate, location |
 | SpeakableSpecification | Voice search, AI extraction | cssSelector or xpath |
+| VideoObject | Pages with embedded video | name, description, thumbnailUrl, uploadDate |
+| Service | Individual service pages | name, provider (areaServed for local) |
+| Person | Author bios, E-E-A-T | name (jobTitle, sameAs recommended) |
+| Review / AggregateRating | Product/service ratings | see advanced reference — self-serving rules apply |
 
 **For complete JSON-LD examples**: See [references/schema-examples.md](references/schema-examples.md)
+**For advanced patterns** (VideoObject, Review/AggregateRating safety rules, multi-location
+LocalBusiness, service-area `areaServed`, Service schema, Person/E-E-A-T, FAQ eligibility reality,
+schema-at-scale rules, live-schema auditing via DataForSEO): See [references/schema-advanced.md](references/schema-advanced.md)
 
 ---
 
