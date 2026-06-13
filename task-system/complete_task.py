@@ -143,6 +143,11 @@ def complete_task(
         {"state": "done", "at": now, "by": by_uri})
     record["completed_at"] = now
     record["outcome"] = outcome  # completer is captured in state_history[].by
+    # in-flight (voice/upload) tasks never pass through `scheduled`, so they lack
+    # scheduled_at — which the schema requires at done. They execute live, so
+    # scheduled_at == raised_at is semantically honest. setdefault leaves the
+    # today-path record (already scheduled) untouched. (josh-desktop 2026-06-13)
+    record.setdefault("scheduled_at", record.get("raised_at") or now)
 
     errs = validate_task_record(record)
     if errs:
