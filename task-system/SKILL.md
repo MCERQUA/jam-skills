@@ -32,9 +32,39 @@ python3 /mnt/shared-skills/task-system/voice-active/voice_active.py --debug
 python3 /mnt/shared-skills/task-system/smoke-test/smoke_test.py
 ```
 
+## Task Completion — MANDATORY (every agent, every finished task)
+
+When you finish a task, you MUST close it through the ONE canonical helper — this
+is what makes completed work visible to the operator and the fleet roll-up. Do
+NOT hand-move files or hand-write receipts.
+
+```bash
+python3 /mnt/shared-skills/task-system/complete_task.py \
+  --workspace /home/node/.openclaw/workspace \
+  --task-id <YYYY-MM-DD-HHMM-slug> \
+  --by <your-agent-uri> \
+  --summary "<one line: what got delivered>" \
+  --postmortem "<what happened / how>"
+```
+
+- **task-agent** (desktop/mesh): completes from `today` → `done`  (`--by <name>-desktop@mesh`)
+- **voice-agent**: completes from `in-flight` → `done`  (`--by <name>ai@voice`)
+
+The helper does three writes in one call (do not replicate them yourself):
+1. moves `task.json` → `tasks/done/` with `postmortem.md` + `state_history` + `completed_at`/`outcome`, matrix-validated;
+2. a `work-done` row into your daily ledger (`ledger/<date>.md`);
+3. a `kind:task-done` receipt → the bookkeeper roll-up (`DONE.md`), tagged `📦 task-done` — distinct from git-commit churn.
+
+A task must reach `today` or `in-flight` first (matrix rule); `done` is terminal.
+**Do NOT edit `complete_task.py`** — it is the fleet-wide canonical contract. Flag
+bugs to `host@mesh`.
+
 ## Rules enforced (Rule 1-8 of the spec)
 
-See `/home/mike/MIKE-AI/docs/jambot/task-system.md` section 1. Rule 8 fields (`dedup_hash`, `recipient_role`, `linked_to`) are PENDING — currently optional in validator. Will be required in v0.1.2 once host ratifies.
+See `/home/mike/MIKE-AI/docs/jambot/task-system.md` section 1. Schema is **v0.1.4**
+(ratified): Rule 8 fields (`dedup_hash`, `recipient_role`, `linked_to`) are
+**REQUIRED**; `failure_modes` 21-value enum required since v0.1.3;
+`notification_policy` + two-phase schedule added v0.1.4.
 
 ## Build owner
 
