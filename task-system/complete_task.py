@@ -37,7 +37,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -54,8 +53,19 @@ from transition_validator import TransitionValidator  # noqa: E402
 from task_schema import validate_task_record  # noqa: E402
 
 MATRIX = HERE / "v0.2-transition-matrix" / "transition-matrix.json"
-LEDGER_APPEND = Path("/home/mike/MIKE-AI/scripts/ledger/ledger-append.sh")
-RECEIPTS_DIR = Path("/mnt/agent-mesh/mesh/LEDGER/receipts")
+
+
+def _mesh_ledger_root() -> Path:
+    """Resolve the mesh LEDGER dir at runtime — same underlying volume, mounted
+    at /mnt/agent-mesh/mesh/LEDGER on host + voice containers, /mesh/LEDGER on
+    webtop desktop containers (container-portability fix, josh-desktop 2026-06-13)."""
+    for p in (Path("/mnt/agent-mesh/mesh/LEDGER"), Path("/mesh/LEDGER")):
+        if p.exists():
+            return p
+    return Path("/mnt/agent-mesh/mesh/LEDGER")  # host default if neither yet exists
+
+
+RECEIPTS_DIR = _mesh_ledger_root() / "receipts"
 
 # done is legal only from these pre-done states; writer role is implied by state
 _DONE_FROM = {"today": "task-agent", "in-flight": "voice-agent"}
@@ -161,7 +171,7 @@ def complete_task(
 
     # ── BRIDGE: work-done row into the tenant daily ledger
     ledger_file = ws / "ledger" / f"{_today()}.md"
-    _ledger_work_done(ledger_file, by_uri, summary, done_dir / "task.json")
+    _ledger_work_done(ledger_file, by_uri, summary)
 
     # ── WRITE 2: kind:task-done receipt → bookkeeper roll-up (distinct from git)
     receipt = _emit_receipt(tenant, by_uri, summary, task_id)
@@ -171,17 +181,22 @@ def complete_task(
             "ledger": str(ledger_file), "receipt_id": receipt}
 
 
-def _ledger_work_done(ledger_file: Path, actor: str, summary: str, proof: Path) -> None:
-    """Append a work-done row via the existing ledger-append.sh (the bridge)."""
-    if not LEDGER_APPEND.is_file():
-        return
-    ledger_file.parent.mkdir(parents=True, exist_ok=True)
+def _ledger_work_done(ledger_file: Path, actor: str, summary: str) -> None:
+    """Append a `work-done` row to the tenant daily ledger — written DIRECTLY in
+    Python (the host ledger-append.sh is absent inside tenant containers). Format
+    mirrors ledger-append.sh exactly: `## Work done` section header added once,
+    row `HH:MM | task-system | <actor> | <summary≤200>`. Best-effort; never blocks."""
     try:
-        subprocess.run(
-            ["bash", str(LEDGER_APPEND), str(ledger_file), "work-done",
-             "task-system", actor, summary],
-            check=False, capture_output=True, timeout=15)
-    except Exception:  # noqa: BLE001 — ledger bridge is best-effort, never blocks
+        ledger_file.parent.mkdir(parents=True, exist_ok=True)
+        header = "## Work done"
+        line_clean = " ".join((summary or "").split())[:200]
+        row = f"{datetime.now(timezone.utc).strftime('%H:%M')} | task-system | {actor} | {line_clean}"
+        existing = ledger_file.read_text() if ledger_file.is_file() else ""
+        with ledger_file.open("a") as f:
+            if header not in existing:
+                f.write(f"\n{header}\n")
+            f.write(row + "\n")
+    except Exception:  # noqa: BLE001 — ledger bridge is best-effort, never blocks completion
         pass
 
 
