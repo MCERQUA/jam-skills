@@ -111,6 +111,75 @@ def _roadmap_items_html(items: list, card_class: str, num: str, title: str, sub:
 """
 
 
+def _render_gbp_depth(
+    gbp_questions: list, gbp_qna_count: int, gbp_qna_unans: int, gbp_qna_error,
+    gbp_posts: list, gbp_posts_count: int, gbp_posts_error,
+) -> str:
+    """Render the GBP Q&A + Posts depth block inside the local-seo section."""
+    html = ""
+
+    # ── Q&A ──────────────────────────────────────────────────────────────────
+    _h3 = '<h3 class="text-base font-bold uppercase tracking-wider mb-3" style="color:var(--brand-muted);font-family:var(--font-ui);">'
+    if not gbp_qna_error or gbp_qna_count > 0:
+        qna_rows = ""
+        for q in gbp_questions[:3]:
+            ans = q.get("top_answer", "")
+            ans_display = ans[:120] + "…" if len(ans) > 120 else ans
+            qna_rows += (
+                f"<tr>"
+                f"<td>{_escape(q.get('question',''))}</td>"
+                f"<td>{_escape(ans_display)}</td>"
+                f"<td class='num'>{_escape(q.get('date',''))}</td>"
+                f"</tr>"
+            )
+        empty_row = (
+            "<tr><td colspan='3' style='text-align:center;color:var(--brand-muted);padding:12px;'>"
+            "No Q&amp;A on profile &mdash; answering common questions improves engagement signals."
+            "</td></tr>"
+        )
+        html += (
+            f"\n    {_h3}GBP Q&amp;A</h3>"
+            f"\n    <div class='panel' style='padding:0;overflow-x:auto;'>"
+            f"<table class='ls-map-table'>"
+            f"<thead><tr><th>Question</th><th>Top Answer</th><th>Posted</th></tr></thead>"
+            f"<tbody>{qna_rows or empty_row}</tbody>"
+            f"</table></div>"
+            f"\n    <p class='muted' style='margin:4px 0 16px;'>"
+            f"{gbp_qna_count} Q&amp;A total &middot; {gbp_qna_unans} unanswered</p>"
+        )
+
+    # ── Posts ─────────────────────────────────────────────────────────────────
+    if gbp_posts_count > 0:
+        posts_rows = ""
+        for p in gbp_posts[:3]:
+            snippet = p.get("text", "")
+            snippet_display = snippet[:150] + "…" if len(snippet) > 150 else snippet
+            posts_rows += (
+                f"<tr>"
+                f"<td>{_escape(snippet_display)}</td>"
+                f"<td class='num'>{_escape(p.get('date',''))}</td>"
+                f"</tr>"
+            )
+        html += (
+            f"\n    {_h3}GBP Posts &amp; Updates</h3>"
+            f"\n    <div class='panel' style='padding:0;overflow-x:auto;'>"
+            f"<table class='ls-map-table'>"
+            f"<thead><tr><th>Post</th><th>Date</th></tr></thead>"
+            f"<tbody>{posts_rows}</tbody>"
+            f"</table></div>"
+            f"\n    <p class='muted' style='margin:4px 0 16px;'>{gbp_posts_count} post(s) found</p>"
+        )
+    elif not gbp_posts_error:
+        html += (
+            f"\n    {_h3}GBP Posts &amp; Updates</h3>"
+            f"\n    <div class='panel'><p class='muted' style='padding:12px;'>"
+            f"No GBP posts found. Regular posts (weekly) are a direct local ranking signal "
+            f"&mdash; start with a project update or service highlight.</p></div>"
+        )
+
+    return html
+
+
 def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan: dict = None) -> None:
     """Generate and write the full HTML report."""
     plan = plan or {}
@@ -286,6 +355,15 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     rev_pcts   = data.get("review_dist_pcts", {"5":0,"4":0,"3":0,"2":0,"1":0})
     map_pos    = data.get("map_pack_positions", {})
 
+    # GBP depth
+    gbp_questions    = data.get("gbp_questions", [])
+    gbp_qna_count    = data.get("gbp_qna_count", 0)
+    gbp_qna_unans    = data.get("gbp_qna_unanswered", 0)
+    gbp_qna_error    = data.get("gbp_qna_error")
+    gbp_posts        = data.get("gbp_posts", [])
+    gbp_posts_count  = data.get("gbp_posts_count", 0)
+    gbp_posts_error  = data.get("gbp_posts_error")
+
     # Backlinks — prefer ahrefs_dr (free, no-cost) over domain_rank (DataForSEO internal)
     dr          = data.get("ahrefs_dr") or data.get("domain_rank", 0)
     bl_total    = data.get("backlinks_total", 0)
@@ -293,7 +371,9 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     dofollow    = data.get("dofollow_count", 0)
     nofollow    = data.get("nofollow_count", 0)
     top_refs    = data.get("top_referring_domains", [])
-    anchor_dist = data.get("anchor_text_dist", {"labels": [], "data": []})
+    anchor_dist       = data.get("anchor_text_dist", {"labels": [], "data": []})
+    bl_history        = data.get("bl_history", [])
+    bl_history_error  = data.get("bl_history_error", None)
 
     # Backlinks API not in the current DataForSEO plan (40204) → don't render misleading
     # zeros. Show "N/A — activates July 1, 2026" so the report is honest. (Fixed 2026-06-01.)
@@ -558,6 +638,45 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
 
     # ── DR color ─────────────────────────────────────────────────────────────
     dr_class = "ok" if dr >= 50 else ("warn" if dr >= 20 else "bad")
+
+    # ── Backlink history chart data ─────────────────────────────────────────
+    _bl_hist_labels = _js_list([h["month"]             for h in bl_history[-12:]])
+    _bl_hist_rd     = _js_list([h["referring_domains"] for h in bl_history[-12:]])
+    _bl_hist_bl     = _js_list([h["backlinks"]         for h in bl_history[-12:]])
+    if bl_history and not bl_unavailable:
+        _bl_hist_rows = "".join(
+            '<tr><td>' + _escape(h["month"]) + '</td>'
+            '<td class="num">' + f'{h["referring_domains"]:,}' + '</td>'
+            '<td class="num" style="color:' + ("var(--sem-success)" if h["new_rd"] > 0 else "var(--brand-muted)") + '">'
+            + ("+" + str(h["new_rd"]) if h["new_rd"] > 0 else "&mdash;") + '</td>'
+            '<td class="num" style="color:' + ("var(--sem-danger)" if h["lost_rd"] > 0 else "var(--brand-muted)") + '">'
+            + ("&minus;" + str(h["lost_rd"]) if h["lost_rd"] > 0 else "&mdash;") + '</td>'
+            '<td class="num">' + f'{h["backlinks"]:,}' + '</td></tr>'
+            for h in bl_history[-12:]
+        )
+        bl_history_html = (
+            '<h3 class="text-base font-bold uppercase tracking-wider mb-3 mt-6"'
+            ' style="color:var(--brand-muted); font-family: var(--font-ui);">'
+            'Backlink Growth &mdash; Last 12 Months</h3>\n'
+            '<div class="bl-card" style="padding:20px;">\n'
+            '  <h4>Referring Domains &amp; Backlinks Over Time</h4>\n'
+            '  <div class="sub">Monthly snapshots &middot; DataForSEO Backlinks History &middot; ' + report_date + '</div>\n'
+            '  <div class="chart-wrap" style="height:220px; margin-top:16px;">'
+            '<canvas id="bl-history-chart"></canvas></div>\n'
+            '  <div style="overflow-x:auto; margin-top:20px;">\n'
+            '    <table class="bl-table">\n'
+            '      <thead><tr><th>Month</th><th class="num">Ref. Domains</th>'
+            '<th class="num">+&nbsp;New</th><th class="num">&minus;&nbsp;Lost</th>'
+            '<th class="num">Backlinks</th></tr></thead>\n'
+            '      <tbody>' + _bl_hist_rows + '</tbody>\n'
+            '    </table>\n'
+            '  </div>\n'
+            '</div>'
+        )
+    else:
+        _note = (" (" + _escape(str(bl_history_error)) + ")") if bl_history_error else ""
+        bl_history_html = ('<p class="muted" style="margin-top:16px; color:var(--brand-muted);'
+                           ' font-size:0.875rem;">Backlink growth history unavailable' + _note + '.</p>')
 
     # ── What's working / fix first / invest ──────────────────────────────────
     working_items = []
@@ -985,6 +1104,9 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
       </table>
     </div>
 
+    {_render_gbp_depth(gbp_questions, gbp_qna_count, gbp_qna_unans, gbp_qna_error,
+                        gbp_posts, gbp_posts_count, gbp_posts_error)}
+
     <div class="ls-pull"><p>{"<strong>GMB review velocity is a top local ranking factor.</strong> Getting from " + str(rev_count) + " to 40+ reviews requires a systematic post-job text-ask flow. Every 5 reviews added measurably improves map pack position for competitive local queries." if rev_count < 40 else "<strong>Review base is solid.</strong> Maintain velocity with a post-job ask flow and respond to every review within 24 hours to sustain map pack position."}</p></div>
   </section>
   </div><!-- /found-local -->
@@ -1044,6 +1166,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     </div>
 
     <div class="bl-pull"><p>{bl_pull_html}</p></div>
+    {bl_history_html}
   </section>
 
   <section id="competitive-benchmark">
@@ -1667,6 +1790,33 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
         type: 'doughnut',
         data: {{ labels: anchorLabels, datasets: [{{ data: anchorData, backgroundColor: [BRAND_BLUE, RED, YELLOW, SLATE, GREEN], borderColor: '#0a0e1a', borderWidth: 2 }}] }},
         options: {{ responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: {{legend: {{position:'bottom', labels:{{color:GR, font:{{size:9}}}}}}}} }}
+      }});
+    }}
+
+    const histCtx = document.getElementById('bl-history-chart');
+    if (histCtx && {_bl_hist_labels}.length) {{
+      new Chart(histCtx, {{
+        type: 'line',
+        data: {{
+          labels: {_bl_hist_labels},
+          datasets: [
+            {{ label: 'Referring Domains', data: {_bl_hist_rd}, borderColor: BRAND_BLUE, backgroundColor: 'rgba(14,92,122,.15)', fill: true, tension: .3, pointRadius: 3, pointHoverRadius: 5 }},
+            {{ label: 'Backlinks (total)', data: {_bl_hist_bl}, borderColor: BRAND_ORANGE, backgroundColor: 'transparent', fill: false, tension: .3, pointRadius: 3, pointHoverRadius: 5, yAxisID: 'y2' }}
+          ]
+        }},
+        options: {{
+          responsive: true, maintainAspectRatio: false,
+          plugins: {{ legend: {{ labels: {{ color: GR }} }} }},
+          scales: {{
+            x:  {{ ticks: {{ color: GR, maxRotation: 45, font: {{ size: 9 }} }}, grid: {{ color: GRID }} }},
+            y:  {{ beginAtZero: true,
+                  title: {{ display: true, text: 'Ref. Domains', color: GR, font: {{ size: 10 }} }},
+                  ticks: {{ color: GR }}, grid: {{ color: GRID }} }},
+            y2: {{ position: 'right', beginAtZero: true,
+                  title: {{ display: true, text: 'Backlinks', color: GR, font: {{ size: 10 }} }},
+                  ticks: {{ color: GR }}, grid: {{ display: false }} }}
+          }}
+        }}
       }});
     }}
 

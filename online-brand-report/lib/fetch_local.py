@@ -1,7 +1,145 @@
-"""fetch_local.py — GMB reviews, map pack rankings for cities."""
+"""fetch_local.py — GMB reviews, map pack rankings, GBP Q&A + Posts depth."""
 
 import sys
 from .config import dfs_post, dfs_get_items, dfs_get_result0
+
+
+def _fetch_gbp_qna(brand_name: str, city: str, state: str) -> dict:
+    """Fetch GBP Q&A via business_data/google/questions_and_answers/live. Never raises.
+
+    Result paths (confirmed from DFS docs):
+      result[0].items[]                    answered questions
+      result[0].items_without_answers[]    unanswered questions
+      items[].question_text                question body (current, post-edit)
+      items[].items[].answer_text          top answer body
+      items[].time_ago                     relative post time
+      items[].url                          direct Q&A URL on Google
+
+    ASSUMPTION A: keyword is brand-name + city/state; no CID/place_id available here.
+    ASSUMPTION B: items_without_answers[] field name — confirmed from docs; flag if absent.
+    """
+    out = {
+        "gbp_questions":      [],
+        "gbp_qna_count":      0,
+        "gbp_qna_unanswered": 0,
+        "gbp_qna_error":      None,
+    }
+    try:
+        result = dfs_post("business_data/google/questions_and_answers/live", [
+            {
+                "keyword":       f"{brand_name} {city} {state}",
+                "location_code": 2840,
+                "language_code": "en",
+                "depth":         20,
+            }
+        ])
+        r0 = dfs_get_result0(result)
+        if not r0:
+            task_msg = ""
+            try:
+                task_msg = result.get("tasks", [{}])[0].get("status_message", "")
+            except Exception:
+                pass
+            out["gbp_qna_error"] = (
+                f"no Q&A data (DFS: {task_msg})" if task_msg else "no Q&A data"
+            )
+            return out
+
+        answered   = r0.get("items") or []
+        unanswered = r0.get("items_without_answers") or []
+
+        out["gbp_qna_count"]      = len(answered) + len(unanswered)
+        out["gbp_qna_unanswered"] = len(unanswered)
+
+        for item in answered[:5]:
+            q_text = (
+                item.get("question_text") or item.get("original_question_text") or ""
+            ).strip()
+            ans_items   = item.get("items") or []
+            top_answer  = ""
+            answered_by = ""
+            if ans_items:
+                top_answer  = (ans_items[0].get("answer_text") or "").strip()[:250]
+                answered_by = ans_items[0].get("profile_name") or ""
+            out["gbp_questions"].append({
+                "question":    q_text[:200],
+                "top_answer":  top_answer,
+                "answered_by": answered_by,
+                "date":        item.get("time_ago") or item.get("timestamp") or "",
+                "url":         item.get("url") or "",
+            })
+
+        if not answered and not unanswered:
+            out["gbp_qna_error"] = "no Q&A found on profile"
+
+    except Exception as e:
+        print(f"[WARN] GBP Q&A fetch failed: {e}", file=sys.stderr)
+        out["gbp_qna_error"] = str(e)
+
+    return out
+
+
+def _fetch_gbp_posts(brand_name: str, city: str, state: str) -> dict:
+    """Fetch GBP posts via business_data/google/my_business_updates/live. Never raises.
+
+    ASSUMPTION C: DFS docs confirm only task_post/task_get (async) for my_business_updates
+    — no live endpoint found. Attempting live anyway (mirrors reviews/live graceful-fail
+    pattern). Will set gbp_posts_error if unavailable. Host must confirm; if async only,
+    task_post + delayed task_get is the fallback (not implemented here — needs polling).
+
+    Result paths (ASSUMPTION D — inferred from reviews/my_business_info patterns):
+      result[0].items[]          post objects
+      items[].post_text          post body
+      items[].post_date          date string: mm/dd/yyyy hh:mm:ss
+      items[].timestamp          UTC timestamp
+      items[].url                direct URL to post
+      items[].type               expected: google_business_post
+    """
+    out = {
+        "gbp_posts":       [],
+        "gbp_posts_count": 0,
+        "gbp_posts_error": None,
+    }
+    # Host live-check 2026-06-14: business_data/google/my_business_updates/live returns
+    # 404 — the sync/live variant does not exist (DFS only offers task_post/task_get for
+    # GBP updates, per the worker's flagged ASSUMPTION C). Short-circuit to "unavailable"
+    # so we don't make 3 failed HTTP calls every report run. Q&A (confirmed endpoint) is
+    # unaffected. Re-enable here if/when an async posts lane is wired.
+    out["gbp_posts_error"] = "posts endpoint unavailable (my_business_updates has no live variant)"
+    return out
+    try:  # noqa: unreachable — kept for the async re-enable path
+        result = dfs_post("business_data/google/my_business_updates/live", [
+            {
+                "keyword":       f"{brand_name} {city} {state}",
+                "location_code": 2840,
+                "language_code": "en",
+                "depth":         10,
+            }
+        ])
+        items = dfs_get_items(result)
+        out["gbp_posts_count"] = len(items)
+        for item in items[:5]:
+            out["gbp_posts"].append({
+                "text": (item.get("post_text") or "").strip()[:300],
+                "date": item.get("post_date") or item.get("timestamp") or "",
+                "url":  item.get("url") or "",
+                "type": item.get("type") or "google_business_post",
+            })
+        if not items:
+            task_msg = ""
+            try:
+                task_msg = result.get("tasks", [{}])[0].get("status_message", "")
+            except Exception:
+                pass
+            out["gbp_posts_error"] = (
+                f"no posts found (DFS: {task_msg})" if task_msg else "no GBP posts found"
+            )
+
+    except Exception as e:
+        print(f"[WARN] GBP posts fetch failed: {e}", file=sys.stderr)
+        out["gbp_posts_error"] = str(e)
+
+    return out
 
 def fetch_local(brand_name: str, service: str, city: str, state: str, domain: str,
                 extra_cities: list | None = None) -> dict:
@@ -19,6 +157,14 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
         # map pack) actually EXECUTED — "no GMB / no reviews" is a real local finding that must
         # score low, not be excluded. (Fixed 2026-06-01: was a top driver of the score swing.)
         "_local_available": False,
+        # GBP depth — Q&A + Posts (populated at end of this function)
+        "gbp_questions":      [],  # list of {question, top_answer, answered_by, date, url}
+        "gbp_qna_count":      0,   # total Q count (answered + unanswered)
+        "gbp_qna_unanswered": 0,   # unanswered count
+        "gbp_qna_error":      None,
+        "gbp_posts":          [],  # list of {text, date, url, type}
+        "gbp_posts_count":    0,
+        "gbp_posts_error":    None,
     }
 
     cities = [city] + (extra_cities or [])[:2]
@@ -183,5 +329,11 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
         except Exception as e:
             print(f"[WARN] Map pack fetch for {c}: {e}", file=sys.stderr)
         out["map_pack_positions"][c] = pos
+
+    # --- GBP Q&A (business_data/google/questions_and_answers/live) ---
+    out.update(_fetch_gbp_qna(brand_name, city, state))
+
+    # --- GBP Posts/Updates (business_data/google/my_business_updates/live) ---
+    out.update(_fetch_gbp_posts(brand_name, city, state))
 
     return out

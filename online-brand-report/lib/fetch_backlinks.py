@@ -1,9 +1,72 @@
-"""fetch_backlinks.py — Backlink summary, referring domains, anchor text."""
+"""fetch_backlinks.py — Backlink summary, referring domains, anchor text, growth history."""
 
 import sys
 import requests
+from datetime import date, timedelta
 from .config import dfs_post, dfs_get_result0, dfs_get_items, CC_BACKLINKS_URL
 from .fetch_ahrefs import fetch_domain_rating, enrich_domains_with_dr
+
+def _fetch_bl_history(domain: str) -> dict:
+    """Fetch 12-month backlink + referring-domain timeseries from DataForSEO. Never raises.
+
+    Calls backlinks/history/live with a 365-day window and returns monthly snapshots
+    sorted chronologically. Fields: month (YYYY-MM), backlinks, referring_domains,
+    new_rd (new referring domains that month), lost_rd (lost referring domains).
+    """
+    out: dict = {"bl_history": [], "bl_history_error": None}
+    try:
+        today     = date.today()
+        date_from = (today - timedelta(days=365)).strftime("%Y-%m-%d")
+        date_to   = today.strftime("%Y-%m-%d")
+
+        result = dfs_post("backlinks/history/live", [
+            {
+                "target":    domain,
+                "date_from": date_from,
+                "date_to":   date_to,
+            }
+        ])
+        items = dfs_get_items(result)
+
+        if not items:
+            task_msg = ""
+            try:
+                task_msg = (result.get("tasks") or [{}])[0].get("status_message") or ""
+            except Exception:
+                pass
+            out["bl_history_error"] = (
+                f"no history data (DFS: {task_msg})" if task_msg
+                else "no backlink history data"
+            )
+            return out
+
+        history = []
+        for item in items:
+            month = (item.get("date") or "")[:7]   # "YYYY-MM"
+            if not month:
+                continue
+            history.append({
+                "month":             month,
+                "backlinks":         int(item.get("backlinks")              or 0),
+                "referring_domains": int(item.get("referring_domains")      or 0),
+                "new_rd":            int(item.get("new_referring_domains")   or 0),
+                "lost_rd":           int(item.get("lost_referring_domains")  or 0),
+            })
+
+        history.sort(key=lambda x: x["month"])
+        out["bl_history"] = history
+        if not history:
+            out["bl_history_error"] = "no backlink history data"
+
+    except Exception as e:
+        print(f"[WARN] Backlink history fetch failed: {e}", file=sys.stderr)
+        out["bl_history_error"] = str(e)
+
+    # --- Backlink History (growth trend over the last 12 months) ---
+    out.update(_fetch_bl_history(domain))
+
+    return out
+
 
 def fetch_backlinks(domain: str) -> dict:
     """Return backlink data. Never raises."""
@@ -25,6 +88,8 @@ def fetch_backlinks(domain: str) -> dict:
         # site genuinely has 0 backlinks — a real 0 must score low, not be excluded). Inferring
         # availability from value>0 made the Brand Health Score swing run-to-run. (Fixed 2026-06-01.)
         "_backlinks_available": False,
+        "bl_history":            [],
+        "bl_history_error":      None,
     }
 
     # --- Ahrefs Domain Rating (free API endpoint) ---
@@ -130,5 +195,8 @@ def fetch_backlinks(domain: str) -> dict:
                         out["top_referring_domains"].append({"domain": d, "rank": 0, "backlinks": 1})
     except Exception as e:
         print(f"[INFO] CC-backlinks supplement skipped: {e}", file=sys.stderr)
+
+    # --- Backlink History (growth trend over the last 12 months) ---
+    out.update(_fetch_bl_history(domain))
 
     return out
