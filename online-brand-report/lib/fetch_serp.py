@@ -5,10 +5,18 @@ from urllib.parse import urlparse
 from .config import dfs_post, dfs_get_items
 
 def _domain_from_url(url: str) -> str:
+    if not url:
+        return ""
     try:
-        return urlparse(url).hostname or url
+        return urlparse(url).hostname or url or ""
     except Exception:
-        return url
+        return url or ""
+
+
+def _norm(s) -> str:
+    """Null-safe lowercase — a SERP item with no url/domain used to crash
+    `dom.lower()` (NoneType has no attribute 'lower') and kill the whole SERP block."""
+    return (s or "").lower().replace("www.", "")
 
 def _serp_for_query(keyword: str, city: str, state: str, client_domain: str) -> dict:
     results = []
@@ -33,7 +41,8 @@ def _serp_for_query(keyword: str, city: str, state: str, client_domain: str) -> 
             url    = item.get("url") or ""
             title  = item.get("title") or ""
             dom    = _domain_from_url(url)
-            is_client = client_domain.lower().replace("www.", "") in dom.lower()
+            cd     = _norm(client_domain)
+            is_client = bool(cd) and cd in _norm(dom)
             if is_client:
                 client_found = True
             results.append({
@@ -48,7 +57,8 @@ def _serp_for_query(keyword: str, city: str, state: str, client_domain: str) -> 
             # Try to find client in deeper results
             for item in items:
                 dom = _domain_from_url(item.get("url", ""))
-                if client_domain.lower().replace("www.", "") in dom.lower():
+                cd  = _norm(client_domain)
+                if cd and cd in _norm(dom):
                     pos = int(item.get("rank_absolute") or 0)
                     results.append({
                         "position": pos,
@@ -69,13 +79,23 @@ def _serp_for_query(keyword: str, city: str, state: str, client_domain: str) -> 
 def fetch_serp(domain: str, service: str, city: str, state: str, extra_cities: list | None = None) -> dict:
     """Fetch SERP snapshots for 2-3 key queries. Never raises."""
     queries = []
-    cities_to_check = [city] + (extra_cities or [])[:2]
+    cities_to_check = [c for c in ([city] + (extra_cities or [])[:2]) if c]
 
-    for c in cities_to_check[:2]:
-        q = f"{service} {c} {state}" if state else f"{service} {c}"
-        queries.append((q, c, state))
-    # Add a "near me" type query
-    queries.append((f"{service} contractor near me", city, state))
+    # service/industry may not be known yet (it's captured later in onboarding).
+    # Fall back to the brand (domain label) so the query is a real search, never a
+    # leading-space location-only string like " Toronto ON" that returns nothing.
+    svc = (service or "").strip()
+    brand = (domain or "").strip().replace("www.", "").split(".")[0]
+    head = svc or brand or "business"
+
+    def _q(*parts):
+        return " ".join(p.strip() for p in parts if p and p.strip())
+
+    for c in (cities_to_check or [""])[:2]:
+        queries.append((_q(head, c, state), c, state))
+    # A second-angle query: a "near me" service query when we know the service,
+    # otherwise the brand name itself (a brand-SERP check).
+    queries.append((_q(svc, "near me") if svc else _q(brand), city, state))
 
     serp_blocks = []
     for (kw, c, s) in queries[:3]:

@@ -26,7 +26,13 @@ import sys
 import time
 from pathlib import Path
 
-GATE_TTL_SECS = 300
+# Gate freshness window. Raised 300→3600 (1h) 2026-06-13: 300s kept expiring on
+# voice tenants during normal autonomous work (josh-voice request), blocking
+# mesh-send/recv mid-task — so the agent couldn't learn of task completions to act
+# on them. 1h covers a working session; env-overridable per tenant for longer
+# autonomy windows. (Proactive SMS to the operator is an ungated /send curl — this
+# gate only governs agent-to-agent mesh traffic.)
+GATE_TTL_SECS = int(os.environ.get('MESH_GATE_TTL_SECS', '3600'))
 
 EXEMPT_AGENTS = {
     'host@mesh',
