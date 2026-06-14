@@ -9,9 +9,32 @@ import os
 import json
 import requests
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, List, Any
 from pathlib import Path
+
+_BOOKS_URL = os.environ.get("BOOKS_URL", "http://127.0.0.1:6352/api/books/write")
+
+
+def _books_record_hook(response, *args, **kwargs):
+    """requests response hook — record each Suno API call to the books ledger.
+    Host-side this reaches the writer directly; inside a container it silently
+    no-ops. Fire-and-forget; never disturbs the response."""
+    try:
+        if "sunoapi.org" not in (response.url or "") and "suno" not in (response.url or ""):
+            return
+        rec = {
+            "type": "api_call", "capture_method": "sdk", "provider": "suno",
+            "host": "api.sunoapi.org",
+            "endpoint": "/" + response.url.rstrip("/").rsplit("/", 1)[-1],
+            "response_status": response.status_code,
+            "source_container": os.environ.get("HOSTNAME"),
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "provider_extras": {"leg": "suno-skill-host"},
+        }
+        requests.post(_BOOKS_URL, json=rec, timeout=3)
+    except Exception:
+        pass
 
 
 class SunoMusicClient:
@@ -52,6 +75,13 @@ class SunoMusicClient:
             })
         else:
             self.session.headers.update({"Content-Type": "application/json"})
+
+        # JamBot Books: record every Suno API call to the ledger (host-side).
+        try:
+            self.session.hooks.setdefault('response', [])
+            self.session.hooks['response'].append(_books_record_hook)
+        except Exception:
+            pass
 
     def _get_callback_url(self, provided_hook_url: Optional[str] = None) -> Optional[str]:
         """
