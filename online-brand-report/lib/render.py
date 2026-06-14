@@ -484,7 +484,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
       <td>{_escape(c.get('domain',''))}</td>
       <td class="num">{c.get('traffic_estimate',0):,}</td>
       <td class="num">{c.get('keyword_count',0)}</td>
-      <td class="num">—</td>
+      <td class="num">{c.get('dr') or '—'}</td>
     </tr>"""
 
     # ── Roadmap HTML ──────────────────────────────────────────────────────────

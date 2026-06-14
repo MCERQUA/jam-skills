@@ -2,6 +2,7 @@
 
 import sys
 from .config import dfs_post, dfs_get_items, dfs_get_result0
+from .fetch_ahrefs import enrich_domains_with_dr, fetch_domain_rating
 
 def fetch_competitive(domain: str, location: str = "United States") -> dict:
     """Return competitor data. Never raises."""
@@ -80,6 +81,17 @@ def fetch_competitive(domain: str, location: str = "United States") -> dict:
 
     out["client_traffic"] = traffic_map.get(domain, 0)
 
+    # Enrich competitor domains with DR via the free Ahrefs public endpoint (no key, $0).
+    # fetch_backlinks already called fetch_domain_rating(domain) earlier in the run, so the
+    # client's entry is already in _cache — no extra HTTP call there.
+    comp_domains = [c["domain"] for c in competitors_raw if c.get("domain")]
+    dr_map: dict = {}
+    if comp_domains:
+        try:
+            dr_map = enrich_domains_with_dr(comp_domains)
+        except Exception as e:
+            print(f"[WARN] Competitor DR enrichment failed: {e}", file=sys.stderr)
+
     # Build competitors output list
     for c in competitors_raw:
         dom = c["domain"]
@@ -89,6 +101,7 @@ def fetch_competitive(domain: str, location: str = "United States") -> dict:
             "traffic_estimate": traffic,
             "keyword_count": c.get("intersections", 0),
             "overlap_pct": 0,
+            "dr": dr_map.get(dom, {}).get("dr", 0),
         })
 
     if out["competitors"]:
@@ -104,12 +117,19 @@ def fetch_competitive(domain: str, location: str = "United States") -> dict:
         def _norm(val, max_val):
             return min(100, round((val / max_val) * 100, 1)) if max_val > 0 else 0
 
+        # Authority radar axis: client DR vs top competitor DR (both from Ahrefs free cache)
+        top_dr = out["competitors"][0].get("dr", 0)
+        try:
+            client_dr = fetch_domain_rating(domain)["dr"]
+        except Exception:
+            client_dr = 0
+
         out["radar_client"] = [
             _norm(client_traffic, top_traffic),
             0,   # keywords — filled in by orchestrator
             0,   # top-10 kw — filled in by orchestrator
             0,   # backlinks — filled in by orchestrator
-            0,   # authority (DR) — filled in by orchestrator
+            _norm(client_dr, top_dr),  # authority (DR) — live from Ahrefs; 0 if comp DR unknown
             0,   # pages — filled in by orchestrator
         ]
 
