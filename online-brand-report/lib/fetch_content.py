@@ -3,8 +3,12 @@
 import sys
 from .config import dfs_post, dfs_get_items
 
-def fetch_content(domain: str, service: str, location: str, top_competitor: str = "") -> dict:
-    """Return content/keyword gap data. Never raises."""
+def fetch_content(domain: str, service: str, location: str, top_competitor: str = "",
+                  location_code: int = 2840) -> dict:
+    """Return content/keyword gap data. Never raises.
+
+    location_code: DataForSEO country code (2840 US default, 2124 Canada) threaded from
+    generate.py so non-US businesses get real keyword suggestions / content gaps."""
     out = {
         "keyword_suggestions": [],  # list of {keyword, volume, difficulty, cpc}
         "content_gaps": [],         # list of {keyword, volume, competitor_pos}
@@ -17,7 +21,7 @@ def fetch_content(domain: str, service: str, location: str, top_competitor: str 
         result = dfs_post("dataforseo_labs/google/keyword_suggestions/live", [
             {
                 "keyword": service,
-                "location_code": 2840,
+                "location_code": location_code,
                 "language_code": "en",
                 "limit": 30,
                 "order_by": ["keyword_info.search_volume,desc"],
@@ -44,7 +48,7 @@ def fetch_content(domain: str, service: str, location: str, top_competitor: str 
                 {
                     "target1": domain,
                     "target2": top_competitor,
-                    "location_code": 2840,
+                    "location_code": location_code,
                     "language_code": "en",
                     "limit": 100,
                     "order_by": ["keyword_data.keyword_info.search_volume,desc"],

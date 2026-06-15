@@ -4,8 +4,12 @@ import sys
 from .config import dfs_post, dfs_get_items, dfs_get_result0
 from .fetch_ahrefs import enrich_domains_with_dr, fetch_domain_rating
 
-def fetch_competitive(domain: str, location: str = "United States") -> dict:
-    """Return competitor data. Never raises."""
+def fetch_competitive(domain: str, competitors=None, location_code: int = 2840) -> dict:
+    """Return competitor data. Never raises.
+
+    competitors: optional caller-supplied competitor seed list (currently informational —
+    the competitor set is derived from DataForSEO; kept for call-site compatibility).
+    location_code: DataForSEO country code threaded from generate.py (2840 US / 2124 CA)."""
     out = {
         "competitors": [],      # list of {domain, traffic_estimate, keyword_count, overlap_pct}
         "client_traffic": 0,    # estimated monthly visits
@@ -26,7 +30,7 @@ def fetch_competitive(domain: str, location: str = "United States") -> dict:
                 "target": domain,
                 # location_name/language_name removed: competitors_domain/live (Labs) rejects them →
                 # 404. Labs endpoints take location_code/language_code or nothing (ica-voice 2026-06-01).
-                "location_code": 2840,
+                "location_code": location_code,
                 "language_code": "en",
                 "limit": 25,
             }
@@ -64,7 +68,7 @@ def fetch_competitive(domain: str, location: str = "United States") -> dict:
     if targets:
         try:
             result = dfs_post("dataforseo_labs/google/bulk_traffic_estimation/live", [
-                {"targets": targets[:10], "location_code": 2840, "language_code": "en"}
+                {"targets": targets[:10], "location_code": location_code, "language_code": "en"}
             ])
             items = dfs_get_items(result)
             for item in items:

@@ -293,7 +293,8 @@ def _other_mentions(items: list, client_domain: str, slugs: list[str]) -> list:
     return out
 
 
-def fetch_discovery(domain: str, brand_name: str, city: str = "", state: str = "") -> dict:
+def fetch_discovery(domain: str, brand_name: str, city: str = "", state: str = "",
+                    location_code: int = 2840) -> dict:
     """Run a few brand-name SERPs and harvest the FULL off-site footprint. Never raises.
 
     Returns:
@@ -328,7 +329,7 @@ def fetch_discovery(domain: str, brand_name: str, city: str = "", state: str = "
     for kw in queries:
         try:
             result = dfs_post("serp/google/organic/live/advanced", [
-                {"keyword": kw, "location_code": 2840, "language_code": "en", "depth": 30}
+                {"keyword": kw, "location_code": location_code, "language_code": "en", "depth": 30}
             ])
             items = dfs_get_items(result)
             if items:

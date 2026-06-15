@@ -18,16 +18,20 @@ def _norm(s) -> str:
     `dom.lower()` (NoneType has no attribute 'lower') and kill the whole SERP block."""
     return (s or "").lower().replace("www.", "")
 
-def _serp_for_query(keyword: str, city: str, state: str, client_domain: str) -> dict:
+def _serp_for_query(keyword: str, city: str, state: str, client_domain: str,
+                    location_code: int = 2840, location_coordinate: str = "") -> dict:
     results = []
     try:
-        # location_code 2840 (US) + language_code — the old "City,AZ,United States" location_name
-        # (abbreviated state) was rejected → empty SERP tables. The keyword carries the city, so
-        # US-level returns the correct local results. (Fixed skill-wide 2026-06-01.)
+        # Geo-target: the business's exact coordinate (the real LOCAL SERP a nearby
+        # customer sees) when we have it from the GMB/Places listing, else the country
+        # location_code (keyword carries the city). City-level location_name was
+        # rejected by DFS for abbreviated states → coordinate is the reliable local lever.
+        _loc = {"location_coordinate": location_coordinate} if location_coordinate \
+               else {"location_code": location_code}
         result = dfs_post("serp/google/organic/live/advanced", [
             {
                 "keyword": keyword,
-                "location_code": 2840,
+                **_loc,
                 "language_code": "en",
                 "depth": 15,
             }
@@ -76,8 +80,12 @@ def _serp_for_query(keyword: str, city: str, state: str, client_domain: str) -> 
         "results": results,
     }
 
-def fetch_serp(domain: str, service: str, city: str, state: str, extra_cities: list | None = None) -> dict:
-    """Fetch SERP snapshots for 2-3 key queries. Never raises."""
+def fetch_serp(domain: str, service: str, city: str, state: str, extra_cities: list | None = None,
+               location_code: int = 2840, location_coordinate: str = "") -> dict:
+    """Fetch SERP snapshots for 2-3 key queries. Never raises.
+
+    location_code: DataForSEO country code (2840 US / 2124 CA).
+    location_coordinate: 'lat,lng' from the GMB/Places listing → geo-targeted LOCAL SERP."""
     queries = []
     cities_to_check = [c for c in ([city] + (extra_cities or [])[:2]) if c]
 
@@ -99,7 +107,7 @@ def fetch_serp(domain: str, service: str, city: str, state: str, extra_cities: l
 
     serp_blocks = []
     for (kw, c, s) in queries[:3]:
-        block = _serp_for_query(kw, c, s, domain)
+        block = _serp_for_query(kw, c, s, domain, location_code, location_coordinate)
         serp_blocks.append(block)
 
     # Identify top recurring competitor

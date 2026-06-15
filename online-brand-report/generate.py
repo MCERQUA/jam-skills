@@ -33,6 +33,7 @@ from lib import (
     fetch_brand,
     fetch_web,
     fetch_organic,
+    fetch_live_rankings,
     fetch_serp,
     fetch_local,
     fetch_backlinks,
@@ -59,7 +60,7 @@ TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templa
 
 def parse_args():
     p = argparse.ArgumentParser(description="Generate an Online Brand Report HTML file.")
-    p.add_argument("--domain",      required=True,  help="Target domain (no https://)")
+    p.add_argument("--domain",      default="",     help="Target domain (no https://). Empty = a no-website business: the SAME report renders, just sparse where there's no site (GMB + local SERP only).")
     p.add_argument("--name",        required=True,  help="Business name")
     p.add_argument("--owner",       default="",     help="Owner / contact name")
     p.add_argument("--city",        default="",     help="Primary city")
@@ -93,7 +94,10 @@ def slugify(text: str) -> str:
 def resolve_output(args) -> str:
     if args.output:
         return args.output
-    slug = args.domain.replace("www.", "").replace(".", "-").replace("_", "-").lower()
+    # No-website business → derive the slug from the NAME (there's no domain). Same
+    # report, just sparse on the on-site sections; the keyword research IS the build plan.
+    slug = (args.domain.replace("www.", "").replace(".", "-").replace("_", "-").lower()
+            if args.domain else slugify(args.name))
     fname = f"brand-report-{slug}.html"
     # Tenant openclaw containers mount the OVU canvas-pages at these IN-CONTAINER paths;
     # /mnt/clients is NOT mounted inside tenant containers. Prefer a mounted canvas-pages
@@ -124,6 +128,305 @@ def _run(label: str, fn, *a, **kw) -> dict:
         return {}
 
 
+# ── Vertical / service auto-detection ─────────────────────────────────────────
+# The keyword engine is seeded by `service` (fetch_content uses it as the literal
+# keyword). When onboarding can't supply an industry, `--service` is empty and the
+# report defaults to "your service" → it researches "your service in <city>" →
+# an empty, useless report. But the report ALREADY fetches the two signals that
+# reveal the real vertical: the GMB primary category (fetch_brand → gmb_categories)
+# and the homepage <title>/<meta description>. This detector wires those existing
+# signals into `service` so the report self-fills the vertical. Fail-open: returns
+# "" when nothing reliable is found, so the caller keeps prior behavior.
+
+_PLACEHOLDER_SERVICES = {"", "your service", "service", "services", "general", "n/a"}
+
+
+def _clean_service(s: str) -> str:
+    import re as _re
+    s = _re.sub(r"\s+", " ", (s or "")).strip(" -|·•—,.\t")
+    # trailing org/noise words add nothing to a keyword seed
+    s = _re.sub(r"\b(shop|store|company|co|inc|llc|ltd|corp)\b\.?$", "", s, flags=_re.I).strip()
+    return s
+
+
+def _probe_homepage_meta(domain: str):
+    """Return (title, meta_description) from the live homepage, or ("",""). Cheap,
+    dependency-free, fail-soft (any error → empties → caller falls through)."""
+    import re as _re, urllib.request as _u, html as _html
+    # Realistic browser UA — bot-identifying UAs get 403'd by Cloudflare/WAF on many
+    # real business sites (azrimrepair.com etc.), which silently breaks detection.
+    _ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+           "(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+    for scheme in ("https://", "http://"):
+        try:
+            req = _u.Request(scheme + domain + "/", headers={"User-Agent": _ua})
+            page = _u.urlopen(req, timeout=12).read(250000).decode("utf-8", "replace")
+        except Exception:
+            continue
+        tm = _re.search(r"<title[^>]*>(.*?)</title>", page, _re.I | _re.S)
+        dm = _re.search(r'<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']',
+                        page, _re.I | _re.S)
+        title = _html.unescape(_re.sub(r"\s+", " ", (tm.group(1) if tm else ""))).strip()
+        desc = _html.unescape(_re.sub(r"\s+", " ", (dm.group(1) if dm else ""))).strip()
+        if title or desc:
+            return title, desc
+    return "", ""
+
+
+def _strip_geo_tail(s: str) -> str:
+    """Remove a trailing location phrase from a service descriptor so the keyword
+    seed isn't polluted with the city/region (which returns weaker keyword data).
+    Generic — works for any location, not a hardcoded city list. Handles:
+      'attic insulation in Toronto'        → 'attic insulation'
+      'roof repair serving Dallas & Plano'  → 'roof repair'
+      'screen printing Toronto & GTA'       → 'screen printing'
+    Conservative: only strips when a connector (in/serving/near/…) precedes a
+    Capitalized place, OR a trailing 'City & Area' / '& GTA' style region tag."""
+    import re as _re
+    s = (s or "").strip()
+    # 1) connector + Capitalized place tail: 'in Toronto', 'serving Dallas & Plano'
+    s = _re.sub(r"\b(?:in|serving|near|across|throughout|around|for)\s+[A-Z][\w .,'&-]*$",
+                "", s).strip(" -|,&")
+    # 2) trailing '& GTA' / '& Area' / '& Surrounding ...' region tag
+    s = _re.sub(r"\s*&\s*(?:GTA|area|surrounding|region|county|counties)\b.*$",
+                "", s, flags=_re.I).strip(" -|,&")
+    return s
+
+
+def _service_from_title(title: str) -> str:
+    """Pull the service-descriptor chunk out of a homepage title — the part that
+    isn't the brand name and isn't the geo tail. e.g.
+    'PrintGuys - Custom Printed Merch & Company Apparel in Concord'
+        → 'Custom Printed Merch & Company Apparel'."""
+    import re as _re
+    if not title:
+        return ""
+    best = ""
+    for part in _re.split(r"\s*[\|\-–—:·•]\s*", title):
+        p = _strip_geo_tail(part)
+        if len(p.split()) >= 2 and len(p) > len(best):
+            best = p
+    return best
+
+
+# Service-noun suffixes that mark a phrase as a real SEO head-term (the words a
+# customer actually searches). Used to pick the clean keyword out of a homepage's
+# meta description — e.g. 'Premium DTF printing, screen printing, embroidery' →
+# 'screen printing'. Deterministic; NO LLM (Groq LLM is banned — TTS only).
+_SERVICE_NOUNS = (
+    "printing", "print", "repair", "repairs", "installation", "install", "cleaning",
+    "removal", "restoration", "remediation", "roofing", "plumbing", "electrical",
+    "hvac", "landscaping", "lawn care", "detailing", "insulation", "coating",
+    "coatings", "painting", "paving", "concrete", "flooring", "remodeling",
+    "renovation", "construction", "contracting", "fencing", "decking", "masonry",
+    "welding", "towing", "embroidery", "apparel", "signage", "upholstery",
+    "grooming", "training", "catering", "photography", "design", "marketing",
+    "accounting", "bookkeeping", "consulting", "inspection", "pest control",
+    "extermination", "waterproofing", "excavation", "drywall", "tiling",
+    "windows", "gutters", "siding", "tree service", "junk removal", "moving",
+    "locksmith", "glass", "appliance repair", "wraps", "tinting",
+)
+
+# Filler segments that look like a short phrase but aren't a service.
+_META_FILLER = (
+    "no minimums", "and more", "free quote", "free estimate", "fast turnaround",
+    "near me", "call today", "family owned", "locally owned", "since", "serving",
+    "best", "trusted", "affordable", "professional", "quality", "premium",
+    "licensed", "insured", "guaranteed", "open", "available",
+)
+
+
+def _service_from_meta(desc: str) -> str:
+    """Pull a clean SEO head-term out of a homepage meta description by scanning its
+    comma/clause segments for a short (1-4 word) phrase ending in / containing a
+    real service noun. Deterministic — no LLM. '' if nothing qualifies.
+    e.g. '...Premium DTF printing, screen printing, embroidery...' → 'screen printing'."""
+    import re as _re
+    if not desc:
+        return ""
+    best = ""
+    for seg in _re.split(r"[,.;:|–—\-]| and | & ", desc):
+        s = _strip_geo_tail(_clean_service(seg))
+        low = s.lower()
+        if not s or low in _PLACEHOLDER_SERVICES:
+            continue
+        words = s.split()
+        if not (1 <= len(words) <= 4):
+            continue
+        if any(f in low for f in _META_FILLER):
+            continue
+        if not any(_re.search(r"\b" + _re.escape(n) + r"s?\b", low) for n in _SERVICE_NOUNS):
+            continue
+        # Prefer a tight 2-word head-term ('screen printing') over a longer one.
+        if not best or abs(len(words) - 2) < abs(len(best.split()) - 2):
+            best = s
+    return best
+
+
+def detect_service(domain: str, brand_data: dict) -> str:
+    """Best-effort primary-service detection from signals the report already pulls.
+    Fully DETERMINISTIC (no LLM — Groq LLM is banned). Order:
+      (1) GMB primary category — authoritative ('Screen printing shop' → 'screen printing');
+      (2) homepage meta head-term — a real service phrase from the description;
+      (3) homepage title descriptor / first meta clause — last-resort seed.
+    Returns "" if nothing usable (caller keeps prior 'your service' behavior)."""
+    # 1) GMB primary category
+    cats = (brand_data or {}).get("gmb_categories") or []
+    if cats:
+        cat = _clean_service(str(cats[0]))
+        if cat and cat.lower() not in _PLACEHOLDER_SERVICES:
+            return cat
+    # Homepage signals
+    title, desc = _probe_homepage_meta(domain)
+    if not (title or desc):
+        return ""
+    # 2) meta head-term (clean keyword the engine can expand)
+    meta_term = _service_from_meta(desc)
+    if meta_term and 3 <= len(meta_term) <= 40:
+        return meta_term
+    # 3) title descriptor, then first meta clause (last resort)
+    cand = _clean_service(_service_from_title(title))
+    if not (cand and cand.lower() not in _PLACEHOLDER_SERVICES and 3 <= len(cand) <= 60):
+        import re as _re
+        first_clause = _re.split(r"[.;|–—\-]", desc)[0] if desc else ""
+        cand = _clean_service(first_clause)
+    if cand and cand.lower() not in _PLACEHOLDER_SERVICES and 3 <= len(cand) <= 70:
+        return cand
+    return ""
+
+
+# ── Country / location_code resolver ──────────────────────────────────────────
+# DataForSEO keyword/SERP endpoints take a numeric location_code. Every fetcher used
+# to hardcode 2840 (United States), so Canadian (and any non-US) businesses got ZERO
+# keyword data (printguys.ca, Concord ON → ranked_keywords: 0). This resolver maps the
+# business location to the right country code. Conservative + fail-open: anything we
+# can't positively identify as Canada falls back to the US default (2840) so existing
+# US clients are unaffected.
+
+DFS_LOCATION_US = 2840   # United States
+DFS_LOCATION_CA = 2124   # Canada
+
+# ccTLD → (DataForSEO location_code, country name). The domain TLD is the strongest
+# GENERIC country signal — this is what makes the report work for a business ANYWHERE,
+# not just US/CA. Country-ambiguous gTLDs (.com/.net/.org/.io/.co/.biz) are NOT here →
+# they fall through to location-text detection, then the US default.
+_TLD_COUNTRY = {
+    "ca": (2124, "Canada"),
+    "uk": (2826, "United Kingdom"), "co.uk": (2826, "United Kingdom"),
+    "au": (2036, "Australia"), "com.au": (2036, "Australia"),
+    "ie": (2372, "Ireland"),
+    "nz": (2554, "New Zealand"), "co.nz": (2554, "New Zealand"),
+    "in": (2356, "India"), "co.in": (2356, "India"),
+    "de": (2276, "Germany"), "fr": (2250, "France"), "nl": (2528, "Netherlands"),
+    "es": (2724, "Spain"), "it": (2380, "Italy"),
+    "za": (2710, "South Africa"), "co.za": (2710, "South Africa"),
+    "sg": (2702, "Singapore"), "ae": (2784, "United Arab Emirates"),
+    "mx": (2484, "Mexico"), "com.mx": (2484, "Mexico"),
+    "br": (2076, "Brazil"), "com.br": (2076, "Brazil"),
+}
+_COUNTRY_NAME = {
+    2840: "United States", 2124: "Canada", 2826: "United Kingdom", 2036: "Australia",
+    2372: "Ireland", 2554: "New Zealand", 2356: "India", 2276: "Germany",
+    2250: "France", 2528: "Netherlands", 2724: "Spain", 2380: "Italy",
+    2710: "South Africa", 2702: "Singapore", 2784: "United Arab Emirates",
+    2484: "Mexico", 2076: "Brazil",
+}
+
+
+def _country_from_tld(domain: str):
+    """(location_code, country_name) from the domain's ccTLD, or None for a generic gTLD."""
+    d = (domain or "").lower().strip().strip("/").split("/")[0]
+    parts = d.split(".")
+    if len(parts) >= 2:
+        if ".".join(parts[-2:]) in _TLD_COUNTRY:      # 'co.uk', 'com.au'
+            return _TLD_COUNTRY[".".join(parts[-2:])]
+        if parts[-1] in _TLD_COUNTRY:                 # 'ca', 'de'
+            return _TLD_COUNTRY[parts[-1]]
+    return None
+
+
+def country_name_for(location_code: int) -> str:
+    return _COUNTRY_NAME.get(location_code, "United States")
+
+
+# location_code → Serper `gl` country code (for the Places coordinate lookup).
+_GL_FOR_CODE = {2840: "us", 2124: "ca", 2826: "gb", 2036: "au", 2372: "ie",
+                2554: "nz", 2356: "in", 2276: "de", 2250: "fr", 2528: "nl",
+                2724: "es", 2380: "it", 2710: "za", 2702: "sg", 2784: "ae",
+                2484: "mx", 2076: "br"}
+
+
+def business_coordinate(name: str, city: str, region: str, location_code: int) -> str:
+    """The business's 'lat,lng' from its Google Places listing, for geo-targeted LOCAL
+    SERPs (what a nearby customer actually sees). '' if not found. Never raises —
+    geo-targeting is a precision upgrade, never a hard dependency."""
+    import json as _json, urllib.request as _u
+    key = os.environ.get("SERPER_API_KEY", "").strip()
+    q = " ".join(p for p in (name, city, region) if p).strip()
+    if not key or not q:
+        return ""
+    gl = _GL_FOR_CODE.get(location_code, "us")
+    try:
+        body = _json.dumps({"q": q, "gl": gl}).encode()
+        req = _u.Request("https://google.serper.dev/places", data=body,
+                         headers={"X-API-KEY": key, "Content-Type": "application/json"})
+        data = _json.loads(_u.urlopen(req, timeout=20).read().decode("utf-8", "replace"))
+        p = (data.get("places") or [{}])[0]
+        lat, lng = p.get("latitude"), p.get("longitude")
+        if isinstance(lat, (int, float)) and isinstance(lng, (int, float)):
+            return f"{lat},{lng}"
+    except Exception:
+        pass
+    return ""
+
+# Canadian province/territory abbreviations + full names (lowercased, matched against
+# --state, then --city/region text as a fallback).
+_CA_PROVINCE_ABBR = {
+    "on", "qc", "bc", "ab", "mb", "sk", "ns", "nb", "nl", "pe", "nt", "nu", "yt",
+}
+_CA_PROVINCE_NAMES = {
+    "ontario", "quebec", "québec", "british columbia", "alberta", "manitoba",
+    "saskatchewan", "nova scotia", "new brunswick", "newfoundland",
+    "newfoundland and labrador", "labrador", "prince edward island",
+    "northwest territories", "nunavut", "yukon",
+}
+
+
+def _looks_canadian(text: str) -> bool:
+    """True if the given location text positively identifies a Canadian province/territory
+    (by 2-letter abbreviation or full name). Word-boundary aware so 'ON' only matches as a
+    standalone token, never inside another word."""
+    import re as _re
+    t = (text or "").strip().lower()
+    if not t:
+        return False
+    if t in _CA_PROVINCE_ABBR or t in _CA_PROVINCE_NAMES:
+        return True
+    tokens = set(_re.findall(r"[a-zà-ÿ]+", t))
+    if tokens & _CA_PROVINCE_ABBR:
+        return True
+    # full-name match (handles multi-word names embedded in a larger string)
+    for name in _CA_PROVINCE_NAMES:
+        if _re.search(r"\b" + _re.escape(name) + r"\b", t):
+            return True
+    return False
+
+
+def resolve_location_code(state: str, city: str = "", domain: str = "") -> int:
+    """Map the business to a DataForSEO country location_code. Signals, in order:
+      1. domain ccTLD (.ca/.co.uk/.com.au/.de/… — strongest generic 'anywhere' signal)
+      2. a Canadian province in --state / --city text
+      3. US default (2840) — for ambiguous gTLDs (.com) with no other signal.
+    Fail-open: an unidentifiable location is treated as US so existing US clients
+    are unaffected."""
+    tld = _country_from_tld(domain)
+    if tld:
+        return tld[0]
+    if _looks_canadian(state) or _looks_canadian(city):
+        return DFS_LOCATION_CA
+    return DFS_LOCATION_US
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -142,6 +445,18 @@ def main():
 
     competitors_raw = [c.strip() for c in args.competitors.split(",") if c.strip()]
 
+    # Resolve the DataForSEO country location_code from the business location so non-US
+    # (e.g. Canadian) businesses get real keyword/SERP data instead of an empty US lookup.
+    location_code = resolve_location_code(state, city, domain)
+    # Geo-target SERPs to the business's real location (what a nearby customer sees),
+    # not just the country. Looked up once from Google Places; '' → country-level.
+    location_coordinate = business_coordinate(name, city, state, location_code)
+    if location_coordinate:
+        print(f"    Geo-target: {location_coordinate} (local SERP) [Places]", file=sys.stderr)
+    _loc_label = country_name_for(location_code)
+    print(f"    Location code: {location_code} ({_loc_label}) "
+          f"[from domain='{domain}' state='{state}' city='{city}']", file=sys.stderr)
+
     print(f"\n=== Online Brand Report: {name} ({domain}) ===", file=sys.stderr)
     print(f"    Output: {output}", file=sys.stderr)
     print(f"    Tenant: {tenant}", file=sys.stderr)
@@ -150,18 +465,61 @@ def main():
     t_start = time.time()
 
     # ── Run all fetchers ──────────────────────────────────────────────────────
-    brand_data      = _run("brand/GMB",         fetch_brand.fetch_brand,       domain, name, city, state)
+    # GMB + homepage first — they carry the vertical signals the keyword engine needs.
+    brand_data      = _run("brand/GMB",         fetch_brand.fetch_brand,       domain, name, city, state, country=_loc_label)
     web_data        = _run("web/Lighthouse",    fetch_web.fetch_web,           domain)
-    organic_data    = _run("organic/keywords",  fetch_organic.fetch_organic,   domain)
-    serp_data       = _run("serp/results",      fetch_serp.fetch_serp,         domain, service, city, state)
-    local_data      = _run("local/reviews+map", fetch_local.fetch_local,       name, service, city, state, domain)
+
+    # AUTO-DETECT the service/vertical when none was supplied (or it's a placeholder),
+    # so the keyword research is seeded with the REAL business, not "your service".
+    # Uses signals already fetched above (GMB category) + a cheap homepage probe.
+    detected_service = ""
+    llm_profile_data = {}
+    if service.strip().lower() in _PLACEHOLDER_SERVICES:
+        # PREFERRED: LLM reads the homepage and returns an accurate structured profile
+        # (replaces fragile regex that produced garbage like azrimrepair.com →
+        # "restoration including cracks" instead of "rim repair"). Fail-OPEN: claude may
+        # be unavailable inside tenant containers → returns {} → we fall back to the
+        # deterministic detect_service() regex below.
+        try:
+            from lib import llm_profile as _llm_profile
+            # name/city/region let it infer the vertical from the BUSINESS NAME + GMB
+            # when there's no website — so a no-site company still gets full keyword
+            # research (the foundation/plan for the site we'll build them).
+            llm_profile_data = _llm_profile.llm_business_profile(
+                domain, gmb_categories=brand_data.get("gmb_categories"),
+                name=name, city=city, region=state) or {}
+        except Exception as _llm_e:
+            print(f"    LLM profile errored (non-fatal): {_llm_e}", file=sys.stderr)
+            llm_profile_data = {}
+
+        if llm_profile_data.get("primary_service"):
+            detected_service = llm_profile_data["primary_service"]
+            service = detected_service
+            print(f"    Auto-detected service/vertical (LLM): '{service}' "
+                  f"(was empty/placeholder) → seeds keyword research", file=sys.stderr)
+        else:
+            # FALLBACK: deterministic regex detection from GMB/homepage signals.
+            detected_service = detect_service(domain, brand_data)
+            if detected_service:
+                service = detected_service
+                print(f"    Auto-detected service/vertical (regex): '{service}' "
+                      f"(LLM gave nothing; was empty/placeholder) → seeds keyword research",
+                      file=sys.stderr)
+            else:
+                print("    Service auto-detect: no reliable vertical found "
+                      "(LLM + GMB/homepage gave nothing) — proceeding without seed",
+                      file=sys.stderr)
+
+    organic_data    = _run("organic/keywords",  fetch_organic.fetch_organic,   domain, location_code=location_code)
+    serp_data       = _run("serp/results",      fetch_serp.fetch_serp,         domain, service, city, state, location_code=location_code, location_coordinate=location_coordinate)
+    local_data      = _run("local/reviews+map", fetch_local.fetch_local,       name, service, city, state, domain, location_code=location_code)
     backlink_data   = _run("backlinks",         fetch_backlinks.fetch_backlinks, domain)
-    comp_data       = _run("competitive",       fetch_competitive.fetch_competitive, domain, competitors_raw)
+    comp_data       = _run("competitive",       fetch_competitive.fetch_competitive, domain, competitors_raw, location_code=location_code)
     content_data    = _run("content/gaps",      fetch_content.fetch_content,   domain, service, city,
-                                                                                comp_data.get("top_competitor", ""))
-    ai_data         = _run("AI/llms.txt",       fetch_ai.fetch_ai,             domain, name)
+                                                                                comp_data.get("top_competitor", ""), location_code=location_code)
+    ai_data         = _run("AI/llms.txt",       fetch_ai.fetch_ai,             domain, name, location_code=location_code)
     social_data     = _run("social",            fetch_social.fetch_social,     domain, name)
-    geo_data        = _run("geo/city-volumes",  fetch_geo.fetch_geo,           service, city, state)
+    geo_data        = _run("geo/city-volumes",  fetch_geo.fetch_geo,           service, city, state, location_code=location_code)
 
     # ── Brand-name SERP discovery — "what anyone Googles" (grab everything) ─────
     # ONE source of ground truth for the obvious stuff the fragile probes miss: the real
@@ -169,7 +527,7 @@ def main():
     # Applied AUTHORITATIVELY over the homepage-scrape/HEAD-probe/exact-GMB-lookup results so
     # the report never again falsely says "no Facebook / no GMB" for a business that's trivially
     # findable on Google. (2026-06-03 — Mike: "missing the obvious stuff anyone can find".)
-    discovery_data  = _run("discovery/brand-serp", fetch_discovery.fetch_discovery, domain, name, city, state)
+    discovery_data  = _run("discovery/brand-serp", fetch_discovery.fetch_discovery, domain, name, city, state, location_code=location_code)
     if discovery_data.get("_discovery_available"):
         fetch_social.apply_discovery(social_data, discovery_data.get("social_profiles", {}))
         fetch_brand.apply_discovery(brand_data,  discovery_data.get("gmb", {}))
@@ -192,6 +550,46 @@ def main():
     dns_net         = _run("dnslytics/reverse-analytics", fetch_dnslytics.fetch_connected_via_analytics,
                            domain, name)
 
+    # ── LIVE SERP rank check ──────────────────────────────────────────────────
+    # DataForSEO **Labs** ranked_keywords UNDER-reports rankings for small / new /
+    # non-US domains (printguys.ca: Labs returned 1 keyword while the business ranks
+    # page-1 for several). Query Google LIVE for a candidate keyword set NOW and fold
+    # the real rankings into organic_data so every section reflects the live truth.
+    _brand_token = (domain.split(".")[0] if domain else "").strip()
+    _kw_sugg = content_data.get("keyword_suggestions", []) or []
+    _kw_sugg_by_vol = sorted(_kw_sugg, key=lambda k: int(k.get("volume") or 0), reverse=True)
+    _candidates = [
+        service,
+        f"{service} {city}".strip() if service else "",
+        f"{service} near me".strip() if service else "",
+        f"{service} {state}".strip() if service else "",
+        _brand_token,
+    ] + [k.get("keyword", "") for k in _kw_sugg_by_vol[:12]]
+    # Fold the LLM-identified real services + keyword seeds into the live-SERP candidate
+    # set so the rank check tests the terms the business ACTUALLY ranks for, not just
+    # regex guesses. Dedup happens below (case-insensitive). Empty when no LLM profile.
+    _candidates += (llm_profile_data.get("keyword_seeds") or [])
+    _candidates += (llm_profile_data.get("services") or [])
+    _candidates = [c.strip() for c in _candidates if c and c.strip()]
+    # case-insensitive dedup, preserving order
+    _seen = set()
+    _candidates = [c for c in _candidates
+                   if not (c.lower() in _seen or _seen.add(c.lower()))]
+    _kw_volumes = {k["keyword"].lower(): int(k.get("volume") or 0)
+                   for k in _kw_sugg if k.get("keyword")}
+    live_rank_data = _run("organic/live-rank-check", fetch_live_rankings.fetch_live_rankings,
+                          domain, _candidates, location_code=location_code, volumes=_kw_volumes,
+                          location_coordinate=location_coordinate)
+    if live_rank_data.get("checked"):
+        print(f"    Live SERP rank check: {live_rank_data.get('checked', 0)} queries → "
+              f"{live_rank_data.get('live_ranked_count', 0)} ranked "
+              f"({live_rank_data.get('live_first_page_count', 0)} first-page)", file=sys.stderr)
+        _kw_total_before = organic_data.get("kw_total", 0)
+        fetch_live_rankings.merge_live_into_organic(
+            organic_data, live_rank_data.get("live_rankings", []))
+        print(f"    Merged live rankings into organic data: "
+              f"kw_total {_kw_total_before} → {organic_data.get('kw_total', 0)}", file=sys.stderr)
+
     t_fetch = time.time() - t_start
     print(f"\n    Total fetch time: {t_fetch:.1f}s", file=sys.stderr)
 
@@ -200,6 +598,11 @@ def main():
     for d in (brand_data, web_data, organic_data, serp_data, local_data,
               backlink_data, comp_data, content_data, ai_data, social_data, geo_data):
         data.update(d)
+
+    # Stash the raw live-rank findings so render/plan and seo-plan.json can surface them
+    # (live_rankings / live_ranked_count / live_first_page_count / checked).
+    if live_rank_data:
+        data.update(live_rank_data)
 
     # Off-site footprint inventory (directories/citations + long-tail mentions) — the
     # "you forgot you had this" section. Kept under explicit keys so render/plan can surface it.
@@ -257,9 +660,18 @@ def main():
     # Full service list → drives the service×area money-page matrix (plan.py reads data["services"]).
     # Without it the matrix expands only the single primary service across areas (core-only).
     services_list = [s.strip() for s in args.services.split(",") if s.strip()]
+    # When the caller didn't pass --services, use the FULL service list the LLM read
+    # off the site so the money-page matrix is complete (not just the one primary
+    # service). The onboarding worker never passes --services, so this is the path
+    # that actually fires for real clients.
+    if not services_list and llm_profile_data.get("services"):
+        services_list = [s.strip() for s in llm_profile_data["services"]
+                         if isinstance(s, str) and s.strip()][:8]
+        if services_list:
+            print(f"    [INFO] Service matrix from LLM profile ({len(services_list)} services)", file=sys.stderr)
     if services_list:
         data["services"] = services_list
-        print(f"    [INFO] Service matrix from {len(services_list)} services: {', '.join(services_list)}", file=sys.stderr)
+        print(f"    [INFO] Service matrix: {', '.join(services_list)}", file=sys.stderr)
 
     # ── Score + Roadmap ───────────────────────────────────────────────────────
     print("\n--- Scoring ---", file=sys.stderr)
@@ -328,20 +740,45 @@ def main():
             shutil.copyfile(str(out_path), str(public_dir / "index.html"))
             public_url = f"https://start.jam-bot.com/{publish_slug}/"
             print(f"    Published:   {public_url}", file=sys.stderr)
-            # Writeback to client-knowledge.json so stager can substitute {brand_report_url}
-            if args.client_knowledge_path and public_url:
-                try:
-                    import json as _json
-                    ckp = Path(args.client_knowledge_path)
-                    ck = _json.loads(ckp.read_text()) if ckp.exists() else {}
-                    ck["brand_report_url"] = public_url
-                    ck["brand_report_generated_at"] = datetime.utcfromtimestamp(time.time()).strftime("%Y-%m-%dT%H:%M:%SZ")
-                    ckp.write_text(_json.dumps(ck, indent=2))
-                    print(f"    Wrote brand_report_url to {ckp}", file=sys.stderr)
-                except Exception as _wb_e:
-                    print(f"    Writeback FAILED: {_wb_e}", file=sys.stderr)
         except Exception as e:
             print(f"    Publish FAILED: {e}", file=sys.stderr)
+
+    # ── Writeback to client-knowledge.json ────────────────────────────────────
+    # Runs whenever a client-knowledge path is given — NOT gated on publish, so
+    # the auto-detected industry lands even on no-publish runs. brand_report_url
+    # is written only when we actually published (have a public_url).
+    if args.client_knowledge_path:
+        try:
+            import json as _json
+            ckp = Path(args.client_knowledge_path)
+            ck = _json.loads(ckp.read_text()) if ckp.exists() else {}
+            if public_url:
+                ck["brand_report_url"] = public_url
+                ck["brand_report_generated_at"] = datetime.utcfromtimestamp(time.time()).strftime("%Y-%m-%dT%H:%M:%SZ")
+            # If the report auto-detected the vertical, write it back as
+            # company.industry (only when onboarding hasn't already got one) so the
+            # onboarding flow SKIPS the industry question — the report found it,
+            # the prospect never gets asked.
+            if detected_service:
+                co = ck.get("company")
+                if not isinstance(co, dict):
+                    co = {}; ck["company"] = co
+                if not (co.get("industry") or "").strip():
+                    # Prefer the LLM's richer vertical label over the bare service term
+                    # when we have one (e.g. 'auto wheel repair' vs 'rim repair').
+                    _ind = (llm_profile_data.get("industry") or "").strip() or detected_service
+                    _ind_src = ("brand-report-llm-profile"
+                                if (llm_profile_data.get("industry") or "").strip()
+                                else "brand-report-autodetect")
+                    co["industry"] = _ind
+                    ck["industry_source"] = _ind_src
+                    print(f"    Wrote company.industry='{_ind}' "
+                          f"({_ind_src}) to {ckp}", file=sys.stderr)
+            ckp.write_text(_json.dumps(ck, indent=2))
+            if public_url:
+                print(f"    Wrote brand_report_url to {ckp}", file=sys.stderr)
+        except Exception as _wb_e:
+            print(f"    Writeback FAILED: {_wb_e}", file=sys.stderr)
 
     print(f"\n=== DONE ===", file=sys.stderr)
     print(f"    File:        {output}  ({file_kb}KB)", file=sys.stderr)

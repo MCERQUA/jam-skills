@@ -9,7 +9,7 @@ from .config import dfs_post
 from . import geo
 
 
-def fetch_geo(service, city, state, services=None):
+def fetch_geo(service, city, state, services=None, location_code: int = 2840):
     out = {"service_areas": [], "city_volumes": {}}
     if not city:
         return out
@@ -23,7 +23,7 @@ def fetch_geo(service, city, state, services=None):
     terms = list(dict.fromkeys(terms))[:200]   # dedupe, API cap-safe
     try:
         r = dfs_post("keywords_data/google_ads/search_volume/live",
-                     [{"keywords": terms, "location_code": 2840, "language_code": "en"}])
+                     [{"keywords": terms, "location_code": location_code, "language_code": "en"}])
         items = (r.get("tasks") or [{}])[0].get("result") or []
         for it in items:
             kw = (it.get("keyword") or "").lower()

@@ -184,12 +184,15 @@
     .obr-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .obr-brand .logo-box {
       width: 44px; height: 44px;
-      border: 1px dashed var(--brand-primary);
-      color: var(--brand-primary);
-      font-family: var(--font-ui); font-size: 9px; font-weight: 700;
+      /* Filled brand-colored initials badge (header) — intentional monogram, not a
+         dashed placeholder. Doubles as the polished onerror fallback for the logo img. */
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+      border: 1px solid color-mix(in srgb, var(--brand-primary) 60%, transparent);
+      color: #ffffff;
+      font-family: var(--font-heading); font-size: 16px; font-weight: 400;
       display: flex; align-items: center; justify-content: center;
-      text-transform: uppercase; letter-spacing: 0.12em;
-      flex-shrink: 0; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      flex-shrink: 0; border-radius: 9px;
     }
     .obr-brand .obr-name {
       font-family: 'Bebas Neue', sans-serif;
@@ -393,12 +396,18 @@
     }
     .client-card .logo-fallback {
       width: 84px; height: 84px;
-      border: 2px dashed var(--brand-primary);
-      color: var(--brand-primary);
+      /* Intentional brand-colored initials badge — NOT an empty placeholder box.
+         Filled gradient + solid white initials so it reads as a deliberate monogram,
+         and so the onerror logo fallback never looks like a broken image. */
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+      border: 1px solid color-mix(in srgb, var(--brand-primary) 60%, transparent);
+      color: #ffffff;
       display: flex; align-items: center; justify-content: center;
-      font-family: var(--font-ui); font-weight: 800; font-size: 11px;
-      border-radius: 8px;
-      text-transform: uppercase; letter-spacing: 0.15em;
+      font-family: var(--font-heading); font-weight: 400; font-size: 26px;
+      border-radius: 14px;
+      box-shadow: 0 6px 18px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      flex-shrink: 0;
     }
     .client-card .info { flex: 1; min-width: 240px; }
     .client-card .info .nm { font-family: var(--font-heading); font-size: 26px; color: var(--brand-text-strong); letter-spacing: 0.05em; }

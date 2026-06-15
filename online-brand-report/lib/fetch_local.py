@@ -4,7 +4,7 @@ import sys
 from .config import dfs_post, dfs_get_items, dfs_get_result0
 
 
-def _fetch_gbp_qna(brand_name: str, city: str, state: str) -> dict:
+def _fetch_gbp_qna(brand_name: str, city: str, state: str, location_code: int = 2840) -> dict:
     """Fetch GBP Q&A via business_data/google/questions_and_answers/live. Never raises.
 
     Result paths (confirmed from DFS docs):
@@ -28,7 +28,7 @@ def _fetch_gbp_qna(brand_name: str, city: str, state: str) -> dict:
         result = dfs_post("business_data/google/questions_and_answers/live", [
             {
                 "keyword":       f"{brand_name} {city} {state}",
-                "location_code": 2840,
+                "location_code": location_code,
                 "language_code": "en",
                 "depth":         20,
             }
@@ -79,7 +79,7 @@ def _fetch_gbp_qna(brand_name: str, city: str, state: str) -> dict:
     return out
 
 
-def _fetch_gbp_posts(brand_name: str, city: str, state: str) -> dict:
+def _fetch_gbp_posts(brand_name: str, city: str, state: str, location_code: int = 2840) -> dict:
     """Fetch GBP posts via business_data/google/my_business_updates/live. Never raises.
 
     ASSUMPTION C: DFS docs confirm only task_post/task_get (async) for my_business_updates
@@ -111,7 +111,7 @@ def _fetch_gbp_posts(brand_name: str, city: str, state: str) -> dict:
         result = dfs_post("business_data/google/my_business_updates/live", [
             {
                 "keyword":       f"{brand_name} {city} {state}",
-                "location_code": 2840,
+                "location_code": location_code,
                 "language_code": "en",
                 "depth":         10,
             }
@@ -142,8 +142,14 @@ def _fetch_gbp_posts(brand_name: str, city: str, state: str) -> dict:
     return out
 
 def fetch_local(brand_name: str, service: str, city: str, state: str, domain: str,
-                extra_cities: list | None = None) -> dict:
-    """Return local SEO data. Never raises."""
+                extra_cities: list | None = None, location_code: int = 2840) -> dict:
+    """Return local SEO data. Never raises.
+
+    location_code: DataForSEO country code threaded from generate.py (2840 US / 2124 CA) so
+    GMB/Q&A/map-pack lookups target the right country for non-US businesses."""
+    # Map the country code to the location_name suffix used by the map-pack endpoint
+    # (which takes a location_name string, not a code). Defaults to US.
+    _country_name = "Canada" if location_code == 2124 else "United States"
     out = {
         "review_avg": 0.0,
         "review_count": 0,
@@ -248,7 +254,7 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
             result2 = dfs_post("business_data/google/my_business_info/live", [
                 {
                     "keyword": f"{brand_name}",
-                    "location_code": 2840,
+                    "location_code": location_code,
                     "language_code": "en",
                 }
             ])
@@ -314,7 +320,7 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
             result = dfs_post("serp/google/maps/live/advanced", [
                 {
                     "keyword": service,
-                    "location_name": f"{c},{state},United States",
+                    "location_name": f"{c},{state},{_country_name}",
                     "language_code": "en",
                 }
             ])
@@ -331,9 +337,9 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
         out["map_pack_positions"][c] = pos
 
     # --- GBP Q&A (business_data/google/questions_and_answers/live) ---
-    out.update(_fetch_gbp_qna(brand_name, city, state))
+    out.update(_fetch_gbp_qna(brand_name, city, state, location_code))
 
     # --- GBP Posts/Updates (business_data/google/my_business_updates/live) ---
-    out.update(_fetch_gbp_posts(brand_name, city, state))
+    out.update(_fetch_gbp_posts(brand_name, city, state, location_code))
 
     return out

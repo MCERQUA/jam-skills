@@ -11,7 +11,7 @@ def _domain_clean(domain: str) -> str:
     return domain.lower().replace("www.", "")
 
 
-def _fetch_ai_mode(brand_name: str, domain: str) -> dict:
+def _fetch_ai_mode(brand_name: str, domain: str, location_code: int = 2840) -> dict:
     """Query DataForSEO AI Mode SERP and return citation presence data. Never raises."""
     out = {
         "ai_mode_cited": False,
@@ -24,7 +24,7 @@ def _fetch_ai_mode(brand_name: str, domain: str) -> dict:
         result = dfs_post("serp/google/ai_mode/live/advanced", [
             {
                 "keyword": brand_name,
-                "location_code": 2840,
+                "location_code": location_code,
                 "language_code": "en",
             }
         ])
@@ -81,8 +81,10 @@ def _fetch_ai_mode(brand_name: str, domain: str) -> dict:
     return out
 
 
-def fetch_ai(domain: str, brand_name: str) -> dict:
-    """Return AI/LLM visibility data. Never raises."""
+def fetch_ai(domain: str, brand_name: str, location_code: int = 2840) -> dict:
+    """Return AI/LLM visibility data. Never raises.
+
+    location_code: DataForSEO country code threaded from generate.py (2840 US / 2124 CA)."""
     out = {
         "llms_txt_present": False,
         "llms_txt_url": f"https://{domain}/llms.txt",
@@ -106,8 +108,8 @@ def fetch_ai(domain: str, brand_name: str) -> dict:
         result = dfs_post("serp/google/organic/live/advanced", [
             {
                 "keyword": brand_name,
-                "location_name": "United States",
-                "language_name": "English",
+                "location_code": location_code,
+                "language_code": "en",
                 "depth": 5,
             }
         ])
@@ -133,6 +135,6 @@ def fetch_ai(domain: str, brand_name: str) -> dict:
         print(f"[INFO] Schema check: {e}", file=sys.stderr)
 
     # --- AI Mode citations (DataForSEO serp/google/ai_mode/live/advanced) ---
-    out.update(_fetch_ai_mode(brand_name, domain))
+    out.update(_fetch_ai_mode(brand_name, domain, location_code))
 
     return out

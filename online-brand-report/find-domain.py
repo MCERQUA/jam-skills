@@ -94,6 +94,35 @@ def _serper_key() -> str:
     return ""
 
 
+def _gl(city: str, state: str) -> str:
+    """Google country code for the Places query. Canada when the location text says so,
+    else US default (Places still geo-resolves from the location in the query)."""
+    t = f"{city} {state}".lower()
+    ca = ("canada", "ontario", "quebec", "alberta", "british columbia", "manitoba",
+          "saskatchewan", "nova scotia", "new brunswick", "newfoundland",
+          "prince edward", " on ", " qc ", " bc ", " ab ")
+    return "ca" if any(w in f" {t} " for w in ca) else "us"
+
+
+def _serper_places(key: str, query: str, gl: str = "us"):
+    """Authoritative business lookup via Google Places — returns the top place dict
+    (carries the business's real 'website', 'title', 'address', 'rating') or None.
+    The Places 'website' field is the AUTHORITATIVE own-site signal; far more reliable
+    than guessing a domain from organic search (which mismatches generic names like
+    'Talk of the Town' → a same-name shop in another city, or a delivery aggregator).
+    Never raises."""
+    import json as _json, urllib.request as _ur
+    try:
+        body = _json.dumps({"q": query, "gl": gl}).encode()
+        req = _ur.Request("https://google.serper.dev/places", data=body,
+                          headers={"X-API-KEY": key, "Content-Type": "application/json"})
+        data = _json.loads(_ur.urlopen(req, timeout=20).read().decode("utf-8", "replace"))
+        places = data.get("places") or []
+        return places[0] if places else None
+    except Exception:
+        return None
+
+
 # Extra aggregator / non-business hosts that aren't in the brand-report directory
 # table but should never be returned as a business's OWN domain. Mirrors the spec
 # exclusion intent (facebook, instagram, linkedin, yelp, yellowpages, bbb,
@@ -114,6 +143,21 @@ _EXTRA_EXCLUDE_HOSTS = {
     "dnb.com", "chamberofcommerce.com", "businessfinder.com",
     "expired.com", "godaddy.com", "namecheap.com", "wix.com", "squarespace.com",
     "weebly.com", "sites.google.com", "linktr.ee",
+    # Food-delivery aggregators — a restaurant's DoorDash/UberEats page is NOT its
+    # own site. (Talk of the Town, Bowmanville had NO website → find-domain wrongly
+    # returned doordash.com 'confident', which would build a report about DoorDash.)
+    "doordash.com", "ubereats.com", "skipthedishes.com", "grubhub.com",
+    "seamless.com", "postmates.com", "menulog.com", "just-eat.com", "justeat.com",
+    "deliveroo.com", "foodora.com", "ritual.co", "chownow.com", "order.online",
+    # Menu / reservation / restaurant aggregators
+    "opentable.com", "opentable.ca", "zomato.com", "allmenus.com", "menupix.com",
+    "restaurantji.com", "sirved.com", "menupages.com", "yelp.ca", "ezcater.com",
+    "toasttab.com", "spoton.com", "clover.com", "square.site", "tripadvisor.ca",
+    # Local news / municipal directory hosts that surface for a business name but
+    # are never the business's own domain (varied — these are the common Canadian
+    # ones seen; the confident-match + greenfield fallback handles the long tail).
+    "durhamregion.com", "newschannel5.com", "downtownsofdurham.ca", "blogto.com",
+    "narcity.com", "cbc.ca", "ctvnews.ca", "thestar.com", "yahoo.com",
 }
 
 
@@ -222,6 +266,29 @@ def find_domain(name: str, city: str = "", state: str = "", num: int = 20) -> di
 
     excluded = _excluded_hosts()
 
+    # ── AUTHORITATIVE: Google Places 'website' field ──────────────────────────
+    # Trust the business's actual listing before guessing from organic search.
+    place = _serper_places(key, q_full or name, gl=_gl(city, state))
+    if place is not None:
+        site = (place.get("website") or "").strip()
+        host = _host(site) if site else ""
+        if host and not _is_excluded(host, excluded):
+            out["candidates"] = [{"domain": host, "title": place.get("title") or name, "rank": 1}]
+            out["best"] = host
+            out["confident"] = True
+            out["source"] = "places"
+            out["gmb_found"] = True
+            return out
+        # The business EXISTS (found in Places) but has NO own website (or only an
+        # aggregator listed) → GREENFIELD. Do NOT fall through to organic guessing,
+        # which produces wrong-business / same-name-other-city / aggregator results.
+        out["gmb_found"] = True
+        out["no_website"] = True
+        out["place_name"] = place.get("title") or name
+        out["greenfield"] = True
+        return out
+
+    # ── Fallback: organic search (only when Places found NO listing at all) ────
     # Primary query: name + location. Fallback: bare name. Merge, keep order.
     organic: list = []
     seen_ids = set()
@@ -257,12 +324,20 @@ def find_domain(name: str, city: str = "", state: str = "", num: int = 20) -> di
         title = (o or {}).get("title") or ""
         if host in by_host:
             continue  # keep the highest-ranked result per host
+        _conf = _confident_match(name, host, title)
+        # City corroboration: a confident hit for a located business must reference
+        # that city (in title or domain), else a same-name business in another city
+        # (e.g. 'Talk of the Town' Overland Park KS vs Bowmanville ON) matches wrongly.
+        if _conf and city:
+            cnorm = _norm(city)
+            if cnorm and cnorm not in _norm(title) and cnorm not in _norm(host):
+                _conf = False
         entry = {
             "domain": host,
             "title": title[:120],
             "rank": len(by_host) + 1,
             "_serp_pos": idx,
-            "_confident": _confident_match(name, host, title),
+            "_confident": _conf,
         }
         by_host[host] = entry
         candidates.append(entry)

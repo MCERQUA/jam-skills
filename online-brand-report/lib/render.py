@@ -11,6 +11,80 @@ from datetime import date
 
 _TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "..", "template.html")
 
+# Always-visible floating Sign Up CTA (bottom-right) injected into every report.
+# Clicking it activates the existing "Sign Up" tab (data-page="signup"); it hides
+# itself while that page is open. Plain string (no f-string) so braces are literal.
+_FLOATING_SIGNUP = """
+<style>
+  #floating-signup { position: fixed; right: 24px; bottom: 24px; z-index: 99999;
+    display: inline-flex; align-items: center; gap: 9px; padding: 15px 26px; border: none;
+    border-radius: 999px; font-family: var(--font-ui, system-ui); font-size: 1.05rem;
+    font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #fff;
+    cursor: pointer; background: linear-gradient(135deg, var(--sem-success, #10b981), #0ea5e9);
+    box-shadow: 0 10px 28px rgba(0,0,0,.40); animation: fsignup-pulse 2.6s infinite;
+    transition: transform .15s ease, box-shadow .15s ease; }
+  #floating-signup:hover { transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 14px 34px rgba(0,0,0,.5); animation: none; }
+  #floating-signup .fs-i { font-size: 1.15rem; line-height: 1; }
+  @keyframes fsignup-pulse {
+    0%   { box-shadow: 0 10px 28px rgba(0,0,0,.40), 0 0 0 0 rgba(16,185,129,.55); }
+    70%  { box-shadow: 0 10px 28px rgba(0,0,0,.40), 0 0 0 16px rgba(16,185,129,0); }
+    100% { box-shadow: 0 10px 28px rgba(0,0,0,.40), 0 0 0 0 rgba(16,185,129,0); } }
+  @media (max-width: 600px) { #floating-signup { right: 14px; bottom: 14px; padding: 13px 20px; font-size: .95rem; } }
+  @media print { #floating-signup { display: none !important; } }
+</style>
+<button id="floating-signup" type="button" aria-label="Sign up — view packages"><span class="fs-i">&#10022;</span> Sign Up</button>
+<script>
+  (function () {
+    // ── Click tracking — every report. Fires a beacon to /t (nginx logs slug+action
+    //    to a readable click log). Covers the floating Sign Up button AND every
+    //    package / CTA link (Stripe checkout, phone). Fail-soft; never blocks the click.
+    function jbSlug() {
+      var m = (location.pathname || '').match(/\\/([a-z0-9][a-z0-9-]*)\\/?$/);
+      return (m && m[1]) || 'report';
+    }
+    function jbTrack(action) {
+      try {
+        var u = '/t?slug=' + encodeURIComponent(jbSlug())
+              + '&a=' + encodeURIComponent((action || '').slice(0, 48))
+              + '&t=' + Date.now();
+        if (navigator.sendBeacon) { navigator.sendBeacon(u); }
+        else { (new Image()).src = u; }
+      } catch (e) {}
+    }
+    window.jbTrack = jbTrack;
+    // Track every package / CTA / phone link.
+    document.querySelectorAll('.pricing-cta, .su-primary-btn, .su-secondary-btn').forEach(function (a) {
+      a.addEventListener('click', function () {
+        var card = a.closest('.pricing-card');
+        var label = card && card.querySelector('.tier') ? card.querySelector('.tier').textContent
+                  : (a.textContent || a.className || 'cta');
+        jbTrack('cta:' + (label || '').replace(/\\s+/g, ' ').trim());
+      });
+    });
+    // Floating Sign Up button → tracks + jumps to the Sign Up page.
+    var b = document.getElementById('floating-signup');
+    if (b) {
+      b.addEventListener('click', function () {
+        jbTrack('floating-signup');
+        var t = document.querySelector('.tab-btn[data-page="signup"]');
+        if (t) { t.click(); } else { window.location.hash = 'page=signup'; }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      var nav = document.querySelector('.tab-btn[data-page="signup"]');
+      if (nav) {
+        var sync = function () { b.style.display = nav.classList.contains('is-active') ? 'none' : ''; };
+        document.querySelectorAll('.tab-btn[data-page]').forEach(function (x) {
+          x.addEventListener('click', function () { setTimeout(sync, 30); }); });
+        sync();
+      }
+    }
+    // Track the Sign Up TAB click too (top nav).
+    var st = document.querySelector('.tab-btn[data-page="signup"]');
+    if (st) { st.addEventListener('click', function () { jbTrack('signup-tab'); }); }
+  })();
+</script>"""
+
 
 def _extract_css_and_static(template_path: str) -> tuple[str, str]:
     """Extract the <style> block + any additional page CSS not in a section."""
@@ -601,13 +675,44 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
 """
 
     # ── Logo display ──────────────────────────────────────────────────────────
-    if logo_url:
-        logo_html = f'<img src="{_escape(logo_url)}" alt="{_escape(client_name)} logo" style="max-width:84px; max-height:84px; object-fit:contain; border-radius:8px;">'
-        header_logo = f'<img src="{_escape(logo_url)}" alt="logo" style="max-width:44px; max-height:44px; object-fit:contain;">'
+    # Show the REAL company logo — the one scraped from the site's header/menu
+    # (fetch_brand._logo_from_header). The <img> carries an inline onerror handler
+    # that hides the broken image and reveals a polished styled-initials badge
+    # sibling — so a missing/404 logo NEVER renders as a broken-image icon. When no
+    # logo could be found, only the initials badge is shown. (No Clearbit fallback —
+    # its free logo API is dead / DNS no longer resolves.)
+    short = (client_name[:4] if len(client_name) >= 4 else client_name).upper() or "—"
+    short_esc = _escape(short)
+
+    # The logo image source is whatever fetch_brand scraped (the header logo); empty
+    # → show the initials badge only.
+    _logo_src = logo_url or ""
+
+    # Initials badge — the polished fallback (and the only thing shown when no img).
+    badge_card   = f'<div class="logo-fallback">{short_esc}</div>'
+    badge_header = f'<div class="logo-box">{short_esc}</div>'
+
+    if _logo_src:
+        _src_esc = _escape(_logo_src)
+        # onerror: drop the failed img, reveal the next-sibling initials badge.
+        _onerr = "this.style.display='none'; if(this.nextElementSibling){this.nextElementSibling.style.display='flex';}"
+        # The badge sibling starts hidden; onerror flips it to flex. Inline display:none
+        # keeps it out of layout while the img loads successfully.
+        _badge_card_hidden   = badge_card.replace('class="logo-fallback"',   'class="logo-fallback" style="display:none;"', 1)
+        _badge_header_hidden = badge_header.replace('class="logo-box"',       'class="logo-box" style="display:none;"', 1)
+        logo_html = (
+            f'<img src="{_src_esc}" alt="{_escape(client_name)} logo" '
+            f'style="max-width:84px; max-height:84px; object-fit:contain; border-radius:8px;" '
+            f'onerror="{_onerr}">' + _badge_card_hidden
+        )
+        header_logo = (
+            f'<img src="{_src_esc}" alt="logo" '
+            f'style="max-width:44px; max-height:44px; object-fit:contain;" '
+            f'onerror="{_onerr}">' + _badge_header_hidden
+        )
     else:
-        short = (client_name[:4] if len(client_name) >= 4 else client_name).upper()
-        logo_html   = f'<div class="logo-fallback">[{_escape(short)}]</div>'
-        header_logo = f'<div class="logo-box">[{_escape(short)}]</div>'
+        logo_html   = badge_card
+        header_logo = badge_header
 
     # ── WCAG issues — generated from data ────────────────────────────────────
     a11y_rows = ""
@@ -1387,7 +1492,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     <p class="section-desc">JamBot is your AI-powered company operating system. It runs with its own dedicated email address, phone number, and SMS line &mdash; and you talk to it through the voice interface in the app.</p>
     <div class="cap-grid">
       <div class="cap-card"><h4>Voice Interface in the App</h4><p>Talk to your AI assistant the way you&rsquo;d talk to a team member &mdash; via voice in the JamBot app. Ask for a competitor report, request a new city page, check your ranking positions.</p></div>
-      <div class="cap-card"><h4>Dedicated Email, Phone &amp; SMS</h4><p>Your JamBot agent operates with its own email address, phone number, and SMS line &mdash; so it can communicate on your behalf, receive inbound messages, and handle follow-ups.</p></div>
+      <div class="cap-card"><h4>Reach It From Anywhere</h4><p>Your JamBot has its own email, phone &amp; SMS line &mdash; so you can text or email it from anywhere to ask for a new page, a dashboard, a report, or a fix, and it sends the updates back to you.</p></div>
       <div class="cap-card"><h4>Slack, Discord &amp; Telegram</h4><p>Already running your team in Slack or Discord? Connect JamBot and interact with it directly in your existing channels &mdash; no new app to learn.</p></div>
       <div class="cap-card"><h4>Full Conversation History</h4><p>Every interaction with your agent is logged. Review past conversations, pull up decisions made weeks ago, track what was changed and when.</p></div>
     </div>
@@ -1513,25 +1618,63 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     <div class="section-eyebrow"><span class="num">S1</span> Turn This Report Into Results</div>
     <h2 class="section-title">This report found the gaps. JamBot closes them &mdash; for {_escape(client_name)}.</h2>
     <div class="section-divider"></div>
-    <p class="section-desc">You just saw exactly where {_escape(client_name)} is winning and where it&rsquo;s leaving money on the table in {_escape(city_state)}. JamBot is the agent that <strong>does the work in this report</strong> &mdash; not another dashboard you have to learn, but an AI team member that ships the fixes, tracks the rankings, answers your calls, and reports back every week. One job a month covers it.</p>
+    <p class="section-desc">You just saw exactly where {_escape(client_name)} is winning and where it&rsquo;s leaving money on the table in {_escape(city_state)}. JamBot is your company&rsquo;s <strong>AI computer</strong> &mdash; it builds and manages your website, ships the SEO fixes from this report, and builds the dashboards, apps, and content you need just by asking it. Tell it what you want; it builds it. One job a month covers it.</p>
     <div class="pricing-grid">
-      <div class="pricing-card featured">
-        <div class="pricing-badge" style="display:inline-block;background:var(--brand-primary,#1E6091);color:#fff;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:4px 12px;border-radius:999px;margin-bottom:10px;">Built for {_escape(client_name)}</div>
-        <div class="pricing-tier">JamBot &mdash; Full Agent</div>
-        <div class="pricing-price">$297<span class="pricing-period">/mo</span></div>
-        <div class="pricing-desc">Less than the cost of <strong>one job</strong>. Replaces a $2,000+/mo agency stack. No setup fee, cancel anytime, your data always exports.</div>
-        <ul class="pricing-features">
-          <li><strong>Fixes your audit</strong> &mdash; schema, speed, city pages, the Priority 1&ndash;3 list, shipped for you</li>
-          <li><strong>Wins back rankings</strong> &mdash; live SEO tracking on the keywords that bring you jobs</li>
-          <li><strong>Answers every lead</strong> &mdash; AI assistant on voice, SMS &amp; web so you never miss a call</li>
-          <li><strong>Owns your pipeline</strong> &mdash; self-hosted CRM, your data, never held hostage</li>
-          <li><strong>Publishes content</strong> &mdash; the blog &amp; social posts you don&rsquo;t have time to write</li>
-          <li><strong>Builds on demand</strong> &mdash; landing pages, calculators, apps &mdash; just ask</li>
-          <li><strong>Reports weekly</strong> &mdash; what moved, what shipped, what&rsquo;s next &mdash; in plain language</li>
+
+      <!-- Tier 1 — Starter Essential ($250/mo) — REAL Stripe checkout -->
+      <div class="pricing-card">
+        <div class="tier">Starter Essential</div>
+        <div class="tagline">Your JamBot system, fully set up and ready to learn your business</div>
+        <div class="price">$250<span class="per">/mo</span></div>
+        <ul class="feat">
+          <li>Full JamBot AI portal setup</li>
+          <li>Company knowledge base</li>
+          <li>Voice AI &amp; chat assistant</li>
+          <li>Content &amp; copywriting</li>
+          <li>Canvas pages &amp; web app builder</li>
+          <li>1 user seat</li>
+          <li>Basic developer support</li>
         </ul>
-        <a href="mailto:start@jam-bot.com?subject=Start%20JamBot%20&mdash;%20{_escape(client_name)}&body=I%20reviewed%20my%20brand%20report%20and%20I%27m%20ready%20to%20get%20started." class="pricing-cta">Start with {_escape(client_name)} &rarr;</a>
-        <div class="pricing-foot">No contract &middot; First fixes shipped in week one</div>
+        <a class="pricing-cta" href="https://buy.stripe.com/aFacN4bbv5I5ckjcfHgbm0q" target="_blank" rel="noopener">Get Started &rarr;</a>
       </div>
+
+      <!-- Tier 2 — Professional Growth ($500/mo, recommended) — REAL Stripe checkout -->
+      <div class="pricing-card is-recommended">
+        <span class="reco-badge">Most Popular</span>
+        <div class="tier">Professional Growth</div>
+        <div class="tagline">Everything in Essential, plus a full business website built for you</div>
+        <div class="price">$500<span class="per">/mo</span></div>
+        <ul class="feat">
+          <li>Everything in Essential</li>
+          <li>Custom website design &amp; build</li>
+          <li>Voice-controlled website creation &amp; editing</li>
+          <li>Ongoing website management</li>
+          <li>SEO dashboard &amp; optimization</li>
+          <li>Dedicated AI email account</li>
+          <li>3 user seats</li>
+          <li>Priority concierge support</li>
+        </ul>
+        <a class="pricing-cta" href="https://buy.stripe.com/fZudR86VffiFckjenPgbm0r" target="_blank" rel="noopener">Get Started &rarr;</a>
+      </div>
+
+      <!-- Tier 3 — Business Power ($1,000/mo) — REAL Stripe checkout -->
+      <div class="pricing-card">
+        <div class="tier">Business Power</div>
+        <div class="tagline">Full-stack AI + web presence for businesses ready to scale fast</div>
+        <div class="price">$1,000<span class="per">/mo</span></div>
+        <ul class="feat">
+          <li>Everything in Growth</li>
+          <li>Multi-site builder &amp; scheduled deploys</li>
+          <li>Dedicated AI phone line (inbound &amp; outbound)</li>
+          <li>AI image &amp; video generation</li>
+          <li>Web scraping &amp; lead research</li>
+          <li>Social media dashboard</li>
+          <li>Unlimited user seats</li>
+          <li>Dedicated concierge developer</li>
+        </ul>
+        <a class="pricing-cta" href="https://buy.stripe.com/8x25kC0wR1rPfwvenPgbm0s" target="_blank" rel="noopener">Get Started &rarr;</a>
+      </div>
+
     </div>
   </div>
 
@@ -1553,7 +1696,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     <div class="section-divider"></div>
     <p class="section-desc">This report was built specifically for {_escape(client_name)} in {_escape(city_state)} &mdash; your agent already knows your market, your competitors, and your exact priority list. The moment you say go, it starts shipping the fixes. Reply and you&rsquo;ll be live this week.</p>
     <div class="su-cta-block">
-      <a href="mailto:start@jam-bot.com?subject=Start%20JamBot%20&mdash;%20{_escape(client_name)}&body=I%20reviewed%20my%20brand%20report%20and%20I%27m%20ready%20to%20get%20started." class="su-primary-btn">Start with {_escape(client_name)} &rarr;</a>
+      <a href="https://buy.stripe.com/fZudR86VffiFckjenPgbm0r" target="_blank" rel="noopener" class="su-primary-btn">Get Started &mdash; Professional Growth &rarr;</a>
       <a href="tel:+15204341343" class="su-secondary-btn">Or call us &mdash; (520) 434-1343</a>
     </div>
   </div>
@@ -1864,6 +2007,11 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
 
 </body>
 </html>"""
+
+    # Floating "Sign Up" CTA — always-visible button (bottom-right) that jumps to the
+    # Sign Up / packages page. Injected here (not in the template body, which render.py
+    # rebuilds) via a plain-string replace so EVERY report gets it. Skill-wide.
+    html = html.replace("</body>", _FLOATING_SIGNUP + "\n</body>", 1)
 
     # Write file
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

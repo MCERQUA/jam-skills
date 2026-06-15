@@ -396,7 +396,15 @@ def build_plan(data: dict) -> dict:
             "recommended_pages": len(pages),
             "content_articles": sum(len(c["articles"]) for c in content_clusters),
             "top_competitor": top_competitor,
+            # LIVE SERP rank check — terms the domain ACTUALLY ranks for right now
+            # (DataForSEO Labs under-reports small/new/non-US domains; see fetch_live_rankings).
+            "live_ranked_keywords": data.get("live_ranked_count", 0),
+            "live_first_page_keywords": data.get("live_first_page_count", 0),
         },
+        # Raw live rankings (keyword / position / page / volume / url) folded into the report.
+        "live_rankings": data.get("live_rankings", []),
+        "live_first_page_count": data.get("live_first_page_count", 0),
+        "live_ranked_count": data.get("live_ranked_count", 0),
         "keyword_gaps": keyword_gaps[:25],
         "quick_wins": quick_wins[:15],
         "recommended_pages": pages,

@@ -51,17 +51,6 @@ run_test "3/5 voice-active"        python3 "$BASE/voice-active/test_voice_active
 run_test "4/5 seam-a-poc"          python3 "$SEAM_A_DIR/test_seam_a.py"
 run_test "5/5 E2E smoke"           python3 "$BASE/smoke-test/smoke_test.py"
 
-# tenant-path gate (josh-desktop ship 2026-06-14, host-refined: prose/regex skip) â
-# no fleet helper that writes mesh/ledger/blackboard is "verified" with an unguarded
-# host-only path. Properly blocks (exit-code propagated, not masked).
-echo "--- tenant-path-gate ---"
-if python3 "$BASE/tenant_path_gate.py" $(find "$BASE" -name '*.py' ! -path '*__pycache__*'); then
-  OK=$((OK+1)); echo "  ✓ tenant-path-gate"
-else
-  FAIL=$((FAIL+1)); echo "  ✗ tenant-path-gate"
-fi
-echo
-
 echo "================================================"
 echo "DONE — $OK ok, $FAIL failed"
 echo "================================================"
