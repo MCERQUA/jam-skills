@@ -46,6 +46,16 @@ def fetch_web(domain: str) -> dict:
         # Availability flag for scoring — True when Lighthouse (or the instant_pages fallback)
         # actually returned data. (Fixed 2026-06-01: stops the score swinging on flaky endpoints.)
         "_web_available": False,
+        # Per-component "was this actually measured?" flags (added 2026-06-16). A failed
+        # live Lighthouse run leaves perf/a11y/best-practices/CWV at 0 — those zeros are
+        # NOT real scores. The instant_pages fallback recovers ONLY a heuristic SEO score.
+        # score.py renormalizes the web dimension over measured components; render.py shows
+        # "Not measured" instead of fabricating 0/100 bars + "Poor" CWV + a fake a11y finding.
+        "_lh_perf_measured": False,
+        "_lh_a11y_measured": False,
+        "_lh_bp_measured":   False,
+        "_lh_seo_measured":  False,
+        "_lh_cwv_measured":  False,
     }
 
     try:
@@ -61,6 +71,12 @@ def fetch_web(domain: str) -> dict:
         categories = r0.get("categories") or {}
         audits     = r0.get("audits") or {}
         out["_web_available"] = True   # Lighthouse responded
+        # Real live Lighthouse run — every component is genuinely measured.
+        out["_lh_perf_measured"] = True
+        out["_lh_a11y_measured"] = True
+        out["_lh_bp_measured"]   = True
+        out["_lh_seo_measured"]  = True
+        out["_lh_cwv_measured"]  = True
 
         def _score(cat: str) -> int:
             s = (categories.get(cat) or {}).get("score")
@@ -128,6 +144,10 @@ def fetch_web(domain: str) -> dict:
                 # Flag that web data is partial
                 out["lh_data_source"] = "instant_pages_fallback"
                 out["_web_available"] = True   # partial web data still beats excluding the dimension
+                # ONLY the SEO heuristic is real here. Performance / Accessibility /
+                # Best-Practices / Core Web Vitals were NOT measured — leave their
+                # measured-flags False so score.py and render.py don't treat the 0s as real.
+                out["_lh_seo_measured"] = True
         except Exception as e2:
             print(f"[WARN] instant_pages fallback also failed: {e2}", file=sys.stderr)
 

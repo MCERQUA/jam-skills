@@ -37,10 +37,21 @@ def calculate_score(data: dict) -> dict:
     seo_score   = _clamp((top10_pct * 0.5) + (pos_score * 0.3) + (vol_score * 0.2))
 
     # ── Web Health (20%) ─────────────────────────────────────────────────────
+    # Only score sub-components that were ACTUALLY measured. When the live Lighthouse
+    # run times out (DataForSEO is intermittent here), perf/a11y stay at 0 and only a
+    # heuristic SEO score survives via the instant_pages fallback. Counting the unmeasured
+    # 0s falsely tanked the web dimension (e.g. perf*0.5 + seo80*0.3 + a11y*0.2 = 24) and
+    # dragged the whole grade down a band. Renormalize over measured components only.
+    # Flags default True so pre-2026-06-16 data (no flags) behaves exactly as before.
     lh_perf = data.get("lh_performance", 0)
     lh_seo  = data.get("lh_seo", 0)
     lh_a11y = data.get("lh_accessibility", 0)
-    web_score = _clamp((lh_perf * 0.50) + (lh_seo * 0.30) + (lh_a11y * 0.20))
+    _web_subs = []
+    if data.get("_lh_perf_measured", True): _web_subs.append((lh_perf, 0.50))
+    if data.get("_lh_seo_measured",  True): _web_subs.append((lh_seo,  0.30))
+    if data.get("_lh_a11y_measured", True): _web_subs.append((lh_a11y, 0.20))
+    _web_subw = sum(w for _, w in _web_subs)
+    web_score = _clamp(sum(v * w for v, w in _web_subs) / _web_subw) if _web_subw > 0 else 0.0
 
     # ── Local SEO (20%) ──────────────────────────────────────────────────────
     review_count = data.get("review_count", 0)

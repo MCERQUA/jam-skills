@@ -421,6 +421,15 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     lcp_pct    = data.get("lcp_gauge_pct", 0)
     fid_pct    = data.get("fid_gauge_pct", 0)
     cls_pct    = data.get("cls_gauge_pct", 0)
+    # Per-component "was this actually measured?" flags (2026-06-16). Default True so
+    # real Lighthouse reports render unchanged; False only when the live run timed out
+    # and we fell back to instant_pages (SEO-only). When False we show "Not measured"
+    # instead of fabricating 0/100 bars, "Poor" CWV tiles, and a fake a11y finding.
+    lh_perf_measured = data.get("_lh_perf_measured", True)
+    lh_a11y_measured = data.get("_lh_a11y_measured", True)
+    lh_bp_measured   = data.get("_lh_bp_measured", True)
+    lh_cwv_measured  = data.get("_lh_cwv_measured", True)
+    web_partial      = not (lh_perf_measured and lh_a11y_measured and lh_cwv_measured)
 
     # Local
     rev_avg    = data.get("review_avg", 0.0)
@@ -716,14 +725,52 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
 
     # ── WCAG issues — generated from data ────────────────────────────────────
     a11y_rows = ""
-    if lh_a11y < 90:
+    if lh_a11y_measured and lh_a11y < 90:
         a11y_rows += f"""<tr><td>Lighthouse Accessibility score {lh_a11y}/100 — review and fix flagged issues.</td><td><span class="sev sev-high">High</span></td><td>Accessibility failures reduce conversions and expose legal risk.</td></tr>"""
     if not schema_present:
         a11y_rows += """<tr><td>No structured data (JSON-LD) detected on homepage.</td><td><span class="sev sev-critical">Critical</span></td><td>Google cannot reliably tie reviews and services to the entity.</td></tr>"""
     if lh_seo < 80:
         a11y_rows += f"""<tr><td>Lighthouse SEO score {lh_seo}/100 — missing meta descriptions or non-crawlable links.</td><td><span class="sev sev-medium">Medium</span></td><td>Ranking suppression from technical on-page issues.</td></tr>"""
+    if web_partial:
+        a11y_rows += """<tr><td>Performance, Core Web Vitals &amp; Accessibility were not measured for this report (live speed-test timed out) &mdash; they will be captured on the next scan.</td><td><span class="sev sev-low">Info</span></td><td>No impact on this report&rsquo;s score; pending re-measurement.</td></tr>"""
     if not a11y_rows:
         a11y_rows = """<tr><td>No critical issues detected in automated scan.</td><td><span class="sev sev-low">Info</span></td><td>Run a manual WCAG audit to validate.</td></tr>"""
+
+    # ── Web-section measured-aware fragments (2026-06-16) ─────────────────────
+    # When the live Lighthouse run timed out, render "Not measured" instead of
+    # fabricating 0/100 bars, "Poor" CWV tiles, and a fake accessibility finding.
+    _nm_pill = ('<span class="pill mt-1 inline-block" '
+                'style="background:var(--brand-border);color:var(--brand-muted);">Not measured</span>')
+    if lh_cwv_measured:
+        cwv_lcp_val  = _escape(lcp_disp)
+        cwv_lcp_pill = f'<span class="pill {_pill_for_band(lcp_band)} mt-1 inline-block">{_band_text(lcp_band)}</span>'
+        cwv_tbt_val  = _escape(tbt_disp)
+        cwv_tbt_pill = f'<span class="pill {_pill_for_band(tbt_band)} mt-1 inline-block">{_band_text(tbt_band)}</span>'
+        cwv_cls_val  = _escape(cls_disp)
+        cwv_cls_pill = f'<span class="pill {_pill_for_band(cls_band)} mt-1 inline-block">{_band_text(cls_band)}</span>'
+    else:
+        cwv_lcp_val = cwv_tbt_val = cwv_cls_val = "&mdash;"
+        cwv_lcp_pill = cwv_tbt_pill = cwv_cls_pill = _nm_pill
+
+    web_partial_banner = ""
+    if web_partial:
+        web_partial_banner = (
+            '<div class="panel" style="border-left:3px solid var(--brand-primary); margin-bottom:1rem;">'
+            '<p style="margin:0;"><strong>Note:</strong> The live performance scan '
+            '(Lighthouse Performance, Core Web Vitals &amp; Accessibility) did not complete for this '
+            'report &mdash; the speed-test provider timed out. The on-page <strong>SEO</strong> '
+            'signals below are real and measured; performance and accessibility will be captured on '
+            'the next scan and are <em>not</em> counted in the score.</p></div>'
+        )
+
+    # Lighthouse score bars: chart only the components actually measured.
+    _lh_chart_src = [("Performance", lh_perf, lh_perf_measured),
+                     ("Accessibility", lh_a11y, lh_a11y_measured),
+                     ("Best Practices", lh_bp, lh_bp_measured),
+                     ("SEO", lh_seo, True)]
+    lh_chart_labels_js = json.dumps([c[0] for c in _lh_chart_src if c[2]])
+    lh_chart_values_js = json.dumps([c[1] for c in _lh_chart_src if c[2]])
+    cwv_measured_js = "true" if lh_cwv_measured else "false"
 
     # ── LLM AI table ──────────────────────────────────────────────────────────
     llms_pill   = '<span class="llm-mention yes">Yes</span>' if llms_txt else '<span class="llm-mention no">No</span>'
@@ -1062,26 +1109,27 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     <div class="section-eyebrow"><span class="num">05</span> Web UX &amp; Performance</div>
     <h2 class="section-title">Lighthouse, Core Web Vitals &amp; Accessibility</h2>
     <div class="section-divider"></div>
+    {web_partial_banner}
 
     <h3 class="text-base font-bold uppercase tracking-wider mb-3" style="color:var(--brand-muted); font-family: var(--font-ui);">Core Web Vitals (Desktop)</h3>
     <div class="ux-cwv-grid">
       <div class="ux-cwv-tile">
         <div class="gauge-wrap"><canvas id="ux-cwv-lcp"></canvas></div>
-        <div class="val">{_escape(lcp_disp)}</div>
+        <div class="val">{cwv_lcp_val}</div>
         <div class="lbl">LCP</div>
-        <span class="pill {_pill_for_band(lcp_band)} mt-1 inline-block">{_band_text(lcp_band)}</span>
+        {cwv_lcp_pill}
       </div>
       <div class="ux-cwv-tile">
         <div class="gauge-wrap"><canvas id="ux-cwv-fid"></canvas></div>
-        <div class="val">{_escape(tbt_disp)}</div>
+        <div class="val">{cwv_tbt_val}</div>
         <div class="lbl">TBT</div>
-        <span class="pill {_pill_for_band(tbt_band)} mt-1 inline-block">{_band_text(tbt_band)}</span>
+        {cwv_tbt_pill}
       </div>
       <div class="ux-cwv-tile">
         <div class="gauge-wrap"><canvas id="ux-cwv-cls"></canvas></div>
-        <div class="val">{_escape(cls_disp)}</div>
+        <div class="val">{cwv_cls_val}</div>
         <div class="lbl">CLS</div>
-        <span class="pill {_pill_for_band(cls_band)} mt-1 inline-block">{_band_text(cls_band)}</span>
+        {cwv_cls_pill}
       </div>
     </div>
 
@@ -1110,7 +1158,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     </div>
 
     <div class="ux-form-callout">
-      <p><strong>Performance context:</strong> {"LCP of " + lcp_disp + " is in the " + _band_text(lcp_band) + " zone." if lcp_s > 0 else "Performance data requires a live Lighthouse run."} {"A score below 2.5s is required for the 'Good' CWV label from Google. Every 100ms improvement in LCP correlates with ~1% conversion lift in home-services categories." if lcp_s > 2.5 else "LCP is within the Good threshold — focus on maintaining this as content grows."}</p>
+      <p><strong>Performance context:</strong> {("The live performance scan timed out, so Core Web Vitals were not measured for this report — they will be captured on the next scan and do not affect the score above." if web_partial else (("LCP of " + lcp_disp + " is in the " + _band_text(lcp_band) + " zone. " + ("A score below 2.5s is required for the 'Good' CWV label from Google. Every 100ms improvement in LCP correlates with ~1% conversion lift in home-services categories." if lcp_s > 2.5 else "LCP is within the Good threshold — focus on maintaining this as content grows.")) if lcp_s > 0 else "Performance data requires a live Lighthouse run."))}</p>
     </div>
   </section>
   </div><!-- /found-web -->
@@ -1515,7 +1563,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     <div class="section-divider"></div>
     <div class="cap-grid">
       <div class="cap-card"><h4>City &amp; Service Pages</h4><p>New location pages built and deployed to target markets directly &mdash; identified from the keyword gaps in your audit.</p></div>
-      <div class="cap-card"><h4>Performance &amp; Core Web Vitals</h4><p>{"LCP at " + lcp_disp + " needs work. Images compressed, lazy-loading added, schema deployed &mdash; no waiting on a developer." if lcp_s > 2.5 else "Core Web Vitals are in a healthy range. Monitor and maintain as new content is added."}</p></div>
+      <div class="cap-card"><h4>Performance &amp; Core Web Vitals</h4><p>{("Core Web Vitals weren't captured this run (speed-test timed out). We'll measure them on the next scan and tune images, lazy-loading and schema as needed — no waiting on a developer." if web_partial else ("LCP at " + lcp_disp + " needs work. Images compressed, lazy-loading added, schema deployed &mdash; no waiting on a developer." if lcp_s > 2.5 else "Core Web Vitals are in a healthy range. Monitor and maintain as new content is added."))}</p></div>
       <div class="cap-card"><h4>Blog &amp; Content Publishing</h4><p>SEO-targeted blog posts researched from the {len(content_gaps)} keyword gaps in your audit, written, and published on a regular cadence.</p></div>
       <div class="cap-card"><h4>Schema &amp; Technical SEO</h4><p>LocalBusiness, Service, and FAQ schema deployed sitewide. Required for rich results and AI assistant citations.</p></div>
     </div>
@@ -1712,7 +1760,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
           <tr><td>Organic Keywords</td><td>DataForSEO Labs &mdash; {report_date}</td><td>100 keyword results</td></tr>
           <tr><td>SERP Snapshots</td><td>DataForSEO SERP API &mdash; {report_date}</td><td>Live Google results</td></tr>
           <tr><td>Backlinks</td><td>DataForSEO Backlinks &mdash; {report_date}</td><td>Live index</td></tr>
-          <tr><td>Lighthouse / CWV</td><td>DataForSEO OnPage &mdash; {report_date}</td><td>Live Lighthouse run</td></tr>
+          <tr><td>Lighthouse / CWV</td><td>DataForSEO OnPage &mdash; {report_date}</td><td>{"Not measured (scan timed out)" if web_partial else "Live Lighthouse run"}</td></tr>
           <tr><td>GMB / Local</td><td>DataForSEO Business Data &mdash; {report_date}</td><td>Live Google Maps</td></tr>
           <tr><td>Social Channels</td><td>Public profile probe &mdash; {report_date}</td><td>HTTP status checks</td></tr>
         </tbody>
@@ -1863,18 +1911,21 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
   function initFoundPage() {{
     if (typeof Chart === 'undefined') return;
 
-    gauge('ux-cwv-lcp', {lcp_pct}, '{lcp_band}');
-    gauge('ux-cwv-fid', {fid_pct}, '{tbt_band}');
-    gauge('ux-cwv-cls', {cls_pct}, '{cls_band}');
+    if ({cwv_measured_js}) {{
+      gauge('ux-cwv-lcp', {lcp_pct}, '{lcp_band}');
+      gauge('ux-cwv-fid', {fid_pct}, '{tbt_band}');
+      gauge('ux-cwv-cls', {cls_pct}, '{cls_band}');
+    }}
 
     const lhCtx = document.getElementById('ux-lighthouse-bars');
     if (lhCtx) {{
-      const lh = {{ performance: {lh_perf}, accessibility: {lh_a11y}, bestPractices: {lh_bp}, seo: {lh_seo} }};
+      const lhLabels = {lh_chart_labels_js};
+      const lhValues = {lh_chart_values_js};
       new Chart(lhCtx, {{
         type: 'bar',
         data: {{
-          labels: ['Performance', 'Accessibility', 'Best Practices', 'SEO'],
-          datasets: [{{ data: [lh.performance, lh.accessibility, lh.bestPractices, lh.seo], backgroundColor: [lh.performance, lh.accessibility, lh.bestPractices, lh.seo].map(v => v>=90?GREEN:v>=50?YELLOW:RED), borderRadius: 4 }}]
+          labels: lhLabels,
+          datasets: [{{ data: lhValues, backgroundColor: lhValues.map(v => v>=90?GREEN:v>=50?YELLOW:RED), borderRadius: 4 }}]
         }},
         options: {{ responsive: true, maintainAspectRatio: false, plugins: {{legend:{{display:false}}}}, scales: {{ y: {{beginAtZero:true, max:100, ticks:{{color:GR}}, grid:{{color:GRID}}}}, x: {{ticks:{{color:GR}}, grid:{{display:false}}}} }} }}
       }});
