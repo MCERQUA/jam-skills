@@ -88,4 +88,12 @@ def dfs_get_result0(result: dict) -> dict:
 AHREFS_API_KEY = os.environ.get("AHREFS_API_KEY", "")
 
 # ── Social Dashboard (cc-backlinks) ──────────────────────────────────────────
-CC_BACKLINKS_URL = "http://172.17.0.1:6350/api/seo/cc-backlinks"
+# The brand-report engine runs ON THE HOST (jambot-brand-report-worker.sh), where
+# the social-dashboard service answers on 127.0.0.1:6350. The old hardcoded
+# 172.17.0.1 (docker-bridge gateway) is only reachable from INSIDE a container —
+# from the host it times out, so the CC-backlinks supplement silently failed on
+# every report and the backlinks pillar came back empty (deflating established
+# sites' scores). Default to host-local; override with CC_BACKLINKS_URL when the
+# engine runs in a container.
+CC_BACKLINKS_URL = os.environ.get(
+    "CC_BACKLINKS_URL", "http://127.0.0.1:6350/api/seo/cc-backlinks")
