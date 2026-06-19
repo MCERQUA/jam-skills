@@ -34,7 +34,21 @@ def calculate_score(data: dict) -> dict:
     top10_pct   = (kw_top10 / max(1, kw_total)) * 100 if kw_total > 0 else 0
     pos_score   = _clamp(100 - ((avg_pos - 1) / 49) * 100)
     vol_score   = _clamp(min(100, kw_total * 2))
-    seo_score   = _clamp((top10_pct * 0.5) + (pos_score * 0.3) + (vol_score * 0.2))
+    # BUYER-INTENT LIVE WINS: a business can rank page-8 for huge generic informational
+    # terms (which dominate the periodic crawl and drag avg_position toward 80+) yet rank
+    # PAGE ONE for its actual buyer-intent service terms ("spray foam insulation contractor
+    # near me"). The crawl-based components above are blind to that; the live SERP check
+    # (live_first_page_count) catches it. Credit real first-page live wins so a business
+    # that is visible WHERE IT COUNTS isn't scored as invisible. When no live data exists
+    # (e.g. greenfield/no-domain), live_fp=0 and we fall back to the ORIGINAL formula, so
+    # pre-existing reports score identically.
+    live_fp = data.get("live_first_page_count", 0) or 0
+    if live_fp > 0:
+        buyer_intent_score = _clamp(min(100, live_fp * 25))   # 4+ first-page wins → 100
+        seo_score = _clamp((top10_pct * 0.40) + (pos_score * 0.20)
+                           + (vol_score * 0.15) + (buyer_intent_score * 0.25))
+    else:
+        seo_score = _clamp((top10_pct * 0.5) + (pos_score * 0.3) + (vol_score * 0.2))
 
     # ── Web Health (20%) ─────────────────────────────────────────────────────
     # Only score sub-components that were ACTUALLY measured. When the live Lighthouse
@@ -57,6 +71,17 @@ def calculate_score(data: dict) -> dict:
     review_count = data.get("review_count", 0)
     review_avg   = data.get("review_avg", 0.0)
     map_positions = data.get("map_pack_positions", {})
+    # A VERIFIED Google listing (real NAP — name + address) is itself a local-SEO asset,
+    # even with zero reviews. Without this floor an established, addressed business whose
+    # Google Business Profile is unclaimed/unreviewed scored a flat 0 local (e.g. Allstate
+    # Spray Foam: 20-yr contractor, verified Visalia listing, no Google reviews → local 0
+    # → 'Mostly Invisible' D). Credit the verified listing; reviews/stars/map still drive
+    # the bulk, and the report still recommends 'claim + get Google reviews'.
+    has_listing = bool(
+        data.get("gmb_address") or data.get("address")
+        or data.get("gmb_found") or data.get("gmb_categories")
+    )
+    listing_floor = 25.0 if has_listing else 0.0
     review_vol_score = _clamp(min(100, (review_count / 50) * 100))
     review_star_score = (review_avg / 5.0) * 100 if review_avg > 0 else 0
     map_scores = []
@@ -66,7 +91,8 @@ def calculate_score(data: dict) -> dict:
         elif pos:               map_scores.append(30)
         else:                   map_scores.append(0)
     map_score = (sum(map_scores) / len(map_scores)) if map_scores else 0
-    local_score = _clamp((review_vol_score * 0.35) + (review_star_score * 0.35) + (map_score * 0.30))
+    local_core = (review_vol_score * 0.35) + (review_star_score * 0.35) + (map_score * 0.30)
+    local_score = _clamp(max(local_core, listing_floor))
 
     # ── Backlinks (15%) ──────────────────────────────────────────────────────
     domain_rank = data.get("domain_rank", 0)
@@ -106,7 +132,7 @@ def calculate_score(data: dict) -> dict:
         # map_positions can hold keys with all-None values (cities queried, none ranked) — that's
         # NOT real local data, so require at least one non-None position (ica-voice 2026-06-01).
         "local":     avail("_local_available",
-                           review_count > 0 or review_avg > 0
+                           review_count > 0 or review_avg > 0 or has_listing
                            or any(v is not None for v in (map_positions or {}).values())),
         "backlinks": avail("_backlinks_available", domain_rank > 0 or ref_domains > 0 or ahrefs_dr > 0),
         # platforms_total defaults to 6 so it's always truthy — useless as a signal. Available only
@@ -137,11 +163,16 @@ def calculate_score(data: dict) -> dict:
             weights_used[d] = 0.0
     total = int(_clamp(total))
 
+    # Grade labels describe a MIX honestly. The old D/F wording ("Mostly Invisible
+    # Online" / "Critical") mislabeled established businesses that rank page-one for
+    # their buyer-intent terms but are buried on high-volume generics with few reviews —
+    # they are NOT invisible, they have real gaps to close. Wording is accurate to what
+    # a sub-band score actually means; bands themselves are unchanged.
     if total >= 80:   grade, grade_desc = "A", "Strong — Visible and Winning"
-    elif total >= 65: grade, grade_desc = "B", "Mixed — Visible But Not Winning"
+    elif total >= 65: grade, grade_desc = "B", "Solid — Competitive, With Room to Grow"
     elif total >= 50: grade, grade_desc = "C", "Developing — Present But Outranked"
-    elif total >= 35: grade, grade_desc = "D", "Weak — Mostly Invisible Online"
-    else:             grade, grade_desc = "F", "Critical — Needs Immediate Attention"
+    elif total >= 35: grade, grade_desc = "D", "Underbuilt — Ranking in Pockets, Real Gaps to Close"
+    else:             grade, grade_desc = "F", "Early — Limited Online Visibility So Far"
 
     return {
         "total": total,
