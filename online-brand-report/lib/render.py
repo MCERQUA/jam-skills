@@ -860,10 +860,10 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
         verdict_headline = "You&rsquo;re visible &mdash; but not winning yet."
         verdict_detail = f"<strong>{_escape(client_name)}</strong> has a real online presence: rankings, a verified GMB, and a website Google indexes. What's missing is the <strong>density of signals</strong> Google now expects for a local contractor: city pages, review velocity, schema markup, and link diversity. Every fix in this report is mechanical &mdash; you don&rsquo;t need a rebrand, you need a 90-day execution sprint."
     elif score_total >= 45:
-        verdict_headline = "You&rsquo;re online &mdash; but mostly invisible to buyers."
-        verdict_detail = f"<strong>{_escape(client_name)}</strong> exists online, but the gaps are significant. Your competitors are winning searches you should own. The fixes are defined &mdash; what&rsquo;s needed is systematic execution: city pages, {'on-page SEO' if bl_unavailable else 'backlinks'}, schema, and review velocity. Every item in this report is actionable within 90 days."
+        verdict_headline = "You&rsquo;re ranking &mdash; but getting outranked where it counts."
+        verdict_detail = f"<strong>{_escape(client_name)}</strong> is online and ranks for real searches, but competitors are taking the high-value ones you should own. The fixes are defined &mdash; what&rsquo;s needed is systematic execution: city pages, {'on-page SEO' if bl_unavailable else 'backlinks'}, schema, and review velocity. Every item in this report is actionable within 90 days."
     else:
-        verdict_headline = "Critical gaps are costing you leads every day."
+        verdict_headline = "Big visibility gaps are leaving leads on the table."
         verdict_detail = f"The audit found significant online visibility gaps for <strong>{_escape(client_name)}</strong>. Buyers in {_escape(city)} searching for {_escape(service)} are finding competitors instead. The priority-1 fixes alone &mdash; speed, schema, GMB optimization &mdash; will move the needle in 30-60 days."
 
     # ════════════════════════════════════════════════════════════════════════
