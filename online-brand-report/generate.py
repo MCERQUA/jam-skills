@@ -777,6 +777,19 @@ def main():
             ckp.write_text(_json.dumps(ck, indent=2))
             if public_url:
                 print(f"    Wrote brand_report_url to {ckp}", file=sys.stderr)
+            # Persist the machine + human plan NEXT TO client-knowledge.json so the
+            # onboarding agent can read THIS prospect's plan later — the shared
+            # canvas-pages copy (out_path.with_name) is overwritten by the next
+            # prospect's report. (2026-06-19 — onboarding phase1-build-review turn.)
+            try:
+                import shutil as _sh
+                for _pf in ("seo-plan.json", "website-plan.md"):
+                    _src = out_path.with_name(_pf)
+                    if _src.exists() and _src.resolve() != (ckp.parent / _pf).resolve():
+                        _sh.copyfile(str(_src), str(ckp.parent / _pf))
+                        print(f"    Persisted {_pf} → {ckp.parent / _pf}", file=sys.stderr)
+            except Exception as _pf_e:
+                print(f"    Plan persist to prospect dir FAILED: {_pf_e}", file=sys.stderr)
         except Exception as _wb_e:
             print(f"    Writeback FAILED: {_wb_e}", file=sys.stderr)
 

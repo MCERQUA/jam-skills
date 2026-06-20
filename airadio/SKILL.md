@@ -46,6 +46,45 @@ On it — pushing Code Block Cartel to your AI-Radio now.
 
 The user will not hear the tag; they'll hear the spoken sentence only. OVU calls the bridge and AI-Radio dedupes by (user, sunoId) / (user, sourceHash), so re-pushing the same song is a safe no-op.
 
+### Cover art — EVERY song you push should have artwork (covers are NOT auto-generated)
+
+AI-Radio does **not** invent a cover for you. A song pushed with no artwork shows a blank/placeholder tile in the catalog. So whenever you put a song on AI-Radio, give it a cover — it's part of "pushing a song," not an optional extra.
+
+#### AI-Radio cover HOUSE STYLE — match the existing catalog (this is mandatory, not optional)
+
+Every AI-Radio cover follows ONE consistent look so the catalog is cohesive. Do NOT invent a different style per song — generate this exact format every time:
+
+- **Square 1:1** image, photorealistic, premium album-art quality.
+- **It depicts a record album SLEEVE with a black vinyl record disc sliding OUT of the right-hand side of the sleeve** — the disc shows grooves and a center label. This vinyl-peeking-from-the-sleeve framing is the signature of the catalog; it must be present.
+- **Song TITLE in large bold UPPERCASE at the TOP**, gold/cream lettering.
+- **Title repeated smaller at the BOTTOM with the artist name beneath** (e.g. `DJ PiGuy`), gold.
+- **A dramatic, photorealistic central subject themed to the song** (its vibe/lyrics) seated/staged inside the sleeve artwork; cinematic lighting, dark glossy reflective floor.
+- Brand rules still apply: **no purple, no emojis**.
+
+Copy-paste image-gen prompt template (fill the `{...}`):
+```
+Square album cover, photorealistic, premium hip-hop/electronic album art. A record
+album sleeve viewed front-on with a glossy BLACK VINYL RECORD sliding out of the RIGHT
+side of the sleeve (grooves and center label visible). Centered subject: {scene themed
+to the song — vibe, lyrics, mood}. Dramatic cinematic lighting, dark reflective floor.
+Song title "{TITLE}" in large bold gold uppercase across the TOP. At the BOTTOM, the
+title "{TITLE}" again with "{ARTIST}" beneath in gold. No purple, no emojis, no
+watermark. 1:1.
+```
+
+How covers get attached (you don't need a special tag — the bridge does it automatically):
+
+1. **Generate the artwork** for the track using the HOUSE STYLE above (square, vinyl-out-of-sleeve, title top + bottom). Use your image-gen tool / FLUX, or a user-supplied image.
+2. **Save it right next to the song file, with the same name**: for `My-Track.mp3` in the generated-music folder, save the cover as `My-Track.png` (`.jpg`/`.webp` also fine). A `covers/My-Track.png` subfolder works too.
+3. **Push as normal** — `[AIRADIO_PUSH_SONG:My-Track]`. The bridge auto-detects the sibling image and uploads it as the cover in the same call. No extra step, no extra tag.
+
+If you're generating a brand-new song to put on AI-Radio, generate its cover in the same breath and save it beside the `.mp3` **before** you emit the push tag. That way artwork rides along every time.
+
+**Fixing / changing a cover after the fact** (song already on AI-Radio, or you want different art): use the explicit cover tag instead —
+```
+[AIRADIO_SET_SONG_COVER:<song filename or title>|/uploads/ai-gen-9999.png]
+```
+
 ### Check before pushing — dedup against the user's own AI-Radio library
 
 Before emitting `[AIRADIO_PUSH_SONG:...]` for a track that might already be up there, emit a check tag first and look at the system response on the NEXT turn. This avoids telling the user "I pushed it" when it was already on AI-Radio and no upload actually happened.
