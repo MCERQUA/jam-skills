@@ -2,7 +2,7 @@
 name: article-writer
 description: "Fully-autonomous, research-driven long-form article pipeline that COMPOUNDS a per-client knowledge brain. Takes a topic + target keyword and produces a publication-ready 3500-5000 word article — markdown + designed HTML + JSON-LD schema — through phases 0–9 (Knowledge-Load/Gap-Analysis → Setup → parallel Research+Distill → quality gate → Planning → Drafting → parallel Enhancement → HTML Design → final quality gate → Schema → Completion write-back). Uses a two-tier corpus: RAW research stays in the website repo (provenance), DISTILLED knowledge merges into the client's openclaw-workspace brain (shared, per-client-isolated) so research is never re-paid. Research is backed by real data (dataforseo, serper-search, social-research) and both quality gates run through the quality-review skill. Generic: works for ANY website/topic/brand via passed-in inputs — never niche-specific. TRIGGER when the user asks to 'write an article / blog post', 'research and write a post about X', 'create a long-form SEO article', 'add a blog post to <site>', or asks for a fully-researched publish-ready article with images + schema. DO NOT USE for: short social posts (use social-media-designer), building a whole website (use website-builder), or a content *calendar/strategy* with many briefs (that's a planning task, not a single article)."
 metadata:
-  version: 1.0.0
+  version: 1.2.0
   tags:
     - content
     - seo
@@ -367,14 +367,30 @@ name**. → immediately launch Phase 6.
 
 **Wait for all 3**, then Phase 7.
 
-### Phase 7 — HTML Design  → AUTO-PROCEED
-**File:** `phases/phase7-html-design.md`
-**Agent:** html-design-agent.
-**Output:** `article-final.html` (+ `drafts/article-v1.html`) — semantic HTML5, **embed all
-generated images** from `article-design/images/` with alt text + responsive sizing, internal links
-added, authority links with appropriate `rel`, mobile-first, proper heading hierarchy, list/table
-formats for snippet targeting. Use the site's saved theme colors if a theme file exists; otherwise
-neutral readable defaults (dark text on white, blue links — never light-on-light). → Phase 8.
+### Phase 7 — HTML Design (DESIGNED article, not a document)  → AUTO-PROCEED
+**File:** `phases/phase7-html-design.md` ← read it; this phase decides whether output looks crafted or flat.
+**Agent:** html-design-agent (**sonnet** — layout judgment, not mechanical).
+**THE BAR:** a plain markdown→HTML wall of prose + a couple images is a **FAILURE** even if the
+writing is great. Output must read like a modern editorial page — **component density carries it, not
+photos** (reference pages have ~4 images but *hundreds* of styled elements). Transform the draft into
+**self-contained, component-rich HTML** (no shared template, no build/CDN dep): one scoped `<style>`
+block (token-driven, `.aw-article`) + inline SVG icons.
+**Component vocabulary (map the draft into these — never rewrite the words):** gradient **hero**,
+**Key Takeaways** block, **stat cards** (numbers), colored **callouts** (key/info/tip/warn), **icon
+card grids** (parallel items), **comparison tables**, **pros/cons**, **pull-quotes**, **figures**
+(generated images, alt + lazy), **FAQ accordion** (`<details>`), gradient **CTA** with a 44px+ button.
+**Density rule:** ≥1 non-prose visual element per ~400–500 words (a 4k-word article ⇒ 8–12+ component
+blocks); never two screens of unbroken paragraphs.
+**Visuals (bring it to life):** embed Gemini imagery + infographics generously from
+`article-design/images/` (image gen is strong now — `gemini-image` skill; if empty, back to Phase 6),
+AND render **native inline-SVG data charts** (bar/line/pie/donut) from the article's REAL numbers —
+self-contained, theme-colored, accessible. **Never have an image model draw data charts (it fabricates
+numbers)** — charts are hand-built SVG here. Any section with 3+ related numbers earns a chart;
+include ≥1 real data viz when the article has quantitative content.
+**Theme:** use `blog-theme.json` if present, else derive brand color (default platform blue family).
+**Never purple, never light-on-light, AA contrast, no emoji, no `{{placeholders}}`.** Byline =
+`site_author`/`brand`. Embed internal links + authority links (`rel="nofollow noopener"`). Leave the
+Phase-9 schema marker; don't hand-write schema. → Phase 8.
 
 ### Phase 8 — Final Review (gate)  → AUTO-PROCEED
 **File:** `phases/phase8-final-gate.md`
@@ -460,6 +476,12 @@ means skipping a phase, lowering a threshold, or stopping early.
 - [ ] FAQ section with 8-12 questions.
 - [ ] Schema implemented (3+ types) and embedded.
 - [ ] Final gate PASS (9+ / quality-review PASS) on BOTH markdown and HTML.
+- [ ] **Designed, not a document** — self-contained component-rich HTML: scoped `<style>` + inline
+      SVG (no CDN/build dep), gradient hero + Key-Takeaways + CTA present, **≥4 distinct component
+      types**, density ≥1 visual block / ~500 words, no emoji, never purple/light-on-light. (Phase 7 / Phase 8 design gate.)
+- [ ] **Brought to life with visuals** — Gemini imagery/infographics embedded, AND ≥1 **native SVG
+      data viz** (bar/line/pie from real numbers) when the article has quantitative content; no
+      image-model-drawn charts.
 - [ ] **Zero placeholders** — no `{{brand}}`, "Business Name", "example.com", lorem.
 - [ ] Optimized for AI Overviews + featured snippets.
 - [ ] **Phase 0 ran** — brain loaded, gap brief written, Phase 2 scoped to gaps (cached

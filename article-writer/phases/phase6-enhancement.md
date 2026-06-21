@@ -20,17 +20,25 @@ in `topical-map.json`.)
 ```
 
 ## 2. article-design-agent → `article-design/visual-plan.md` + generates images
-Plan AND generate 5-8 images into `article-design/images/`.
+Plan AND generate **6-10** images into `article-design/images/` — bring the article to life.
 
-**Image content rule (generalized):** prefer **infographics, diagrams, data-visualizations,
-comparison images, conceptual/abstract graphics**. For any real-world / people / on-location scene,
-use **real photos from the site's own gallery** (e.g. `<site_root>/public/gallery/`) rather than
-synthesizing them — AI-rendered people/equipment look fake and hurt credibility. (This is a general
-rule, not niche-specific.)
+**Generate freely with Gemini.** Image generation is strong now — use the **`gemini-image`** skill
+(`gemini-2.5-flash-image`, or `gemini-3-pro-image-preview` for hero/best quality) for **infographics,
+diagrams, cutaways, comparison visuals, conceptual/explainer graphics, and hero art**. Gemini makes
+great infographics — lean into it. Use a real photo from the site gallery
+(`<site_root>/public/gallery/`) when you genuinely have an on-location shot, but there is **no
+restriction** on AI imagery — generate it.
 
-For each image: SEO alt text, placement recommendation. Naming: `01-featured-hero.*`,
-`02-*-infographic.*`, etc. Generate with the available image tool, 1K (~1024px), then optimize:
-≤1200px wide, ~80% quality, **≤300KB each**. Do NOT skip generation — prompts without images are useless.
+**Split of responsibilities (important):**
+- **Gemini infographics / visual graphics** → generated HERE as images (`article-design/images/`).
+- **Accurate DATA charts** (bar / line / pie / donut from the article's real numbers) → **NOT generated
+  as images.** Image models fabricate chart numbers. Those are built in **Phase 7 as native inline
+  SVG** from the real figures. In `visual-plan.md`, flag which quantitative sections should get a
+  native chart (and the actual numbers), so Phase 7 renders them — do not try to make Gemini draw them.
+
+For each image: SEO alt text + placement recommendation. Naming: `01-featured-hero.*`,
+`02-*-infographic.*`, `03-*-diagram.*`, etc. Generate at ~1K (1024px+), then optimize: ≤1600px wide,
+~80% quality, **≤350KB each**. Do NOT skip generation — prompts without images are useless.
 
 ## 3. authority-link-validator-agent → `authority-link-research/validated-links.md`
 Test every external URL: 200 OK, crawlable (no noindex/robots block), still exists and relevant,
