@@ -2,7 +2,7 @@
 name: article-writer
 description: "Fully-autonomous, research-driven long-form article pipeline that COMPOUNDS a per-client knowledge brain. Takes a topic + target keyword and produces a publication-ready 3500-5000 word article — markdown + designed HTML + JSON-LD schema — through phases 0–9 (Knowledge-Load/Gap-Analysis → Setup → parallel Research+Distill → quality gate → Planning → Drafting → parallel Enhancement → HTML Design → final quality gate → Schema → Completion write-back). Uses a two-tier corpus: RAW research stays in the website repo (provenance), DISTILLED knowledge merges into the client's openclaw-workspace brain (shared, per-client-isolated) so research is never re-paid. Research is backed by real data (dataforseo, serper-search, social-research) and both quality gates run through the quality-review skill. Generic: works for ANY website/topic/brand via passed-in inputs — never niche-specific. TRIGGER when the user asks to 'write an article / blog post', 'research and write a post about X', 'create a long-form SEO article', 'add a blog post to <site>', or asks for a fully-researched publish-ready article with images + schema. DO NOT USE for: short social posts (use social-media-designer), building a whole website (use website-builder), or a content *calendar/strategy* with many briefs (that's a planning task, not a single article)."
 metadata:
-  version: 1.2.0
+  version: 1.3.0
   tags:
     - content
     - seo
@@ -350,6 +350,18 @@ allocation + key points + keywords, FAQ structure (8-12 Qs), conclusion (150-200
 markdown links. Frontmatter uses `site_author`/`brand`/`target_keyword` — **never a hardcoded
 name**. → immediately launch Phase 6.
 
+**🔗 OUTBOUND AUTHORITY LINKS ARE MANDATORY (not optional).** The draft body MUST weave in **at
+least 4–8 outbound external links** to the validated high-authority sources from
+`authority-sources.json` / `authority-link-research/`, placed INLINE where they back a specific
+claim, stat, code/permit reference, or product spec — descriptive anchor text (never "click here",
+never a bare URL). These are an E-E-A-T/SEO trust signal and are **separate from internal links**
+(internal links do NOT count toward this minimum). Prefer PRIMARY sources: `.gov`/`.edu` (permits,
+building code, research), standards bodies + industry associations (e.g. NADRA, ICC), and
+manufacturer spec pages over random blogs. Commercial externals get `rel="noopener nofollow"`;
+gov/edu/standards can be plain. **Zero outbound authority links = automatic Phase 8 FAIL** (real
+miss 2026-06-21: a shipped article had only internal links — reader explicitly wanted outbound
+authority links for "more info").
+
 ### Phase 6 — Enhancement (PARALLEL)  → AUTO-PROCEED
 **File:** `phases/phase6-enhancement.md`
 **Agents (3, in parallel):**
@@ -364,6 +376,10 @@ name**. → immediately launch Phase 6.
    rather than synthesizing them. Alt text (SEO) for each. Optimize each image (≤300KB, ≤1200px).
 3. **authority-link-validator-agent** → `authority-link-research/validated-links.md` — test each
    external URL (200 OK, crawlable, still relevant), drop dead links, flag redirects, final list.
+   **THEN ensure each surviving link is actually PLACED in the draft body (validate ≠ insert — this
+   was the gap):** if Phase 5 left any out, weave it in at the right claim with proper anchor text.
+   Report the final COUNT of outbound authority links present in the body (must be ≥4, else loop
+   back into the draft before Phase 7).
 
 **Wait for all 3**, then Phase 7.
 
@@ -397,6 +413,10 @@ Phase-9 schema marker; don't hand-write schema. → Phase 8.
 **Tool:** **`quality-review`** skill (`check.py` for routes/images/links/completeness/fabrication;
 `visual-check.py` for contrast/overflow/broken-image at 390 + 1440) + an article-final-review-agent
 for content parity (markdown ⇄ HTML), word count, keyword integration, FAQ completeness.
+**HARD GATE — outbound authority links:** count the **outbound external links** in the final body
+(href to a different domain than `site_url`). If **< 4**, the gate FAILS — loop back, weave in more
+validated authority sources, re-gate. Internal links do not satisfy this. This is a ship-blocker,
+not a soft finding.
 **Autonomous handling:**
 - **9+ / quality-review PASS →** AUTO-PROCEED to Phase 9.
 - **7-8 →** AUTO-FIX the findings (missing links, alt text, structure, contrast), re-gate.
