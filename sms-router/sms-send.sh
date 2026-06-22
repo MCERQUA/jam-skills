@@ -25,24 +25,42 @@ detect_host_ip() {
 
 ROUTER="${SMS_ROUTER_URL:-http://$(detect_host_ip):6450}"
 
-RESPONSE=$(curl -s -X POST "$ROUTER/send" \
+# Try a DIRECT POST first (works when run on the host, or if the router is bridge-reachable).
+RESPONSE=$(curl -s --max-time 6 -X POST "$ROUTER/send" \
   -H 'Content-Type: application/json' \
   -d "$(TENANT="$TENANT" TO="$TO" BODY="$BODY" python3 -c "
 import json, os
 print(json.dumps({'tenant': os.environ['TENANT'], 'to': os.environ['TO'], 'body': os.environ['BODY']}))
-")")
+")" 2>/dev/null || true)
 
 SUCCESS=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('ok',False))" 2>/dev/null || echo "false")
 SID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('twilio_sid') or '')" 2>/dev/null || echo "")
 
 if [ "$SUCCESS" = "True" ]; then
   echo "SMS sent OK. Twilio SID: $SID"
-  echo "  Router: $ROUTER"
-  echo "  To: $TO"
-  echo "  From-tenant: $TENANT"
-else
-  echo "ERROR: SMS send failed" >&2
-  echo "  Router: $ROUTER" >&2
-  echo "$RESPONSE" >&2
-  exit 1
+  echo "  Router: $ROUTER"; echo "  To: $TO"; echo "  From-tenant: $TENANT"
+  exit 0
 fi
+
+# Direct send failed — expected from inside a tenant container, since the router is bound to
+# 127.0.0.1 (security hardening) and unreachable on the bridge. Fall back to the OUTBOUND QUEUE:
+# write a request to the mesh-mounted queue; the host-side jambot-sms-outbound-drain.py (cron */1)
+# picks it up and POSTs it to the loopback router. /mnt/agent-mesh is mounted in every tenant
+# container, so this works platform-wide. (Added 2026-06-22 — the loopback bind broke the direct path.)
+QDIR=/mnt/agent-mesh/mesh/sms-outbound-queue
+if mkdir -p "$QDIR" 2>/dev/null; then
+  QF="$QDIR/$(date -u +%Y%m%dT%H%M%S)-${TENANT}-$$.json"
+  if TENANT="$TENANT" TO="$TO" BODY="$BODY" python3 -c "
+import json, os
+open(os.environ.get('QF','$QF'),'w').write(json.dumps({'tenant':os.environ['TENANT'],'to':os.environ['TO'],'body':os.environ['BODY']}))
+" QF="$QF" 2>/dev/null; then
+    echo "SMS QUEUED (router not directly reachable — host drain will send within ~1 min)."
+    echo "  Queue: $QF"; echo "  To: $TO"; echo "  From-tenant: $TENANT"
+    exit 0
+  fi
+fi
+
+echo "ERROR: SMS send failed (direct POST refused AND queue write failed)" >&2
+echo "  Router: $ROUTER" >&2
+echo "$RESPONSE" >&2
+exit 1
