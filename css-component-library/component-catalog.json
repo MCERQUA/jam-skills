@@ -1,0 +1,954 @@
+[
+  {
+    "name": "Gradient Button",
+    "category": "buttons",
+    "selector": ".fx-btn",
+    "usage": "Apply `.fx-btn` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-gradient\">Hover Me</button>",
+    "css": ".fx-btn {\n  padding: 10px 28px;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  color: #fff;\n  cursor: pointer;\n  background: linear-gradient(135deg, #3AB54A, #2d9e40, #25a033);\n  background-size: 200% 200%;\n  animation: gradShift 3s ease infinite;\n}\n@keyframes gradShift {\n  0%,100% { background-position: 0% 50%; }\n  50% { background-position: 100% 50%; }\n}"
+  },
+  {
+    "name": "Glow Button",
+    "category": "buttons",
+    "selector": ".fx-btn-glow",
+    "usage": "Apply `.fx-btn-glow` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-glow\">Hover Me</button>",
+    "css": ".fx-btn-glow {\n  padding: 10px 28px;\n  background: #3AB54A;\n  color: #fff;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  box-shadow: 0 0 15px rgba(58,181,74,0.4), 0 0 30px rgba(58,181,74,0.2);\n  transition: box-shadow 0.3s;\n}\n.fx-btn-glow:hover {\n  box-shadow: 0 0 25px rgba(58,181,74,0.4), 0 0 50px rgba(58,181,74,0.3);\n}"
+  },
+  {
+    "name": "Ripple Button",
+    "category": "buttons",
+    "selector": ".fx-btn-ripple",
+    "usage": "Apply `.fx-btn-ripple` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-ripple\" onclick=\"addRipple(event,this)\">Click Me</button>",
+    "css": ".fx-btn-ripple {\n  padding: 10px 28px;\n  background: #3AB54A;\n  color: #fff;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  position: relative;\n  overflow: hidden;\n}\n.ripple {\n  position: absolute;\n  border-radius: 50%;\n  background: rgba(255,255,255,0.4);\n  transform: scale(0);\n  animation: rippleAnim 0.6s ease-out;\n}\n@keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }"
+  },
+  {
+    "name": "Neon Border Button",
+    "category": "buttons",
+    "selector": ".fx-btn-neon",
+    "usage": "Apply `.fx-btn-neon` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-neon\">Hover Me</button>",
+    "css": ".fx-btn-neon {\n  padding: 10px 28px;\n  background: transparent;\n  border: 2px solid #3AB54A;\n  color: #3AB54A;\n  font-weight: 600;\n  border-radius: 8px;\n  cursor: pointer;\n  box-shadow: 0 0 10px rgba(58,181,74,0.4), inset 0 0 10px rgba(58,181,74,0.4);\n  transition: all 0.3s;\n}\n.fx-btn-neon:hover {\n  background: rgba(58,181,74,0.15);\n  box-shadow: 0 0 20px rgba(58,181,74,0.4), inset 0 0 20px rgba(58,181,74,0.4);\n}"
+  },
+  {
+    "name": "Slide Fill Button",
+    "category": "buttons",
+    "selector": ".fx-btn-slide",
+    "usage": "Apply `.fx-btn-slide` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-slide\">Hover Me</button>",
+    "css": ".fx-btn-slide {\n  padding: 10px 28px;\n  background: transparent;\n  border: 2px solid #3AB54A;\n  color: #3AB54A;\n  font-weight: 600;\n  border-radius: 8px;\n  cursor: pointer;\n  position: relative;\n  z-index: 1;\n  overflow: hidden;\n}\n.fx-btn-slide::before {\n  content: '';\n  position: absolute;\n  top: 0; left: -100%;\n  width: 100%; height: 100%;\n  background: #3AB54A;\n  z-index: -1;\n  transition: left 0.3s;\n}\n.fx-btn-slide:hover { color: #000; }\n.fx-btn-slide:hover::before { left: 0; }"
+  },
+  {
+    "name": "Pulse Button",
+    "category": "buttons",
+    "selector": ".fx-btn-pulse",
+    "usage": "Apply `.fx-btn-pulse` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-pulse\">Hover Me</button>",
+    "css": ".fx-btn-pulse {\n  padding: 10px 28px;\n  background: #3AB54A;\n  color: #fff;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  animation: btnPulse 2s infinite;\n}\n@keyframes btnPulse {\n  0% { box-shadow: 0 0 0 0 rgba(58,181,74,0.4); }\n  70% { box-shadow: 0 0 0 15px rgba(58,181,74,0); }\n  100% { box-shadow: 0 0 0 0 rgba(58,181,74,0); }\n}"
+  },
+  {
+    "name": "Shadow Grow Button",
+    "category": "buttons",
+    "selector": ".fx-btn-shadow",
+    "usage": "Apply `.fx-btn-shadow` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-shadow\">Hover Me</button>",
+    "css": ".fx-btn-shadow {\n  padding: 10px 28px;\n  background: #3AB54A;\n  color: #fff;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  transition: all 0.3s;\n}\n.fx-btn-shadow:hover {\n  box-shadow: 8px 8px 0 rgba(58,181,74,0.5);\n  transform: translate(-2px, -2px);\n}"
+  },
+  {
+    "name": "Outline Rotate Button",
+    "category": "buttons",
+    "selector": ".fx-btn-rotate-outline",
+    "usage": "Apply `.fx-btn-rotate-outline` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-rotate-outline\">Hover Me</button>",
+    "css": ".fx-btn-rotate-outline {\n  padding: 10px 28px;\n  font-weight: 600;\n  border: 2px solid transparent;\n  color: #3AB54A;\n  border-radius: 8px;\n  cursor: pointer;\n  background-image: linear-gradient(#0d1117, #0d1117), linear-gradient(#3AB54A, #2dd4bf);\n  background-origin: border-box;\n  background-clip: padding-box, border-box;\n  transition: all 0.3s;\n}\n.fx-btn-rotate-outline:hover {\n  background-image: linear-gradient(#0d1117, #0d1117), linear-gradient(#f97316, #ec4899);\n}"
+  },
+  {
+    "name": "Circle Spinner",
+    "category": "loaders",
+    "selector": ".spinner",
+    "usage": "Show an element with `.spinner` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-spinner-circle\"></div>",
+    "css": ".spinner {\n  width: 40px; height: 40px;\n  border: 4px solid #30363d;\n  border-top-color: #3AB54A;\n  border-radius: 50%;\n  animation: spin 0.8s linear infinite;\n}\n@keyframes spin { to { transform: rotate(360deg); } }"
+  },
+  {
+    "name": "Bouncing Dots",
+    "category": "loaders",
+    "selector": ".bounce-dots",
+    "usage": "Show an element with `.bounce-dots` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-bounce-dots\"><span></span><span></span><span></span></div>",
+    "css": ".bounce-dots { display: flex; gap: 8px; }\n.bounce-dots span {\n  width: 14px; height: 14px;\n  background: #3AB54A;\n  border-radius: 50%;\n  animation: bounce 1.4s infinite ease-in-out both;\n}\n.bounce-dots span:nth-child(1) { animation-delay: -0.32s; }\n.bounce-dots span:nth-child(2) { animation-delay: -0.16s; }\n@keyframes bounce {\n  0%,80%,100% { transform: scale(0); }\n  40% { transform: scale(1); }\n}"
+  },
+  {
+    "name": "Rotating Square",
+    "category": "loaders",
+    "selector": ".square-spin",
+    "usage": "Show an element with `.square-spin` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-square-spin\"></div>",
+    "css": ".square-spin {\n  width: 40px; height: 40px;\n  background: #3AB54A;\n  animation: sqSpin 1.2s ease infinite;\n}\n@keyframes sqSpin { to { transform: rotate(360deg); } }"
+  },
+  {
+    "name": "Pulse Ring",
+    "category": "loaders",
+    "selector": ".pulse-ring",
+    "usage": "Show an element with `.pulse-ring` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-pulse-ring\"></div>",
+    "css": ".pulse-ring {\n  width: 40px; height: 40px;\n  border-radius: 50%;\n  background: #3AB54A;\n  position: relative;\n}\n.pulse-ring::before, .pulse-ring::after {\n  content: '';\n  position: absolute;\n  inset: -8px;\n  border-radius: 50%;\n  border: 3px solid #3AB54A;\n  animation: pulseRing 1.5s ease-out infinite;\n}\n.pulse-ring::after { animation-delay: 0.5s; }\n@keyframes pulseRing {\n  0% { transform: scale(0.5); opacity: 1; }\n  100% { transform: scale(1.3); opacity: 0; }\n}"
+  },
+  {
+    "name": "Bar Loader",
+    "category": "loaders",
+    "selector": ".bar-loader",
+    "usage": "Show an element with `.bar-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-bar-loader\"></div>",
+    "css": ".bar-loader {\n  width: 120px; height: 6px;\n  background: #30363d;\n  border-radius: 3px;\n  overflow: hidden;\n}\n.bar-loader::after {\n  content: '';\n  display: block;\n  width: 40%; height: 100%;\n  background: #3AB54A;\n  border-radius: 3px;\n  animation: barMove 1.5s ease infinite;\n}\n@keyframes barMove {\n  0% { transform: translateX(-100%); }\n  100% { transform: translateX(350%); }\n}"
+  },
+  {
+    "name": "Flip Loader",
+    "category": "loaders",
+    "selector": ".flip-loader",
+    "usage": "Show an element with `.flip-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-flip-loader\"></div>",
+    "css": ".flip-loader {\n  width: 40px; height: 40px;\n  background: #3AB54A;\n  animation: flipLoad 1.2s ease infinite;\n}\n@keyframes flipLoad {\n  0% { transform: perspective(160px) rotateX(0); }\n  50% { transform: perspective(160px) rotateX(180deg); }\n  100% { transform: perspective(160px) rotateX(360deg); }\n}"
+  },
+  {
+    "name": "Dot Wave",
+    "category": "loaders",
+    "selector": ".dot-wave",
+    "usage": "Show an element with `.dot-wave` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-dot-wave\"><span></span><span></span><span></span><span></span><span></span></div>",
+    "css": ".dot-wave { display: flex; gap: 6px; }\n.dot-wave span {\n  width: 12px; height: 12px;\n  background: #3AB54A;\n  border-radius: 50%;\n  animation: dotWave 1.2s ease-in-out infinite;\n}\n.dot-wave span:nth-child(2) { animation-delay: 0.1s; }\n.dot-wave span:nth-child(3) { animation-delay: 0.2s; }\n.dot-wave span:nth-child(4) { animation-delay: 0.3s; }\n.dot-wave span:nth-child(5) { animation-delay: 0.4s; }\n@keyframes dotWave {\n  0%,100% { transform: translateY(0); }\n  50% { transform: translateY(-18px); }\n}"
+  },
+  {
+    "name": "Square Spin",
+    "category": "loaders",
+    "selector": ".square-spin3d",
+    "usage": "Show an element with `.square-spin3d` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-square-spin3d\"></div>",
+    "css": ".square-spin3d {\n  width: 40px; height: 40px;\n  background: #3AB54A;\n  animation: sqSpin3d 2.4s ease infinite;\n}\n@keyframes sqSpin3d {\n  0% { transform: perspective(120px) rotateX(0) rotateY(0); }\n  25% { transform: perspective(120px) rotateX(180deg) rotateY(0); }\n  50% { transform: perspective(120px) rotateX(180deg) rotateY(180deg); }\n  75% { transform: perspective(120px) rotateX(0) rotateY(180deg); }\n  100% { transform: perspective(120px) rotateX(0) rotateY(360deg); }\n}"
+  },
+  {
+    "name": "Hover Lift Card",
+    "category": "cards",
+    "selector": ".card-lift",
+    "usage": "Wrap content in an element with `.card-lift`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-preview fx-card-lift\"><span class=\"card-icon\">\u2728</span><span class=\"card-title-sm\">Hover Lift</span></div>",
+    "css": ".card-lift {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  padding: 20px;\n  transition: all 0.3s;\n  cursor: pointer;\n}\n.card-lift:hover {\n  transform: translateY(-8px);\n  box-shadow: 0 12px 24px rgba(0,0,0,0.4);\n  border-color: #3AB54A;\n}"
+  },
+  {
+    "name": "Glow Border Card",
+    "category": "cards",
+    "selector": ".card-glow",
+    "usage": "Wrap content in an element with `.card-glow`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-preview fx-card-glow\"><span class=\"card-icon\">\ud83d\udca1</span><span class=\"card-title-sm\">Glow Border</span></div>",
+    "css": ".card-glow {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  padding: 20px;\n  transition: all 0.3s;\n}\n.card-glow:hover {\n  border-color: #3AB54A;\n  box-shadow: 0 0 20px rgba(58,181,74,0.4), 0 0 40px rgba(58,181,74,0.1);\n}"
+  },
+  {
+    "name": "Tilt Card",
+    "category": "cards",
+    "selector": ".card-tilt",
+    "usage": "Wrap content in an element with `.card-tilt`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-preview fx-card-tilt\" onmousemove=\"tiltCard(event,this)\" onmouseleave=\"resetTilt(this)\"><span class=\"card-icon\">\ud83c\udfaf</span><span class=\"card-title-sm\">Tilt Me</span></div>",
+    "css": ".card-tilt {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  padding: 20px;\n  transform-style: preserve-3d;\n  transition: transform 0.3s;\n  cursor: pointer;\n}\n/* Add JS: onmousemove rotateX/Y based on mouse position */"
+  },
+  {
+    "name": "Flip Card",
+    "category": "cards",
+    "selector": ".flip-container",
+    "usage": "Wrap content in an element with `.flip-container`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-flip-container\"><div class=\"fx-card-flip-inner\"><div class=\"fx-card-flip-front\">Front</div><div class=\"fx-card-flip-back\">Back</div></div></div>",
+    "css": ".flip-container { perspective: 400px; }\n.flip-inner {\n  transition: transform 0.6s;\n  transform-style: preserve-3d;\n}\n.flip-container:hover .flip-inner { transform: rotateY(180deg); }\n.flip-front, .flip-back {\n  backface-visibility: hidden;\n  border-radius: 10px;\n}\n.flip-back {\n  transform: rotateY(180deg);\n  background: #3AB54A;\n}"
+  },
+  {
+    "name": "Gradient Border Card",
+    "category": "cards",
+    "selector": ".card-grad-border",
+    "usage": "Wrap content in an element with `.card-grad-border`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-grad-border\"><div class=\"fx-card-grad-border-inner\"><span style=\"font-size:1.3rem\">\ud83c\udf08</span><span style=\"font-size:0.7rem;color:var(--text-dim)\">Gradient</span></div></div>",
+    "css": ".card-grad-border {\n  position: relative;\n  padding: 2px;\n  border-radius: 10px;\n}\n.card-grad-border::before {\n  content: '';\n  position: absolute;\n  inset: 0;\n  border-radius: 10px;\n  padding: 2px;\n  background: linear-gradient(135deg, #3AB54A, #2dd4bf, #f97316);\n  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);\n  -webkit-mask-composite: xor;\n  mask-composite: exclude;\n}"
+  },
+  {
+    "name": "Spotlight Card",
+    "category": "cards",
+    "selector": ".card-spotlight",
+    "usage": "Wrap content in an element with `.card-spotlight`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-preview fx-card-spotlight\" onmousemove=\"spotlightTrack(event,this)\" onmouseleave=\"spotlightReset(this)\"><span class=\"card-icon\">\ud83d\udd26</span><span class=\"card-title-sm\">Spotlight</span></div>",
+    "css": ".card-spotlight {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  padding: 20px;\n  position: relative;\n  overflow: hidden;\n  transition: all 0.3s;\n}\n.card-spotlight::after {\n  content: '';\n  position: absolute;\n  width: 100px; height: 100px;\n  background: radial-gradient(circle, rgba(58,181,74,0.25), transparent 70%);\n  border-radius: 50%;\n  top: var(--mouse-y, 50%);\n  left: var(--mouse-x, 50%);\n  transform: translate(-50%, -50%);\n  opacity: 0;\n  transition: opacity 0.3s;\n  pointer-events: none;\n}\n.card-spotlight:hover::after { opacity: 1; }"
+  },
+  {
+    "name": "Gradient Text",
+    "category": "text",
+    "selector": ".text-gradient",
+    "usage": "Apply `.text-gradient` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-gradient\">Gradient</span>",
+    "css": ".text-gradient {\n  font-weight: 700;\n  font-size: 2rem;\n  background: linear-gradient(135deg, #3AB54A, #2dd4bf, #f97316);\n  -webkit-background-clip: text;\n  -webkit-text-fill-color: transparent;\n  background-clip: text;\n}"
+  },
+  {
+    "name": "Glitch Text",
+    "category": "text",
+    "selector": ".text-glitch",
+    "usage": "Apply `.text-glitch` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-glitch\">Glitch</span>",
+    "css": ".text-glitch {\n  font-weight: 700;\n  color: #e2e8f0;\n  animation: glitch 2s infinite;\n}\n@keyframes glitch {\n  0%,100% { text-shadow: none; }\n  2% { text-shadow: -2px 0 #ff0040, 2px 0 #00ffff; }\n  4% { text-shadow: 2px 0 #ff0040, -2px 0 #00ffff; }\n  6% { text-shadow: none; }\n}"
+  },
+  {
+    "name": "Typewriter",
+    "category": "text",
+    "selector": ".text-typewriter",
+    "usage": "Apply `.text-typewriter` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-typewriter\">Typewriter</span>",
+    "css": ".text-typewriter {\n  font-weight: 700;\n  overflow: hidden;\n  white-space: nowrap;\n  border-right: 2px solid #3AB54A;\n  animation: type 3s steps(12) infinite, blink 0.7s step-end infinite;\n  max-width: 200px;\n}\n@keyframes type {\n  0%,10% { width: 0; }\n  50%,70% { width: 12ch; }\n  90%,100% { width: 0; }\n}\n@keyframes blink { 50% { border-color: transparent; } }"
+  },
+  {
+    "name": "Neon Text",
+    "category": "text",
+    "selector": ".text-neon",
+    "usage": "Apply `.text-neon` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-neon\">Neon</span>",
+    "css": ".text-neon {\n  font-weight: 700;\n  color: #3AB54A;\n  text-shadow:\n    0 0 7px rgba(58,181,74,0.4),\n    0 0 10px rgba(58,181,74,0.4),\n    0 0 21px rgba(58,181,74,0.4),\n    0 0 42px rgba(58,181,74,0.3);\n}"
+  },
+  {
+    "name": "Stroke Text",
+    "category": "text",
+    "selector": ".text-stroke",
+    "usage": "Apply `.text-stroke` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-stroke\">Stroke</span>",
+    "css": ".text-stroke {\n  font-weight: 700;\n  -webkit-text-stroke: 2px #3AB54A;\n  color: transparent;\n}"
+  },
+  {
+    "name": "Shadow Stack Text",
+    "category": "text",
+    "selector": ".text-shadow-stack",
+    "usage": "Apply `.text-shadow-stack` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-shadow-stack\">Stack</span>",
+    "css": ".text-shadow-stack {\n  font-weight: 700;\n  color: #e2e8f0;\n  text-shadow:\n    1px 1px 0 #3AB54A,\n    2px 2px 0 rgba(58,181,74,0.8),\n    3px 3px 0 rgba(58,181,74,0.6),\n    4px 4px 0 rgba(58,181,74,0.4),\n    5px 5px 0 rgba(58,181,74,0.2);\n}"
+  },
+  {
+    "name": "Underline Slide",
+    "category": "text",
+    "selector": ".text-underline",
+    "usage": "Apply `.text-underline` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-underline\" style=\"cursor:pointer\">Hover Me</span>",
+    "css": ".text-underline {\n  font-weight: 700;\n  position: relative;\n}\n.text-underline::after {\n  content: '';\n  position: absolute;\n  bottom: -4px; left: 0;\n  width: 100%; height: 3px;\n  background: #3AB54A;\n  transform: scaleX(0);\n  transform-origin: right;\n  transition: transform 0.4s;\n}\n.text-underline:hover::after {\n  transform: scaleX(1);\n  transform-origin: left;\n}"
+  },
+  {
+    "name": "Text Reveal",
+    "category": "text",
+    "selector": ".text-reveal",
+    "usage": "Apply `.text-reveal` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-reveal\">Reveal</span>",
+    "css": ".text-reveal {\n  font-weight: 700;\n  position: relative;\n  overflow: hidden;\n  display: inline-block;\n}\n.text-reveal::after {\n  content: '';\n  position: absolute;\n  top: 0; left: 0;\n  width: 100%; height: 100%;\n  background: #3AB54A;\n  animation: textReveal 3s infinite;\n}\n@keyframes textReveal {\n  0% { transform: translateX(-101%); }\n  40% { transform: translateX(0); }\n  60% { transform: translateX(0); }\n  100% { transform: translateX(101%); }\n}"
+  },
+  {
+    "name": "Gradient Mesh",
+    "category": "backgrounds",
+    "selector": ".bg-mesh",
+    "usage": "Place an element with `.bg-mesh` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-mesh\"></div>",
+    "css": ".bg-mesh {\n  background:\n    radial-gradient(at 20% 30%, rgba(58,181,74,0.4) 0, transparent 50%),\n    radial-gradient(at 80% 70%, rgba(45,212,191,0.3) 0, transparent 50%),\n    radial-gradient(at 50% 50%, rgba(249,115,22,0.2) 0, transparent 50%),\n    #0d1117;\n}"
+  },
+  {
+    "name": "Animated Gradient",
+    "category": "backgrounds",
+    "selector": ".bg-anim-grad",
+    "usage": "Place an element with `.bg-anim-grad` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-anim-grad\"></div>",
+    "css": ".bg-anim-grad {\n  background: linear-gradient(-45deg, #3AB54A, #2dd4bf, #f97316, #ec4899);\n  background-size: 400% 400%;\n  animation: gradBg 6s ease infinite;\n}\n@keyframes gradBg {\n  0% { background-position: 0% 50%; }\n  50% { background-position: 100% 50%; }\n  100% { background-position: 0% 50%; }\n}"
+  },
+  {
+    "name": "Dot Pattern",
+    "category": "backgrounds",
+    "selector": ".bg-dots",
+    "usage": "Place an element with `.bg-dots` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-dots\"></div>",
+    "css": ".bg-dots {\n  background-image: radial-gradient(circle, #30363d 1px, transparent 1px);\n  background-size: 20px 20px;\n}"
+  },
+  {
+    "name": "Wave Pattern",
+    "category": "backgrounds",
+    "selector": ".bg-wave",
+    "usage": "Place an element with `.bg-wave` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-wave\"></div>",
+    "css": ".bg-wave {\n  background: linear-gradient(135deg, rgba(58,181,74,0.15), transparent);\n  overflow: hidden;\n  position: relative;\n}\n.bg-wave::before {\n  content: '';\n  position: absolute;\n  width: 300%; height: 300%;\n  top: -100%; left: -50%;\n  background: repeating-radial-gradient(\n    circle at 50% 50%,\n    transparent 0, transparent 18px,\n    rgba(58,181,74,0.08) 19px,\n    rgba(58,181,74,0.08) 20px\n  );\n  animation: waveRotate 20s linear infinite;\n}\n@keyframes waveRotate { to { transform: rotate(360deg); } }"
+  },
+  {
+    "name": "Geometric Pattern",
+    "category": "backgrounds",
+    "selector": ".bg-geo",
+    "usage": "Place an element with `.bg-geo` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-geo\"></div>",
+    "css": ".bg-geo {\n  background-color: #0d1117;\n  background-image:\n    linear-gradient(30deg, rgba(58,181,74,0.15) 12%, transparent 12.5%, transparent 87%, rgba(58,181,74,0.15) 87.5%),\n    linear-gradient(150deg, rgba(58,181,74,0.15) 12%, transparent 12.5%, transparent 87%, rgba(58,181,74,0.15) 87.5%),\n    linear-gradient(30deg, rgba(58,181,74,0.15) 12%, transparent 12.5%, transparent 87%, rgba(58,181,74,0.15) 87.5%),\n    linear-gradient(150deg, rgba(58,181,74,0.15) 12%, transparent 12.5%, transparent 87%, rgba(58,181,74,0.15) 87.5%);\n  background-size: 40px 70px;\n  background-position: 0 0, 0 0, 20px 35px, 20px 35px;\n}"
+  },
+  {
+    "name": "Scale Up",
+    "category": "hover",
+    "selector": ".hover-scale",
+    "usage": "Add `.hover-scale` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-scale\">Scale</div>",
+    "css": ".hover-scale {\n  width: 90px; height: 90px;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  transition: all 0.3s;\n  cursor: pointer;\n}\n.hover-scale:hover {\n  transform: scale(1.15);\n  border-color: #3AB54A;\n}"
+  },
+  {
+    "name": "Background Slide",
+    "category": "hover",
+    "selector": ".hover-bgslide",
+    "usage": "Add `.hover-bgslide` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-bgslide\">Slide</div>",
+    "css": ".hover-bgslide {\n  position: relative;\n  overflow: hidden;\n  z-index: 1;\n  width: 90px; height: 90px;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  transition: all 0.3s;\n  cursor: pointer;\n}\n.hover-bgslide::before {\n  content: '';\n  position: absolute;\n  inset: 0;\n  background: #3AB54A;\n  transform: translateY(100%);\n  transition: transform 0.3s;\n  z-index: -1;\n}\n.hover-bgslide:hover::before { transform: translateY(0); }\n.hover-bgslide:hover { color: #000; border-color: #3AB54A; }"
+  },
+  {
+    "name": "Border Draw",
+    "category": "hover",
+    "selector": ".hover-border-draw",
+    "usage": "Add `.hover-border-draw` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-border-draw\">Draw</div>",
+    "css": ".hover-border-draw {\n  position: relative;\n  border-color: transparent;\n  width: 90px; height: 90px;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  transition: all 0.3s;\n  cursor: pointer;\n}\n.hover-border-draw:hover {\n  border-color: #3AB54A;\n  box-shadow: 0 0 10px rgba(58,181,74,0.3);\n}"
+  },
+  {
+    "name": "Icon Morph",
+    "category": "hover",
+    "selector": ".hover-morph",
+    "usage": "Add `.hover-morph` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-morph\">\u26a1</div>",
+    "css": ".hover-morph {\n  font-size: 2rem;\n  color: #8b949e;\n  transition: all 0.3s;\n  cursor: pointer;\n}\n.hover-morph:hover {\n  color: #3AB54A;\n  transform: rotate(180deg) scale(1.2);\n}"
+  },
+  {
+    "name": "Color Shift",
+    "category": "hover",
+    "selector": ".hover-colorshift",
+    "usage": "Add `.hover-colorshift` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-colorshift\">Shift</div>",
+    "css": ".hover-colorshift {\n  width: 90px; height: 90px;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  transition: all 0.3s;\n  cursor: pointer;\n}\n.hover-colorshift:hover {\n  background: #3AB54A;\n  color: #000;\n  border-color: #3AB54A;\n}"
+  },
+  {
+    "name": "Shadow Pop",
+    "category": "hover",
+    "selector": ".hover-shadowpop",
+    "usage": "Add `.hover-shadowpop` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-shadowpop\">Pop</div>",
+    "css": ".hover-shadowpop {\n  width: 90px; height: 90px;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  transition: all 0.3s;\n  cursor: pointer;\n}\n.hover-shadowpop:hover {\n  box-shadow: 0 0 0 4px rgba(58,181,74,0.15), 0 8px 20px rgba(58,181,74,0.3);\n  transform: translateY(-4px);\n}"
+  },
+  {
+    "name": "Animated Gradient Border",
+    "category": "borders",
+    "selector": ".border-grad",
+    "usage": "Apply `.border-grad` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-grad\" style=\"position:relative\"><span style=\"position:relative;z-index:1;color:var(--text-dim);font-size:0.75rem\">Gradient</span></div>",
+    "css": "@property --angle {\n  syntax: '<angle>';\n  initial-value: 0deg;\n  inherits: false;\n}\n.border-grad {\n  position: relative;\n  padding: 2px;\n  border-radius: 10px;\n}\n.border-grad::before {\n  content: '';\n  position: absolute;\n  inset: 0;\n  border-radius: 10px;\n  padding: 2px;\n  background: conic-gradient(from var(--angle), #3AB54A, #2dd4bf, #f97316, #3AB54A);\n  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);\n  -webkit-mask-composite: xor;\n  mask-composite: exclude;\n  animation: gradBorderRotate 3s linear infinite;\n}\n@keyframes gradBorderRotate { to { --angle: 360deg; } }"
+  },
+  {
+    "name": "Dashed Rotate",
+    "category": "borders",
+    "selector": ".border-dashed",
+    "usage": "Apply `.border-dashed` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-dashed\"><span style=\"font-size:0.75rem\">Dashed</span></div>",
+    "css": ".border-dashed {\n  border: 3px dashed #3AB54A;\n  border-radius: 10px;\n  background-image: repeating-linear-gradient(\n    45deg, transparent, transparent 10px,\n    rgba(58,181,74,0.15) 10px, rgba(58,181,74,0.15) 20px\n  );\n  background-color: #161b22;\n}"
+  },
+  {
+    "name": "Double Line Glow",
+    "category": "borders",
+    "selector": ".border-double-glow",
+    "usage": "Apply `.border-double-glow` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-double-glow\"><span style=\"font-size:0.75rem;color:var(--text-dim)\">Double</span></div>",
+    "css": ".border-double-glow {\n  border: 2px solid #3AB54A;\n  outline: 2px solid #3AB54A;\n  outline-offset: 4px;\n  border-radius: 10px;\n  background: #161b22;\n  box-shadow: 0 0 15px rgba(58,181,74,0.4);\n}"
+  },
+  {
+    "name": "Corner Accent",
+    "category": "borders",
+    "selector": ".border-corner",
+    "usage": "Apply `.border-corner` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-corner\"><span style=\"font-size:0.75rem;color:var(--text-dim)\">Corners</span></div>",
+    "css": ".border-corner {\n  position: relative;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  background: #161b22;\n}\n.border-corner::before, .border-corner::after {\n  content: '';\n  position: absolute;\n  width: 24px; height: 24px;\n  border-color: #3AB54A;\n  border-style: solid;\n}\n.border-corner::before {\n  top: -1px; left: -1px;\n  border-width: 3px 0 0 3px;\n  border-radius: 10px 0 0 0;\n}\n.border-corner::after {\n  bottom: -1px; right: -1px;\n  border-width: 0 3px 3px 0;\n  border-radius: 0 0 10px 0;\n}"
+  },
+  {
+    "name": "Underline Focus",
+    "category": "forms",
+    "selector": ".input-underline",
+    "usage": "Apply `.input-underline` to an input/field. Pair with a visible `<label>` and keep the focus ring.",
+    "html": "<div class=\"fx-form-preview\"><input class=\"fx-input-underline\" placeholder=\"Type here...\"></div>",
+    "css": ".input-underline {\n  background: transparent;\n  border: none;\n  border-bottom: 2px solid #30363d;\n  color: #e2e8f0;\n  padding: 8px 4px;\n  font-size: 0.85rem;\n  outline: none;\n  transition: border-color 0.3s;\n}\n.input-underline:focus { border-bottom-color: #3AB54A; }"
+  },
+  {
+    "name": "Label Float",
+    "category": "forms",
+    "selector": ".input-float-group",
+    "usage": "Apply `.input-float-group` to an input/field. Pair with a visible `<label>` and keep the focus ring.",
+    "html": "<div class=\"fx-form-preview\"><div class=\"fx-input-float-group\"><input class=\"fx-input-float\" placeholder=\"Email\"><span class=\"fx-input-float-label\">EMAIL</span></div></div>",
+    "css": ".input-float-group { position: relative; }\n.input-float {\n  background: transparent;\n  border: 1px solid #30363d;\n  border-radius: 6px;\n  color: #e2e8f0;\n  padding: 20px 10px 6px;\n  font-size: 0.85rem;\n  outline: none;\n  width: 100%;\n  transition: border-color 0.3s;\n}\n.input-float:focus { border-color: #3AB54A; }\n.input-float-label {\n  position: absolute;\n  top: 6px; left: 10px;\n  font-size: 0.65rem;\n  color: #8b949e;\n}"
+  },
+  {
+    "name": "Glow Focus",
+    "category": "forms",
+    "selector": ".input-glow",
+    "usage": "Apply `.input-glow` to an input/field. Pair with a visible `<label>` and keep the focus ring.",
+    "html": "<div class=\"fx-form-preview\"><input class=\"fx-input-glow\" placeholder=\"Type here...\"></div>",
+    "css": ".input-glow {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 6px;\n  color: #e2e8f0;\n  padding: 10px;\n  font-size: 0.85rem;\n  outline: none;\n  transition: all 0.3s;\n}\n.input-glow:focus {\n  border-color: #3AB54A;\n  box-shadow: 0 0 10px rgba(58,181,74,0.4);\n}"
+  },
+  {
+    "name": "Outline Focus",
+    "category": "forms",
+    "selector": ".input-outline",
+    "usage": "Apply `.input-outline` to an input/field. Pair with a visible `<label>` and keep the focus ring.",
+    "html": "<div class=\"fx-form-preview\"><input class=\"fx-input-outline\" placeholder=\"Type here...\"></div>",
+    "css": ".input-outline {\n  background: #161b22;\n  border: 2px solid #30363d;\n  border-radius: 6px;\n  color: #e2e8f0;\n  padding: 8px 10px;\n  font-size: 0.85rem;\n  outline: none;\n  transition: all 0.3s;\n}\n.input-outline:focus {\n  border-color: #3AB54A;\n  box-shadow: 0 0 0 3px rgba(58,181,74,0.15);\n}"
+  },
+  {
+    "name": "Filled Background",
+    "category": "forms",
+    "selector": ".input-filled",
+    "usage": "Apply `.input-filled` to an input/field. Pair with a visible `<label>` and keep the focus ring.",
+    "html": "<div class=\"fx-form-preview\"><input class=\"fx-input-filled\" placeholder=\"Type here...\"></div>",
+    "css": ".input-filled {\n  background: #21262d;\n  border: none;\n  border-bottom: 2px solid #30363d;\n  border-radius: 6px 6px 0 0;\n  color: #e2e8f0;\n  padding: 12px 10px 8px;\n  font-size: 0.85rem;\n  outline: none;\n  transition: all 0.3s;\n}\n.input-filled:focus {\n  background: #30363d;\n  border-bottom-color: #3AB54A;\n}"
+  },
+  {
+    "name": "Tooltip",
+    "category": "misc",
+    "selector": ".tooltip-wrap",
+    "usage": "Apply `.tooltip-wrap` as a decorative accent. Use sparingly.",
+    "html": "<div class=\"fx-tooltip-wrap\"><div class=\"fx-tooltip-box\">Hello!</div><div class=\"fx-tooltip-trigger\">Hover me</div></div>",
+    "css": ".tooltip-wrap { position: relative; display: inline-flex; }\n.tooltip-trigger {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 6px;\n  color: #e2e8f0;\n  padding: 8px 16px;\n  cursor: pointer;\n}\n.tooltip-box {\n  position: absolute;\n  bottom: calc(100% + 10px);\n  left: 50%;\n  transform: translateX(-50%) translateY(5px);\n  background: #e2e8f0;\n  color: #0d1117;\n  padding: 6px 12px;\n  border-radius: 6px;\n  font-size: 0.75rem;\n  font-weight: 500;\n  white-space: nowrap;\n  opacity: 0;\n  pointer-events: none;\n  transition: all 0.2s;\n}\n.tooltip-box::after {\n  content: '';\n  position: absolute;\n  top: 100%; left: 50%;\n  transform: translateX(-50%);\n  border: 5px solid transparent;\n  border-top-color: #e2e8f0;\n}\n.tooltip-wrap:hover .tooltip-box {\n  opacity: 1;\n  transform: translateX(-50%) translateY(0);\n}"
+  },
+  {
+    "name": "Accordion",
+    "category": "misc",
+    "selector": ".accordion",
+    "usage": "Apply `.accordion` as a decorative accent. Use sparingly.",
+    "html": "<div class=\"fx-accordion\"><div class=\"fx-accordion-header\" onclick=\"toggleAccordion(this)\"><span>Click me</span><span class=\"fx-accordion-arrow\">\u25bc</span></div><div class=\"fx-accordion-body\">Hidden content revealed!</div></div>",
+    "css": ".accordion {\n  border: 1px solid #30363d;\n  border-radius: 8px;\n  overflow: hidden;\n}\n.accordion-header {\n  padding: 10px 12px;\n  background: #161b22;\n  cursor: pointer;\n  font-weight: 600;\n  display: flex;\n  justify-content: space-between;\n}\n.accordion-body {\n  max-height: 0;\n  overflow: hidden;\n  transition: max-height 0.3s, padding 0.3s;\n  padding: 0 12px;\n  font-size: 0.8rem;\n  color: #8b949e;\n}\n.accordion-header.open + .accordion-body {\n  max-height: 100px;\n  padding: 10px 12px;\n}"
+  },
+  {
+    "name": "Checkbox Custom",
+    "category": "misc",
+    "selector": ".checkbox-wrap",
+    "usage": "Apply `.checkbox-wrap` as a decorative accent. Use sparingly.",
+    "html": "<label class=\"fx-checkbox-wrap\"><input type=\"checkbox\"><span class=\"fx-checkbox-box\"><svg viewBox=\"0 0 24 24\"><polyline points=\"20 6 9 17 4 12\"/></svg></span><span>Check me</span></label>",
+    "css": ".checkbox-wrap {\n  display: flex; align-items: center; gap: 10px;\n  cursor: pointer;\n}\n.checkbox-wrap input { display: none; }\n.checkbox-box {\n  width: 22px; height: 22px;\n  border: 2px solid #30363d;\n  border-radius: 5px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.2s;\n}\n.checkbox-box svg {\n  width: 14px; height: 14px;\n  stroke: #000; stroke-width: 3; fill: none;\n  opacity: 0; transform: scale(0);\n  transition: all 0.2s;\n}\n.checkbox-wrap input:checked + .checkbox-box {\n  background: #3AB54A;\n  border-color: #3AB54A;\n}\n.checkbox-wrap input:checked + .checkbox-box svg {\n  opacity: 1; transform: scale(1);\n}"
+  },
+  {
+    "name": "Radio Custom",
+    "category": "misc",
+    "selector": ".radio-wrap",
+    "usage": "Apply `.radio-wrap` as a decorative accent. Use sparingly.",
+    "html": "<label class=\"fx-radio-wrap\"><input type=\"radio\" name=\"demo-radio\"><span class=\"fx-radio-circle\"><span class=\"fx-radio-dot\"></span></span><span>Option A</span></label>",
+    "css": ".radio-wrap {\n  display: flex; align-items: center; gap: 10px;\n  cursor: pointer;\n}\n.radio-wrap input { display: none; }\n.radio-circle {\n  width: 22px; height: 22px;\n  border: 2px solid #30363d;\n  border-radius: 50%;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.2s;\n}\n.radio-dot {\n  width: 10px; height: 10px;\n  background: #000;\n  border-radius: 50%;\n  opacity: 0; transform: scale(0);\n  transition: all 0.2s;\n}\n.radio-wrap input:checked + .radio-circle {\n  border-color: #3AB54A;\n  background: #3AB54A;\n}\n.radio-wrap input:checked + .radio-circle .radio-dot {\n  opacity: 1; transform: scale(1);\n}"
+  },
+  {
+    "name": "Toggle Switch",
+    "category": "misc",
+    "selector": ".toggle-wrap",
+    "usage": "Apply `.toggle-wrap` as a decorative accent. Use sparingly.",
+    "html": "<label class=\"fx-toggle-wrap\"><input type=\"checkbox\"><span class=\"fx-toggle-track\"><span class=\"fx-toggle-thumb\"></span></span><span>Toggle</span></label>",
+    "css": ".toggle-wrap {\n  display: flex; align-items: center; gap: 10px;\n  cursor: pointer;\n}\n.toggle-wrap input { display: none; }\n.toggle-track {\n  width: 44px; height: 24px;\n  background: #30363d;\n  border-radius: 12px;\n  position: relative;\n  transition: background 0.3s;\n}\n.toggle-thumb {\n  position: absolute;\n  top: 2px; left: 2px;\n  width: 20px; height: 20px;\n  background: #fff;\n  border-radius: 50%;\n  transition: transform 0.3s;\n}\n.toggle-wrap input:checked + .toggle-track {\n  background: #3AB54A;\n}\n.toggle-wrap input:checked + .toggle-track .toggle-thumb {\n  transform: translateX(20px);\n}"
+  },
+  {
+    "name": "Progress Bar",
+    "category": "misc",
+    "selector": ".progress-bar",
+    "usage": "Apply `.progress-bar` as a decorative accent. Use sparingly.",
+    "html": "<div class=\"fx-progress-wrap\"><div class=\"fx-progress-label\"><span>Progress</span><span>72%</span></div><div class=\"fx-progress-bar\"><div class=\"fx-progress-fill\"></div></div></div>",
+    "css": ".progress-bar {\n  width: 100%; height: 8px;\n  background: #30363d;\n  border-radius: 4px;\n  overflow: hidden;\n}\n.progress-fill {\n  height: 100%;\n  background: linear-gradient(90deg, #3AB54A, #2dd4bf);\n  border-radius: 4px;\n  width: 72%;\n}"
+  },
+  {
+    "name": "Ghost Button",
+    "category": "buttons",
+    "selector": ".btn-ghost",
+    "usage": "Apply `.btn-ghost` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-ghost\">Hover Me</button>",
+    "css": ".btn-ghost {\n  padding: 10px 28px;\n  background: transparent;\n  border: 2px solid transparent;\n  color: #3AB54A;\n  font-weight: 600;\n  border-radius: 8px;\n  cursor: pointer;\n  transition: all 0.3s;\n}\n.btn-ghost:hover {\n  border-color: #3AB54A;\n  background: rgba(58,181,74,0.1);\n}"
+  },
+  {
+    "name": "Magnetic Hover Button",
+    "category": "buttons",
+    "selector": ".btn-magnetic",
+    "usage": "Apply `.btn-magnetic` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-magnetic\" onmousemove=\"magneticBtn(event,this)\" onmouseleave=\"resetMagnetic(this)\">Hover Me</button>",
+    "css": ".btn-magnetic {\n  padding: 10px 28px;\n  background: #3AB54A;\n  color: #fff;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  transition: transform 0.2s ease-out;\n}\n/* JS: onmousemove translate btn slightly toward cursor */"
+  },
+  {
+    "name": "3D Press Button",
+    "category": "buttons",
+    "selector": ".btn-3d",
+    "usage": "Apply `.btn-3d` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-3d\">Click Me</button>",
+    "css": ".btn-3d {\n  padding: 10px 28px;\n  background: #3AB54A;\n  color: #fff;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  transform: translateY(-3px);\n  box-shadow: 0 4px 0 rgba(30,140,40,0.8), 0 6px 10px rgba(0,0,0,0.3);\n  transition: all 0.1s;\n}\n.btn-3d:active {\n  transform: translateY(0);\n  box-shadow: 0 0 0 rgba(30,140,40,0.8), 0 2px 4px rgba(0,0,0,0.2);\n}"
+  },
+  {
+    "name": "Shimmer Button",
+    "category": "buttons",
+    "selector": ".btn-shimmer",
+    "usage": "Apply `.btn-shimmer` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-shimmer\">Hover Me</button>",
+    "css": ".btn-shimmer {\n  padding: 10px 28px;\n  background: #3AB54A;\n  color: #fff;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  position: relative;\n  overflow: hidden;\n}\n.btn-shimmer::after {\n  content: '';\n  position: absolute;\n  top: -50%; left: -50%;\n  width: 200%; height: 200%;\n  background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);\n  transform: rotate(30deg) translateX(-100%);\n  animation: shimmer 3s ease-in-out infinite;\n}\n@keyframes shimmer {\n  0% { transform: rotate(30deg) translateX(-100%); }\n  100% { transform: rotate(30deg) translateX(100%); }\n}"
+  },
+  {
+    "name": "Circle Expand Button",
+    "category": "buttons",
+    "selector": ".btn-circle-expand",
+    "usage": "Apply `.btn-circle-expand` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-circle-expand\">Hover Me</button>",
+    "css": ".btn-circle-expand {\n  padding: 10px 28px;\n  background: transparent;\n  border: 2px solid #3AB54A;\n  color: #3AB54A;\n  font-weight: 600;\n  border-radius: 8px;\n  cursor: pointer;\n  position: relative;\n  overflow: hidden;\n  z-index: 1;\n}\n.btn-circle-expand::before {\n  content: '';\n  position: absolute;\n  width: 0; height: 0;\n  background: #3AB54A;\n  border-radius: 50%;\n  top: 50%; left: 50%;\n  transform: translate(-50%, -50%);\n  transition: width 0.4s, height 0.4s;\n  z-index: -1;\n}\n.btn-circle-expand:hover { color: #000; }\n.btn-circle-expand:hover::before { width: 300px; height: 300px; }"
+  },
+  {
+    "name": "Skew Hover Button",
+    "category": "buttons",
+    "selector": ".btn-skew",
+    "usage": "Apply `.btn-skew` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-skew\">Hover Me</button>",
+    "css": ".btn-skew {\n  padding: 10px 28px;\n  background: #3AB54A;\n  color: #fff;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  transition: transform 0.3s;\n}\n.btn-skew:hover { transform: skewX(-8deg); }"
+  },
+  {
+    "name": "Dotted Border Button",
+    "category": "buttons",
+    "selector": ".btn-dotted",
+    "usage": "Apply `.btn-dotted` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-dotted\">Hover Me</button>",
+    "css": ".btn-dotted {\n  padding: 10px 28px;\n  background: transparent;\n  border: 3px dotted #3AB54A;\n  color: #3AB54A;\n  font-weight: 600;\n  border-radius: 8px;\n  cursor: pointer;\n  position: relative;\n  overflow: hidden;\n  z-index: 1;\n}\n.btn-dotted::before {\n  content: '';\n  position: absolute;\n  inset: 0;\n  background: #3AB54A;\n  transform: scaleX(0);\n  transform-origin: left;\n  transition: transform 0.3s;\n  z-index: -1;\n}\n.btn-dotted:hover { color: #000; }\n.btn-dotted:hover::before { transform: scaleX(1); }"
+  },
+  {
+    "name": "Pill Morph Button",
+    "category": "buttons",
+    "selector": ".btn-pill",
+    "usage": "Apply `.btn-pill` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-pill\">Hover Me</button>",
+    "css": ".btn-pill {\n  padding: 10px 28px;\n  background: #3AB54A;\n  color: #fff;\n  font-weight: 600;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);\n}\n.btn-pill:hover {\n  border-radius: 50px;\n  padding: 10px 40px;\n}"
+  },
+  {
+    "name": "Orbit Spinner",
+    "category": "loaders",
+    "selector": ".orbit-spinner",
+    "usage": "Show an element with `.orbit-spinner` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-orbit-spinner\"></div>",
+    "css": ".orbit-spinner {\n  width: 50px; height: 50px;\n  position: relative;\n}\n.orbit-spinner::before, .orbit-spinner::after {\n  content: '';\n  position: absolute;\n  border-radius: 50%;\n}\n.orbit-spinner::before {\n  inset: 0;\n  border: 3px solid transparent;\n  border-top-color: #3AB54A;\n  animation: spin 1s linear infinite;\n}\n.orbit-spinner::after {\n  width: 8px; height: 8px;\n  background: #3AB54A;\n  border-radius: 50%;\n  top: 50%; left: 50%;\n  transform: translate(-50%, -50%);\n}\n@keyframes spin { to { transform: rotate(360deg); } }"
+  },
+  {
+    "name": "Cube Loader",
+    "category": "loaders",
+    "selector": ".cube-loader",
+    "usage": "Show an element with `.cube-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-cube-loader\"><div class=\"cube-face\"></div><div class=\"cube-face\"></div><div class=\"cube-face\"></div><div class=\"cube-face\"></div><div class=\"cube-face\"></div><div class=\"cube-face\"></div></div>",
+    "css": ".cube-loader {\n  width: 40px; height: 40px;\n  transform-style: preserve-3d;\n  animation: cubeRotate 1.8s ease-in-out infinite;\n}\n.cube-face {\n  position: absolute;\n  width: 40px; height: 40px;\n  border: 2px solid #3AB54A;\n  background: rgba(58,181,74,0.15);\n  border-radius: 4px;\n}\n.cube-face:nth-child(1) { transform: translateZ(20px); }\n.cube-face:nth-child(2) { transform: rotateY(180deg) translateZ(20px); }\n.cube-face:nth-child(3) { transform: rotateY(90deg) translateZ(20px); }\n.cube-face:nth-child(4) { transform: rotateY(-90deg) translateZ(20px); }\n.cube-face:nth-child(5) { transform: rotateX(90deg) translateZ(20px); }\n.cube-face:nth-child(6) { transform: rotateX(-90deg) translateZ(20px); }\n@keyframes cubeRotate {\n  0% { transform: rotateX(0) rotateY(0); }\n  25% { transform: rotateX(90deg) rotateY(90deg); }\n  50% { transform: rotateX(180deg) rotateY(180deg); }\n  75% { transform: rotateX(270deg) rotateY(270deg); }\n  100% { transform: rotateX(360deg) rotateY(360deg); }\n}"
+  },
+  {
+    "name": "DNA Helix Loader",
+    "category": "loaders",
+    "selector": ".dna-loader",
+    "usage": "Show an element with `.dna-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-dna-loader\"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>",
+    "css": ".dna-loader { display: flex; gap: 4px; align-items: center; height: 50px; }\n.dna-loader span {\n  width: 8px; height: 8px;\n  border-radius: 50%;\n  animation: dnaWave 1.2s ease-in-out infinite;\n}\n.dna-loader span:nth-child(odd) { background: #3AB54A; }\n.dna-loader span:nth-child(even) { background: #2dd4bf; }\n@keyframes dnaWave {\n  0%, 100% { transform: translateY(0) scale(1); }\n  50% { transform: translateY(-16px) scale(0.6); }\n}\n.dna-loader span:nth-child(1) { animation-delay: 0s; }\n.dna-loader span:nth-child(2) { animation-delay: 0.1s; }\n.dna-loader span:nth-child(3) { animation-delay: 0.2s; }\n.dna-loader span:nth-child(4) { animation-delay: 0.3s; }\n.dna-loader span:nth-child(5) { animation-delay: 0.4s; }\n.dna-loader span:nth-child(6) { animation-delay: 0.5s; }\n.dna-loader span:nth-child(7) { animation-delay: 0.6s; }\n.dna-loader span:nth-child(8) { animation-delay: 0.7s; }"
+  },
+  {
+    "name": "Clock Loader",
+    "category": "loaders",
+    "selector": ".clock-loader",
+    "usage": "Show an element with `.clock-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-clock-loader\"></div>",
+    "css": ".clock-loader {\n  width: 40px; height: 40px;\n  border-radius: 50%;\n  border: 3px solid #30363d;\n  position: relative;\n}\n.clock-loader::before {\n  content: '';\n  position: absolute;\n  top: 50%; left: 50%;\n  width: 2px; height: 12px;\n  background: #3AB54A;\n  transform-origin: bottom center;\n  animation: clockTick 1s ease-in-out infinite;\n}\n.clock-loader::after {\n  content: '';\n  position: absolute;\n  top: 50%; left: 50%;\n  width: 2px; height: 8px;\n  background: #2dd4bf;\n  transform-origin: bottom center;\n  animation: clockTick 6s linear infinite;\n}\n@keyframes clockTick { to { transform: translate(-50%, -100%) rotate(360deg); } }"
+  },
+  {
+    "name": "Ring Dots",
+    "category": "loaders",
+    "selector": ".ring-dots",
+    "usage": "Show an element with `.ring-dots` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-ring-dots\"><span></span><span></span><span></span><span></span></div>",
+    "css": ".ring-dots {\n  width: 50px; height: 50px;\n  position: relative;\n  animation: spin 2s linear infinite;\n}\n.ring-dots span {\n  position: absolute;\n  width: 8px; height: 8px;\n  background: #3AB54A;\n  border-radius: 50%;\n}\n.ring-dots span:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); }\n.ring-dots span:nth-child(2) { top: 50%; right: 0; transform: translateY(-50%); }\n.ring-dots span:nth-child(3) { bottom: 0; left: 50%; transform: translateX(-50%); }\n.ring-dots span:nth-child(4) { top: 50%; left: 0; transform: translateY(-50%); }\n@keyframes spin { to { transform: rotate(360deg); } }"
+  },
+  {
+    "name": "Beat Loader",
+    "category": "loaders",
+    "selector": ".beat-loader",
+    "usage": "Show an element with `.beat-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-beat-loader\"><span></span><span></span><span></span></div>",
+    "css": ".beat-loader { display: flex; gap: 6px; align-items: center; }\n.beat-loader span {\n  width: 14px; height: 14px;\n  background: #3AB54A;\n  border-radius: 50%;\n  animation: beatPulse 1.4s ease-in-out infinite;\n}\n.beat-loader span:nth-child(1) { animation-delay: 0s; }\n.beat-loader span:nth-child(2) { animation-delay: 0.2s; }\n.beat-loader span:nth-child(3) { animation-delay: 0.4s; }\n@keyframes beatPulse {\n  0%, 100% { transform: scale(0.4); opacity: 0.4; }\n  50% { transform: scale(1); opacity: 1; }\n}"
+  },
+  {
+    "name": "Hourglass Loader",
+    "category": "loaders",
+    "selector": ".hourglass-loader",
+    "usage": "Show an element with `.hourglass-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-hourglass\"></div>",
+    "css": ".hourglass-loader {\n  width: 30px; height: 50px;\n  position: relative;\n  animation: hourglassFlip 2.5s ease-in-out infinite;\n}\n.hourglass-loader::before, .hourglass-loader::after {\n  content: '';\n  position: absolute;\n  left: 50%;\n  transform: translateX(-50%);\n  border-left: 15px solid transparent;\n  border-right: 15px solid transparent;\n}\n.hourglass-loader::before { top: 0; border-top: 25px solid #3AB54A; }\n.hourglass-loader::after { bottom: 0; border-bottom: 25px solid rgba(58,181,74,0.4); }\n@keyframes hourglassFlip {\n  0%, 45% { transform: rotate(0); }\n  50%, 95% { transform: rotate(180deg); }\n  100% { transform: rotate(360deg); }\n}"
+  },
+  {
+    "name": "Pendulum Loader",
+    "category": "loaders",
+    "selector": ".pendulum-loader",
+    "usage": "Show an element with `.pendulum-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-pendulum\"></div>",
+    "css": ".pendulum-loader {\n  width: 2px; height: 50px;\n  background: #30363d;\n  position: relative;\n  transform-origin: top center;\n  animation: pendulumSwing 1.5s ease-in-out infinite;\n  margin: 0 auto;\n}\n.pendulum-loader::after {\n  content: '';\n  position: absolute;\n  bottom: -8px; left: 50%;\n  transform: translateX(-50%);\n  width: 18px; height: 18px;\n  background: #3AB54A;\n  border-radius: 50%;\n}\n@keyframes pendulumSwing {\n  0%, 100% { transform: rotate(30deg); }\n  50% { transform: rotate(-30deg); }\n}"
+  },
+  {
+    "name": "Atom Loader",
+    "category": "loaders",
+    "selector": ".atom-loader",
+    "usage": "Show an element with `.atom-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-atom-loader\"><span class=\"atom-core\"></span><div class=\"atom-orbit\"></div><div class=\"atom-orbit\"></div><div class=\"atom-orbit\"></div></div>",
+    "css": ".atom-loader {\n  width: 60px; height: 60px;\n  position: relative;\n}\n.atom-core {\n  position: absolute;\n  width: 10px; height: 10px;\n  background: #3AB54A;\n  border-radius: 50%;\n  top: 50%; left: 50%;\n  transform: translate(-50%, -50%);\n}\n.atom-orbit {\n  position: absolute;\n  inset: 0;\n  border: 2px solid transparent;\n  border-top-color: rgba(58,181,74,0.5);\n  border-radius: 50%;\n  animation: spin 1.5s linear infinite;\n}\n.atom-orbit:nth-child(2) { transform: rotate(60deg); animation-duration: 1.8s; border-top-color: rgba(45,212,191,0.5); }\n.atom-orbit:nth-child(3) { transform: rotate(120deg); animation-duration: 2.1s; border-top-color: rgba(249,115,22,0.5); }\n@keyframes spin { to { transform: rotate(360deg); } }"
+  },
+  {
+    "name": "Snake Loader",
+    "category": "loaders",
+    "selector": ".snake-loader",
+    "usage": "Show an element with `.snake-loader` while async work runs; hide on complete. Disable the triggering button meanwhile.",
+    "html": "<div class=\"fx-snake-loader\"><span></span><span></span><span></span><span></span><span></span></div>",
+    "css": ".snake-loader { display: flex; gap: 6px; }\n.snake-loader span {\n  width: 12px; height: 12px;\n  background: #3AB54A;\n  border-radius: 50%;\n  animation: snakeMove 1.5s ease-in-out infinite;\n}\n.snake-loader span:nth-child(1) { animation-delay: 0s; }\n.snake-loader span:nth-child(2) { animation-delay: 0.15s; }\n.snake-loader span:nth-child(3) { animation-delay: 0.3s; }\n.snake-loader span:nth-child(4) { animation-delay: 0.45s; }\n.snake-loader span:nth-child(5) { animation-delay: 0.6s; }\n@keyframes snakeMove {\n  0%, 100% { transform: translateY(0) scale(1); opacity: 1; }\n  25% { transform: translateY(-20px) scale(0.6); opacity: 0.4; }\n  50% { transform: translateY(0) scale(1); opacity: 1; }\n  75% { transform: translateY(8px) scale(0.8); opacity: 0.7; }\n}"
+  },
+  {
+    "name": "Glassmorphism Card",
+    "category": "cards",
+    "selector": ".card-glass",
+    "usage": "Wrap content in an element with `.card-glass`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-preview fx-card-glass\"><span class=\"card-icon\">\ud83e\ude9f</span><span class=\"card-title-sm\" style=\"color:var(--text-dim)\">Glass</span></div>",
+    "css": ".card-glass {\n  background: rgba(255,255,255,0.05);\n  backdrop-filter: blur(12px);\n  -webkit-backdrop-filter: blur(12px);\n  border: 1px solid rgba(255,255,255,0.12);\n  border-radius: 10px;\n  padding: 20px;\n  box-shadow: 0 8px 32px rgba(0,0,0,0.3);\n  color: #e2e8f0;\n}"
+  },
+  {
+    "name": "Gradient Overlay Card",
+    "category": "cards",
+    "selector": ".card-grad-overlay",
+    "usage": "Wrap content in an element with `.card-grad-overlay`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-preview fx-card-grad-overlay\" style=\"z-index:0\"><span class=\"card-icon\" style=\"position:relative;z-index:1\">\ud83c\udfa8</span><span class=\"card-title-sm\" style=\"position:relative;z-index:1;color:var(--text-dim)\">Overlay</span></div>",
+    "css": ".card-grad-overlay {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  padding: 20px;\n  position: relative;\n  overflow: hidden;\n  transition: all 0.4s;\n  cursor: pointer;\n}\n.card-grad-overlay::after {\n  content: '';\n  position: absolute;\n  inset: 0;\n  background: linear-gradient(135deg, rgba(58,181,74,0.3), rgba(45,212,191,0.3));\n  opacity: 0;\n  transition: opacity 0.4s;\n  border-radius: 10px;\n}\n.card-grad-overlay:hover::after { opacity: 1; }"
+  },
+  {
+    "name": "Folded Corner Card",
+    "category": "cards",
+    "selector": ".card-folded",
+    "usage": "Wrap content in an element with `.card-folded`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-preview fx-card-folded\"><span class=\"card-icon\">\ud83d\udcc4</span><span class=\"card-title-sm\">Fold</span></div>",
+    "css": ".card-folded {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  padding: 20px;\n  position: relative;\n  overflow: hidden;\n  transition: all 0.3s;\n  cursor: pointer;\n}\n.card-folded::after {\n  content: '';\n  position: absolute;\n  top: 0; right: 0;\n  width: 0; height: 0;\n  border-style: solid;\n  border-width: 0 28px 28px 0;\n  border-color: transparent #0d1117 transparent transparent;\n  filter: drop-shadow(-2px 2px 2px rgba(0,0,0,0.3));\n  transition: border-width 0.3s;\n}\n.card-folded:hover::after { border-width: 0 40px 40px 0; }"
+  },
+  {
+    "name": "Shake Card",
+    "category": "cards",
+    "selector": ".card-shake",
+    "usage": "Wrap content in an element with `.card-shake`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-preview fx-card-shake\"><span class=\"card-icon\">\ud83d\udcf3</span><span class=\"card-title-sm\">Shake Me</span></div>",
+    "css": ".card-shake {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  padding: 20px;\n  cursor: pointer;\n  transition: border-color 0.3s;\n}\n.card-shake:hover {\n  border-color: #f97316;\n  animation: cardShake 0.5s ease;\n}\n@keyframes cardShake {\n  0%, 100% { transform: translateX(0); }\n  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }\n  20%, 40%, 60%, 80% { transform: translateX(4px); }\n}"
+  },
+  {
+    "name": "Rainbow Text",
+    "category": "text",
+    "selector": ".text-rainbow",
+    "usage": "Apply `.text-rainbow` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-rainbow\">Rainbow</span>",
+    "css": ".text-rainbow {\n  font-weight: 700;\n  font-size: 1.6rem;\n  background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00ff00, #0000ff, #8b00ff, #ff0000);\n  background-size: 200% auto;\n  -webkit-background-clip: text;\n  -webkit-text-fill-color: transparent;\n  background-clip: text;\n  animation: rainbowShift 3s linear infinite;\n}\n@keyframes rainbowShift { to { background-position: 200% center; } }"
+  },
+  {
+    "name": "Blink Cursor Text",
+    "category": "text",
+    "selector": ".text-blink-cursor",
+    "usage": "Apply `.text-blink-cursor` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-blink-cursor\">Code mode</span>",
+    "css": ".text-blink-cursor {\n  font-weight: 700;\n  overflow: hidden;\n  white-space: nowrap;\n  border-right: 2px solid #3AB54A;\n  animation: typeStep 4s steps(10) infinite, blink 0.7s step-end infinite;\n  max-width: 170px;\n  font-size: 1.6rem;\n}\n@keyframes typeStep {\n  0%,10% { width: 0; }\n  40%,60% { width: 10ch; }\n  90%,100% { width: 0; }\n}\n@keyframes blink { 50% { border-color: transparent; } }"
+  },
+  {
+    "name": "Wave Text",
+    "category": "text",
+    "selector": ".text-wave",
+    "usage": "Apply `.text-wave` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-wave\"><span>W</span><span>a</span><span>v</span><span>e</span><span>!</span></span>",
+    "css": ".text-wave { display: inline-flex; font-weight: 700; font-size: 1.6rem; }\n.text-wave span {\n  display: inline-block;\n  animation: textWave 1.5s ease-in-out infinite;\n  color: #e2e8f0;\n}\n.text-wave span:nth-child(1) { animation-delay: 0s; }\n.text-wave span:nth-child(2) { animation-delay: 0.1s; }\n.text-wave span:nth-child(3) { animation-delay: 0.2s; }\n.text-wave span:nth-child(4) { animation-delay: 0.3s; }\n.text-wave span:nth-child(5) { animation-delay: 0.4s; }\n@keyframes textWave {\n  0%, 100% { transform: translateY(0); }\n  50% { transform: translateY(-10px); }\n}"
+  },
+  {
+    "name": "Strike Through Text",
+    "category": "text",
+    "selector": ".text-strike",
+    "usage": "Apply `.text-strike` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-strike\" style=\"cursor:pointer\">Hover Me</span>",
+    "css": ".text-strike {\n  font-weight: 700;\n  position: relative;\n  color: #e2e8f0;\n  cursor: pointer;\n  display: inline-block;\n}\n.text-strike::after {\n  content: '';\n  position: absolute;\n  left: 0; top: 50%;\n  width: 100%; height: 3px;\n  background: #ff4444;\n  transform: scaleX(0);\n  transform-origin: left;\n  transition: transform 0.4s;\n}\n.text-strike:hover::after { transform: scaleX(1); }"
+  },
+  {
+    "name": "Highlight Text",
+    "category": "text",
+    "selector": ".text-highlight",
+    "usage": "Apply `.text-highlight` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-highlight\" style=\"cursor:pointer\">Hover Me</span>",
+    "css": ".text-highlight {\n  font-weight: 700;\n  position: relative;\n  color: #e2e8f0;\n  padding: 0 4px;\n  cursor: pointer;\n  display: inline-block;\n}\n.text-highlight::after {\n  content: '';\n  position: absolute;\n  left: -4px; bottom: 0;\n  width: calc(100% + 8px);\n  height: 35%;\n  background: rgba(58,181,74,0.35);\n  transform: scaleX(0);\n  transform-origin: left;\n  transition: transform 0.5s;\n  z-index: -1;\n}\n.text-highlight:hover::after { transform: scaleX(1); }"
+  },
+  {
+    "name": "Retro Text",
+    "category": "text",
+    "selector": ".text-retro",
+    "usage": "Apply `.text-retro` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-retro\">RETRO</span>",
+    "css": ".text-retro {\n  font-weight: 900;\n  font-size: 1.6rem;\n  color: #3AB54A;\n  text-shadow:\n    3px 3px 0 #0d1117,\n    -1px -1px 0 rgba(58,181,74,0.6),\n    1px -1px 0 rgba(45,212,191,0.4),\n    -1px 1px 0 rgba(249,115,22,0.4);\n  letter-spacing: 2px;\n}"
+  },
+  {
+    "name": "Bounce Text",
+    "category": "text",
+    "selector": ".text-bounce",
+    "usage": "Apply `.text-bounce` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-bounce\">Bounce!</span>",
+    "css": ".text-bounce {\n  font-weight: 700;\n  font-size: 1.6rem;\n  display: inline-block;\n  animation: textBounce 1s ease infinite;\n  color: #3AB54A;\n}\n@keyframes textBounce {\n  0%, 100% { transform: translateY(0); }\n  30% { transform: translateY(-20px); }\n  50% { transform: translateY(0); }\n  65% { transform: translateY(-8px); }\n  80% { transform: translateY(0); }\n}"
+  },
+  {
+    "name": "Blur In Text",
+    "category": "text",
+    "selector": ".text-blur-in",
+    "usage": "Apply `.text-blur-in` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-blur-in\">Blur In</span>",
+    "css": ".text-blur-in {\n  font-weight: 700;\n  font-size: 1.6rem;\n  color: #e2e8f0;\n  animation: blurIn 2s ease-in-out infinite alternate;\n}\n@keyframes blurIn {\n  0% { filter: blur(10px); opacity: 0; }\n  50% { filter: blur(0); opacity: 1; }\n  100% { filter: blur(5px); opacity: 0.7; }\n}"
+  },
+  {
+    "name": "Scramble Text",
+    "category": "text",
+    "selector": ".text-scramble",
+    "usage": "Apply `.text-scramble` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-scramble\"><span class=\"fx-text-scramble-inner\">D3crypt</span></span>",
+    "css": ".text-scramble {\n  font-weight: 700;\n  font-size: 1.4rem;\n  color: #3AB54A;\n  font-family: 'JetBrains Mono', monospace;\n  animation: scrambleChars 3s step-end infinite;\n}\n@keyframes scrambleChars {\n  0% { opacity: 1; }\n  10% { opacity: 0.8; transform: skewX(5deg); }\n  20% { opacity: 1; transform: skewX(-3deg); }\n  30% { opacity: 0.6; }\n  40%, 100% { opacity: 1; transform: none; }\n}"
+  },
+  {
+    "name": "Starfield",
+    "category": "backgrounds",
+    "selector": ".bg-starfield",
+    "usage": "Place an element with `.bg-starfield` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-starfield\"></div>",
+    "css": ".bg-starfield {\n  background: #0a0a14;\n  position: relative;\n  overflow: hidden;\n}\n.bg-starfield::before {\n  content: '';\n  position: absolute;\n  width: 2px; height: 2px;\n  background: white;\n  border-radius: 50%;\n  box-shadow:\n    20px 30px 0 0 rgba(255,255,255,0.8),\n    60px 10px 0 0 rgba(255,255,255,0.6),\n    100px 50px 0 0 rgba(255,255,255,0.9),\n    40px 80px 0 0 rgba(255,255,255,0.5),\n    130px 20px 0 0 rgba(255,255,255,0.7),\n    10px 110px 0 0 rgba(255,255,255,0.6),\n    80px 130px 0 0 rgba(255,255,255,0.8);\n  animation: starDrift 20s linear infinite;\n}\n@keyframes starDrift { to { transform: translateY(-40px); } }"
+  },
+  {
+    "name": "Bubble Background",
+    "category": "backgrounds",
+    "selector": ".bg-bubbles",
+    "usage": "Place an element with `.bg-bubbles` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-bubbles\"></div>",
+    "css": ".bg-bubbles {\n  background: linear-gradient(135deg, #0d1117, #161b22);\n  position: relative;\n  overflow: hidden;\n}\n.bg-bubbles::before, .bg-bubbles::after {\n  content: '';\n  position: absolute;\n  border-radius: 50%;\n  background: rgba(58,181,74,0.15);\n  animation: bubbleRise 4s ease-in infinite;\n}\n.bg-bubbles::before { width: 20px; height: 20px; left: 20%; bottom: -30px; }\n.bg-bubbles::after { width: 14px; height: 14px; left: 60%; bottom: -20px; animation-delay: 1s; }\n@keyframes bubbleRise {\n  0% { transform: translateY(0) scale(1); opacity: 0.8; }\n  100% { transform: translateY(-180px) scale(0.3); opacity: 0; }\n}"
+  },
+  {
+    "name": "Zigzag Pattern",
+    "category": "backgrounds",
+    "selector": ".bg-zigzag",
+    "usage": "Place an element with `.bg-zigzag` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-zigzag\"></div>",
+    "css": ".bg-zigzag {\n  background-color: #0d1117;\n  background-image:\n    linear-gradient(135deg, rgba(58,181,74,0.15) 25%, transparent 25%),\n    linear-gradient(225deg, rgba(58,181,74,0.15) 25%, transparent 25%),\n    linear-gradient(45deg, rgba(58,181,74,0.15) 25%, transparent 25%),\n    linear-gradient(315deg, rgba(58,181,74,0.15) 25%, transparent 25%);\n  background-position: 10px 0, 10px 0, 0 0, 0 0;\n  background-size: 20px 20px;\n  background-repeat: repeat-x;\n}"
+  },
+  {
+    "name": "Checkerboard",
+    "category": "backgrounds",
+    "selector": ".bg-checker",
+    "usage": "Place an element with `.bg-checker` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-checker\"></div>",
+    "css": ".bg-checker {\n  background-color: #0d1117;\n  background-image:\n    linear-gradient(45deg, rgba(58,181,74,0.12) 25%, transparent 25%),\n    linear-gradient(-45deg, rgba(58,181,74,0.12) 25%, transparent 25%),\n    linear-gradient(45deg, transparent 75%, rgba(58,181,74,0.12) 75%),\n    linear-gradient(-45deg, transparent 75%, rgba(58,181,74,0.12) 75%);\n  background-size: 30px 30px;\n  background-position: 0 0, 0 15px, 15px -15px, -15px 0px;\n}"
+  },
+  {
+    "name": "Noise Texture",
+    "category": "backgrounds",
+    "selector": ".bg-noise",
+    "usage": "Place an element with `.bg-noise` behind a section (position it absolutely / as the section bg). Verify text contrast on top.",
+    "html": "<div class=\"fx-bg-preview fx-bg-noise\"></div>",
+    "css": ".bg-noise {\n  background-color: #0d1117;\n  background-image:\n  url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E\");\n  background-size: 200px 200px;\n}"
+  },
+  {
+    "name": "Curl Hover",
+    "category": "hover",
+    "selector": ".hover-curl",
+    "usage": "Add `.hover-curl` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-curl\" style=\"position:relative\">Curl</div>",
+    "css": ".hover-curl {\n  width: 90px; height: 90px;\n  position: relative;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  cursor: pointer;\n  transition: all 0.4s;\n}\n.hover-curl::after {\n  content: '';\n  position: absolute;\n  bottom: 0; right: 0;\n  width: 0; height: 0;\n  background: linear-gradient(135deg, rgba(58,181,74,0.3), rgba(0,0,0,0.3));\n  border-radius: 0 0 10px 0;\n  transition: width 0.4s, height 0.4s;\n}\n.hover-curl:hover::after { width: 30px; height: 30px; }"
+  },
+  {
+    "name": "Blur Hover",
+    "category": "hover",
+    "selector": ".hover-blur",
+    "usage": "Add `.hover-blur` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-blur\">Focus</div>",
+    "css": ".hover-blur {\n  width: 90px; height: 90px;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 0.75rem;\n  color: #8b949e;\n  filter: blur(2px);\n  transition: all 0.4s;\n  cursor: pointer;\n}\n.hover-blur:hover {\n  filter: blur(0);\n  border-color: #3AB54A;\n  box-shadow: 0 0 20px rgba(58,181,74,0.4);\n}"
+  },
+  {
+    "name": "Circle Reveal",
+    "category": "hover",
+    "selector": ".hover-circle-reveal",
+    "usage": "Add `.hover-circle-reveal` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-circle-reveal\" style=\"position:relative;overflow:hidden\">Reveal</div>",
+    "css": ".hover-circle-reveal {\n  width: 90px; height: 90px;\n  position: relative;\n  overflow: hidden;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  display: flex;\n  align-items: center;   justify-content: center;\n  font-size: 0.75rem;\n  color: #8b949e;\n  cursor: pointer;\n}\n.hover-circle-reveal::after {\n  content: 'REVEALED';\n  position: absolute;\n  inset: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: #3AB54A;\n  color: #000;\n  font-size: 0.75rem;\n  font-weight: 700;\n  border-radius: 50%;\n  width: 0; height: 0;\n  top: 50%; left: 50%;\n  transform: translate(-50%, -50%);\n  opacity: 0;\n  transition: all 0.5s ease;\n}\n.hover-circle-reveal:hover::after {\n  width: 200%; height: 200%;\n  opacity: 1;\n  border-radius: 10px;\n}"
+  },
+  {
+    "name": "Line Sweep",
+    "category": "hover",
+    "selector": ".hover-line-sweep",
+    "usage": "Add `.hover-line-sweep` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-line-sweep\" style=\"position:relative;overflow:hidden\">Sweep</div>",
+    "css": ".hover-line-sweep {\n  width: 90px; height: 90px;\n  position: relative;\n  overflow: hidden;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 0.75rem;\n  color: #8b949e;\n  cursor: pointer;\n}\n.hover-line-sweep::after {\n  content: '';\n  position: absolute;\n  top: 0; left: -100%;\n  width: 100%; height: 3px;\n  background: #3AB54A;\n  box-shadow: 0 0 15px rgba(58,181,74,0.4);\n  transition: left 0.5s;\n}\n.hover-line-sweep:hover::after { left: 100%; }"
+  },
+  {
+    "name": "Glow Expand",
+    "category": "hover",
+    "selector": ".hover-glow-expand",
+    "usage": "Add `.hover-glow-expand` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-item fx-hover-glow-expand\" style=\"position:relative;overflow:hidden\">Glow</div>",
+    "css": ".hover-glow-expand {\n  width: 90px; height: 90px;\n  position: relative;\n  overflow: hidden;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 0.75rem;\n  color: #8b949e;\n  transition: all 0.4s;\n  cursor: pointer;\n}\n.hover-glow-expand::after {\n  content: '';\n  position: absolute;\n  top: 50%; left: 50%;\n  width: 10px; height: 10px;\n  background: radial-gradient(circle, rgba(58,181,74,0.4), transparent);\n  border-radius: 50%;\n  transform: translate(-50%, -50%);\n  opacity: 0;\n  transition: all 0.5s;\n}\n.hover-glow-expand:hover::after {\n  width: 150px; height: 150px;\n  opacity: 1;\n}\n.hover-glow-expand:hover { border-color: #3AB54A; }"
+  },
+  {
+    "name": "Neon Pulse Border",
+    "category": "borders",
+    "selector": ".border-neon-pulse",
+    "usage": "Apply `.border-neon-pulse` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-neon-pulse\"><span style=\"font-size:0.75rem;color:var(--text-dim)\">Pulse</span></div>",
+    "css": ".border-neon-pulse {\n  border: 2px solid #3AB54A;\n  border-radius: 10px;\n  background: #161b22;\n  animation: neonPulse 2s ease-in-out infinite;\n}\n@keyframes neonPulse {\n  0%, 100% {\n    box-shadow: 0 0 5px rgba(58,181,74,0.4), 0 0 10px rgba(58,181,74,0.4);\n  }\n  50% {\n    box-shadow: 0 0 15px rgba(58,181,74,0.4), 0 0 30px rgba(58,181,74,0.4), 0 0 45px rgba(58,181,74,0.2);\n  }\n}"
+  },
+  {
+    "name": "Gradient Rotate Border",
+    "category": "borders",
+    "selector": ".border-grad-rotate",
+    "usage": "Apply `.border-grad-rotate` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-grad-rotate\" style=\"position:relative\"><div class=\"fx-border-grad-rotate-inner\"><span style=\"font-size:0.75rem;color:var(--text-dim)\">Spin</span></div></div>",
+    "css": ".border-grad-rotate {\n  position: relative;\n  padding: 3px;\n  border-radius: 10px;\n  overflow: hidden;\n}\n.border-grad-rotate::before {\n  content: '';\n  position: absolute;\n  inset: -50%;\n  background: conic-gradient(from 0deg, #3AB54A, #2dd4bf, #f97316, #ec4899, #3AB54A);\n  animation: gradSpin 4s linear infinite;\n}\n.border-grad-rotate-inner {\n  position: relative;\n  z-index: 1;\n  background: #161b22;\n  border-radius: 8px;\n  width: 100%; height: 100%;\n  display: flex; align-items: center; justify-content: center;\n}\n@keyframes gradSpin { to { transform: rotate(360deg); } }"
+  },
+  {
+    "name": "Dotted Trail Border",
+    "category": "borders",
+    "selector": ".border-dotted-trail",
+    "usage": "Apply `.border-dotted-trail` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-dotted-trail\"><span style=\"font-size:0.75rem;color:var(--text-dim);position:relative;z-index:1\">Trail</span></div>",
+    "css": ".border-dotted-trail {\n  border: 2px dotted #30363d;\n  border-radius: 10px;\n  background: #161b22;\n  position: relative;\n  overflow: hidden;\n}\n.border-dotted-trail::after {\n  content: '';\n  position: absolute;\n  top: -2px; left: -2px; right: -2px; bottom: -2px;\n  border-radius: 10px;\n  border: 2px dashed #3AB54A;\n  animation: trailDash 6s linear infinite;\n}\n@keyframes trailDash { to { transform: rotate(360deg); } }"
+  },
+  {
+    "name": "Split Border",
+    "category": "borders",
+    "selector": ".border-split",
+    "usage": "Apply `.border-split` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-split\"><span style=\"font-size:0.75rem;color:var(--text-dim)\">Split</span></div>",
+    "css": ".border-split {\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  background: #161b22;\n  position: relative;\n  transition: all 0.4s;\n}\n.border-split::before, .border-split::after {\n  content: '';\n  position: absolute;\n  width: 20px; height: 20px;\n  border-color: #3AB54A;\n  border-style: solid;\n  transition: all 0.4s;\n  opacity: 0;\n}\n.border-split::before { top: -1px; left: -1px; border-width: 3px 0 0 3px; }\n.border-split::after { bottom: -1px; right: -1px; border-width: 0 3px 3px 0; }\n.border-split:hover::before,\n.border-split:hover::after { opacity: 1; }\n.border-split:hover { border-color: #3AB54A; }"
+  },
+  {
+    "name": "Arrow Border",
+    "category": "borders",
+    "selector": ".border-arrow",
+    "usage": "Apply `.border-arrow` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-arrow\"><span style=\"font-size:0.75rem;color:var(--text-dim)\">Arrows</span></div>",
+    "css": ".border-arrow {\n  border: 2px solid #3AB54A;\n  border-radius: 10px;\n  background: #161b22;\n  position: relative;\n}\n.border-arrow::before, .border-arrow::after {\n  content: '';\n  position: absolute;\n  width: 0; height: 0;\n}\n.border-arrow::before { top: -8px; left: -8px; border-left: 10px solid #3AB54A; border-bottom: 10px solid transparent; }\n.border-arrow::after { bottom: -8px; right: -8px; border-right: 10px solid #3AB54A; border-top: 10px solid transparent; }"
+  },
+  {
+    "name": "Double Animated Border",
+    "category": "borders",
+    "selector": ".border-double-anim",
+    "usage": "Apply `.border-double-anim` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-double-anim\" style=\"position:relative\"><div class=\"fx-border-double-anim-inner\"><span style=\"font-size:0.75rem;color:var(--text-dim)\">Dual</span></div></div>",
+    "css": ".border-double-anim {\n  position: relative;\n  padding: 4px;\n  border-radius: 10px;\n  background: conic-gradient(from 0deg, #3AB54A, transparent, #3AB54A);\n  animation: gradSpin 3s linear infinite;\n}\n.border-double-anim::before {\n  content: '';\n  position: absolute;\n  inset: 4px;\n  border-radius: 8px;\n  padding: 3px;\n  background: conic-gradient(from 180deg, #2dd4bf, transparent, #2dd4bf);\n  animation: gradSpin 3s linear infinite reverse;\n  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);\n  -webkit-mask-composite: xor;\n  mask-composite: exclude;\n}\n.border-double-anim-inner {\n  position: relative;\n  z-index: 1;\n  background: #161b22;\n  border-radius: 5px;\n  width: 100%; height: 100%;\n  display: flex; align-items: center; justify-content: center;\n}\n@keyframes gradSpin { to { transform: rotate(360deg); } }"
+  },
+  {
+    "name": "Box Shadow Border",
+    "category": "borders",
+    "selector": ".border-shadow",
+    "usage": "Apply `.border-shadow` to a container to draw attention (e.g. the featured pricing tier).",
+    "html": "<div class=\"fx-border-item fx-border-shadow\"><span style=\"font-size:0.75rem;color:var(--text-dim)\">Shadow</span></div>",
+    "css": ".border-shadow {\n  border: none;\n  border-radius: 10px;\n  background: #161b22;\n  animation: shadowBorder 3s ease-in-out infinite;\n}\n@keyframes shadowBorder {\n  0%, 100% {\n    box-shadow: 6px 0 0 -1px #3AB54A, -6px 0 0 -1px #3AB54A,\n      0 6px 0 -1px #3AB54A, 0 -6px 0 -1px #3AB54A;\n  }\n  25% {\n    box-shadow: 8px 2px 0 -1px #2dd4bf, -8px -2px 0 -1px #2dd4bf,\n      2px 8px 0 -1px #2dd4bf, -2px -8px 0 -1px #2dd4bf;\n  }\n  50% {\n    box-shadow: 4px 4px 0 -1px #f97316, -4px -4px 0 -1px #f97316,\n      4px -4px 0 -1px #f97316, -4px 4px 0 -1px #f97316;\n  }\n  75% {\n    box-shadow: 6px -2px 0 -1px #ec4899, -6px 2px 0 -1px #ec4899,\n      -2px 6px 0 -1px #ec4899, 2px -6px 0 -1px #ec4899;\n  }\n}"
+  },
+  {
+    "name": "Shake Input",
+    "category": "forms",
+    "selector": ".input-shake",
+    "usage": "Apply `.input-shake` to an input/field. Pair with a visible `<label>` and keep the focus ring.",
+    "html": "<div class=\"fx-form-preview\"><input class=\"fx-input-shake\" value=\"Invalid!\" onfocus=\"this.classList.add('shake');setTimeout(()=>this.classList.remove('shake'),500)\"></div>",
+    "css": ".input-shake {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 6px;\n  color: #e2e8f0;\n  padding: 10px;\n  font-size: 0.85rem;\n  outline: none;\n  width: 140px;\n  transition: all 0.3s;\n}\n.input-shake:focus { border-color: #3AB54A; }\n.input-shake.shake {\n  animation: inputShake 0.5s ease;\n  border-color: #ff4444;\n}\n@keyframes inputShake {\n  0%, 100% { transform: translateX(0); }\n  20% { transform: translateX(-6px); }\n  40% { transform: translateX(6px); }\n  60% { transform: translateX(-4px); }\n  80% { transform: translateX(4px); }\n}"
+  },
+  {
+    "name": "Character Counter",
+    "category": "forms",
+    "selector": ".input-char-group",
+    "usage": "Apply `.input-char-group` to an input/field. Pair with a visible `<label>` and keep the focus ring.",
+    "html": "<div class=\"fx-form-preview\"><div class=\"fx-input-char-group\"><input class=\"fx-input-char\" value=\"Hello world\" maxlength=\"20\" oninput=\"updateCharCount(this)\"><span class=\"fx-char-count\">11/20</span></div></div>",
+    "css": ".input-char-group { position: relative; width: 140px; }\n.input-char {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 6px;\n  color: #e2e8f0;\n  padding: 10px;\n  font-size: 0.85rem;\n  outline: none;\n  width: 100%;\n  transition: border-color 0.3s;\n}\n.input-char:focus { border-color: #3AB54A; }\n.char-count {\n  text-align: right;\n  font-size: 0.65rem;\n  color: #8b949e;\n  margin-top: 4px;\n}\n.char-count.warn { color: #f97316; }\n.char-count.over { color: #ff4444; }"
+  },
+  {
+    "name": "Password Toggle",
+    "category": "forms",
+    "selector": ".input-pw-group",
+    "usage": "Apply `.input-pw-group` to an input/field. Pair with a visible `<label>` and keep the focus ring.",
+    "html": "<div class=\"fx-form-preview\"><div class=\"fx-input-pw-group\"><input class=\"fx-input-pw\" type=\"password\" value=\"secret123\"><button class=\"fx-pw-toggle\" onclick=\"togglePw(this)\">\ud83d\udc41</button></div></div>",
+    "css": ".input-pw-group { position: relative; width: 140px; }\n.input-pw {\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 6px;\n  color: #e2e8f0;   padding: 10px 30px 10px 10px;\n  font-size: 0.85rem;\n  outline: none;\n  width: 100%;\n  transition: border-color 0.3s;\n}\n.input-pw:focus { border-color: #3AB54A; }\n.pw-toggle {\n  position: absolute;\n  right: 8px; top: 50%;\n  transform: translateY(-50%);\n  background: none; border: none;\n  color: #8b949e; cursor: pointer;\n  font-size: 0.85rem;\n  padding: 2px;\n  transition: color 0.2s;\n}\n.pw-toggle:hover { color: #3AB54A; }"
+  },
+  {
+    "name": "Badge",
+    "category": "misc",
+    "selector": ".badge",
+    "usage": "Apply `.badge` as a decorative accent. Use sparingly.",
+    "html": "<div style=\"display:flex;gap:8px\"><span class=\"fx-badge fx-badge-green\">Active</span><span class=\"fx-badge fx-badge-orange\">Pending</span><span class=\"fx-badge fx-badge-blue\">New</span></div>",
+    "css": ".badge {\n  display: inline-flex;\n  align-items: center;\n  padding: 4px 12px;\n  border-radius: 50px;\n  font-size: 0.75rem;\n  font-weight: 600;\n  letter-spacing: 0.3px;\n}\n.badge-green { background: rgba(58,181,74,0.15); color: #3AB54A; border: 1px solid rgba(58,181,74,0.3); }\n.badge-orange { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }\n.badge-blue { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }"
+  },
+  {
+    "name": "Skeleton Loader",
+    "category": "misc",
+    "selector": ".skeleton",
+    "usage": "Apply `.skeleton` as a decorative accent. Use sparingly.",
+    "html": "<div class=\"fx-skeleton\"><div class=\"fx-skeleton-line\"></div><div class=\"fx-skeleton-line\"></div><div class=\"fx-skeleton-line\"></div></div>",
+    "css": ".skeleton { display: flex; flex-direction: column; gap: 10px; width: 130px; }\n.skeleton-line {\n  height: 10px;\n  border-radius: 5px;\n  background: linear-gradient(90deg, #30363d 25%, #21262d 50%, #30363d 75%);\n  background-size: 200% 100%;\n  animation: skeletonShimmer 1.5s ease infinite;\n}\n.skeleton-line:nth-child(1) { width: 80%; }\n.skeleton-line:nth-child(2) { width: 100%; }\n.skeleton-line:nth-child(3) { width: 60%; }\n@keyframes skeletonShimmer {\n  0% { background-position: 200% 0; }\n  100% { background-position: -200% 0; }\n}"
+  },
+  {
+    "name": "Breadcrumb",
+    "category": "misc",
+    "selector": ".breadcrumb",
+    "usage": "Apply `.breadcrumb` as a decorative accent. Use sparingly.",
+    "html": "<div class=\"fx-breadcrumb\"><a href=\"#\">Home</a><span class=\"fx-bc-sep\">/</span><a href=\"#\">Products</a><span class=\"fx-bc-sep\">/</span><span class=\"fx-bc-current\">Detail</span></div>",
+    "css": ".breadcrumb {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 0.75rem;\n}\n.breadcrumb a {\n  color: #8b949e;\n  text-decoration: none;\n  transition: color 0.2s;\n  position: relative;\n}\n.breadcrumb a:hover { color: #3AB54A; }\n.breadcrumb a::after {\n  content: '';\n  position: absolute;\n  bottom: -2px; left: 0;\n  width: 0; height: 1px;\n  background: #3AB54A;\n  transition: width 0.3s;\n}\n.breadcrumb a:hover::after { width: 100%; }\n.breadcrumb .bc-sep { color: #8b949e; opacity: 0.5; }\n.breadcrumb .bc-current { color: #3AB54A; font-weight: 600; }"
+  },
+  {
+    "name": "Conic Gradient Card",
+    "category": "cards",
+    "selector": ".card-conic",
+    "usage": "Wrap content in an element with `.card-conic`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-conic\" style=\"width:130px;height:90px\"><div class=\"fx-card-conic-inner\"><span style=\"font-size:1.3rem\">\ud83c\udf00</span><span style=\"font-size:0.7rem;color:var(--text-dim)\">Conic</span></div></div>",
+    "css": ".card-conic {\n  position: relative;\n  border-radius: 10px;\n  padding: 2px;\n  overflow: hidden;\n  background: conic-gradient(from var(--conic-angle, 0deg), #3AB54A, #2dd4bf, #f97316, #ec4899, #3AB54A);\n  animation: conicSpin 3s linear infinite;\n}\n@property --conic-angle {\n  syntax: '<angle>';\n  initial-value: 0deg;\n  inherits: false;\n}\n@keyframes conicSpin { to { --conic-angle: 360deg; } }\n.card-conic-inner {\n  background: #161b22;\n  border-radius: 8px;\n  padding: 16px;\n  width: 100%; height: 100%;\n  display: flex; flex-direction: column;\n  align-items: center; justify-content: center; gap: 6px;\n  color: #e2e8f0;\n}"
+  },
+  {
+    "name": "Glass Card",
+    "category": "cards",
+    "selector": ".card-glass-new",
+    "usage": "Wrap content in an element with `.card-glass-new`. Repeat in a responsive grid for feature/pricing/testimonial sections.",
+    "html": "<div class=\"fx-card-preview fx-card-glass-new\"><span class=\"card-icon\">\ud83e\uddca</span><span class=\"card-title-sm\" style=\"color:rgba(255,255,255,0.7)\">Glass</span></div>",
+    "css": ".card-glass-new {\n  background: rgba(255,255,255,0.06);\n  backdrop-filter: blur(16px) saturate(180%);\n  -webkit-backdrop-filter: blur(16px) saturate(180%);\n  border: 1px solid rgba(255,255,255,0.15);\n  border-radius: 10px;\n  padding: 20px;\n  box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);\n  color: #e2e8f0;\n}"
+  },
+  {
+    "name": "Animated Gradient Text",
+    "category": "text",
+    "selector": ".text-anim-gradient",
+    "usage": "Apply `.text-anim-gradient` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-anim-gradient\">Gradient</span>",
+    "css": ".text-anim-gradient {\n  font-weight: 700;\n  font-size: 1.6rem;\n  background: linear-gradient(90deg, #3AB54A, #2dd4bf, #f97316, #ec4899, #3AB54A);\n  background-size: 300% 100%;\n  -webkit-background-clip: text;\n  -webkit-text-fill-color: transparent;\n  background-clip: text;\n  animation: gradientFlow 4s ease infinite;\n}\n@keyframes gradientFlow {\n  0% { background-position: 0% 50%; }\n  50% { background-position: 100% 50%; }\n  100% { background-position: 0% 50%; }\n}"
+  },
+  {
+    "name": "Glitch Effect",
+    "category": "text",
+    "selector": ".text-glitch-advanced",
+    "usage": "Apply `.text-glitch-advanced` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-glitch-advanced\">GLITCH</span>",
+    "css": ".text-glitch-advanced {\n  position: relative;\n  color: #e2e8f0;\n  font-weight: 700;\n  animation: glitchAdvanced 3s infinite;\n}\n@keyframes glitchAdvanced {\n  0%, 100% { text-shadow: none; transform: none; }\n  1% { text-shadow: -2px 0 #ff0040, 2px 0 #00ffff; transform: translateX(-1px); }\n  2% { text-shadow: 2px 0 #ff0040, -2px 0 #00ffff; transform: translateX(1px); }\n  3% { text-shadow: none; transform: none; }\n  20% { text-shadow: -1px 0 rgba(255,0,64,0.6), 1px 0 rgba(0,255,255,0.6); }\n  21% { text-shadow: none; }\n  40% { text-shadow: -3px 0 #ff0040, 3px 0 #00ffff; transform: skewX(-2deg); }\n  41% { text-shadow: 3px 0 #ff0040, -3px 0 #00ffff; transform: skewX(2deg); }\n  42% { text-shadow: none; transform: none; }\n  80% { text-shadow: -1px 0 rgba(255,0,64,0.4), 1px 0 rgba(0,255,255,0.4); transform: translateX(1px); }\n  81% { text-shadow: none; transform: none; }\n}"
+  },
+  {
+    "name": "Neon Flicker",
+    "category": "text",
+    "selector": ".text-neon-flicker",
+    "usage": "Apply `.text-neon-flicker` to a heading/`<span>`. Limit to one animated headline per viewport.",
+    "html": "<span class=\"fx-text fx-text-neon-flicker\">Neon</span>",
+    "css": ".text-neon-flicker {\n  color: #ff6ec7;\n  font-weight: 700;\n  text-shadow: 0 0 7px rgba(255,110,199,0.6), 0 0 10px rgba(255,110,199,0.4), 0 0 21px rgba(255,110,199,0.3), 0 0 42px rgba(255,110,199,0.2);\n  animation: neonFlicker 3s infinite;\n}\n@keyframes neonFlicker {\n  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {\n    opacity: 1;\n    text-shadow: 0 0 7px rgba(255,110,199,0.6), 0 0 10px rgba(255,110,199,0.4), 0 0 21px rgba(255,110,199,0.3), 0 0 42px rgba(255,110,199,0.2);\n  }\n  20%, 24%, 55% {\n    opacity: 0.4;\n    text-shadow: none;\n  }\n}"
+  },
+  {
+    "name": "Border Glow",
+    "category": "hover",
+    "selector": ".hover-border-glow",
+    "usage": "Add `.hover-border-glow` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-border-glow\">Glow</div>",
+    "css": ".hover-border-glow {\n  width: 90px; height: 90px;\n  background: #161b22;\n  border: 2px solid #30363d;\n  border-radius: 10px;\n  display: flex; align-items: center; justify-content: center;\n  font-size: 0.75rem; color: #8b949e;\n  transition: all 0.4s; cursor: pointer;\n}\n.hover-border-glow:hover {\n  border-color: #3AB54A;\n  box-shadow: 0 0 15px rgba(58,181,74,0.4), 0 0 30px rgba(58,181,74,0.2);\n  animation: borderGlowPulse 1.5s ease-in-out infinite;\n}\n@keyframes borderGlowPulse {\n  0%, 100% { box-shadow: 0 0 15px rgba(58,181,74,0.4), 0 0 30px rgba(58,181,74,0.2); }\n  50% { box-shadow: 0 0 25px rgba(58,181,74,0.4), 0 0 50px rgba(58,181,74,0.3); }\n}"
+  },
+  {
+    "name": "Shadow Lift",
+    "category": "hover",
+    "selector": ".hover-shadow-lift",
+    "usage": "Add `.hover-shadow-lift` to a card/link/image. Provides hover feedback on desktop \u2014 keep content usable without hover on touch.",
+    "html": "<div class=\"fx-hover-shadow-lift\">Lift</div>",
+    "css": ".hover-shadow-lift {\n  width: 90px; height: 90px;\n  background: #161b22;\n  border: 1px solid #30363d;\n  border-radius: 10px;\n  display: flex; align-items: center; justify-content: center;\n  font-size: 0.75rem; color: #8b949e;\n  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);\n  cursor: pointer;\n}\n.hover-shadow-lift:hover {\n  transform: translateY(-12px);\n  box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px #3AB54A;\n}"
+  },
+  {
+    "name": "Morph Button",
+    "category": "buttons",
+    "selector": ".btn-morph",
+    "usage": "Apply `.btn-morph` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn fx-btn-morph\">Hover Me</button>",
+    "css": ".btn-morph {\n  background: #3AB54A;\n  color: #fff;\n  border: none;\n  border-radius: 8px;\n  padding: 10px 28px;\n  font-weight: 600;\n  cursor: pointer;\n  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);\n}\n.btn-morph:hover {\n  border-radius: 50px;\n  padding: 14px 40px;\n  background: linear-gradient(135deg, #3AB54A, #2dd4bf);\n  transform: scale(1.08);\n}"
+  },
+  {
+    "name": "Icon Button",
+    "category": "buttons",
+    "selector": ".btn-icon",
+    "usage": "Apply `.btn-icon` to a `<button>`. Use as the page's primary CTA.",
+    "html": "<button class=\"fx-btn-icon\">\u2699</button>",
+    "css": ".btn-icon {\n  width: 48px; height: 48px;\n  border-radius: 50%;\n  background: #161b22;\n  border: 2px solid #30363d;\n  color: #8b949e;\n  font-size: 1.2rem;\n  cursor: pointer;\n  display: flex; align-items: center; justify-content: center;\n  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);\n}\n.btn-icon:hover {\n  background: #3AB54A;\n  border-color: #3AB54A;\n  color: #000;\n  transform: rotate(360deg) scale(1.15);\n  box-shadow: 0 0 20px rgba(58,181,74,0.4);\n}"
+  }
+]
