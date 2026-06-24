@@ -18,7 +18,9 @@ Three integrated systems available to you:
 ## API Reference
 
 **Base URL:** `http://localhost:6350`
-**Required:** All website/content endpoints need `X-Tenant` header or `?tenant=` query param.
+**Required headers:**
+- `X-Tenant: <username>` (or `?tenant=<username>`) — all website/content endpoints
+- `X-Agent-Key: <SOCIAL_DASHBOARD_API_KEY>` — admin-only endpoints (GET /api/tenants). Key is in `/mnt/system/base/.platform-keys.env`.
 
 The tenant is your client's username (e.g., `test-dev`, `brad`, `nick`, `josh`).
 
