@@ -22,6 +22,7 @@ from .fetch_discovery import (
     _brand_slugs, _matches_brand, _host,
     _PLATFORM_HOSTS, _DIRECTORY_SITES,
 )
+from .fetch_local import _loc_ok   # location validation — reject out-of-area name-collisions
 
 _SERPER_PLACES = "https://google.serper.dev/places"
 _SERPER_SEARCH = "https://google.serper.dev/search"
@@ -90,7 +91,10 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
         print(f"[INFO] Serper places: no listing for '{q}'", file=sys.stderr)
         return out
 
-    # Prefer the place whose website matches the client domain; else the top result.
+    # Prefer the place whose website matches the client domain (strong match); else ONLY accept
+    # a place we can CONFIRM is in the requested city/state. Taking places[0] blindly let a
+    # same-named business elsewhere (an out-of-state "EZ Roof") contaminate the report. A
+    # business with genuinely no local GMB must return gmb_found=False (an honest finding).
     dom = (domain or "").lower().replace("www.", "")
     pick = None
     for p in places:
@@ -98,7 +102,15 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
         if dom and dom in site:
             pick = p
             break
-    pick = pick or places[0]
+    if pick is None:
+        for p in places:
+            if _loc_ok(p, city, state):
+                pick = p
+                break
+    if pick is None:
+        print(f"[INFO] Serper places: {len(places)} same-named listing(s) but none confirmed in "
+              f"{city} {state} — treating as no local GMB", file=sys.stderr)
+        return out   # available=True, gmb_found=False
 
     out["gmb_found"]        = True
     out["gmb_name"]         = pick.get("title") or brand_name

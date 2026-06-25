@@ -633,7 +633,27 @@ def main():
         "tracking_ids":      (dns_net.get("tracking_ids", {}) if dns_net else {}),
     }
 
-    # If fetch_local couldn't get reviews, fall back to GMB data from fetch_brand
+    # ── GMB confirmation gate (authoritative) ───────────────────────────────────
+    # Trust a GMB and its reviews ONLY when a location-validated source confirmed the
+    # listing in the requested city. For a generic business name, Google's knowledge panel /
+    # map results surface the most prominent SAME-NAMED business (often out of area) — the
+    # "EZ Roofing" cross-city contamination. A confirmed GMB's address contains the city; an
+    # unconfirmed name-collision panel does not. No confirmation → honest "no local presence":
+    # drop the inherited rating/review data before it reaches the score.
+    _gmb_addr = (data.get("gmb_address") or "").lower()
+    _gmb_confirmed = bool(city) and city.lower() in _gmb_addr
+    if not _gmb_confirmed:
+        _dropped = data.get("gmb_review_count", 0) or data.get("review_count", 0)
+        if _dropped:
+            print(f"    [INFO] No GMB confirmed in {city} {state} — discarding name-collision "
+                  f"review data ({_dropped} reviews from a same-named out-of-area listing)", file=sys.stderr)
+        data["gmb_found"]        = False
+        data["gmb_rating"]       = 0.0
+        data["gmb_review_count"] = 0
+        data["review_avg"]       = 0.0
+        data["review_count"]     = 0
+
+    # If fetch_local couldn't get reviews, fall back to the CONFIRMED GMB rating only.
     if data.get("review_avg", 0) == 0 and data.get("gmb_rating", 0) > 0:
         data["review_avg"]   = data["gmb_rating"]
         data["review_count"] = data.get("gmb_review_count", 0)

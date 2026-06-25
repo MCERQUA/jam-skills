@@ -2,6 +2,57 @@
 
 import sys
 from .config import dfs_post, dfs_get_items, dfs_get_result0
+import re
+
+# US state abbrev→name, for validating that a matched GMB is actually in the requested
+# city/state. Without this, a name search ("<brand> <city> <state>") can return a
+# same-named business in another state (e.g. a Houston "EZ Roof" matched for a Sacramento
+# query), whose reviews/rating then contaminate the report and inflate the local score.
+_US_STATES = {
+    "AL":"alabama","AK":"alaska","AZ":"arizona","AR":"arkansas","CA":"california","CO":"colorado",
+    "CT":"connecticut","DE":"delaware","FL":"florida","GA":"georgia","HI":"hawaii","ID":"idaho",
+    "IL":"illinois","IN":"indiana","IA":"iowa","KS":"kansas","KY":"kentucky","LA":"louisiana",
+    "ME":"maine","MD":"maryland","MA":"massachusetts","MI":"michigan","MN":"minnesota","MS":"mississippi",
+    "MO":"missouri","MT":"montana","NE":"nebraska","NV":"nevada","NH":"new hampshire","NJ":"new jersey",
+    "NM":"new mexico","NY":"new york","NC":"north carolina","ND":"north dakota","OH":"ohio","OK":"oklahoma",
+    "OR":"oregon","PA":"pennsylvania","RI":"rhode island","SC":"south carolina","SD":"south dakota",
+    "TN":"tennessee","TX":"texas","UT":"utah","VT":"vermont","VA":"virginia","WA":"washington",
+    "WV":"west virginia","WI":"wisconsin","WY":"wyoming","DC":"district of columbia",
+}
+
+def _loc_haystack(obj):
+    """Lowercased location text from whatever address-ish fields a GMB object carries."""
+    parts = []
+    for k in ("address", "title", "sub_title", "snippet", "category"):
+        v = obj.get(k)
+        if isinstance(v, str):
+            parts.append(v)
+    ai = obj.get("address_info")
+    if isinstance(ai, dict):
+        for k in ("city", "region", "zip", "address", "borough"):
+            v = ai.get(k)
+            if isinstance(v, str):
+                parts.append(v)
+    return " ".join(parts).lower()
+
+def _loc_ok(obj, city, state):
+    """True only if the matched GMB positively matches the requested city/state. Rejects
+    name-collision profiles from other locations. Conservative: if the object carries no
+    location text at all, return False (a bare name match isn't proof it's the right business)."""
+    txt = _loc_haystack(obj)
+    if not txt.strip():
+        return False
+    cy = (city or "").strip().lower()
+    st = (state or "").strip().upper()
+    if cy:
+        # City is the strong discriminator. Require it — a generic-named business in a
+        # DIFFERENT city, even within the same state (e.g. Monterey Park vs Sacramento),
+        # is not them. For a business with no GMB, no twin will be in-city → rejected.
+        return cy in txt
+    if st:
+        full = _US_STATES.get(st, "")
+        return bool(re.search(rf'\b{st.lower()}\b', txt) or (full and full in txt))
+    return True  # nothing to validate against
 
 
 def _fetch_gbp_qna(brand_name: str, city: str, state: str, location_code: int = 2840) -> dict:
@@ -190,9 +241,18 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
         r0 = dfs_get_result0(result)
         if r0:
             out["_local_available"] = True   # reviews endpoint responded
+            # Reject a name-collision match (e.g. a same-named business in another state).
+            # If the returned profile's location can't be confirmed as the requested city/
+            # state, fall through to the location-scoped my_business_info fallback below.
+            if not _loc_ok(r0, city, state):
+                print(f"[INFO] reviews/live match '{r0.get('title','?')}' not confirmed in "
+                      f"{city} {state} — rejecting name-collision, trying scoped fallback",
+                      file=sys.stderr)
+                raise ValueError("reviews/live location mismatch")
             rating_info = r0.get("rating") or {}
             out["review_avg"]   = float(rating_info.get("value") or 0)
             out["review_count"] = int(rating_info.get("votes_count") or 0)
+            out["gmb_found"]    = True   # confirmed-local GMB with reviews
 
             # Distribution from items
             items = r0.get("items") or []
@@ -263,6 +323,13 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
                 r0 = dfs_get_result0(result2)
                 items = r0.get("items") or []
                 for item in items:
+                    # Reject name-collision matches from other cities/states. A business
+                    # with genuinely no GMB (like a freshly-registered corp) must score
+                    # local ≈ 0 — never inherit a same-named out-of-state profile's rating.
+                    if not _loc_ok(item, city, state):
+                        print(f"[INFO] my_business_info match '{item.get('title', item.get('address','?'))}' "
+                              f"not in {city} {state} — skipping name-collision", file=sys.stderr)
+                        continue
                     # The business was located → GMB exists; is_claimed = verified status.
                     out["gmb_found"] = True
                     if item.get("is_claimed"):

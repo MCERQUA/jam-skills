@@ -49,7 +49,7 @@ def fetch_domain_rating(domain: str) -> dict:
     if clean in _cache:
         return _cache[clean]
 
-    result = {"dr": 0, "ahrefs_rank": 0}
+    result = {"dr": 0, "ahrefs_rank": 0, "_ok": False}
 
     # --- Primary: free public endpoint (no auth, no cost) ---
     try:
@@ -62,6 +62,7 @@ def fetch_domain_rating(domain: str) -> dict:
             data = r.json()
             dr_block = data.get("domain_rating") or {}
             result["dr"] = float(dr_block.get("domain_rating") or 0)
+            result["_ok"] = True   # successful DR lookup — a real authority signal even if DR is 0
         elif r.status_code == 429:
             print("[WARN] Ahrefs DR (free): rate limit hit (429)", file=sys.stderr)
         else:

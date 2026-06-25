@@ -2,7 +2,7 @@
 name: article-writer
 description: "Fully-autonomous, research-driven long-form article pipeline that COMPOUNDS a per-client knowledge brain. Takes a topic + target keyword and produces a publication-ready 3500-5000 word article — markdown + designed HTML + JSON-LD schema — through phases 0–9 (Knowledge-Load/Gap-Analysis → Setup → parallel Research+Distill → quality gate → Planning → Drafting → parallel Enhancement → HTML Design → final quality gate → Schema → Completion write-back). Uses a two-tier corpus: RAW research stays in the website repo (provenance), DISTILLED knowledge merges into the client's openclaw-workspace brain (shared, per-client-isolated) so research is never re-paid. Research is backed by real data (dataforseo, serper-search, social-research) and both quality gates run through the quality-review skill. Generic: works for ANY website/topic/brand via passed-in inputs — never niche-specific. TRIGGER when the user asks to 'write an article / blog post', 'research and write a post about X', 'create a long-form SEO article', 'add a blog post to <site>', or asks for a fully-researched publish-ready article with images + schema. DO NOT USE for: short social posts (use social-media-designer), building a whole website (use website-builder), or a content *calendar/strategy* with many briefs (that's a planning task, not a single article)."
 metadata:
-  version: 1.3.0
+  version: 1.4.0
   tags:
     - content
     - seo
@@ -249,6 +249,101 @@ python3 /mnt/shared-skills/quality-review/check.py --dir <work_dir>/<slug> \
 python3 /mnt/shared-skills/quality-review/visual-check.py --url <served-html-url> \
   --viewports 390,1440 --out /tmp/qr-<slug>-visual
 ```
+
+---
+
+## 🏭 THE BLOG FACTORY — deterministic gates + autonomous orchestrator (`scripts/`)
+
+> **Added 2026-06-25.** The 10-phase pipeline above is the *rich, model-driven* path
+> (research brain, designed HTML, schema). The **blog factory** is the *hardened,
+> fail-closed, cron-runnable* path that wraps it for **fleet use** — every client agent
+> can run it on a schedule and only ever publishes an article that passes EVERY gate.
+> It is **additive**: it reuses the same inputs, the same brain, the same authority/
+> DataForSEO infra; it does not replace or weaken any phase.
+
+**Design rule that makes it foolproof:** every *verification* is a **deterministic
+script — NO LLM**. Link liveness, broken-link scan, internal-link counting, component
+checks, authority (Ahrefs free-DR) scoring, and JSON-LD validation are all mechanical →
+cheaper AND more reliable than asking a model. The **only** LLM call is bulk body
+generation, which rides **Z.AI/GLM** (`scripts/claude-zai.sh`, flat-rate, cap-proof) or
+**haiku** (`--model claude-haiku-4-5-20251001`) — **never opus / default sonnet**.
+
+### Files (under `scripts/`)
+```
+scripts/
+  blog-factory.sh            # ORCHESTRATOR: topic-pick → prep-context → GENERATE (GLM/haiku)
+                             #   → schema → verify-all (fail-closed) → deploy → live-verify → ledger
+                             #   flags: --dry-run | --self-test | --topic | --keyword | --seed | --model
+  blog-factory-cron.sh       # cron wrapper (one client). CRON-RUNNABLE, NOT auto-enabled fleet-wide.
+  topic-pick.py              # next topic: brain next_topics/gaps → blog-plan.json → DataForSEO → dedup published
+  deploy.sh                  # CLEAN-CLONE deploy: clones MCERQUA/<domain> fresh into /tmp (NEVER the live
+                             #   workspace — it has a concurrent auto-save worker that clobbers commits), writes
+                             #   the post + updates index, pushes, GitHub-API-verifies file on origin, triggers
+                             #   the Netlify build hook, then LIVE-VERIFIES (HTTP 200 + post TITLE in served HTML,
+                             #   not a bare 200). Framework-aware. ALSO patch the target site's MDX renderer to
+                             #   turn [text](url) into real <a> tags (outbound: rel=nofollow noopener) or body
+                             #   links render as literal markdown — see "Renderer note" below.
+  verify/
+    verify-all.sh            # runs all gates in order, FAIL-CLOSED (any fail → exit 1 → DO NOT PUBLISH)
+    check-components.py      # title/meta-len/H1-H2-H3/intro/min-words/CTA/author/date/featured-img+alt
+    check-internal-links.py  # min links to MONEY pages + to other blogs (configurable)
+    check-authority.py       # outbound links: Ahrefs free-DR >= threshold OR allowlist; min count
+    check-links.sh           # broken-link scan (internal+outbound, HTTP 2xx/3xx); zero broken to publish
+    check-schema.py          # JSON-LD BlogPosting + BreadcrumbList (+ FAQPage when body has an FAQ section)
+  lib/
+    article_io.py            # shared frontmatter/body/link/wordcount parsing + Gate reporter
+    prep_context.py          # pre-vets authority URLs (HTTP200+DR) + gathers money/blog internal links
+    build_gen_prompt.py      # assembles the generation prompt so the cheap model passes the gates
+    make_schema.py           # deterministic JSON-LD from frontmatter + extracted FAQ (no LLM)
+    update_index.py          # inserts the post into a Next.js blog index (posts[] array OR [slug] record map)
+  config/
+    _schema.md               # per-client config field reference
+    <site_key>.json          # one per target site (blog dir, framework, money pages, gate thresholds, cadence)
+  ../blog-factory-ledger.jsonl   # append-only log of published runs {ts,site,slug,url,gen_model,words}
+```
+
+### Run it
+```bash
+# Self-test / dry-run: full pipeline through verify-all, prints PASS/FAIL per gate, NOTHING published
+bash scripts/blog-factory.sh scripts/config/<site_key>.json --self-test
+
+# Dry-run on a chosen topic
+bash scripts/blog-factory.sh scripts/config/<site_key>.json --dry-run --topic "..." --keyword "..."
+
+# REAL run (auto-pick topic, generate, verify, deploy, verify-live, ledger)
+bash scripts/blog-factory.sh scripts/config/<site_key>.json
+
+# Run ONE gate against any framework's staged output (article.mdx + meta.json + schema.json)
+python3 scripts/verify/check-components.py /path/to/work_dir
+bash    scripts/verify/verify-all.sh       /path/to/work_dir
+```
+
+### Framework field (`config.framework`)
+- `next-mdx-content` — `.mdx` files in `blog_dir`; index has a `posts[]` array we prepend to.
+  (Proof target: `manufacturedproductinsurance.com`.)
+- `next-slug-record` — content stored as a record in `[slug]/page.tsx`; we insert a `"<slug>": {…}` entry.
+- `markdown` — generic `.md` drop-in for an SSG that auto-lists (Astro/Hugo/Eleventy).
+The **gates are framework-agnostic** (they read the staged `article.mdx`/`meta.json`/
+`schema.json`); only `deploy.sh` branches on framework.
+
+### What each gate FAIL-CLOSES on
+| Gate | Publishes only if… |
+|---|---|
+| components | title ≤65, meta-desc 120-165, ≥`min_h2` H2s, intro ≥40w, ≥`min_words`, CTA present, author+date+slug, (featured img+alt if required) |
+| internal-links | ≥`min_money_links` to money pages **and** ≥`min_blog_links` to other posts **and** ≥`min_internal_total` total |
+| authority | ≥`min_outbound` outbound links **and** every outbound host is gov/edu-allowlist **or** Ahrefs DR ≥ `authority_dr_min` (DR-fetch failure = FAIL, not pass) |
+| broken-links | EVERY link (internal resolved vs `site_url` + outbound) returns HTTP 2xx/3xx; zero broken |
+| schema | BlogPosting (headline/description/datePublished/author/publisher/url) + BreadcrumbList + FAQPage-when-FAQ-section-exists |
+
+`verify-all.sh` runs all five; **any** fail → exit 1 → the orchestrator regenerates once,
+then refuses to deploy. `--self-test`/`--dry-run` stop right after verify-all.
+
+### Renderer note (learned on the proof target)
+The proof site's MDX renderer (`app/blog/[slug]/page.tsx`) originally did **not** convert
+markdown `[text](url)` links to anchors — they'd render as literal text and the link
+gates would be meaningless on the live page. **Before running the factory on a new site,
+confirm its renderer turns markdown links into real `<a>` tags** (outbound →
+`rel="nofollow noopener" target="_blank"`). Patch it additively if not.
 
 ---
 

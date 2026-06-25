@@ -97,6 +97,12 @@ def fetch_backlinks(domain: str) -> dict:
         ahrefs = fetch_domain_rating(domain)
         out["ahrefs_dr"]   = ahrefs["dr"]
         out["ahrefs_rank"] = ahrefs["ahrefs_rank"]
+        # Ahrefs DR is an independent authority source. When its lookup SUCCEEDS the
+        # backlinks/authority dimension IS measurable — even if DataForSEO's backlinks
+        # summary endpoint is unavailable on this account. Without this the dimension was
+        # dropped to None (excluded from the score) despite a real DR being fetched.
+        if ahrefs.get("_ok"):
+            out["_backlinks_available"] = True
     except Exception as e:
         print(f"[INFO] Ahrefs DR fetch skipped: {e}", file=sys.stderr)
 

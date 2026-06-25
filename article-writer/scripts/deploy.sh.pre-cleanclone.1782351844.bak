@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# deploy.sh — write a VERIFIED staged article into the client's real site, commit,
+# push, and VERIFY it is LIVE. Framework-aware (next-mdx-content | next-slug-record
+# | markdown). Refuses to deploy unless verify-all already passed (caller's job) and
+# refuses to push a husk (guards against josh-local-husk-ahead-of-github-trap).
+#
+# Usage:  deploy.sh <config.json> <work_dir>
+#   work_dir must contain a verified article.mdx (frontmatter title/description/date/slug)
+# Exit:   0 = deployed AND live (HTTP 200), 1 = failure (nothing pushed past a safe point)
+set -uo pipefail
+CFG="${1:?usage: deploy.sh <config.json> <work_dir>}"
+WORK="${2:?usage: deploy.sh <config.json> <work_dir>}"
+ART="$WORK/article.mdx"; [ -f "$ART" ] || ART="$WORK/article.md"
+
+j() { jq -r "$1 // \"\"" "$CFG"; }
+REPO="$(j .repo_path)"; BRANCH="$(j .git_branch)"; FW="$(j .framework)"
+BLOG_DIR="$(j .blog_dir)"; BLOG_INDEX="$(j .blog_index)"; SITE_URL="$(j .site_url)"
+PREFIX="$(j .blog_path_prefix)"; [ -n "$PREFIX" ] || PREFIX="/blog/"
+[ -z "$BRANCH" ] && BRANCH="main"
+
+SLUG=$(awk '/^slug:/{gsub(/slug:|"|'"'"'/,""); gsub(/^ +| +$/,""); print; exit}' "$ART")
+TITLE=$(awk -F'"' '/^title:/{print $2; exit}' "$ART")
+DESC=$(awk -F'"' '/^description:/{print $2; exit}' "$ART")
+DATE=$(awk '/^date:/{gsub(/date:|"|'"'"'/,""); gsub(/^ +| +$/,""); print; exit}' "$ART")
+[ -n "$SLUG" ] || { echo "deploy: no slug in $ART"; exit 1; }
+
+echo "=== DEPLOY: $SLUG → $REPO ($FW) ==="
+
+# --- HUSK GUARD: never push if local tree is a slimmed husk vs origin ----------
+cd "$REPO" || { echo "deploy: repo_path missing"; exit 1; }
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "deploy: not a git repo"; exit 1; }
+git fetch origin "$BRANCH" --quiet 2>/dev/null || true
+LOCAL_FILES=$(git ls-files | wc -l)
+ORIGIN_FILES=$(git ls-tree -r "origin/$BRANCH" --name-only 2>/dev/null | wc -l)
+if [ "$ORIGIN_FILES" -gt 0 ] && [ "$LOCAL_FILES" -lt $(( ORIGIN_FILES * 7 / 10 )) ]; then
+  echo "deploy: ABORT — local tree ($LOCAL_FILES files) looks like a HUSK vs origin ($ORIGIN_FILES). Refusing to push (husk-trap guard)."
+  exit 1
+fi
+
+# --- write the article into the site by framework -----------------------------
+case "$FW" in
+  next-mdx-content|markdown)
+    DEST="$REPO/$BLOG_DIR/$SLUG.mdx"
+    [ "$FW" = "markdown" ] && DEST="$REPO/$BLOG_DIR/$SLUG.md"
+    mkdir -p "$(dirname "$DEST")"
+    cp "$ART" "$DEST"
+    echo "  wrote $DEST"
+    # update the posts[] index array (next-mdx-content only)
+    if [ "$FW" = "next-mdx-content" ] && [ -n "$BLOG_INDEX" ] && [ -f "$REPO/$BLOG_INDEX" ]; then
+      python3 "$(dirname "$0")/lib/update_index.py" "$REPO/$BLOG_INDEX" \
+        --slug "$SLUG" --title "$TITLE" --description "$DESC" --date "$DATE" \
+        && echo "  updated index $BLOG_INDEX" \
+        || { echo "  WARN: index update failed — post may not list (continuing)"; }
+    fi
+    ;;
+  next-slug-record)
+    echo "  next-slug-record: appending record to $BLOG_INDEX"
+    python3 "$(dirname "$0")/lib/update_index.py" "$REPO/$BLOG_INDEX" \
+      --slug "$SLUG" --title "$TITLE" --description "$DESC" --date "$DATE" \
+      --record-from "$ART" || { echo "deploy: record insert failed"; exit 1; }
+    ;;
+  *)
+    echo "deploy: unknown framework '$FW'"; exit 1;;
+esac
+
+# --- commit + push -------------------------------------------------------------
+git add -A
+if git diff --cached --quiet; then
+  echo "deploy: nothing staged (already present?) — skipping commit"
+else
+  git -c user.name="blog-factory" -c user.email="blog-factory@jam-bot.com" \
+    commit -q -m "blog: $TITLE
+
+Auto-published by the JamBot blog factory (article-writer skill).
+Slug: $SLUG" || { echo "deploy: commit failed"; exit 1; }
+  echo "  committed."
+fi
+
+if git push origin "HEAD:$BRANCH" 2>&1 | tail -3; then
+  echo "  pushed HEAD -> origin/$BRANCH."
+else
+  echo "deploy: push failed"; exit 1
+fi
+
+# --- live verify (Netlify/SSG build → wait for HTTP 200) -----------------------
+URL="${SITE_URL%/}${PREFIX}${SLUG}"
+echo "=== LIVE-VERIFY: $URL ==="
+# A bare 200 is NOT proof — a stale/cached build or SPA fallback can 200 without the
+# post. We require BOTH: HTTP 200 AND the actual post body present (title text or
+# unique slug marker in the served HTML). Content-verified, not just status-verified.
+NEEDLE="${TITLE:-$SLUG}"
+for i in $(seq 1 30); do
+  page=$(curl -s -L --max-time 25 "$URL" 2>/dev/null)
+  code=$(curl -s -o /dev/null -L --max-time 20 -w "%{http_code}" "$URL" 2>/dev/null)
+  has_body=$(printf '%s' "$page" | grep -cF "$NEEDLE" 2>/dev/null || echo 0)
+  echo "  attempt $i: HTTP $code  body-match($NEEDLE)=$has_body"
+  if [ "$code" = "200" ] && [ "$has_body" -ge 1 ]; then
+    idxcode=$(curl -s -L --max-time 20 "${SITE_URL%/}${PREFIX%/}" 2>/dev/null | grep -c "$SLUG")
+    echo "  index references slug: $idxcode occurrence(s)"
+    # confirm the post actually rode origin (guards the concurrent-worker clobber)
+    git fetch origin "$BRANCH" --quiet 2>/dev/null || true
+    on_origin=$(git ls-tree -r "origin/$BRANCH" --name-only 2>/dev/null | grep -c "$SLUG" || echo 0)
+    echo "  post present on origin/$BRANCH: $on_origin file(s)"
+    echo "DEPLOY OK — live + content-verified: $URL"
+    exit 0
+  fi
+  sleep 20
+done
+echo "deploy: post NOT content-verified live after ~12min ($URL). Build slow/failed OR a concurrent worker clobbered the commit — check Netlify + git."
+exit 1
