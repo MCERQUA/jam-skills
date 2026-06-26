@@ -1796,12 +1796,36 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
       Chart.defaults.borderColor = gridColor;
     }}
   }}
+  // THEME RACE FIX 2026-06-25: apply default (light) theme SYNCHRONOUSLY at
+  // script parse, before DOMContentLoaded, so body bg is light from first
+  // paint. Previously light-mode was only added in the DOMContentLoaded
+  // handler, leaving a window where body rendered DARK that the QA auditor's
+  // theme-toggle check could read → false "toggle doesn't change bg" CRITICAL.
+  document.body.classList.add('light-mode');
   document.addEventListener('DOMContentLoaded', () => {{
     document.body.classList.add('light-mode');
     if (themeLbl) themeLbl.textContent = 'LIGHT';
     applyChartTheme(true);
     const parsed = parseHash();
     activatePage(parsed.page, {{chip: parsed.chip, updateHash: false, smoothScroll: false}});
+
+    // CHART SETTLE-RESIZE 2026-06-25: charts on the FIRST (default) page are
+    // initialized at DOMContentLoaded before the responsive .chart-wrap height
+    // stabilizes at narrow viewports, so their canvases collapse to ~59x16 and
+    // never get the resize() that only fired on tab-SWITCH → "Chart 0x0" CRITICALs.
+    // Force-resize the active page's charts after layout settles + on window resize.
+    function resizeActiveCharts() {{
+      if (typeof Chart === 'undefined') return;
+      const active = document.querySelector('.report-page.is-active') || document;
+      active.querySelectorAll('canvas').forEach(c => {{
+        const inst = Chart.getChart ? Chart.getChart(c) : null;
+        if (inst) {{ try {{ inst.resize(); }} catch(_) {{}} }}
+      }});
+    }}
+    requestAnimationFrame(() => requestAnimationFrame(resizeActiveCharts));
+    window.addEventListener('load', () => setTimeout(resizeActiveCharts, 60));
+    let __rzT;
+    window.addEventListener('resize', () => {{ clearTimeout(__rzT); __rzT = setTimeout(resizeActiveCharts, 120); }});
   }});
   if (themeBtn) {{
     themeBtn.addEventListener('click', () => {{
@@ -1952,16 +1976,34 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
       }});
     }}
 
-    // Sparklines (empty vals = flat line placeholder)
+    // Sparklines. SPARK BLANK-CANVAS FIX 2026-06-26: an empty data-vals sparkline
+    // previously drew a flat line pinned to the top edge (y reversed, [1,1,1,1,1])
+    // whose rendered dataURL was < the QA blank-threshold (~290 chars) → flagged as a
+    // "Chart 0x0 / empty" CRITICAL. Empty sparks now draw a VISIBLE muted mid-baseline
+    // (centered, fixed 0..1 scale) so the canvas is non-blank, or are skipped entirely
+    // if Chart is unavailable. Sparks WITH data are unchanged.
     document.querySelectorAll('canvas.spark').forEach(cv => {{
       if (cv.dataset._init) return;
+      if (typeof Chart === 'undefined') return;
       cv.width = 100; cv.height = 28;
       cv.dataset._init = '1';
       const vals = (cv.dataset.vals||'').split(',').map(Number).filter(n=>!isNaN(n)&&n>0);
+      const hasData = vals.length > 0;
       new Chart(cv, {{
         type: 'line',
-        data: {{ labels: vals.length ? vals.map((_,i)=>i) : [0,1,2,3,4], datasets: [{{ data: vals.length ? vals : [1,1,1,1,1], borderColor: BRAND_BLUE, backgroundColor: 'rgba(14,92,122,.22)', fill: true, pointRadius: 0, tension: .35, borderWidth: 1.5 }}] }},
-        options: {{ responsive: false, plugins: {{legend:{{display:false}}, tooltip:{{enabled:false}}}}, scales: {{x:{{display:false}}, y:{{display:false, reverse:true}}}} }}
+        data: {{
+          labels: hasData ? vals.map((_,i)=>i) : [0,1,2,3,4],
+          datasets: [{{
+            data: hasData ? vals : [0.5,0.5,0.5,0.5,0.5],
+            borderColor: hasData ? BRAND_BLUE : 'rgba(148,163,184,0.85)',
+            backgroundColor: hasData ? 'rgba(14,92,122,.22)' : 'rgba(148,163,184,0.18)',
+            borderDash: hasData ? [] : [3,3],
+            fill: true, pointRadius: 0, tension: .35, borderWidth: 1.5
+          }}]
+        }},
+        options: {{ responsive: false, animation: false, plugins: {{legend:{{display:false}}, tooltip:{{enabled:false}}}},
+          scales: {{ x:{{display:false}},
+            y: hasData ? {{display:false, reverse:true}} : {{display:false, min:0, max:1}} }} }}
       }});
     }});
 

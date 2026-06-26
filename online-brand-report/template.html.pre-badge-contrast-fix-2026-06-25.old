@@ -1537,122 +1537,9 @@
       .tab-nav-wrap::after, .chip-strip-wrap::after { display: none; }
     }
 
-    /* ════════════════════════════════════════════════════════════════
-       BADGE CONTRAST FIX 2026-06-25 — systemic NO-SHIP root cause.
-       Every semantic chip used pale text on a LOW-ALPHA same-hue tint
-       (e.g. color:#6ee7b7 on background:rgba(16,185,129,0.18)). Composited
-       over the LIGHT page that reads ~1.2-2:1 (WCAG fail), and the QA
-       auditor measures text vs the chip's own non-transparent tint as if
-       opaque → also ~1.5:1. Result: 30-50 CRITICAL contrast bugs per report
-       → NO-SHIP on every brand report from this shared template.
-       Fix: give every chip a SOLID (opaque) fill + AA-passing text in BOTH
-       themes. Placed last in <style> so it wins the cascade over the
-       earlier hardcoded dark-only / partial-light rules WITHOUT deleting
-       them (additive). All pairs verified >= 5:1 WCAG.
-       ════════════════════════════════════════════════════════════════ */
-
-    /* ---- DARK mode (default): solid deep fill + light text ---- */
-    .pill-ok,   .cb-mult.ok,  .llm-mention.yes,
-    .sc-channel .status.claimed, .rm-badge.effort-low
-                  { background: #065f46 !important; color: #d1fae5 !important; }
-    .sc-channel .status.active
-                  { background: #047857 !important; color: #ecfdf5 !important; }
-    .pill-warn, .cb-mult.warn, .llm-mention.partial,
-    .sev-medium, .sc-channel .status.abandoned,
-    .rm-badge.impact-high, .rm-badge.effort-med
-                  { background: #854d0e !important; color: #fef3c7 !important; }
-    .pill-bad,  .cb-mult.bad, .llm-mention.no,
-    .sev-critical, .sev-high, .sc-channel .status.absent,
-    .rm-badge.impact-critical, .rm-badge.effort-high
-                  { background: #7f1d1d !important; color: #fee2e2 !important; }
-    .pill-info, .sc-channel .status.unlinked, .sev-low
-                  { background: #0c4a6e !important; color: #e0f2fe !important; }
-    .es-verdict .tag
-                  { background: #92400e !important; color: #ffedd5 !important; }
-
-    /* ---- LIGHT mode: pale fill + deep text (same AA pattern) ---- */
-    body.light-mode .pill-ok,   body.light-mode .cb-mult.ok,
-    body.light-mode .llm-mention.yes,
-    body.light-mode .sc-channel .status.claimed,
-    body.light-mode .rm-badge.effort-low
-                  { background: #d1fae5 !important; color: #065f46 !important; }
-    body.light-mode .sc-channel .status.active
-                  { background: #a7f3d0 !important; color: #064e3b !important; }
-    body.light-mode .pill-warn, body.light-mode .cb-mult.warn,
-    body.light-mode .llm-mention.partial,
-    body.light-mode .sev-medium, body.light-mode .sc-channel .status.abandoned,
-    body.light-mode .rm-badge.impact-high, body.light-mode .rm-badge.effort-med
-                  { background: #fef3c7 !important; color: #854d0e !important; }
-    body.light-mode .pill-bad,  body.light-mode .cb-mult.bad,
-    body.light-mode .llm-mention.no,
-    body.light-mode .sev-critical, body.light-mode .sev-high,
-    body.light-mode .sc-channel .status.absent,
-    body.light-mode .rm-badge.impact-critical, body.light-mode .rm-badge.effort-high
-                  { background: #fee2e2 !important; color: #7f1d1d !important; }
-    body.light-mode .pill-info, body.light-mode .sc-channel .status.unlinked,
-    body.light-mode .sev-low
-                  { background: #dbeafe !important; color: #0c4a6e !important; }
-    body.light-mode .es-verdict .tag
-                  { background: #ffedd5 !important; color: #7c2d12 !important; }
-
-    /* ════════════════════════════════════════════════════════════════
-       MOBILE OVERFLOW FIX 2026-06-25 — systemic NO-SHIP root cause #3.
-       The social-channels grid is repeat(2, 1fr) even at 375px, and long
-       social URLs in .sc-channel .note don't wrap → the cell (and the whole
-       found page) overflows the viewport (scrollWidth 405 > 375). Collapse
-       to a single column at narrow widths and force long unbroken strings
-       (URLs/handles) to wrap. Additive, mobile-only.
-       ════════════════════════════════════════════════════════════════ */
-    @media (max-width: 560px) {
-      .sc-channel-grid { grid-template-columns: 1fr !important; }
-    }
-    .sc-channel, .sc-channel .nm, .sc-channel .note {
-      min-width: 0;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-    /* MOBILE OVERFLOW FIX 2026-06-26 — long unbroken URLs (e.g. an llms.txt link in the
-       AI-visibility callout, or any inline link/code) overflowed the page at 375px on
-       reports whose content carries a long domain. Force-wrap long strings wherever they
-       appear in callouts / links / code. Additive; harmless when content is short. */
-    .llm-llmstxt-callout, .llm-llmstxt-callout *,
-    .llm-sentiment-card, .llm-sentiment-card *,
-    .ai-card, section a, section code, .note, .body {
-      min-width: 0;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-    /* MOBILE TABLE OVERFLOW FIX 2026-06-26 — content tables (e.g. the "Brand Mentions
-       Across the Web" .ls-gmb-table, or any data table) carry long unbroken result
-       titles/URLs whose intrinsic width forces the table — and the whole page — past
-       375px on mobile. Wrap cell content and let the table shrink. Tables that truly
-       need horizontal room already sit in a .serp-table-wrap (scroll) and are untouched. */
-    @media (max-width: 700px) {
-      /* min-width:0 overrides the .ls-gmb-table { min-width:480px } that pinned the
-         table (and the whole page) to 480px on a 375px viewport — the real overflow. */
-      table:not(.serp-table) { table-layout: fixed; width: 100% !important; min-width: 0 !important; }
-      table:not(.serp-table) th,
-      table:not(.serp-table) td {
-        overflow-wrap: anywhere;
-        word-break: break-word;
-        white-space: normal;
-      }
-      table:not(.serp-table) td a { overflow-wrap: anywhere; word-break: break-word; }
-    }
-
   </style>
 </head>
 <body class="min-h-screen">
-<script>
-  /* THEME RACE FIX 2026-06-25 — apply the default (light) theme class
-     SYNCHRONOUSLY at first parse, before DOMContentLoaded, so the body
-     background is the light value from first paint. Previously light-mode
-     was only added inside the DOMContentLoaded handler, leaving a window
-     where the body rendered DARK — which the QA auditor's theme-toggle
-     check could read, then toggling made it identical-dark → a false
-     "Theme toggle does not change body background" CRITICAL → NO-SHIP. */
-  document.body.classList.add('light-mode');
-</script>
 
 <!-- ════════════════════════════════════════════════════════════
      STICKY BRANDED HEADER (Bricks pattern) + PAGE-SWAP TABS
@@ -3703,29 +3590,6 @@
 
     const parsed = parseHash();
     activatePage(parsed.page, { chip: parsed.chip, updateHash: false, smoothScroll: false });
-
-    // CHART SETTLE-RESIZE 2026-06-25 — systemic NO-SHIP root cause #2.
-    // initPageCharts runs at DOMContentLoaded, but at narrow viewports the
-    // .chart-wrap height hasn't stabilized yet, so the FIRST (default) page's
-    // canvases initialize at a collapsed ~59x16 size and never get the
-    // resize() that only fired on tab-SWITCH. Force a resize of every chart on
-    // the active page after layout settles (next frame + after full load),
-    // and on any subsequent window resize. Idempotent + additive.
-    function resizeActiveCharts() {
-      if (typeof Chart === 'undefined') return;
-      const active = document.querySelector('.report-page.is-active') || document;
-      active.querySelectorAll('canvas').forEach(c => {
-        const inst = Chart.getChart ? Chart.getChart(c) : null;
-        if (inst) { try { inst.resize(); } catch (_) {} }
-      });
-    }
-    requestAnimationFrame(() => requestAnimationFrame(resizeActiveCharts));
-    window.addEventListener('load', () => setTimeout(resizeActiveCharts, 60));
-    let __rzT;
-    window.addEventListener('resize', () => {
-      clearTimeout(__rzT);
-      __rzT = setTimeout(resizeActiveCharts, 120);
-    });
   });
 
   // Also handle back/forward button hash changes
