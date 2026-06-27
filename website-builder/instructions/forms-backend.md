@@ -295,3 +295,39 @@ const res = await fetch("/api/contact", {
   headers: { "Content-Type": "application/json" },
 });
 ```
+
+---
+
+## AEO Traffic-Source Capture (PLATFORM STANDARD — every lead form, every build)
+
+**Why:** AI answer engines (ChatGPT / Copilot / Perplexity / Gemini) are now the #1 lead channel for many lead-gen sites — and a visitor referred by one arrives with the engine's tag in `?utm_source=` or `document.referrer`. A form that doesn't capture it is **blind** to its best channel. This makes every lead carry where it came from so attribution reporting can surface which sites are AI-cited.
+
+**Additive + invisible** — two hidden fields only. No content or design change. Backend-agnostic: works with Netlify Forms, server actions, or API routes (the values submit with the rest of the form payload).
+
+Add these two HIDDEN fields + set-on-load script INSIDE **every** lead form (quote / contact / any lead-gen form), alongside the existing fields:
+
+```html
+<!-- AEO traffic-source capture (hidden; never rendered) -->
+<input type="hidden" name="traffic_source" id="__aeo_src" value="">
+<input type="hidden" name="landing_url"    id="__aeo_url" value="">
+<script>
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    // utm_source wins (AI engines tag it); else ?ref=; else the referring host; else direct
+    var src = p.get('utm_source') || p.get('ref') || '';
+    if (!src && document.referrer) { try { src = new URL(document.referrer).hostname; } catch (e) { src = document.referrer; } }
+    if (!src) src = 'direct';
+    var s = document.getElementById('__aeo_src'); if (s) s.value = src;
+    var u = document.getElementById('__aeo_url'); if (u) u.value = location.href;
+  } catch (e) {}
+})();
+</script>
+```
+
+**Rules:**
+- Add it INSIDE each lead form so the submission carries `traffic_source` + `landing_url`.
+- **Netlify Forms:** also declare both fields in the `public/__forms.html` decoy inside each form block (`<input name="traffic_source">` + `<input name="landing_url">`) so Netlify registers them.
+- **Server actions / API routes:** ensure your handler reads + persists `traffic_source` and `landing_url` from the payload (don't drop unknown fields).
+- **React / Next (incl. static export):** render the two hidden inputs in JSX and set them on load via a `useEffect` (refs or `getElementById`), or inline the IIFE via `next/script` strategy="afterInteractive". The submitted form MUST POST both fields.
+- **Never retrofit an existing LIVE site without owner/operator sign-off** — the change is additive, but it's still a redeploy of a live, lead-generating page.

@@ -31,6 +31,7 @@ Run EVERY check before presenting the site to the client. Fix all failures.
 - [ ] Business name, phone, address are correct
 - [ ] CTA buttons have clear action text ("Get a Free Quote" not "Submit")
 - [ ] No broken images (all `src` paths resolve)
+- [ ] AEO capture: every lead form has hidden `traffic_source` + `landing_url` fields with the set-on-load script (and, for Netlify Forms, declared in `__forms.html`) — see forms-backend.md
 
 ---
 
