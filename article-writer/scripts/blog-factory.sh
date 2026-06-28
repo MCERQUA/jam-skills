@@ -168,8 +168,51 @@ if bash "$DIR/deploy.sh" "$CFG" "$RUN_DIR"; then
   LEDGER="$DIR/../blog-factory-ledger.jsonl"
   jq -nc --arg ts "$(date -u +%FT%TZ)" --arg site "$SITE_KEY" --arg slug "$SLUG" \
      --arg url "$URL" --arg model "$GEN_MODEL" --arg wc "$WC" \
-     '{ts:$ts,site:$site,slug:$slug,url:$url,gen_model:$model,words:($wc|tonumber),status:"published"}' \
+     '{ts:$ts,site:$site,slug:$slug,url:$url,gen_model:$model,words:($wc|tonumber),status:"published",gates:"all-pass"}' \
      >> "$LEDGER"
+
+  # [368e1af2] Emit canonical mesh receipt to LEDGER/receipts/YYYYMMDD.jsonl.
+  # [300b7ef4] Carries pledge_id from blog-factory-cron.sh (BLOG_FACTORY_PLEDGE_ID) so the
+  #            accountability loop can close the OPEN pledge filed at dispatch.
+  python3 - "$SITE_KEY" "$SLUG" "$URL" "$GEN_MODEL" "$WC" \
+    "${BLOG_FACTORY_TENANT:-unknown}" "${BLOG_FACTORY_PLEDGE_ID:-}" << 'PY'
+import json, sys, hashlib, datetime, pathlib
+site, slug, url, model, wc, tenant, pledge_id = sys.argv[1:8]
+ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+day = ts[:10]
+dedupe_key = f"blog-published:{site}:{slug}:{day}"
+rec = {
+    "id":         "rcpt-" + day.replace("-","") + "-" + hashlib.sha256(dedupe_key.encode()).hexdigest()[:10],
+    "ts":         ts,
+    # canonical who/what/when/why/tool/proof/tier/tenant/blog_meta schema (pledge 368e1af2)
+    "who":        f"blog-factory@{site}",
+    "what":       f"published blog post: {slug}",
+    "when":       ts,
+    "why":        "scheduled blog run via blog-factory-cron.sh",
+    "tool":       "blog-factory.sh",
+    "proof":      url,
+    "tier":       "deliverable",
+    "tenant":     tenant,
+    "blog_meta":  {"site": site, "slug": slug, "words": int(wc) if wc else 0, "gen_model": model},
+    # standard Bookkeeper fields (bookkeeper-aggregate.py receipt schema)
+    "actor":      f"blog-factory@{site}",
+    "agent_type": "host",
+    "action":     "blog-published",
+    "summary":    f"blog post published: {slug} ({wc} words) on {site}",
+    "source":     "blog-factory",
+    "dedupe_key": dedupe_key,
+}
+if pledge_id:
+    rec["pledge_id"] = pledge_id   # links receipt → pledge for pledge-closure-receipt.sh
+receipts_dir = pathlib.Path("/mnt/agent-mesh/mesh/LEDGER/receipts")
+receipts_dir.mkdir(parents=True, exist_ok=True)
+receipt_file = receipts_dir / f"{day}.jsonl"
+existing = receipt_file.read_text() if receipt_file.exists() else ""
+if dedupe_key not in existing:
+    with open(receipt_file, "a") as f:
+        f.write(json.dumps(rec) + "\n")
+PY
+
   echo
   echo "PUBLISHED + LIVE: $URL    (logged → $LEDGER)"
   exit 0
