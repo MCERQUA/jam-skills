@@ -1,0 +1,27 @@
+{
+  "page_type": "service",
+  "page_url": "https://theseattlesidingcompany.com/siding-repair/",
+  "faqs": [
+    {
+      "question": "Can you match my existing siding style and color for repairs?",
+      "answer": "Yes. We stock a wide range of James Hardie, vinyl, and cedar profiles. For older homes, we take a sample and source the closest match. Color-matched paint is always an option for seamless blending."
+    },
+    {
+      "question": "How do I know if I have wood rot behind my siding?",
+      "answer": "Signs include soft or spongy siding when pressed, dark gray or black staining, paint peeling repeatedly in the same spot, or visible shrinkage and delamination. We do a free probe test during any estimate."
+    },
+    {
+      "question": "Will you help with an insurance claim for storm damage?",
+      "answer": "Yes. We document damage with photos, produce a detailed damage report, and coordinate directly with your adjuster. Most storm damage claims for siding are covered under standard homeowners policies."
+    },
+    {
+      "question": "How much does siding repair cost in Seattle?",
+      "answer": "Small repairs (1–3 boards, caulk failure) run $300–$800. Moderate repairs with rot remediation run $1,000–$3,500. Extensive damage may make full replacement more cost-effective — we'll advise honestly."
+    }
+  ],
+  "breadcrumbs": [
+    {"name": "Home", "url": "https://theseattlesidingcompany.com/"},
+    {"name": "Services", "url": "https://theseattlesidingcompany.com/services/"},
+    {"name": "Siding Repair", "url": "https://theseattlesidingcompany.com/siding-repair/"}
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "business_type": "HomeAndConstructionBusiness",
+  "name": "The Seattle Siding Company",
+  "url": "https://theseattlesidingcompany.com",
+  "phone": "+12065551234",
+  "description": "Seattle's top-rated siding contractor. James Hardie Preferred Installer. Serving Greater Seattle since 2010.",
+  "logo_url": "https://theseattlesidingcompany.com/img/logo.png",
+  "address": {
+    "street": "",
+    "city": "Seattle",
+    "state": "WA",
+    "zip": "98101",
+    "country": "US"
+  },
+  "rating": {
+    "value": 4.9,
+    "count": 127
+  },
+  "area_served": [
+    "Seattle", "Bellevue", "Kirkland", "Renton", "Everett",
+    "Bothell", "Shoreline", "Sammamish", "Issaquah", "Redmond",
+    "Kent", "Federal Way", "Burien", "Kenmore", "Edmonds",
+    "Lynnwood", "Woodinville", "Mukilteo", "Mill Creek", "Tukwila",
+    "Mercer Island"
+  ],
+  "services": [
+    {
+      "name": "Siding Repair",
+      "description": "Board replacement, caulking, rot remediation, and moss treatment for Seattle homes.",
+      "url": "https://theseattlesidingcompany.com/siding-repair/"
+    },
+    {
+      "name": "Siding Installation",
+      "description": "Professional siding installation for new construction and full replacements.",
+      "url": "https://theseattlesidingcompany.com/siding-installation/"
+    },
+    {
+      "name": "Siding Replacement",
+      "description": "Full tear-off and replacement with James Hardie, vinyl, or cedar siding.",
+      "url": "https://theseattlesidingcompany.com/siding-replacement/"
+    },
+    {
+      "name": "James Hardie Siding",
+      "description": "Certified Preferred Installer for James Hardie fiber cement siding in Seattle, WA.",
+      "url": "https://theseattlesidingcompany.com/james-hardie-siding/"
+    },
+    {
+      "name": "Vinyl Siding",
+      "description": "Low-maintenance vinyl siding installation for Seattle homes and rental properties.",
+      "url": "https://theseattlesidingcompany.com/vinyl-siding/"
+    },
+    {
+      "name": "Cedar & Wood Siding",
+      "description": "Cedar siding installation, repair, and restoration for PNW craftsman and Victorian homes.",
+      "url": "https://theseattlesidingcompany.com/cedar-wood-siding/"
+    },
+    {
+      "name": "Wood Rot Repair",
+      "description": "Full wood rot assessment, remediation, and fiber cement replacement to prevent recurrence.",
+      "url": "https://theseattlesidingcompany.com/wood-rot-repair/"
+    },
+    {
+      "name": "Asbestos Siding Removal",
+      "description": "Safe asbestos cement siding removal and replacement in pre-1980 Seattle homes.",
+      "url": "https://theseattlesidingcompany.com/asbestos-siding-removal/"
+    }
+  ],
+  "opening_hours": [
+    "Mo-Fr 07:00-18:00",
+    "Sa 08:00-14:00"
+  ]
+}
