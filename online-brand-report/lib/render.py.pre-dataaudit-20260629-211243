@@ -627,25 +627,11 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     <table class="ls-gmb-table" style="width:100%;"><thead><tr><th>Source</th><th>Page</th></tr></thead><tbody>{rows}</tbody></table>"""
 
     # ── Map pack table ────────────────────────────────────────────────────────
-    # Prefer the richer per-(city,keyword) rows when fetch_local provides them — they
-    # show the SPECIFIC vertical term the business actually ranks for (e.g. "spray foam
-    # equipment #1"), not just the single generic detected service. Falls back to the
-    # legacy city→position dict. (2026-06-29.)
     map_rows = ""
-    map_pack_rows = data.get("map_pack_rows") or []
-    if map_pack_rows:
-        for r in map_pack_rows:
-            pos = r.get("position")
-            pos_str = f"#{pos}" if pos else "Not ranked"
-            row_cls = ' class="us"' if pos and pos <= 10 else ""
-            map_rows += (f"<tr{row_cls}><td>{_escape(r.get('city',''))}</td>"
-                         f"<td>{_escape(r.get('keyword', service))}</td>"
-                         f"<td class='num'>{pos_str}</td></tr>\n")
-    else:
-        for mc, pos in map_pos.items():
-            pos_str = f"#{pos}" if pos else "Not ranked"
-            row_cls = ' class="us"' if pos and pos <= 10 else ""
-            map_rows += f"<tr{row_cls}><td>{_escape(mc)}</td><td>{_escape(service)}</td><td class='num'>{pos_str}</td></tr>\n"
+    for mc, pos in map_pos.items():
+        pos_str = f"#{pos}" if pos else "Not ranked"
+        row_cls = ' class="us"' if pos and pos <= 10 else ""
+        map_rows += f"<tr{row_cls}><td>{_escape(mc)}</td><td>{_escape(service)}</td><td class='num'>{pos_str}</td></tr>\n"
 
     # ── Competitor table ──────────────────────────────────────────────────────
     comp_rows = f"""
@@ -1262,18 +1248,6 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
         {"".join(f'<div class="ls-star-row"><div class="stars">{s}&#9733;</div><div class="bar-bg"><div class="bar-fill" style="width:{rev_pcts.get(s,0)}%"></div></div><div class="cnt">{rev_dist.get(s,0)}</div></div>' for s in ["5","4","3","2","1"])}
       </div>
     </div>
-
-    {("<h3 class=\"text-base font-bold uppercase tracking-wider mb-3\" style=\"color:var(--brand-muted); font-family: var(--font-ui);\">Recent Reviews</h3>"
-      "<div class=\"panel\" style=\"padding:16px; margin-bottom:18px;\">"
-      + "".join(
-          f'<div style="padding:10px 0; border-bottom:1px solid var(--brand-border);">'
-          f'<div style="color:var(--brand-warn,#f59e0b); font-size:13px;">{"&#9733;" * int(round(float(rv.get("rating") or 0)))}'
-          f'<span style="color:var(--brand-muted); margin-left:8px;">{_escape(str(rv.get("author") or "Customer"))}</span></div>'
-          f'<div style="color:var(--brand-text-strong); font-size:14px; margin-top:4px;">{_escape(str(rv.get("text") or ""))}</div>'
-          f'</div>'
-          for rv in (data.get("recent_reviews") or [])[:3]
-        )
-      + "</div>") if (data.get("recent_reviews")) else ""}
 
     <h3 class="text-base font-bold uppercase tracking-wider mb-3" style="color:var(--brand-muted); font-family: var(--font-ui);">Map Pack Rankings</h3>
     <div class="panel" style="padding:0; overflow-x:auto;">

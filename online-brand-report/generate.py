@@ -762,7 +762,16 @@ def main():
     # GMB data whenever the location was given at province/region granularity (e.g.
     # 'Ontario Canada'). gmb_city_confirmed() still requires a real geo overlap so the
     # 'EZ Roofing' cross-city contamination stays blocked. (Fixed 2026-06-29.)
-    _gmb_confirmed = bool(city) and gmb_city_confirmed(city, state, _gmb_addr)
+    # A DOMAIN-VERIFIED GMB (the listing's own website IS the client domain) is confirmed
+    # unconditionally — the strongest possible proof it's theirs — so the city-token gate
+    # never zeroes a real listing whose GMB municipality differs from the marketing city
+    # (e.g. markets as 'Toronto', GMB address reads 'North York'). (Added 2026-06-29.)
+    _gmb_domain_verified = bool(data.get("gmb_domain_verified"))
+    _gmb_city_ok = bool(city) and gmb_city_confirmed(city, state, _gmb_addr)
+    _gmb_confirmed = _gmb_domain_verified or _gmb_city_ok
+    if _gmb_domain_verified and not _gmb_city_ok:
+        print(f"    [INFO] GMB confirmed by DOMAIN match (website = {domain}); GMB municipality "
+              f"in address differs from input city '{city}' — kept (no false zero)", file=sys.stderr)
     if not _gmb_confirmed:
         _dropped = data.get("gmb_review_count", 0) or data.get("review_count", 0)
         if _dropped:

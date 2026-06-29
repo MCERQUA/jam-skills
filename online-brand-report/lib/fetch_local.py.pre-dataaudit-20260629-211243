@@ -33,62 +33,6 @@ _PROVINCES = {
 }
 _GEO_FILLER = {"canada","usa","us","united","states","america"}
 
-# state/province 2-letter abbrev → FULL name, for building a valid DataForSEO
-# `location_name` ("North York,Ontario,Canada"). DataForSEO REJECTS abbreviated
-# regions ("North York,ON,Canada" → 40501 Invalid Field: location_name → 0 items),
-# which silently zeroed every Canadian (and abbreviated-US) map-pack lookup. (Added 2026-06-29.)
-_REGION_FULL = {
-    # Canada
-    "on":"Ontario","qc":"Quebec","bc":"British Columbia","ab":"Alberta","mb":"Manitoba",
-    "sk":"Saskatchewan","ns":"Nova Scotia","nb":"New Brunswick","nl":"Newfoundland and Labrador",
-    "pe":"Prince Edward Island","nt":"Northwest Territories","nu":"Nunavut","yt":"Yukon",
-    # United States
-    "al":"Alabama","ak":"Alaska","az":"Arizona","ar":"Arkansas","ca":"California","co":"Colorado",
-    "ct":"Connecticut","de":"Delaware","fl":"Florida","ga":"Georgia","hi":"Hawaii","id":"Idaho",
-    "il":"Illinois","in":"Indiana","ia":"Iowa","ks":"Kansas","ky":"Kentucky","la":"Louisiana",
-    "me":"Maine","md":"Maryland","ma":"Massachusetts","mi":"Michigan","mn":"Minnesota","ms":"Mississippi",
-    "mo":"Missouri","mt":"Montana","ne":"Nebraska","nv":"Nevada","nh":"New Hampshire","nj":"New Jersey",
-    "nm":"New Mexico","ny":"New York","nc":"North Carolina","nd":"North Dakota","oh":"Ohio","ok":"Oklahoma",
-    "or":"Oregon","pa":"Pennsylvania","ri":"Rhode Island","sc":"South Carolina","sd":"South Dakota",
-    "tn":"Tennessee","tx":"Texas","ut":"Utah","vt":"Vermont","va":"Virginia","wa":"Washington",
-    "wv":"West Virginia","wi":"Wisconsin","wy":"Wyoming","dc":"District of Columbia",
-}
-
-
-def _full_region(state: str) -> str:
-    """Full region name for a DataForSEO location_name. Accepts an abbreviation ('ON') or a
-    full name ('Ontario') — returns the full name title-cased. '' if unknown/empty."""
-    s = (state or "").strip()
-    if not s:
-        return ""
-    if s.lower() in _REGION_FULL:           # 'ON' / 'on'
-        return _REGION_FULL[s.lower()]
-    return s                                 # already a full name ('Ontario')
-
-
-def _map_location_name(city: str, state: str, country: str) -> str:
-    """Build a DataForSEO-valid map-pack location_name. Uses the FULL region name (never the
-    2-letter abbreviation, which DataForSEO rejects). Drops empty parts so 'City,,Country'
-    never happens."""
-    parts = [p for p in (city.strip() if city else "", _full_region(state), country) if p]
-    return ",".join(parts)
-
-
-def _domain_matches(item: dict, domain: str) -> bool:
-    """True when a GMB listing's own website is the client's domain — the STRONGEST possible
-    proof the listing is theirs, independent of city. Fixes the borough/municipality problem:
-    a business that markets as 'Toronto' but whose GMB address reads the actual municipality
-    ('North York') was wrongly rejected by the city-substring test, zeroing its real reviews.
-    A website match is unambiguous, so it overrides the location check. (Added 2026-06-29.)"""
-    d = (domain or "").lower().replace("https://", "").replace("http://", "").replace("www.", "").strip("/").split("/")[0]
-    if not d:
-        return False
-    for k in ("domain", "url", "website"):
-        v = item.get(k)
-        if v and d in str(v).lower().replace("www.", ""):
-            return True
-    return False
-
 
 def _region_granularity_ok(txt: str, city: str, state: str) -> bool:
     """ADDITIVE accept path for when the caller gave a PROVINCE/REGION as 'city' (no real
@@ -280,80 +224,6 @@ def _fetch_gbp_posts(brand_name: str, city: str, state: str, location_code: int 
 
     return out
 
-def _fetch_reviews_async(brand_name: str, city: str, state: str, domain: str,
-                         location_code: int = 2840, place_id: str = "") -> dict:
-    """Recent review TEXT + the real star distribution via the ASYNC reviews task
-    (business_data/google/reviews/task_post → task_get). The /live variant returns 404
-    (does not exist) — but task_post/task_get IS subscribed and returns full review text,
-    author, rating, and a votes/rating summary. Bounded poll; never raises. Returns
-    {recent_reviews, review_avg, review_count, rating_distribution, _reviews_text_ok}."""
-    import time as _t
-    import requests as _rq
-    from .config import dfs_auth_header
-    out = {"recent_reviews": [], "review_avg": 0.0, "review_count": 0,
-           "rating_distribution": None, "_reviews_text_ok": False}
-    try:
-        # Proven-working form: keyword + location_code (NOT place_id — that field is
-        # rejected on this endpoint/plan with a misleading 40501). The brand+city+state
-        # keyword reliably resolves to the right listing for review text.
-        task = {"keyword": f"{brand_name} {city} {state}".strip(),
-                "location_code": location_code, "language_code": "en", "depth": 30}
-        rp = dfs_post("business_data/google/reviews/task_post", [task])
-        t0 = (rp.get("tasks") or [{}])[0]
-        tid = t0.get("id")
-        if not tid or t0.get("status_code") not in (20100, 20000):
-            print(f"[INFO] reviews task_post unavailable: {t0.get('status_code')} "
-                  f"{t0.get('status_message')}", file=sys.stderr)
-            return out
-        # Poll task_get (GET) until ready — usually one ~8s cycle.
-        url = f"https://api.dataforseo.com/v3/business_data/google/reviews/task_get/{tid}"
-        hdrs = {"Authorization": dfs_auth_header()}
-        res = {}
-        for _ in range(8):
-            _t.sleep(8)
-            try:
-                g = _rq.get(url, headers=hdrs, timeout=30).json()
-            except Exception as _ge:
-                print(f"[WARN] reviews task_get poll: {_ge}", file=sys.stderr)
-                continue
-            gt = (g.get("tasks") or [{}])[0]
-            if gt.get("status_code") == 20000:
-                res = (gt.get("result") or [{}])[0] or {}
-                break
-            if gt.get("status_code") not in (40601, 40602):  # 'task in queue/handed' codes → keep polling
-                # any other terminal non-OK code → stop
-                if gt.get("status_code") and gt.get("status_code") >= 40000 and gt.get("status_code") not in (40601, 40602):
-                    print(f"[INFO] reviews task_get: {gt.get('status_code')} {gt.get('status_message')}", file=sys.stderr)
-                    break
-        if not res:
-            return out
-        ri = res.get("rating") or {}
-        out["review_avg"]   = float(ri.get("value") or 0)
-        out["review_count"] = int(ri.get("votes_count") or 0)
-        items = res.get("items") or []
-        dist = {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0}
-        for it in items:
-            stars = str(int((it.get("rating") or {}).get("value") or 0))
-            if stars in dist:
-                dist[stars] += 1
-            text = (it.get("review_text") or "").strip()
-            if text and len(out["recent_reviews"]) < 3:
-                out["recent_reviews"].append({
-                    "rating": (it.get("rating") or {}).get("value") or 0,
-                    "text":   text[:240],
-                    "author": it.get("profile_name") or "Customer",
-                    "date":   it.get("timestamp") or it.get("time_ago") or "",
-                })
-        if sum(dist.values()) > 0:
-            out["rating_distribution"] = dist  # sampled distribution (real, from fetched items)
-        out["_reviews_text_ok"] = bool(out["recent_reviews"])
-        print(f"[INFO] reviews task: {out['review_avg']}★ ({out['review_count']}) "
-              f"+ {len(out['recent_reviews'])} text snippets", file=sys.stderr)
-    except Exception as e:
-        print(f"[WARN] reviews async fetch failed: {e}", file=sys.stderr)
-    return out
-
-
 def fetch_local(brand_name: str, service: str, city: str, state: str, domain: str,
                 extra_cities: list | None = None, location_code: int = 2840) -> dict:
     """Return local SEO data. Never raises.
@@ -485,25 +355,15 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
                 r0 = dfs_get_result0(result2)
                 items = r0.get("items") or []
                 for item in items:
-                    # Accept the listing when EITHER (a) its own website is the client domain
-                    # — unambiguous proof it's theirs, overrides any city mismatch (fixes the
-                    # 'markets as Toronto, GMB address says North York' borough problem), OR
-                    # (b) the location text confirms the requested city/state. Otherwise reject
-                    # the name-collision: a business with genuinely no GMB must score local ≈ 0,
-                    # never inherit a same-named out-of-area profile's rating.
-                    _dom_ok = _domain_matches(item, domain)
-                    if not (_dom_ok or _loc_ok(item, city, state)):
+                    # Reject name-collision matches from other cities/states. A business
+                    # with genuinely no GMB (like a freshly-registered corp) must score
+                    # local ≈ 0 — never inherit a same-named out-of-state profile's rating.
+                    if not _loc_ok(item, city, state):
                         print(f"[INFO] my_business_info match '{item.get('title', item.get('address','?'))}' "
-                              f"not in {city} {state} and no domain match — skipping name-collision", file=sys.stderr)
+                              f"not in {city} {state} — skipping name-collision", file=sys.stderr)
                         continue
                     # The business was located → GMB exists; is_claimed = verified status.
                     out["gmb_found"] = True
-                    if _dom_ok:
-                        # Authoritative: the report's GMB confirmation gate must NOT zero a
-                        # domain-verified listing even if the input city != the GMB municipality.
-                        out["gmb_domain_verified"] = True
-                    if item.get("place_id"):
-                        out["gmb_place_id"] = item["place_id"]
                     if item.get("is_claimed"):
                         out["gmb_claimed"] = True
                     # Real NAP straight from the GMB profile (ica-voice 2026-06-01 wanted these
@@ -521,26 +381,26 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
                     if rv > 0:
                         out["review_avg"]   = rv
                         out["review_count"] = rc
-                        # REAL star distribution straight from the GMB profile when present
-                        # ({"1":1,"2":0,"3":1,"4":0,"5":27}) — no more faked estimates. Falls
-                        # back to an average-based estimate only if Google didn't return one.
-                        rdist = item.get("rating_distribution")
+                        # Estimate distribution from average
+                        total = max(rc, 1)
                         dist = {"5": 0, "4": 0, "3": 0, "2": 0, "1": 0}
-                        if isinstance(rdist, dict) and any((rdist.get(k) or 0) for k in ("1","2","3","4","5")):
-                            for k in ("1","2","3","4","5"):
-                                dist[k] = int(rdist.get(k) or 0)
-                            out["_review_dist_real"] = True
+                        if rv >= 4.5:
+                            dist["5"] = int(total * 0.75)
+                            dist["4"] = int(total * 0.15)
+                            dist["3"] = int(total * 0.05)
+                            dist["2"] = int(total * 0.03)
+                            dist["1"] = total - dist["5"] - dist["4"] - dist["3"] - dist["2"]
+                        elif rv >= 4.0:
+                            dist["5"] = int(total * 0.60)
+                            dist["4"] = int(total * 0.25)
+                            dist["3"] = int(total * 0.10)
+                            dist["2"] = int(total * 0.03)
+                            dist["1"] = total - dist["5"] - dist["4"] - dist["3"] - dist["2"]
                         else:
-                            total = max(rc, 1)
-                            if rv >= 4.5:
-                                dist["5"] = int(total * 0.75); dist["4"] = int(total * 0.15)
-                                dist["3"] = int(total * 0.05); dist["2"] = int(total * 0.03)
-                            elif rv >= 4.0:
-                                dist["5"] = int(total * 0.60); dist["4"] = int(total * 0.25)
-                                dist["3"] = int(total * 0.10); dist["2"] = int(total * 0.03)
-                            else:
-                                dist["5"] = int(total * 0.40); dist["4"] = int(total * 0.25)
-                                dist["3"] = int(total * 0.15); dist["2"] = int(total * 0.10)
+                            dist["5"] = int(total * 0.40)
+                            dist["4"] = int(total * 0.25)
+                            dist["3"] = int(total * 0.15)
+                            dist["2"] = int(total * 0.10)
                             dist["1"] = total - dist["5"] - dist["4"] - dist["3"] - dist["2"]
                         out["review_distribution"] = dist
                         total_dist = max(1, sum(dist.values()))
@@ -553,84 +413,27 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
             print(f"[WARN] GMB info fallback also failed: {e2}", file=sys.stderr)
 
     # --- Map Pack Rankings ---
-    # Two fixes (2026-06-29):
-    #  1) location_name MUST use the full region name — '<City>,ON,Canada' returns
-    #     40501 Invalid Field → 0 items → every Canadian/abbrev-US map-pack falsely
-    #     read "not ranked". _map_location_name() expands 'ON'→'Ontario'.
-    #  2) query a small VERTICAL keyword set, not just the single (often too-generic)
-    #     detected service. A supply/parts business ranks #1 for 'spray foam equipment'
-    #     but is invisible for the bare 'spray foam' head term. We keep the BEST position
-    #     per city and record which keyword earned it, so the real ranking shows.
-    base = (service or "").strip()
-    _kw_candidates = []
-    if base:
-        _kw_candidates.append(base)
-        low = base.lower()
-        for mod in ("equipment", "supplies", "parts"):
-            if mod not in low:
-                _kw_candidates.append(f"{base} {mod}")
-    _kw_candidates = _kw_candidates[:4]
-    clean_domain = domain.lower().replace("www.", "")
-    map_rows = []
-    for ci, c in enumerate(cities[:3]):
-        loc_name = _map_location_name(c, state, _country_name)
-        # primary city: try all candidate keywords; extra cities: base service only (cost-bounded)
-        kws = _kw_candidates if ci == 0 else _kw_candidates[:1]
-        best_pos, best_kw = None, base
-        for kw in (kws or [base]):
-            if not kw:
-                continue
-            pos = None
-            try:
-                result = dfs_post("serp/google/maps/live/advanced", [
-                    {"keyword": kw, "location_name": loc_name, "language_code": "en"}
-                ])
-                t0 = (result.get("tasks") or [{}])[0]
-                if t0.get("status_code") not in (20000, None):
-                    print(f"[INFO] map-pack '{kw}' @ '{loc_name}': {t0.get('status_code')} "
-                          f"{t0.get('status_message')}", file=sys.stderr)
-                items = dfs_get_items(result)
-                out["_local_available"] = True   # map pack query executed (a no-match is a real finding)
-                for item in items:
-                    d = (item.get("domain") or "").lower().replace("www.", "")
-                    if d and (clean_domain in d or d in clean_domain):
-                        pos = int(item.get("rank_absolute") or 0) or None
-                        break
-            except Exception as e:
-                print(f"[WARN] Map pack fetch '{kw}' for {c}: {e}", file=sys.stderr)
-            if pos is not None:
-                map_rows.append({"city": c, "keyword": kw, "position": pos})
-                if best_pos is None or pos < best_pos:
-                    best_pos, best_kw = pos, kw
-        # back-compat: city → best position found across the keyword set
-        out["map_pack_positions"][c] = best_pos
-        # ensure every city shows at least one row (even when unranked) so render isn't blank
-        if not any(r["city"] == c for r in map_rows):
-            map_rows.append({"city": c, "keyword": best_kw, "position": None})
-    # Sort rows: ranked first (best position), then unranked.
-    map_rows.sort(key=lambda r: (r["position"] is None, r["position"] or 0))
-    out["map_pack_rows"] = map_rows
-
-    # --- Recent review TEXT + real sampled distribution (async reviews task) ---
-    # The dedicated reviews/live endpoint is 404 (does not exist); the async
-    # task_post/task_get IS subscribed and returns full review text. Only worth the
-    # ~10-30s poll when we actually located the GMB.
-    if out.get("gmb_found"):
-        rev = _fetch_reviews_async(brand_name, city, state, domain, location_code,
-                                   place_id=out.get("gmb_place_id", ""))
-        if rev.get("recent_reviews"):
-            out["recent_reviews"] = rev["recent_reviews"]
-        # Fill rating/count if my_business_info somehow didn't (defensive).
-        if out.get("review_avg", 0) == 0 and rev.get("review_avg", 0) > 0:
-            out["review_avg"]   = rev["review_avg"]
-            out["review_count"] = rev["review_count"]
-        # Prefer the REAL profile distribution (my_business_info rating_distribution); only
-        # use the async sampled distribution when we don't already have a real one.
-        if not out.get("_review_dist_real") and rev.get("rating_distribution"):
-            dist = rev["rating_distribution"]
-            out["review_distribution"] = dist
-            total_dist = max(1, sum(dist.values()))
-            out["review_dist_pcts"] = {k: round((v / total_dist) * 100, 1) for k, v in dist.items()}
+    for c in cities[:3]:
+        pos = None
+        try:
+            result = dfs_post("serp/google/maps/live/advanced", [
+                {
+                    "keyword": service,
+                    "location_name": f"{c},{state},{_country_name}",
+                    "language_code": "en",
+                }
+            ])
+            items = dfs_get_items(result)
+            out["_local_available"] = True   # map pack query executed (a no-match is a real local finding)
+            clean_domain = domain.lower().replace("www.", "")
+            for item in items:
+                d = (item.get("domain") or "").lower().replace("www.", "")
+                if clean_domain in d or d in clean_domain:
+                    pos = int(item.get("rank_absolute") or 0) or None
+                    break
+        except Exception as e:
+            print(f"[WARN] Map pack fetch for {c}: {e}", file=sys.stderr)
+        out["map_pack_positions"][c] = pos
 
     # --- GBP Q&A (business_data/google/questions_and_answers/live) ---
     out.update(_fetch_gbp_qna(brand_name, city, state, location_code))
