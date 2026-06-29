@@ -257,6 +257,33 @@ def _confident_match(name: str, domain: str, title: str) -> bool:
     return False
 
 
+def _strong_named_domain_from_organic(key: str, name: str, query: str,
+                                      excluded: set, num: int = 10) -> str:
+    """Return a domain ONLY when the FULL distinctive brand slug is the domain label of a
+    non-excluded organic result — an unmistakable own-site match (e.g.
+    'torontosprayfoamparts' is the label of 'torontosprayfoamparts.ca'). This is the SAFE
+    way to recover a real site when a business's Google listing omits its website field:
+    the bar (entire brand slug ⊆ domain label, ≥6 chars) is far too strict to ever match an
+    aggregator (doordash). The search uses the LOCATION-biased query (name+city+state) so a
+    generic name resolves to the LOCAL business, not a same-name shop elsewhere. Works even
+    when location is given at province granularity (the name itself anchors it). (Added 2026-06-29.)"""
+    full = _name_slug(name)
+    if len(full) < 6:
+        return ""   # short/generic slug isn't distinctive enough to trust without corroboration
+    try:
+        res = _serper_search(key, query or name, num=num) or []
+    except Exception:
+        res = []
+    for o in res:
+        host = _host((o or {}).get("link") or "")
+        if not host or _is_excluded(host, excluded):
+            continue
+        label = _norm(host.split(".")[0])
+        if full in label:
+            return host
+    return ""
+
+
 def find_domain(name: str, city: str = "", state: str = "", num: int = 20) -> dict:
     """Search + rank candidate domains. Never raises."""
     name = (name or "").strip()
@@ -284,9 +311,21 @@ def find_domain(name: str, city: str = "", state: str = "", num: int = 20) -> di
             out["source"] = "places"
             out["gmb_found"] = True
             return out
-        # The business EXISTS (found in Places) but has NO own website (or only an
-        # aggregator listed) → GREENFIELD. Do NOT fall through to organic guessing,
-        # which produces wrong-business / same-name-other-city / aggregator results.
+        # The business EXISTS (found in Places) but its GMB lists NO website. Before
+        # declaring GREENFIELD, try ONE strict recovery: an organic result whose domain
+        # label IS the full brand slug (torontosprayfoamparts.ca). Many real businesses
+        # simply never added their site to their Google listing while the site ranks #1
+        # for their exact name — declaring them greenfield runs an empty no-website report
+        # for a company that actually has strong SEO. The full-slug bar can't match an
+        # aggregator/same-name-other-city, so this stays safe. (Fixed 2026-06-29.)
+        strong = _strong_named_domain_from_organic(key, name, q_full or name, excluded)
+        if strong:
+            out["candidates"] = [{"domain": strong, "title": place.get("title") or name, "rank": 1}]
+            out["best"] = strong
+            out["confident"] = True
+            out["source"] = "organic-exact-name"
+            out["gmb_found"] = True
+            return out
         out["gmb_found"] = True
         out["no_website"] = True
         out["place_name"] = place.get("title") or name
@@ -333,7 +372,13 @@ def find_domain(name: str, city: str = "", state: str = "", num: int = 20) -> di
         # City corroboration: a confident hit for a located business must reference
         # that city (in title or domain), else a same-name business in another city
         # (e.g. 'Talk of the Town' Overland Park KS vs Bowmanville ON) matches wrongly.
-        if _conf and city:
+        # EXCEPTION: when the FULL brand slug IS the domain label (torontosprayfoamparts.ca),
+        # the own-site signal is unambiguous and city corroboration must NOT veto it — the
+        # corroboration is for generic names, and a province-granularity 'city' (e.g.
+        # 'Ontario Canada') never appears verbatim in a real city-address title/domain.
+        _full_slug_in_label = (len(_name_slug(name)) >= 6
+                               and _name_slug(name) in _norm(host.split(".")[0]))
+        if _conf and city and not _full_slug_in_label:
             cnorm = _norm(city)
             if cnorm and cnorm not in _norm(title) and cnorm not in _norm(host):
                 _conf = False

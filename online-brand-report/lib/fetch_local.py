@@ -20,6 +20,31 @@ _US_STATES = {
     "WV":"west virginia","WI":"wisconsin","WY":"wyoming","DC":"district of columbia",
 }
 
+# CA/region full-name → 2-letter abbreviation. Lets a province-GRANULARITY location
+# (e.g. city='Ontario Canada', a province, not a city) confirm an in-province listing
+# whose address writes 'ON', not 'Ontario'. Purely ADDITIVE to _loc_ok — the strict
+# city-substring accept is unchanged, so real-city inputs still reject cross-city
+# name-collisions exactly as before. (Added 2026-06-29.)
+_PROVINCES = {
+    "ontario":"on","quebec":"qc","québec":"qc","british columbia":"bc","alberta":"ab",
+    "manitoba":"mb","saskatchewan":"sk","nova scotia":"ns","new brunswick":"nb",
+    "newfoundland and labrador":"nl","newfoundland":"nl","prince edward island":"pe",
+    "northwest territories":"nt","nunavut":"nu","yukon":"yt",
+}
+_GEO_FILLER = {"canada","usa","us","united","states","america"}
+
+
+def _region_granularity_ok(txt: str, city: str, state: str) -> bool:
+    """ADDITIVE accept path for when the caller gave a PROVINCE/REGION as 'city' (no real
+    city). Confirms only when the haystack carries that province's name or 2-letter
+    abbreviation (as a standalone token). Returns False for a real-city input, so it never
+    weakens the strict city check. Never accepts on a bare country word ('Canada')."""
+    combo = f"{(city or '').lower()} {(state or '').lower()}"
+    for full, ab in _PROVINCES.items():
+        if full in combo and (full in txt or re.search(rf'\b{ab}\b', txt)):
+            return True
+    return False
+
 def _loc_haystack(obj):
     """Lowercased location text from whatever address-ish fields a GMB object carries."""
     parts = []
@@ -48,7 +73,14 @@ def _loc_ok(obj, city, state):
         # City is the strong discriminator. Require it — a generic-named business in a
         # DIFFERENT city, even within the same state (e.g. Monterey Park vs Sacramento),
         # is not them. For a business with no GMB, no twin will be in-city → rejected.
-        return cy in txt
+        if cy in txt:
+            return True
+        # ADDITIVE: when 'city' is actually a province/region (e.g. 'Ontario Canada'),
+        # the literal substring never matches a real city address — confirm at region
+        # granularity instead so a valid in-province GMB isn't dropped. Real-city inputs
+        # don't trigger this (the province check returns False), so cross-city collisions
+        # are still rejected exactly as before.
+        return _region_granularity_ok(txt, city, state)
     if st:
         full = _US_STATES.get(st, "")
         return bool(re.search(rf'\b{st.lower()}\b', txt) or (full and full in txt))

@@ -59,30 +59,6 @@ _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 
 CLAUDE_ENV_WRAPPER = "/home/mike/MIKE-AI/scripts/with-claude-env.sh"
-# Hardened Claude entrypoint: a DROP-IN for `claude` that fails over to Z.AI (z-code)
-# when the metered account is CAPPED / rate-limited / overloaded. The old raw
-# `claude -p --model sonnet` had no failover — a weekly/usage cap (or any transient
-# error) returned rc=1 with empty output, which collapsed service-detection to the
-# "your service" placeholder and produced an all-empty report. (Hardened 2026-06-29.)
-CLAUDE_CC = "/home/mike/MIKE-AI/scripts/claude-cc.sh"
-
-
-def _run_claude_profile(prompt: str, timeout: int):
-    """Call the hardened claude entrypoint once. Returns (rc, stdout) or (None, '')
-    on a launch-level exception. Routes through claude-cc.sh so a capped/rate-limited
-    primary account transparently fails over to z-code instead of dying rc=1."""
-    import os as _os
-    _claude = CLAUDE_CC if _os.path.exists(CLAUDE_CC) else "claude"
-    try:
-        proc = subprocess.run(
-            ["bash", "-lc",
-             f"source {CLAUDE_ENV_WRAPPER} 2>/dev/null; "
-             f"exec {_claude} -p --model sonnet"],
-            input=prompt, capture_output=True, text=True, timeout=timeout)
-        return proc.returncode, (proc.stdout or "")
-    except Exception as e:
-        print(f"[llm_profile] claude call failed: {e}", file=sys.stderr)
-        return None, ""
 
 
 # ── Homepage fetch ────────────────────────────────────────────────────────────
@@ -310,24 +286,22 @@ Return ONLY a single JSON object (no prose, no markdown fences) with EXACTLY the
                   "(no homepage and no business name)", file=sys.stderr)
             return {}
 
-        # ONE retry on an empty/error result — a transient cap/rate-limit can fail the
-        # first attempt; claude-cc.sh fails over to z-code, and a second try catches a
-        # blip. The deterministic name/GMB fallback in generate.py still backstops a
-        # total miss, so service NEVER collapses silently to the placeholder.
-        rc, stdout = None, ""
-        for _attempt in range(2):
-            rc, stdout = _run_claude_profile(prompt, timeout)
-            if rc == 0 and stdout.strip():
-                break
-            print(f"[llm_profile] attempt {_attempt + 1} empty/err "
-                  f"(rc={rc}) — retrying" if _attempt == 0 else
-                  f"[llm_profile] unavailable, falling back (rc={rc}, empty/err output)",
+        try:
+            proc = subprocess.run(
+                ["bash", "-lc",
+                 f"source {CLAUDE_ENV_WRAPPER} 2>/dev/null; claude -p --model sonnet"],
+                input=prompt, capture_output=True, text=True, timeout=timeout)
+        except Exception as e:
+            print(f"[llm_profile] unavailable, falling back (claude call failed: {e})",
                   file=sys.stderr)
-
-        if rc != 0 or not stdout.strip():
             return {}
 
-        obj = _extract_json_object(stdout)
+        if proc.returncode != 0 or not (proc.stdout or "").strip():
+            print(f"[llm_profile] unavailable, falling back "
+                  f"(rc={proc.returncode}, empty/err output)", file=sys.stderr)
+            return {}
+
+        obj = _extract_json_object(proc.stdout)
         if not obj:
             print("[llm_profile] unavailable, falling back (no JSON in output)",
                   file=sys.stderr)

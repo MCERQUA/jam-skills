@@ -3,7 +3,7 @@
 import sys
 import requests
 from datetime import date, timedelta
-from .config import dfs_post, dfs_get_result0, dfs_get_items, dfs_task_ok, CC_BACKLINKS_URL
+from .config import dfs_post, dfs_get_result0, dfs_get_items, CC_BACKLINKS_URL
 from .fetch_ahrefs import fetch_domain_rating, enrich_domains_with_dr
 
 def _fetch_bl_history(domain: str) -> dict:
@@ -97,20 +97,11 @@ def fetch_backlinks(domain: str) -> dict:
         ahrefs = fetch_domain_rating(domain)
         out["ahrefs_dr"]   = ahrefs["dr"]
         out["ahrefs_rank"] = ahrefs["ahrefs_rank"]
-        # Ahrefs DR is an independent authority source. Mark the backlinks/authority
-        # dimension measurable ONLY when the free endpoint returned a REAL DR (> 0).
-        # The free domain-rating endpoint only covers a SAMPLE of domains and returns a
-        # genuine HTTP-200 `domain_rating: 0.0` for many established sites (esp. ccTLDs
-        # like *.ca) that simply aren't in its free sample — that is "no data", NOT a
-        # measured zero. Previously `_ok` (true on any 200, even DR 0) flipped this on,
-        # so a strong domain whose free-DR was 0 AND whose DataForSEO backlinks summary
-        # was unavailable got the 15%-weighted backlinks dimension scored 0 and marked
-        # "available" (weight NOT redistributed) → strong domains were dragged to an F
-        # while weaker domains that happened to be in Ahrefs' free cache scored well
-        # (the "stronger competitor shows no SEO strength" inversion). Requiring DR > 0
-        # here lets a free-DR miss redistribute the weight to the dimensions we CAN
-        # measure instead of false-zeroing authority. (Fixed 2026-06-29.)
-        if ahrefs.get("dr", 0) > 0:
+        # Ahrefs DR is an independent authority source. When its lookup SUCCEEDS the
+        # backlinks/authority dimension IS measurable — even if DataForSEO's backlinks
+        # summary endpoint is unavailable on this account. Without this the dimension was
+        # dropped to None (excluded from the score) despite a real DR being fetched.
+        if ahrefs.get("_ok"):
             out["_backlinks_available"] = True
     except Exception as e:
         print(f"[INFO] Ahrefs DR fetch skipped: {e}", file=sys.stderr)
@@ -120,13 +111,9 @@ def fetch_backlinks(domain: str) -> dict:
         result = dfs_post("backlinks/summary/live", [
             {"target": domain, "backlinks_status_type": "live"}
         ])
-        # Distinguish "API denied/unsubscribed" (40204) from a real empty result. Only a
-        # task that actually SUCCEEDED counts as real backlink data — a denied task must
-        # NOT mark the dimension available, or it false-zeros authority for every domain.
-        _summary_ok = dfs_task_ok(result, "backlinks/summary/live")
-        r0 = dfs_get_result0(result) if _summary_ok else {}
-        if _summary_ok and r0:
-            out["_backlinks_available"]  = True   # endpoint responded with real data (incl. real zeros)
+        r0 = dfs_get_result0(result)
+        if r0:
+            out["_backlinks_available"]  = True   # endpoint responded — data is real (incl. real zeros)
             out["domain_rank"]           = int(r0.get("rank") or 0)
             out["backlinks_total"]       = int(r0.get("backlinks") or 0)
             out["referring_domains_total"]= int(r0.get("referring_domains") or 0)

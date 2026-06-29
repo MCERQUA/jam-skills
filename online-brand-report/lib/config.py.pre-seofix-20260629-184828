@@ -69,31 +69,6 @@ def dfs_post(endpoint: str, payload: list, timeout: int = 60, retries: int = 2) 
             return {}
     return {}
 
-def dfs_task_ok(result: dict, endpoint: str = "") -> bool:
-    """True only when the FIRST task in a DataForSEO response succeeded (status_code 20000).
-
-    DataForSEO returns HTTP 200 even when a specific API is unsubscribed/denied — the
-    failure lives in tasks[0].status_code (e.g. 40204 "Access denied. Visit Plans and
-    Subscriptions ..." for an inactive Backlinks subscription). dfs_get_items/result0
-    only swallow KeyError/IndexError/TypeError, so a 40204 was indistinguishable from a
-    genuine empty result → callers treated "you don't pay for this API" the same as
-    "this domain has no backlinks", silently zeroing the dimension. This surfaces the
-    distinction (and logs non-20000 task codes) so callers can mark the dimension
-    UNAVAILABLE instead of scoring a false zero. (Added 2026-06-29.)
-    """
-    try:
-        t0 = result.get("tasks", [{}])[0] or {}
-        sc = t0.get("status_code")
-        if sc is None:
-            return False
-        if sc != 20000:
-            print(f"[DFS-ERR] {endpoint or '(task)'}: status {sc} "
-                  f"{t0.get('status_message', '')}", file=sys.stderr)
-            return False
-        return True
-    except Exception:
-        return False
-
 def dfs_get_items(result: dict) -> list:
     """Extract items from a DataForSEO task result safely."""
     try:

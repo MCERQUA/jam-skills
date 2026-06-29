@@ -263,104 +263,36 @@ def _service_from_meta(desc: str) -> str:
     return best
 
 
-# Org / generic tail words that aren't part of the service descriptor in a business
-# NAME ('Toronto SprayFoam parts' → drop 'parts'). Generic — no per-business hardcoding.
-_NAME_ORG_NOISE = {
-    "parts", "supply", "supplies", "service", "services", "solutions", "group",
-    "shop", "store", "company", "co", "inc", "llc", "ltd", "corp", "the", "and",
-    "of", "your", "pro", "pros", "experts", "expert", "specialists", "specialist",
-}
-# Service head-nouns that appear in business NAMES but aren't in _SERVICE_NOUNS
-# (which targets homepage meta). 'foam' catches spray-foam businesses by name.
-_NAME_SERVICE_NOUNS = set(_SERVICE_NOUNS) | {"foam", "spray foam"}
-
-
-def _camel_split(s: str) -> str:
-    """Insert a space at lower→Upper boundaries so 'SprayFoam' → 'Spray Foam'."""
-    import re as _re
-    return _re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s or "")
-
-
-def _service_from_name(name: str, city: str = "", state: str = "") -> str:
-    """Deterministic LAST-RESORT service seed derived from the business NAME — used when
-    there's no website AND no GMB AND the LLM profile was unavailable, so the report is
-    NEVER seeded with the 'your service' placeholder when a real name exists. Generic, no
-    per-business hardcoding. Strategy:
-      • camel-split + drop org/noise tail words and any token that matches the supplied
-        city/state (geo), leaving the content words;
-      • if a service head-noun is present, return it plus up to one preceding word
-        ('Toronto SprayFoam parts' → 'spray foam'; 'Spartan Coating Systems' → 'spartan
-        coating'); else fall back to the trailing 2-3 content words (a 'City Service Org'
-        name puts the service after the city prefix)."""
-    import re as _re
-    if not (name or "").strip():
-        return ""
-    n = _strip_geo_tail(_camel_split(name))
-    toks = _re.findall(r"[A-Za-z][A-Za-z'&-]*", n)
-    geo = set()
-    for g in (city, state):
-        for w in _re.findall(r"[A-Za-z]+", (g or "").lower()):
-            if len(w) >= 3:
-                geo.add(w)
-    content = [t.lower() for t in toks
-               if t.lower() not in _NAME_ORG_NOISE and t.lower() not in geo]
-    if not content:
-        return ""
-    joined = " ".join(content)
-    # 1) service head-noun (longest match first so 'spray foam' beats 'foam').
-    #    A MULTI-WORD noun is already a complete service term ('spray foam') → return it
-    #    as-is. A SINGLE-WORD noun ('repair', 'insulation') takes one preceding qualifier
-    #    word ('rim repair', 'foam insulation') — that word is the service modifier, not
-    #    brand/geo noise in the common case.
-    for noun in sorted(_NAME_SERVICE_NOUNS, key=len, reverse=True):
-        multiword = " " in noun
-        pat = (_re.escape(noun) if multiword
-               else r"(?:\w+\s+)?" + _re.escape(noun)) + r"s?\b"
-        m = _re.search(pat, joined)
-        if m:
-            phrase = _clean_service(m.group(0))
-            if phrase and phrase.lower() not in _PLACEHOLDER_SERVICES and 3 <= len(phrase) <= 40:
-                return phrase
-    # 2) trailing 2-3 content words
-    cand = _clean_service(" ".join(content[-3:]))
-    if cand and cand.lower() not in _PLACEHOLDER_SERVICES and 3 <= len(cand) <= 50:
-        return cand
-    return ""
-
-
-def detect_service(domain: str, brand_data: dict,
-                   name: str = "", city: str = "", state: str = "") -> str:
+def detect_service(domain: str, brand_data: dict) -> str:
     """Best-effort primary-service detection from signals the report already pulls.
     Fully DETERMINISTIC (no LLM — Groq LLM is banned). Order:
       (1) GMB primary category — authoritative ('Screen printing shop' → 'screen printing');
       (2) homepage meta head-term — a real service phrase from the description;
-      (3) homepage title descriptor / first meta clause — last-resort seed;
-      (4) business-NAME fallback — works even with NO website/GMB, so the report is never
-          seeded with 'your service' when a real business name exists.
-    Returns "" only when even the name yields nothing usable."""
+      (3) homepage title descriptor / first meta clause — last-resort seed.
+    Returns "" if nothing usable (caller keeps prior 'your service' behavior)."""
     # 1) GMB primary category
     cats = (brand_data or {}).get("gmb_categories") or []
     if cats:
         cat = _clean_service(str(cats[0]))
         if cat and cat.lower() not in _PLACEHOLDER_SERVICES:
             return cat
-    # Homepage signals (only when there's a domain to probe)
-    title, desc = _probe_homepage_meta(domain) if domain else ("", "")
-    if title or desc:
-        # 2) meta head-term (clean keyword the engine can expand)
-        meta_term = _service_from_meta(desc)
-        if meta_term and 3 <= len(meta_term) <= 40:
-            return meta_term
-        # 3) title descriptor, then first meta clause (last resort)
-        cand = _clean_service(_service_from_title(title))
-        if not (cand and cand.lower() not in _PLACEHOLDER_SERVICES and 3 <= len(cand) <= 60):
-            import re as _re
-            first_clause = _re.split(r"[.;|–—\-]", desc)[0] if desc else ""
-            cand = _clean_service(first_clause)
-        if cand and cand.lower() not in _PLACEHOLDER_SERVICES and 3 <= len(cand) <= 70:
-            return cand
-    # 4) business-NAME fallback (no website / no GMB / LLM unavailable)
-    return _service_from_name(name, city, state)
+    # Homepage signals
+    title, desc = _probe_homepage_meta(domain)
+    if not (title or desc):
+        return ""
+    # 2) meta head-term (clean keyword the engine can expand)
+    meta_term = _service_from_meta(desc)
+    if meta_term and 3 <= len(meta_term) <= 40:
+        return meta_term
+    # 3) title descriptor, then first meta clause (last resort)
+    cand = _clean_service(_service_from_title(title))
+    if not (cand and cand.lower() not in _PLACEHOLDER_SERVICES and 3 <= len(cand) <= 60):
+        import re as _re
+        first_clause = _re.split(r"[.;|–—\-]", desc)[0] if desc else ""
+        cand = _clean_service(first_clause)
+    if cand and cand.lower() not in _PLACEHOLDER_SERVICES and 3 <= len(cand) <= 70:
+        return cand
+    return ""
 
 
 # ── Country / location_code resolver ──────────────────────────────────────────
@@ -495,52 +427,6 @@ def resolve_location_code(state: str, city: str = "", domain: str = "") -> int:
     return DFS_LOCATION_US
 
 
-# Province / region full-name → 2-letter abbreviation, for region-granularity GMB
-# confirmation (a GMB address writes 'ON', not 'Ontario').
-_PROV_ABBR = {
-    "ontario": "on", "quebec": "qc", "québec": "qc", "british columbia": "bc",
-    "alberta": "ab", "manitoba": "mb", "saskatchewan": "sk", "nova scotia": "ns",
-    "new brunswick": "nb", "newfoundland and labrador": "nl", "newfoundland": "nl",
-    "prince edward island": "pe", "northwest territories": "nt", "nunavut": "nu",
-    "yukon": "yt",
-}
-# Country / filler words that must NOT count as a location-confirmation token (a bare
-# 'Canada' match would confirm ANY Canadian listing → re-opens cross-city contamination).
-_GEO_STOPWORDS = {"canada", "usa", "united", "states", "america", "the", "and"}
-
-
-def gmb_city_confirmed(city: str, state: str, gmb_addr: str) -> bool:
-    """True when a GMB address plausibly belongs to the requested location, WITHOUT the
-    over-strict 'whole city string must be a literal substring' test that dropped valid
-    GMB data for region-granularity inputs (e.g. city='Ontario Canada', a province, never
-    appears verbatim in '…, Toronto, ON M5H, Canada'). Still guards cross-city
-    contamination: requires a real geo-token overlap, not just a same name. Confirms when:
-      • the full city string is a substring of the address (original strict path), OR
-      • any city/state word ≥4 chars (excluding country/filler words) appears as a token, OR
-      • the input names a province/region and the address carries that province's
-        2-letter abbreviation as a standalone token (region-level confirmation)."""
-    import re as _re
-    addr = (gmb_addr or "").lower()
-    if not addr:
-        return False
-    city_l = (city or "").lower().strip()
-    if city_l and city_l in addr:
-        return True
-    addr_tokens = set(_re.findall(r"[a-zà-ÿ]+", addr))
-    want = set()
-    for g in (city, state):
-        for w in _re.findall(r"[a-zà-ÿ]+", (g or "").lower()):
-            if len(w) >= 4 and w not in _GEO_STOPWORDS:
-                want.add(w)
-    if want & addr_tokens:
-        return True
-    combo = f"{city_l} {(state or '').lower()}"
-    for full, ab in _PROV_ABBR.items():
-        if full in combo and _re.search(r"\b" + ab + r"\b", addr):
-            return True
-    return False
-
-
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -612,19 +498,16 @@ def main():
             print(f"    Auto-detected service/vertical (LLM): '{service}' "
                   f"(was empty/placeholder) → seeds keyword research", file=sys.stderr)
         else:
-            # FALLBACK: deterministic detection from GMB/homepage signals, then the
-            # business NAME (so a no-website prospect whose LLM call failed still gets a
-            # real vertical seed instead of the 'your service' placeholder).
-            detected_service = detect_service(domain, brand_data,
-                                              name=name, city=city, state=state)
+            # FALLBACK: deterministic regex detection from GMB/homepage signals.
+            detected_service = detect_service(domain, brand_data)
             if detected_service:
                 service = detected_service
-                print(f"    Auto-detected service/vertical (regex/name): '{service}' "
+                print(f"    Auto-detected service/vertical (regex): '{service}' "
                       f"(LLM gave nothing; was empty/placeholder) → seeds keyword research",
                       file=sys.stderr)
             else:
                 print("    Service auto-detect: no reliable vertical found "
-                      "(LLM + GMB/homepage/name gave nothing) — proceeding without seed",
+                      "(LLM + GMB/homepage gave nothing) — proceeding without seed",
                       file=sys.stderr)
 
     organic_data    = _run("organic/keywords",  fetch_organic.fetch_organic,   domain, location_code=location_code)
@@ -758,11 +641,7 @@ def main():
     # unconfirmed name-collision panel does not. No confirmation → honest "no local presence":
     # drop the inherited rating/review data before it reaches the score.
     _gmb_addr = (data.get("gmb_address") or "").lower()
-    # Token/region-aware confirmation — a literal whole-city substring test dropped valid
-    # GMB data whenever the location was given at province/region granularity (e.g.
-    # 'Ontario Canada'). gmb_city_confirmed() still requires a real geo overlap so the
-    # 'EZ Roofing' cross-city contamination stays blocked. (Fixed 2026-06-29.)
-    _gmb_confirmed = bool(city) and gmb_city_confirmed(city, state, _gmb_addr)
+    _gmb_confirmed = bool(city) and city.lower() in _gmb_addr
     if not _gmb_confirmed:
         _dropped = data.get("gmb_review_count", 0) or data.get("review_count", 0)
         if _dropped:
