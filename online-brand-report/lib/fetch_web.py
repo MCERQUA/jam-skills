@@ -61,9 +61,15 @@ def fetch_web(domain: str) -> dict:
     try:
         # Correct endpoint is /live/json — the old /live path 404'd, leaving the web
         # section empty. /live/json returns 20000 with real Lighthouse data. (Fixed 2026-06-01.)
+        # TIMEOUT: the live Lighthouse audit routinely takes ~120-200s server-side, so the
+        # default 60s read-timeout ALWAYS timed out (both retries), leaving the web/Lighthouse
+        # section empty on real domains. Give it one solid 240s window. (Fixed 2026-06-29 —
+        # the toronto-sprayfoam-parts report came back with an empty Lighthouse section because
+        # of exactly this: '[RETRY 1/2] dfs_post on_page/lighthouse/live/json: Read timed out
+        # (read timeout=60)'.)
         result = dfs_post("on_page/lighthouse/live/json", [
             {"url": f"https://{domain}", "for_mobile": False}
-        ])
+        ], timeout=240, retries=1)
         # dfs_post returns {} on error (no raise) — check for valid response
         if not result.get("tasks"):
             raise ValueError("Lighthouse endpoint unavailable or not subscribed")
