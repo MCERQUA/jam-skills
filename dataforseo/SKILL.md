@@ -314,6 +314,23 @@ Check `tasks[0].status_code` — 20100 = success. Data at `tasks[0].result[0].it
 Access fields directly: `item.keyword`, `item.keyword_info.search_volume`, `item.keyword_properties.keyword_difficulty`.
 Do NOT use `item.keyword_data.keyword` — that field does not exist.
 
+### ⚠️ GOTCHA — a `200` / `20000` is NOT proof there's data (empty `tasks[]` / empty `result`)
+
+DataForSEO returns **HTTP 200 + `status_code: 20000` with an EMPTY `tasks` array (or `tasks[0].result: null`)** when a query simply has no data — a low/zero-volume keyword, a PAA expansion at depth that yields nothing, a domain with no backlinks. This is NOT an HTTP error, so code that treats `200 == success` and indexes straight into `tasks[0].result[0].items` will either raise a `KeyError`/`IndexError` (often caught-and-silenced) or, worse, **fabricate downstream structure from nothing — hallucinated SERP/PAA data that looks real.** (Observed: ~3-4 silent empty-return calls in one week of PAA `click_depth: 2` work — src-desktop, 2026-W26.)
+
+**ALWAYS guard before field access:**
+```python
+data = resp.json()
+tasks = data.get("tasks") or []
+if not tasks or tasks[0].get("status_code") != 20100 or not tasks[0].get("result"):
+    log.warning("DataForSEO empty/failed: status=%s tasks=%d result=%s",
+                data.get("status_code"), len(tasks),
+                bool(tasks and tasks[0].get("result")))
+    return None              # do NOT proceed to tasks[0]["result"][0]
+items = tasks[0]["result"][0].get("items") or []
+```
+**Rule:** log the raw response *shape* (top status + `len(tasks)` + result-present bool) before processing every call — even 200s — and return early on empty. Never let an empty array become invented data. (Standing platform rule; promoted from the 2026-W26 learning-consolidation meeting.)
+
 ---
 
 ## SEO Data Persistence
