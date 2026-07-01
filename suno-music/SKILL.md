@@ -22,6 +22,59 @@ There are **three correct methods**:
 
 ---
 
+## ⚠️ Delivering a song to the user — DOWNLOAD LINKS (voice / SMS / email)
+
+A real client asked "give me a link to download it" and the agent failed five times: it
+invented `[CANVAS:song-download]` pages that render blank, and handed out
+`https://DOMAIN/music/<slug>.mp3` URLs that return `{"error":"Track not found"}` (the
+client saw a JSON "pretty print" page). Generated songs are **NOT** under `/music/`.
+Fixed 2026-06-30 — follow these rules so it never recurs:
+
+**The one correct download link (works from any phone browser, no login, texts/emails fine):**
+```
+https://DOMAIN/generated_music/FILENAME?download=1
+```
+- `DOMAIN` = this tenant's domain (e.g. `src.jam-bot.com`).
+- `FILENAME` = the **EXACT** file name from the Generated track list (e.g. `shop-bay-wisdom.mp3`). Never invent or re-slug it.
+- `?download=1` makes the browser **save** the file (sends `Content-Disposition: attachment` with a friendly name). Drop it if you just want it to play inline.
+- `/generated_music/` is a **public** path — the link works with no Clerk login, so it's exactly what you text or email a client.
+
+**"Play / link the LAST song you made":** there is one authoritative source — do not guess.
+```bash
+curl -s "http://localhost:5001/api/music?action=latest"
+# → {"track":{"filename":"...","title":"...","download_url":"/generated_music/...?download=1"}}
+```
+The voice agent also receives this every turn as `[Latest generated song: '<title>' (file: <file>) — download link: ...]` in context. Use that filename; never alphabetically guess.
+
+**"Link the song CALLED X" (a SPECIFIC named song, not the latest):** this is where the agent
+burned a client for hours (2026-06-30/07-01) — they asked for "Shop Bay Wisdom" over and over,
+it wasn't the newest track, and the agent kept guessing wrong `/music/` URLs. **Never guess a
+filename from the title.** Resolve it against the real list:
+```bash
+# list every generated track with its EXACT filename + title
+curl -s "http://localhost:5001/api/music?action=list&playlist=generated" \
+  | python3 -c "import sys,json; [print(t['filename'],'::',t.get('name','')) for t in json.load(sys.stdin).get('files',[])]"
+# → shop-bay-wisdom.mp3 :: Shop Bay Wisdom
+#   by-the-shop-light.mp3 :: By The Shop Light   ...
+```
+Pick the row whose title matches what the client said, take its **exact `filename`**, and build
+`https://DOMAIN/generated_music/<filename>?download=1`. If several match (e.g. `-2` variants), ask
+which one or offer the newest by mtime — do NOT silently pick one and do NOT hand over three links.
+
+**If the client says "the link doesn't work on my phone":** the link is fine (verified: `HTTP 200,
+Content-Type audio/mpeg, Content-Disposition attachment`). The failure is almost always that you
+sent a `/music/<slug>` URL or a `[CANVAS:...]` page, NOT the `/generated_music/<exact-file>?download=1`
+link. Re-send the correct link above — do not invent a new delivery mechanism, do not attach it to a
+video unless they explicitly ask for a video.
+
+**Hard rules:**
+- ❌ NEVER use `/music/<file>` for a generated song — that route serves the (usually empty) library dir → 404 JSON.
+- ❌ NEVER emit a `[CANVAS:...]` page for a download — there is no download page; use the direct link.
+- ❌ NEVER dump the entire track list of raw URLs at the user. Give the ONE link they asked for.
+- ✅ For SMS/email, the same `https://DOMAIN/generated_music/<file>?download=1` link is the deliverable.
+
+---
+
 ## Short-Form Audio Tools — One Tool Per Recipe
 
 **Design principle:** Each short-form audio variant (vocal jingle, instrumental sting, phone hold greeting, podcast bumper, etc.) is its own discrete tool with its own template that gets iterated until reliable. **Don't try to make one tool do everything.** Each recipe has different prompt structure, different style needs, different ideal length, and different tuning history. Mixing them in one endpoint produces unreliable output.
