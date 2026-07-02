@@ -108,29 +108,29 @@ Users served: <Rule A/B/C output — FIRST LINE, machine-readable>
 
 ---
 
-### STEP 4 — BLACKBOARD write
+### STEP 4 — BLACKBOARD write (SKIP in webtop containers — mesh-chat is canonical)
 
-Write the reflection to the nightly BLACKBOARD:
+**[FIXED 2026-07-01 popup-meeting ADOPT]** `/mnt/agent-mesh` is NOT bind-mounted in the
+webtop desktop containers — this step silently failed there for weeks (bun-desktop
+confirmed), reducing attribution anchors. **The Step 3 `mesh-chat post` IS the canonical
+publish lane**; synthesize promotes chatroom events to per-agent BLACKBOARD files itself.
+
+Only attempt the direct write when the blackboard is actually mounted:
 
 ```bash
-# Path:
-/mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/<YYYY-MM-DD>/<agent-name>.md
-
-# Create date dir if absent:
-mkdir -p /mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/<YYYY-MM-DD>
-
-# Write (never append — overwrite is idempotent, fine for single-agent output):
-cat > /mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/<YYYY-MM-DD>/<agent-name>.md << 'EOF'
+if [ -d /mnt/agent-mesh/mesh/BLACKBOARD ]; then
+  mkdir -p /mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/<YYYY-MM-DD>
+  cat > /mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/<YYYY-MM-DD>/<agent-name>.md << 'EOF'
 <reflection content>
 EOF
+  echo "<YYYY-MM-DD>" > /mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/LATEST.md
+else
+  # Webtop container: no blackboard mount — Step 3's mesh-chat post already published.
+  echo "blackboard not mounted — mesh-chat post (Step 3) is the canonical record, skipping"
+fi
 ```
 
 **File naming is structural:** `<agent-name>.md` must match the `— <agent>@mesh` signature. The synthesizer globs `*.md` in the date dir and keys on filename for attribution.
-
-Also update `LATEST.md` pointer if it's stale:
-```bash
-echo "<YYYY-MM-DD>" > /mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/LATEST.md
-```
 
 ---
 

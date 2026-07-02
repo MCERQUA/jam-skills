@@ -8,6 +8,13 @@ metadata: {"openclaw": {"requires": {"env": ["HF_TOKEN"], "anyBins": ["curl"]}}}
 
 Access the Hugging Face Inference Providers API to run open-source AI models on demand.
 
+> ## 🎨 THIS IS THE IMAGE-GENERATION PATH FOR VOICE/OPENCLAW AGENTS
+> The built-in `image_generate` tool is **DISABLED** (it was hardwired to fal.ai, whose
+> account is dead/empty — it would 403 and wedge the whole session). **To generate an
+> image, use this skill's Text-to-Image recipe below** (HF FLUX on the subscription quota
+> we already pay for — not pay-per-call). For **image→video**, use the **`wan-video`** skill.
+> **Always save the result to the tenant's uploads so it becomes a real server URL** (see §1).
+
 ## Authentication
 
 The `HF_TOKEN` environment variable is set automatically. Use it in all requests:
@@ -31,7 +38,7 @@ Default provider for free serverless inference: `hf-inference`
 Append a provider name to use a specific backend:
 
 - `hf-inference` — free serverless tier (default, best for image generation)
-- `fal-ai` — fast image/video generation
+- ~~`fal-ai`~~ — **DO NOT USE — our fal account is empty/dead (403 "Exhausted balance"). Use `hf-inference`.**
 - `together` — LLM chat
 - `replicate` — general purpose
 - `fireworks-ai`, `sambanova`, `cerebras`, `hyperbolic`, `novita`, `nebius`, `nscale`, `wavespeed`
@@ -40,24 +47,46 @@ Not all providers host all models. Use `hf-inference` for the broadest free acce
 
 ## Tasks & Examples
 
-### 1. Text to Image (MOST COMMON)
+### 1. Text to Image (MOST COMMON) — the voice-agent image recipe
 
-Generate images from text prompts. Returns binary image data (PNG).
+Generate images from text prompts. Returns binary image data (PNG). **Save it to the
+tenant's uploads** so you get a real server URL to show the user — never leave a generated
+image only in a temp path (paid output must persist to the server immediately).
 
 ```bash
-curl -s https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell \
+# Save DIRECTLY into the tenant's OVU uploads → served at https://<tenant>.jam-bot.com/uploads/<file>
+TENANT=src                                  # your tenant slug
+TS=$(date +%s)
+TMP="/tmp/ai-gen-$TS.bin"
+# Capture the Content-Type header so we save with the RIGHT extension.
+# NOTE: hf-inference FLUX returns JPEG (not PNG) — always derive the extension, never assume .png.
+CT=$(curl -s -D /tmp/ai-gen-$TS.hdr -o "$TMP" \
+  https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell \
   -H "Authorization: Bearer $HF_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"inputs": "A cyberpunk cityscape at sunset, neon lights reflecting on wet streets"}' \
-  -o /app/runtime/canvas-pages/generated-image.png
+  -w '%{content_type}')
+case "$CT" in
+  *jpeg*|*jpg*) EXT=jpg ;; *png*) EXT=png ;; *webp*) EXT=webp ;;
+  *) EXT=jpg ;;                             # HF image default is JPEG
+esac
+OUT="/mnt/clients/$TENANT/openvoiceui/uploads/ai-gen-$TS.$EXT"
+mv "$TMP" "$OUT"
+
+# ALWAYS verify it's a real image, not a JSON error body (check magic bytes):
+head -c 3 "$OUT" | od -An -tx1        # JPEG=ff d8 ff · PNG=89 50 4e — if you see "7b" ({), it's a JSON error: cat "$OUT"
+# Then show the user the SERVER URL (not the filesystem path):
+echo "https://$TENANT.jam-bot.com/uploads/ai-gen-$TS.$EXT"
 ```
 
-**IMPORTANT:** Always verify the output file is a valid image (not an error message):
-```bash
-file /app/runtime/canvas-pages/generated-image.png
-# Should say: PNG image data, ...
-# If it says: ASCII text — the API returned an error. Read the file to see the error.
-```
+> **Inside an openclaw voice container** your CWD maps to the tenant workspace and the uploads
+> folder is reachable as `/app/runtime/uploads/` or via the tenant path above. If unsure of
+> the exact mount, write to `uploads/ai-gen-<ts>.png` under the tenant's openvoiceui dir — the
+> file MUST land somewhere served at `/uploads/...`. Confirm the URL loads before telling the user it's ready.
+
+**Models:** `black-forest-labs/FLUX.1-schnell` (fast, RECOMMENDED — verified live), `black-forest-labs/FLUX.1-dev` (best quality, slower), `stabilityai/stable-diffusion-xl-base-1.0`.
+
+**If HF returns HTTP 503 "model loading":** wait ~15s and retry once (cold ZeroGPU start). Don't fall back to fal — it's dead.
 
 **Popular models:**
 - `black-forest-labs/FLUX.1-schnell` — fast, good quality (RECOMMENDED)

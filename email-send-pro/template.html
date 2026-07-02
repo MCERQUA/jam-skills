@@ -114,11 +114,13 @@
         <!-- Footer -->
         <tr>
           <td style="background-color:#f8fafc;padding:18px 32px;font-family:{{ b.body_font_stack }};color:#94a3b8;font-size:12px;line-height:1.55;text-align:center;border-top:1px solid #e5e7eb;">
-            <div style="margin-bottom:6px;">{{ b.footer_copy | e }}</div>
+            {% if b.footer_copy %}<div style="margin-bottom:6px;">{{ b.footer_copy | e }}</div>{% endif %}
+            {% if b.contact_url or b.unsubscribe_url %}
             <div>
-              <a href="https://jam-bot.com" style="color:#94a3b8;text-decoration:underline;">jam-bot.com</a>
-              {% if b.unsubscribe_url %} &nbsp;&middot;&nbsp; <a href="{{ b.unsubscribe_url | e }}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a>{% endif %}
+              {% if b.contact_url %}<a href="{{ b.contact_url | e }}" style="color:#94a3b8;text-decoration:underline;">{{ b.contact_url | e | replace("https://","") | replace("http://","") }}</a>{% endif %}
+              {% if b.unsubscribe_url %}{% if b.contact_url %} &nbsp;&middot;&nbsp; {% endif %}<a href="{{ b.unsubscribe_url | e }}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a>{% endif %}
             </div>
+            {% endif %}
           </td>
         </tr>
 
