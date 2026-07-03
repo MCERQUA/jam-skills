@@ -268,7 +268,7 @@ sg docker -c "docker ps --filter name=hermes --format '{{.Names}}\t{{.Status}}'"
 # → hermes-test-dev / hermes-adrian / hermes-danielle / hermes-src   Up (healthy)
 ```
 
-**FOUR Hermes containers as of 2026-07-03** (test-dev, adrian, danielle, src — all `jambot/hermes:v0.18.0`). Every OVU tenant also loads the hermes-agent plugin (GatewayManager: openclaw + hermes; browser `gateway_id` selects per session). The plugin-catalog/distribution drift (§8) was CLOSED 2026-07-03: catalog synced to the fleet's gateway.py (md5 c14c4fa2) and `MCERQUA/openvoiceui-plugins` pushed (637b7a5). KNOWN LEFTOVER: foambot carries a stale orphan plugin copy (v1.0.0 / hermes 0.6.0) with NO hermes container — visible live on JamFlow n101's info tab. The 2026-05-31 session-poison fix (§1A) remains in the fleet gateway.py.
+**FOUR Hermes containers as of 2026-07-03** (test-dev, adrian, danielle, src — all `jambot/hermes:v0.18.0`). Every OVU tenant also loads the hermes-agent plugin (GatewayManager: openclaw + hermes; browser `gateway_id` selects per session). The plugin-catalog/distribution drift (§8) was CLOSED 2026-07-03: catalog synced to the fleet's gateway.py (md5 c14c4fa2) and `MCERQUA/openvoiceui-plugins` pushed (637b7a5). foambot's formerly-stale plugin copy was synced to v1.2.0/0.18.0 same day (no hermes container — its OVU correctly skips hermes gateway registration until one is provisioned). The 2026-05-31 session-poison fix (§1A) remains in the fleet gateway.py.
 
 ### When debugging next, do this in order
 
@@ -723,7 +723,7 @@ admin UI "Install hermes-agent"
 - **manifest:** plugin v1.2.0 / `hermes_version 0.18.0` / `container.image nousresearch/hermes-agent:v2026.7.1` across ALL copies (plugin-catalog, 4 tenant runtimes, OVU-repo seed, distribution). gateway.py = the fleet's self-heal version (38681B, md5 **c14c4fa2**) — catalog was 4.6KB BEHIND the fleet (a fresh install would have REGRESSED tenants); synced catalog ← test-dev runtime (backup `gateway.py.bak-20260703-pre-v018sync`).
 - **distribution:** `MCERQUA/openvoiceui-plugins` rebased onto origin/main + PUSHED (`637b7a5`) — the §8 drift is CLOSED.
 - **provisioner:** `jambot-provision-service.py` pins `jambot/hermes:v0.18.0`; service bounced (Restart=always) so the pin is live.
-- **leftover:** foambot has a stale orphan plugin copy (v1.0.0 / hermes 0.6.0, NO hermes container) — deliberately untouched; visible on JamFlow n101.
+- **foambot (updated same day on Mike's ask):** its stale orphan plugin copy (v1.0.0/hermes 0.6.0) was synced to v1.2.0/0.18.0 too. It has NO hermes container, and the v1.2.0 gateway_manager correctly SKIPS registering the hermes gateway when `HERMES_HOST` is unset — so foambot's OVU shows 1 gateway (openclaw) until a hermes container is provisioned. GOTCHA: a backup DIR inside `plugins/` gets probed by BOTH loaders (gateway_manager + services.plugins — the latter even without plugin.json, erroring on a duplicate blueprint); park plugin backups as a DOT-dir (`.hermes-agent.bak-*`), which the loaders skip.
 
 ### Plugin pinned to Hermes v0.15.2 — 2026-06-03 (historical)
 
