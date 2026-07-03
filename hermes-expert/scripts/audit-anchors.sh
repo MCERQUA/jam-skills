@@ -25,12 +25,12 @@ check() {
     fi
 }
 
-echo "=== hermes-expert audit-anchors (2026-06-05 baseline — post v0.15.2 cutover) ==="
+echo "=== hermes-expert audit-anchors (2026-07-03 baseline — post v0.18.0 fleet roll) ==="
 echo
 
 # Hermes runtime version
 ver=$(sg docker -c "docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes --version 2>/dev/null" 2>/dev/null || echo "unreachable")
-check "hermes version" "0.15" "$ver"
+check "hermes version" "0.18" "$ver"
 
 # OpenClaw runtime version
 ocver=$(sg docker -c "docker exec openclaw-test-dev openclaw --version 2>/dev/null" 2>/dev/null || echo "unreachable")
@@ -44,7 +44,7 @@ check "LLM primary" "zai/glm-5-turbo" "$primary"
 fb=$(sg docker -c "docker exec openclaw-test-dev openclaw config get agents.defaults.model.fallbacks 2>/dev/null" 2>/dev/null)
 check "LLM fallback" "zai_fb/glm-5-turbo" "$fb"
 
-# Hermes binary present at v0.13 path
+# Hermes binary present at v0.13+ path
 binpath=$(sg docker -c "docker exec hermes-test-dev test -x /opt/hermes/.venv/bin/hermes && echo present || echo missing" 2>/dev/null)
 check "hermes binary path" "present" "$binpath"
 
@@ -83,19 +83,18 @@ fi
 
 # Config schema version
 schema=$(sg docker -c "docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config check 2>&1" 2>/dev/null | grep -i "version" | head -1)
-check "config schema" "24" "$schema"
+check "config schema" "32" "$schema"
 
 # Live tenant inventory (count must match docs).
-# 2026-06-05: Hermes rollout expanded — test-dev + adrian both on v0.15.2.
+# 2026-07-03: fleet = test-dev + adrian + danielle + src, all on v0.18.0.
 count=$(sg docker -c "docker ps --filter name=hermes --format '{{.Names}}'" 2>/dev/null | wc -l)
-check "live hermes containers (count)" "2" "$count"
+check "live hermes containers (count)" "4" "$count"
 
 # Rollback image present.
-# 2026-06-05: :0.6.0-rollback was pruned. Modern insurance = the preserved
-# pre-cutover image jambot/hermes:pre-uid1000-20260531 (v0.13 build) and
-# jambot/hermes:latest (also v0.13 — the documented recreate-to-revert tag).
-rollback=$(sg docker -c "docker images jambot/hermes --format '{{.Repository}}:{{.Tag}}' 2>/dev/null" 2>/dev/null | grep -E "pre-uid1000|0\.6\.0-rollback" | head -1 || echo "missing")
-check "rollback image preserved" "jambot/hermes:pre-uid1000-20260531" "$rollback"
+# 2026-07-03: primary rollback for the v0.18.0 roll = jambot/hermes:v0.15.2
+# (+ per-tenant /mnt/clients/<t>/hermes-backup-20260703-*-pre-v0.18.0 dirs).
+rollback=$(sg docker -c "docker images jambot/hermes --format '{{.Repository}}:{{.Tag}}' 2>/dev/null" 2>/dev/null | grep -E "v0\.15\.2$" | head -1 || echo "missing")
+check "rollback image preserved" "jambot/hermes:v0.15.2" "$rollback"
 
 # MiniMax key must NOT be active in env (it's dropped)
 mxguard=$(grep -E "^MINIMAX_API_KEY=" /mnt/system/base/.openclaw-keys.env 2>/dev/null || echo "absent-good")
