@@ -24,8 +24,9 @@ TENANT="${HOSTNAME#openclaw-}"
 # gateway IPs — never hardcode one). Fallback: your own domain's /social-api path.
 BASE="${COURSE_API_BASE:-}"
 if [ -z "$BASE" ]; then
+  # POSIX-safe (no ${VAR:x:y} — that is bash-only and throws "Bad substitution" under sh)
   GWHEX=$(awk '$2=="00000000"{print $3; exit}' /proc/net/route)
-  GW=$(printf '%d.%d.%d.%d' "0x${GWHEX:6:2}" "0x${GWHEX:4:2}" "0x${GWHEX:2:2}" "0x${GWHEX:0:2}")
+  GW=$(printf '%d.%d.%d.%d' "0x$(echo "$GWHEX" | cut -c7-8)" "0x$(echo "$GWHEX" | cut -c5-6)" "0x$(echo "$GWHEX" | cut -c3-4)" "0x$(echo "$GWHEX" | cut -c1-2)")
   BASE="http://$GW:6350"
   curl -s -m 3 -o /dev/null "$BASE/health" || BASE="https://${TENANT}.jam-bot.com/social-api"
 fi
@@ -175,6 +176,9 @@ You: POST `in_progress` → write the 750-char description from the brand canon 
 ```json
 { "item_id": "m3.gbp.description", "status": "awaiting_verify", "source": "agent",
   "evidence": { "url": "/pages/_data/brand-course/prepared/m3.gbp.description.md", "value": "748-char description prepared, paste instructions delivered to client" },
+```
+**`evidence.url` discipline:** only set `url` if you SAVED the file under `canvas-pages/_data/brand-course/prepared/` yourself in this task and verified it exists (`ls` it) — the URL is what the client's "See it" link opens. If you saved the artifact elsewhere (e.g. `business/`), leave `url` empty and put the real path in `evidence.source`. Never copy example URLs.
+```json
   "note": "Your Google description is written and ready — paste it in whenever you have 2 minutes." }
 ```
 
