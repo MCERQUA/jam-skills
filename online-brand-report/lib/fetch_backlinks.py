@@ -62,9 +62,6 @@ def _fetch_bl_history(domain: str) -> dict:
         print(f"[WARN] Backlink history fetch failed: {e}", file=sys.stderr)
         out["bl_history_error"] = str(e)
 
-    # --- Backlink History (growth trend over the last 12 months) ---
-    out.update(_fetch_bl_history(domain))
-
     return out
 
 
