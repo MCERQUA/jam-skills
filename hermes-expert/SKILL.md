@@ -138,22 +138,24 @@ That regenerates `index.json` from the section files. Schema for new sections is
 
 ---
 
-## 1. Versions running today
+## 1. Versions running today (updated 2026-07-03)
 
 | Where | Image | Hermes version | Notes |
 |---|---|---|---|
-| `hermes-test-dev` (production) | **`jambot/hermes:v0.15.2`** (built 2026-06-03 from `/mnt/system/base/hermes-v015-build/`) | **v0.15.2** (`2026.5.29.2`) | **CUT OVER 2026-06-03.** s6-overlay; uid 1000 BAKED at build (NOT via runtime HERMES_UID — that re-arms stage2's per-boot chown); seeding via s6 `cont-init.d/05-jambot-seed`. Binary `/opt/hermes/.venv/bin/hermes`. **NEW file-resolution behavior — see §1C.** |
-| `jambot/hermes:latest` (preserved) | v0.13.0 build (`2026.5.7`) | **v0.13.0** | **Now the ROLLBACK image.** Recreate test-dev with this tag to revert. Backup of pre-cutover `/opt/data`: `/mnt/clients/test-dev/hermes-backup-20260603-064318-pre-v0.15.2`. |
+| `hermes-test-dev` + `hermes-adrian` + `hermes-danielle` + `hermes-src` (production — **4 tenants**) | **`jambot/hermes:v0.18.0`** (1.14GB, built 2026-07-03 from `/mnt/system/base/hermes-v018-build/`, base `nousresearch/hermes-agent:v2026.7.1`) | **v0.18.0** (`2026.7.1`, "The Judgment Release") | **ROLLED 2026-07-03** (sandbox-verified, then per-tenant with session-active guard — `scripts/hermes-upgrade-v018-roll.sh`). Config auto-migrated schema →32 with `.bak` files per tenant. Same s6 structure as v0.15: uid 1000 BAKED at build (NOT runtime HERMES_UID), seeding via `cont-init.d/05-jambot-seed`, binary `/opt/hermes/.venv/bin/hermes`, SSE wire format UNCHANGED. §1C file-resolution behavior still applies. Pre-roll backups: `/mnt/clients/<t>/hermes-backup-20260703-*-pre-v0.18.0`. |
+| `jambot/hermes:v0.15.2` (preserved) | v0.15.2 build (5.53GB) | **v0.15.2** | **ROLLBACK image** — recreate with this tag to revert (config migrated to v32 is the one compat risk on rollback; per-tenant pre-roll backups above restore it). |
 | `jambot/hermes:0.6.0-rollback` (preserved) | original v0.6 build | **v0.6.0** (`2026.3.30`) | Deep insurance. Binary at `/usr/local/bin/hermes` in this image. |
 
-**Upstream latest (verified 2026-05-31):** **v0.15.2** (`2026.5.29.2`). **test-dev is now ON v0.15.2 (cut over 2026-06-03 after a 4-round Quality-Council review).** Build/review/cutover record: `docs/jambot/hermes-v0.15-upgrade-research.md`, `-REVIEW.md`, `-cutover-checklist.md`. §1.1 below documents the upgrade scope (historical). Fleet still on OpenClaw; test-dev is the only Hermes tenant.
-**Docker Hub:** date-based tags only. `v0.X.Y` semver tags do NOT exist on Hub (open question #1 in upgrade doc: confirmed 404 on `:v0.6.0`).
+**Upstream latest (verified 2026-07-03):** **v0.18.0** (`2026.7.1`) — we are CURRENT. v0.16 "desktop app" (2026-06-05), v0.17 "channels/iMessage + image slimming" (2026-06-19), v0.18 "Judgment — verification contracts, /learn, MoA presets, background fan-out" (2026-07-01). None broke our stack: s6/uid-bake/API-server/SSE all held; `HERMES_WRITE_SAFE_ROOT` now accepts multiple dirs (our single `/workspace` still valid); `/resume`+`/sessions` scoped to caller origin (IDOR fix — no impact, OVU uses headers); curator consolidation became opt-in (we disable curator anyway); `compression.summary_*` auto-migrated to `auxiliary.compression`.
+**Docker Hub:** date-based tags only (`v2026.7.1` = v0.18.0). `v0.X.Y` semver tags do NOT exist on Hub.
 
 ---
 
-## 1.1 Upstream awareness — now 2 versions behind (updated 2026-05-31)
+## 1.1 Upstream awareness — CURRENT as of 2026-07-03 (historical: the v0.13→v0.15 gap analysis below)
 
-Production on test-dev is **v0.13.0** (`2026.5.7`). Upstream has shipped TWO minor releases since; we're ~22 days behind:
+**2026-07-03: fleet rolled to v0.18.0 — see §1.** The section below is the historical v0.13-era gap analysis, kept for the still-valid v0.14+ facts (PyPI install canonical, `uv pip install` broken #8744, Brave/DDGS search).
+
+Historical (2026-05-31): production was v0.13.0 (`2026.5.7`); upstream had shipped:
 
 | Version | Date | Codename | Highlights |
 |---|---|---|---|
@@ -263,10 +265,10 @@ User sees "Hey getting started" placeholder forever. Recovers in 1-5 min unaided
 
 ```bash
 sg docker -c "docker ps --filter name=hermes --format '{{.Names}}\t{{.Status}}'"
-# → hermes-test-dev   Up <N> hours (healthy)
+# → hermes-test-dev / hermes-adrian / hermes-danielle / hermes-src   Up (healthy)
 ```
 
-Only one Hermes container exists (test-dev). The slow/empty/no-tool-use state was **resolved 2026-05-31** (§1A — poisoned session purge + gateway empty-turn guard). A fleet roll is now unblocked on the bug, but still gated on: (a) the v0.13→v0.15 upgrade decision (§1.1), and (b) closing the plugin-catalog/distribution drift (§8) so new tenants get the fixed gateway.py.
+**FOUR Hermes containers as of 2026-07-03** (test-dev, adrian, danielle, src — all `jambot/hermes:v0.18.0`). Every OVU tenant also loads the hermes-agent plugin (GatewayManager: openclaw + hermes; browser `gateway_id` selects per session). The plugin-catalog/distribution drift (§8) was CLOSED 2026-07-03: catalog synced to the fleet's gateway.py (md5 c14c4fa2) and `MCERQUA/openvoiceui-plugins` pushed (637b7a5). KNOWN LEFTOVER: foambot carries a stale orphan plugin copy (v1.0.0 / hermes 0.6.0) with NO hermes container — visible live on JamFlow n101's info tab. The 2026-05-31 session-poison fix (§1A) remains in the fleet gateway.py.
 
 ### When debugging next, do this in order
 
@@ -716,7 +718,14 @@ admin UI "Install hermes-agent"
 - plugin-catalog was stale (557 lines, Apr 10) — **fixed in this session**
 - GitHub openvoiceui-plugins distribution was stale (557 lines) — **fixed by PR #4 (https://github.com/MCERQUA/openvoiceui-plugins/pull/4) in this session**
 
-### Plugin pinned to Hermes v0.15.2 — 2026-06-03
+### Plugin pin — UPDATED 2026-07-03 (v0.18.0 fleet roll)
+
+- **manifest:** plugin v1.2.0 / `hermes_version 0.18.0` / `container.image nousresearch/hermes-agent:v2026.7.1` across ALL copies (plugin-catalog, 4 tenant runtimes, OVU-repo seed, distribution). gateway.py = the fleet's self-heal version (38681B, md5 **c14c4fa2**) — catalog was 4.6KB BEHIND the fleet (a fresh install would have REGRESSED tenants); synced catalog ← test-dev runtime (backup `gateway.py.bak-20260703-pre-v018sync`).
+- **distribution:** `MCERQUA/openvoiceui-plugins` rebased onto origin/main + PUSHED (`637b7a5`) — the §8 drift is CLOSED.
+- **provisioner:** `jambot-provision-service.py` pins `jambot/hermes:v0.18.0`; service bounced (Restart=always) so the pin is live.
+- **leftover:** foambot has a stale orphan plugin copy (v1.0.0 / hermes 0.6.0, NO hermes container) — deliberately untouched; visible on JamFlow n101.
+
+### Plugin pinned to Hermes v0.15.2 — 2026-06-03 (historical)
 
 - **manifest:** `plugin.json` → `version 1.1.0`, `hermes_version 0.15.2` across ALL copies (plugin-catalog, per-tenant runtime, distribution clone, OVU-repo seed). gateway.py is current (34015B, empty-turn fix, md5 245ce97c) across catalog/runtime/distribution — **NO gateway.py code change needed for v0.15** (protocol backward-compatible; voice verified). The stale OVU-repo disk gateway.py (gitignored) was synced to match.
 - **image tag** is pinned in `jambot-provision-service.py` → `jambot/hermes:v0.15.2` (and `-e HERMES_UID` DROPPED — see §1C / §10 note). plugin.json `hermes_version` is informational metadata; the provisioner is the actual image source.
@@ -1066,17 +1075,20 @@ The fields most likely to silently drift from this skill's documentation:
 
 | Anchor | Current value (verify against runtime) | How to re-check |
 |---|---|---|
-| Hermes version on test-dev | v0.13.0 (`2026.5.7`, "Tenacity") | `docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes --version` |
+| Hermes version (fleet, 2026-07-03) | v0.18.0 (`2026.7.1`, "Judgment") on all 4 tenants | `docker exec hermes-<t> /opt/hermes/.venv/bin/hermes --version` |
 | OpenClaw version on test-dev | 2026.5.7 (eeef486) | `docker exec openclaw-test-dev openclaw --version` |
 | LLM primary | `zai/glm-5-turbo` | `docker exec openclaw-test-dev openclaw config get agents.defaults.model.primary` |
 | LLM fallback | `zai_fb/glm-5-turbo` | `docker exec openclaw-test-dev openclaw config get agents.defaults.model.fallbacks` |
-| Hermes binary path | `/opt/hermes/.venv/bin/hermes` (v0.13) or `/usr/local/bin/hermes` (v0.6 rollback only) | `docker exec hermes-test-dev which hermes \|\| ls /opt/hermes/.venv/bin/hermes` |
+| Hermes binary path | `/opt/hermes/.venv/bin/hermes` (v0.13+) or `/usr/local/bin/hermes` (v0.6 rollback only) | `docker exec hermes-test-dev which hermes \|\| ls /opt/hermes/.venv/bin/hermes` |
 | Z.AI subscription endpoint | `https://api.z.ai/api/anthropic` | `docker exec hermes-test-dev sh -c 'echo $ANTHROPIC_BASE_URL'` (host .env path is permission-restricted; check container env instead) |
-| Config schema version | 23 | `docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config check` |
+| Config schema version | 32 (auto-migrated at v0.18 first boot, `.bak` files kept) | `docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config check` |
 | Lane timeout (openclaw) | 45000ms (NOT exposed via `openclaw config set`) | Source-only; check `grep -r "45000" openclaw npm package` |
 | Provider chain identity | Z.AI A + Z.AI B (MiniMax dropped) | `docs/jambot/llm-provider-registry.md` |
-| Live tenant inventory | 1: hermes-test-dev | `docker ps --filter name=hermes --format '{{.Names}}'` |
-| Rollback image | `jambot/hermes:0.6.0-rollback` present (7.4 GB) | `docker images jambot/hermes \| grep rollback` |
+| Live tenant inventory | 4: hermes-{test-dev,adrian,danielle,src} | `docker ps --filter name=hermes --format '{{.Names}}'` |
+| Rollback images | `jambot/hermes:v0.15.2` (primary rollback) + `:0.6.0-rollback` (deep insurance) | `docker images jambot/hermes` |
+| Provisioner image pin | `jambot/hermes:v0.18.0` | `grep 'jambot/hermes:' /home/mike/MIKE-AI/scripts/jambot-provision-service.py` |
+| Plugin pin (catalog + fleet + distribution) | plugin v1.2.0 / hermes_version 0.18.0 / gateway.py md5 c14c4fa2 | `md5sum /mnt/system/base/plugin-catalog/hermes-agent/gateway.py` |
+| JamFlow lane | n101 plat:hermes — poll_hermes glow (agent.log POST markers) + live per-tenant plugin table in desc | `curl -s 127.0.0.1:8777/api/watch/graph` |
 
 **Drift check script:** `bash /mnt/system/base/skills/hermes-expert/scripts/audit-anchors.sh` — runs all of the above and diffs against the documented values, prints a one-line PASS/FAIL per anchor. Run after any hermes/openclaw bump, any LLM-chain change, or any per-tenant Hermes deploy.
 
