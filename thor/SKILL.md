@@ -1,6 +1,6 @@
 ---
 name: thor
-description: NVIDIA Jetson AGX Thor Developer Kit handbook — Blackwell-based edge AI workstation. Covers hardware spec, ports/buttons, BSP install paths (ISO, SDK Manager, Linux_for_Tegra), UEFI firmware × ISO compatibility, the Display Hand-Off reinstall workaround, headless install over Debug-USB, JetPack 7.0 / Jetson Linux 38.x components, CUDA 13 / TensorRT 10.13 / cuDNN 9.12, Docker + nvidia-container-toolkit, jetson-containers + autotag workflow, BSP upgrades r38.2→r38.4, recovery mode, and the troubleshooting playbook. TRIGGER when user mentions "Thor," "AGX Thor," "Jetson," "JetPack 7," "L4T 38," "nvpmodel," "tegra," "Blackwell devkit," "/thor," NVMe flashing on Jetson, NOT_PAIRED on Thor, or anything about installing / configuring / running the physical Jetson AGX Thor we have on the bench.
+description: "NVIDIA Jetson AGX Thor Developer Kit handbook — hardware/ports, BSP + JetPack 7 install paths, UEFI firmware x ISO compatibility, headless install over Debug-USB, CUDA 13 / TensorRT, Docker + jetson-containers, BSP upgrades, recovery mode, troubleshooting playbook. TRIGGER on 'Thor', 'AGX Thor', 'Jetson', 'JetPack', 'L4T 38', 'tegra', 'nvpmodel', 'Blackwell devkit', NVMe flashing on Jetson, or anything about the physical Thor devkit on the bench."
 ---
 
 # Jetson AGX Thor Developer Kit — Master Reference

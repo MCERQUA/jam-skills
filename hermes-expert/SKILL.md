@@ -1,6 +1,6 @@
 ---
 name: hermes-expert
-description: Hermes Agent (Nous Research) expert. Full indexed mirror of hermes-agent.nousresearch.com/docs (169 source + community sections, ~2.5MB of content) plus a JamBot-operational overlay (Z.AI subscription routing, v0.6↔v0.13 production state with v0.14 upstream awareness, mid-flight pipeline, container layout). Includes 13 community-pattern sections from r/hermesagent (Obsidian three-tier memory, model tier list, budget routing, June 2026 Anthropic clawback, local-model stacks, etc. — prefix `community-`). Load by-need via `index.json` + `sections/<id>.json`; don't try to read everything at once.
+description: "Hermes Agent (Nous Research) expert — indexed mirror of hermes-agent.nousresearch.com/docs plus the JamBot operational overlay (Z.AI subscription routing, production version state, mid-flight pipeline, container layout) and r/hermesagent community patterns. Load by-need via index.json + sections/<id>.json — never read everything at once. TRIGGER when working on hermes-* containers, Hermes config/upgrades, or Hermes docs questions."
 ---
 
 # Hermes Expert

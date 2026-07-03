@@ -1,6 +1,6 @@
 ---
 name: website-builder
-description: "Build production-ready Next.js 15 websites from scratch. Research-first workflow: discovery → folder setup → deep research (keywords, competitors, content strategy, topical map, conversion patterns) → design planning (visual audit, style direction, component plan, wireframes) → scaffold → build → deploy. Use when the user asks to build a new website, create a site for their business, or start a new web project."
+description: "Build production-ready Next.js 15 websites from scratch — research-first workflow: discovery → deep research (keywords, competitors, content strategy, topical map) → design planning → scaffold → build → deploy. TRIGGER: 'build a website', 'create a site for my business', starting a new web project. DO NOT TRIGGER for editing an existing site (web-dev) or a single article (article-writer)."
 ---
 > **⚠️ READ FIRST: `PNPM_11_REQUIREMENTS.md` in this skill dir.** Webdev containers (where Mike previews your sites) run pnpm 11.1.1 since 2026-05-13. EVERY new project MUST declare `pnpm.onlyBuiltDependencies` in package.json (at minimum: `["sharp"]` for any Next.js project) or the dev server WILL NOT START. Skip this and the container restart-loops, the site goes 502, and the user blames you. 60-second read; ignore at your peril.
 

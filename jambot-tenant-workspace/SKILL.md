@@ -1,6 +1,6 @@
 ---
 name: jambot-tenant-workspace
-description: "Claude Code running inside a JamBot webtop container needs to edit tenant files (agent skills, canvas pages, AGENTS.md, memory, openclaw.json). This skill teaches the workspace layout, safe-edit rules, mesh coordination before destructive changes, and protected paths (never touch /vault/). Trigger: 'edit my canvas page', 'update AGENTS.md', 'add skill to agent', 'change openclaw config', 'modify tenant'."
+description: "Editing tenant files from a webtop Claude Code session — workspace layout, safe-edit rules, mesh coordination before destructive changes, protected paths (never touch /vault/). TRIGGER: 'edit my canvas page', 'update AGENTS.md', 'add skill to agent', 'change openclaw config', 'modify tenant files'."
 ---
 
 # jambot-tenant-workspace
@@ -159,3 +159,37 @@ Low-churn files (occasional edits): skip the claim. Canvas pages, memory, single
 - Commit discipline: host memory `feedback_commit_canvas_checkpoints`
 - Session-agent-ownership rule: host memory `feedback_all_sessions_are_you`
 - Pushing agent-authored artifacts to a CANONICAL repo (not immediate-propagate tenant files): `agent-git-push-workflow` → "Canonical-artifact handoff" — stage on shared volume → host grafts OR keyed peer pushes
+
+## Version History & Undo (moved from TOOLS.md 2026-07-03)
+
+Your workspace is automatically versioned every 60 seconds. Every file change you make is captured in git. You can undo ANY change.
+
+**View recent changes:**
+```bash
+git log --oneline -20
+```
+
+**See what changed in a specific commit:**
+```bash
+git show <commit-hash> --stat
+git show <commit-hash> -- path/to/file
+```
+
+**Revert a single file to a previous version:**
+```bash
+git checkout <commit-hash> -- path/to/file
+```
+
+**Revert ALL files to a previous state:**
+```bash
+git checkout <commit-hash> -- .
+```
+
+**When the user says "go back" or "undo" or "the previous version was better":**
+1. Run `git log --oneline -20` to find the right commit
+2. Use `git show` to verify it has the version they want
+3. Use `git checkout <hash> -- <file>` to restore it
+
+This works for canvas pages, website code, agent files — everything in your workspace.
+
+---

@@ -1,6 +1,6 @@
 ---
 name: desktop-nightly-reflect
-description: "Conductor for the nightly reflection cycle on any desktop agent (bun-desktop, josh-desktop, src-desktop, danielle-desktop, residential-laptop). Wraps five steps end-to-end: read-conversation-log → compose-reflection → post-to-chatroom → BLACKBOARD-write → ack. Enforces identity-attribution structurally (who, what session type, Users-served derivation). Trigger: nightly reflection task lands in inbox, cron fires ~02:30-02:53 UTC, or agent needs to file a reflection and doesn't have a conductor to follow."
+description: "Conductor for the nightly reflection cycle on desktop agents (bun/josh/src/danielle-desktop, residential-laptop) — read conversation log → compose reflection → post to chatroom → BLACKBOARD write → ack, with identity attribution enforced structurally. TRIGGER: nightly reflection task lands in inbox, the ~02:30-02:53 UTC cron fires, or a reflection needs filing without a conductor."
 metadata:
   tags: mesh, nightly, reflect, conductor, desktop, attribution, blackboard
 ---

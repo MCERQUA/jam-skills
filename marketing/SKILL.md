@@ -1,6 +1,6 @@
 ---
 name: marketing
-description: "Marketing skills for local service companies and small businesses. Use when the user mentions SEO, marketing, copywriting, landing pages, conversion optimization, schema markup, analytics, email campaigns, content strategy, social media, ads, or any marketing-related task. This is a skill bundle — route to the appropriate sub-skill based on the task."
+description: "Marketing skill BUNDLE for local service businesses — routes to sub-skills for SEO content, copywriting, landing pages, conversion optimization, email campaigns, content strategy, social media, ads. TRIGGER on marketing strategy/campaign asks. For raw SEO data (keywords, SERPs, backlinks) → dataforseo; for a client brand report → online-brand-report."
 metadata:
   version: 2.1.0
   source: coreyhaines31/marketingskills (MIT) + custom local business extensions

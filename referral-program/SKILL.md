@@ -1,6 +1,6 @@
 ---
 name: referral-program
-description: "Build and manage customer referral programs and trade partnership networks for local service businesses. Use when the owner mentions 'referral program,' 'referral rewards,' 'get more referrals,' 'partner referrals,' 'real estate agent referrals,' 'trade partnerships,' 'referral tracking,' 'word of mouth,' 'referral incentive,' or wants to systematically generate referrals. For post-service referral asks, see customer-followup. For building a local partner link network (SEO), see local-seo."
+description: "Build and manage customer referral programs and trade-partner networks for local service businesses. TRIGGER: 'referral program/rewards/tracking', 'get more referrals', 'partner referrals', 'real estate agent referrals', 'word of mouth', 'referral incentive'. Post-service referral asks → customer-followup; local partner link building (SEO) → local-seo."
 metadata:
   version: 1.0.0
 ---

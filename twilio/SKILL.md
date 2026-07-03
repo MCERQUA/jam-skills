@@ -1,6 +1,6 @@
 ---
 name: twilio
-description: Make outbound phone calls with a natural agent voice (Orpheus via Groq) or send SMS. Default to Orpheus for calls — it sounds natural. Only use the Polly script if explicitly asked.
+description: "LEGACY — voice calls moved to Telnyx and SMS to InkBox (sms-router); use ONLY for existing Twilio integrations not yet migrated. Outbound calls with natural agent voice (Orpheus via Groq) or SMS. DO NOT TRIGGER for new voice/SMS builds."
 ---
 
 # Twilio — Voice Calls & SMS

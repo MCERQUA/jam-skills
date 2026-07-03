@@ -1,6 +1,6 @@
 ---
 name: sales-scripts
-description: "Sales scripts, objection handling, and closing techniques for local service businesses. Use when the owner mentions 'sales scripts,' 'objection handling,' 'closing techniques,' 'phone scripts,' 'how to sell,' 'upsell,' 'good better best,' 'GBB proposal,' 'price objection,' 'sales training,' 'roleplay,' 'in-home sales,' 'how to close,' or wants help selling services. For estimate follow-ups, see estimate-tracker. For cold outreach/prospecting, see cold-email."
+description: "Sales scripts, objection handling, and closing techniques for local service businesses. TRIGGER: 'sales scripts', 'objection handling', 'phone scripts', 'how to sell / close', 'upsell', 'good better best / GBB proposal', 'price objection', 'sales training', 'roleplay', 'in-home sales'. Estimate follow-ups → estimate-tracker; cold outreach/prospecting → cold-email."
 metadata:
   version: 1.0.0
 ---

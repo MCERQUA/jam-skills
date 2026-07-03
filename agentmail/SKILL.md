@@ -1,6 +1,6 @@
 ---
 name: agentmail
-description: "AgentMail email API — create inboxes, send/receive emails, manage threads, drafts, labels, and attachments for AI agents. Use when asked to send email, check email, create an inbox, or manage email communications."
+description: "LEGACY — being superseded by InkBox for agent email; use ONLY for existing AgentMail integrations until the email cutover completes. AgentMail API — inboxes, send/receive, threads, drafts, labels, attachments. DO NOT TRIGGER for new email builds."
 metadata: {"openclaw": {"emoji": "📧", "requires": {"env": ["AGENTMAIL_API_KEY"], "anyBins": ["curl"]}}}
 ---
 

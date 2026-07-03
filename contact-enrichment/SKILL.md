@@ -1,6 +1,6 @@
 ---
 name: contact-enrichment
-description: "Contact enrichment cascade — takes raw names (mix of company + person) and progressively enriches each row with phone, email, website, address, LinkedIn, social profiles via cheap-to-expensive providers. Use when a CSV has names but no contact info, or for any name-to-reachable-contact pipeline. Stage 1 (classify person vs company) is implemented; later stages chain into existing skills (email-finder, dataforseo, headshot-finder, browser-automation) or are in planning."
+description: "Contact-enrichment cascade — raw names (person or company) in, progressively enriched rows out: phone, email, website, address, LinkedIn, social profiles via cheap-to-expensive providers, chaining email-finder / dataforseo / headshot-finder / browser-automation. TRIGGER: a CSV of names with no contact info, or any name-to-reachable-contact pipeline."
 metadata: {"openclaw": {"emoji": "📇", "requires": {"anyBins": ["python3", "bash"]}}}
 ---
 

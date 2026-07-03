@@ -1,6 +1,6 @@
 ---
 name: mesh-orchestrator
-description: "host@mesh conductor pattern — decompose a multi-agent task, dispatch briefs, track in-flight state, aggregate replies, surface to Mike only on decisions/blockers/completion. Codifies the conductor role Claude Code sessions use when running multi-agent rollouts (config audits, canonical-tree ships, Phase-N verifications). Trigger: 'orchestrate', 'multi-agent', 'dispatch to agents', 'coordinate rollout', 'rollout the thing', 'audit all agents', 'ship to all webtops'."
+description: "host@mesh conductor pattern — decompose a multi-agent task, dispatch briefs, track in-flight state, aggregate replies, surface to Mike only on decisions/blockers/completion. TRIGGER: 'orchestrate', 'multi-agent', 'dispatch to agents', 'coordinate rollout', 'audit all agents', 'ship to all webtops'."
 ---
 
 # mesh-orchestrator

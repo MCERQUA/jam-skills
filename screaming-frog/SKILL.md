@@ -1,3 +1,8 @@
+---
+name: screaming-frog
+description: "Screaming Frog SEO Spider v24.1 headless CLI on the VPS (free tier 500 URLs/crawl) — full-site crawls, broken links, redirects, metadata, exports. TRIGGER when a site crawl/technical SEO audit is needed. Wrapper: /mnt/system/base/tools/screaming-frog/screaming-frog.sh. DO NOT TRIGGER for keyword/SERP data (use dataforseo)."
+---
+
 # Screaming Frog SEO Spider v24.1 — Headless CLI Skill
 
 Screaming Frog v24.1 installed on VPS in user-space (no root required). Runs fully headless.

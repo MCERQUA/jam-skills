@@ -1,6 +1,6 @@
 ---
 name: compliance
-description: Research and monitor regulatory compliance obligations for this business. Use when the user asks about licensing, regulations, HIPAA, GDPR, OSHA, PCI, CCPA, state/federal rules, data security laws, compliance audits, or says things like "what do I need to follow legally" or "am I compliant". NEVER gives legal advice — always cites authoritative sources and recommends consulting qualified counsel.
+description: "Research and monitor regulatory compliance obligations for this business — licensing, HIPAA, GDPR, OSHA, PCI, CCPA, state/federal rules, data-security laws, audits. TRIGGER: 'what do I need to follow legally', 'am I compliant', any licensing/regulation question. NEVER gives legal advice — cites authoritative sources and recommends qualified counsel."
 ---
 
 # Compliance Monitoring Skill

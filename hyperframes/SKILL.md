@@ -1,6 +1,6 @@
 ---
 name: hyperframes
-description: "HTML-to-video rendering using HyperFrames CLI. Use when the user wants to create a video, render a video, make an animation, produce a video composition, generate an MP4, or use hyperframes. Converts plain HTML + CSS + GSAP into frame-accurate MP4/MOV/WebM output. Built for AI agents — no React required."
+description: "HTML-to-video rendering via HyperFrames CLI — plain HTML + CSS + GSAP into frame-accurate MP4/MOV/WebM; built for agents, no React required. TRIGGER: 'hyperframes' or rendering a video composition from HTML. React-based video → remotion-video; animating a still image → wan-video."
 metadata:
   version: 1.0.0
 ---

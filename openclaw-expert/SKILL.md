@@ -1,6 +1,6 @@
 ---
 name: openclaw-expert
-description: OpenClaw expertise for JamBot. Catalog-indexed router into 464 upstream doc pages + JamBot-specific overrides + 21 version-anchor corrections (15 from the 2026.4.20 → 2026.5.2 changelog audit + 6 from the 2026-05-23 r/openclaw deep-read covering the Apr-4 Anthropic subscription cutover, CVE-2026-25253, ClawHavoc supply-chain campaign, destructive `openclaw doctor`, QMD memory shift, and GLM-5 reliability divergence). Use to teach, debug, configure, or build on OpenClaw.
+description: "OpenClaw expertise for JamBot — catalog-indexed router into 464 upstream doc pages plus JamBot-specific overrides and version-anchor corrections (Anthropic subscription cutover, CVE-2026-25253, ClawHavoc supply chain, destructive `openclaw doctor`, GLM-5 reliability divergence). TRIGGER: teach, debug, configure, or build on OpenClaw."
 metadata: {"openclaw": {"emoji": "🧠"}}
 ---
 

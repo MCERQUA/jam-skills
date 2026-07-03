@@ -1,6 +1,6 @@
 ---
 name: pretext
-description: "Pretext (@chenglou/pretext) — pure JS/TS text measurement library. ~500x faster than getBoundingClientRect. Use for virtualized lists, chat bubbles, responsive multi-column layouts, canvas text rendering, auto-growing textareas, shrink-to-fit containers. Zero dependencies. Works in DOM, Canvas, SVG. TRIGGER when: text measurement, text layout, virtualization, masonry layout, chat bubbles, multi-column text, shrink-to-fit, text height calculation, variable-height list items, canvas text rendering."
+description: "Pretext (@chenglou/pretext) — pure JS/TS text-measurement library, ~500x faster than getBoundingClientRect; zero dependencies; works in DOM, Canvas, SVG. TRIGGER: text measurement/layout, virtualized or variable-height lists, chat bubbles, masonry/multi-column text, shrink-to-fit containers, auto-growing textareas, canvas text rendering."
 ---
 
 # Pretext — High-Performance Text Measurement & Layout

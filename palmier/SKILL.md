@@ -1,3 +1,8 @@
+---
+name: palmier
+description: "Palmier Pro — Swift-native macOS video editor with local MCP server; agents generate media (Kling, Seedance, Veo, Grok), edit the timeline, and export programmatically. TRIGGER when creating/editing video on the Mac (macdaddy), driving a video timeline, or building automated video pipelines. Requires the Palmier app open on the Mac."
+---
+
 # Palmier Pro — Claude Code Skill
 
 Palmier Pro is a Swift-native video editor for macOS built for AI-first workflows. YC S24. Open-source (GPLv3). When the app is open it exposes a local MCP server — agents can generate media, edit the timeline, and export, all without leaving the project.

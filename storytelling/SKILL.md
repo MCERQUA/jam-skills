@@ -1,6 +1,6 @@
 ---
 name: storytelling
-description: Audio-visual story generation and creation engine. Combines FLUX images, Suno ambient/SFX audio, and Resemble character voices into canvas-based stories. The agent creates these on demand — the user never gets a desktop icon, they ask for it. Any variation is possible: random story, user-directed, self-generating with choices, storyboard mode (plays like a movie with no buttons), or fully user-influenced scene by scene.
+description: "Audio-visual story engine — combines FLUX images, Suno ambient/SFX audio, and Resemble character voices into canvas-based stories, created on demand (the user asks; no desktop icon). Modes: random, user-directed, self-generating with choices, storyboard (plays like a movie, no buttons), or scene-by-scene user influence. TRIGGER when the user asks for a story."
 metadata: {"openclaw": {"emoji": "📖"}}
 ---
 

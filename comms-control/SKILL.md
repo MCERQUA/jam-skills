@@ -1,6 +1,6 @@
 ---
 name: comms-control
-description: Change the client's proactive-messaging rules of engagement and morning kickoff — kickoff time, quiet hours / cutoff, how often you may text, and scheduled recurring updates (weather, stocks, custom). Use WHENEVER the client asks to change when/how often/what you text them, e.g. "move my kickoff to 7am", "don't text me past 8pm", "only text me once a day", "send me my stocks every hour", "add the weather to my morning", "stop the morning rundown". These changes are ENFORCED by the host from machine JSON files — editing only the human notes does NOT take effect. This skill is how you make the change actually stick.
+description: "Change the client's proactive-messaging rules of engagement — kickoff time, quiet hours/cutoff, texting frequency, scheduled recurring updates (weather, stocks, custom). TRIGGER whenever the client asks to change when/how often/what you text them: 'move my kickoff to 7am', 'don't text me past 8pm', 'add the weather to my morning', 'stop the morning rundown'. Changes are ENFORCED from machine JSON files — editing human notes alone does NOT take effect; this skill makes the change stick."
 ---
 
 # comms-control — make the client's messaging preferences actually take effect

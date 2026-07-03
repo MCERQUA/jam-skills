@@ -1,6 +1,6 @@
 ---
 name: browser-companion
-description: "Browser companion extension capabilities — page reading, site discussion, element highlighting, clicking buttons, filling forms, scrolling pages, navigating URLs, DOWNLOADING IMAGES, autonomous multi-step tasks, lead prospecting. Use when user mentions 'this page', 'this site', 'current website', 'what does this say', 'highlight', 'click that', 'fill in', 'scroll down', 'download this image', 'save this photo', 'grab that picture', 'find leads', 'browse Reddit', 'look at this site', or any reference to what they're browsing. Also triggered when ui_context.source is 'jambot_extension'."
+description: "Browser companion extension — read and discuss the page the user is viewing, highlight elements, click buttons, fill forms, scroll, navigate, download images, run autonomous multi-step tasks, prospect leads. TRIGGER on 'this page', 'this site', 'what does this say', 'highlight', 'click that', 'fill in', 'download/save this image', 'find leads', any reference to what they're browsing, or ui_context.source == 'jambot_extension'."
 metadata:
   version: 2.1.0
 ---

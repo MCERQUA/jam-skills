@@ -1,3 +1,8 @@
+---
+name: css-component-library
+description: "Build-from menu of 119 curated copy-paste CSS components (buttons, cards, loaders, text effects, backgrounds, hover, borders, forms) — each with HTML+CSS, primary selector, usage note. TRIGGER when building or styling a website/page and you want ready-made on-brand effects instead of hand-writing animations. Composes with premium-web-design."
+---
+
 # CSS Component Library — Social Jam Build Menu
 
 **Use this skill whenever you are building or styling a website/page** and want ready-made,

@@ -1,6 +1,6 @@
 ---
 name: pricing-job-costing
-description: "Job costing, pricing strategy, and profit margin management for local service businesses. Use when the owner mentions 'pricing,' 'job costing,' 'markup,' 'margin,' 'how much to charge,' 'flat rate vs hourly,' 'pricing strategy,' 'overhead calculation,' 'break even,' 'profit margin,' 'cost calculation,' 'price increase,' 'what to charge,' or needs help figuring out pricing for their services. For presenting prices to customers, see sales-scripts (GBB framework). For maintenance plan pricing, see maintenance-programs."
+description: "Job costing, pricing strategy, and profit-margin management for local service businesses. TRIGGER: 'pricing', 'job costing', 'markup', 'margin', 'how much / what to charge', 'flat rate vs hourly', 'overhead calculation', 'break even', 'price increase'. Presenting prices to customers → sales-scripts (GBB framework); maintenance plan pricing → maintenance-programs."
 metadata:
   version: 1.0.0
 ---

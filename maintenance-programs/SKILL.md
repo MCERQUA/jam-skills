@@ -1,6 +1,6 @@
 ---
 name: maintenance-programs
-description: "Design, price, and sell maintenance agreements and membership programs for local service businesses. Use when the owner mentions 'maintenance agreement,' 'service contract,' 'membership program,' 'maintenance plan,' 'recurring revenue,' 'annual tune-up,' 'service plan tiers,' 'seasonal service,' 'preventative maintenance,' or wants to build recurring revenue through service agreements. For selling/upselling maintenance plans during a service call, see sales-scripts. For seasonal campaign messaging, see customer-comms."
+description: "Design, price, and sell maintenance agreements and membership programs for local service businesses — plan tiers, recurring revenue, seasonal/preventative service. TRIGGER: 'maintenance agreement/plan', 'service contract', 'membership program', 'recurring revenue', 'annual tune-up'. Selling plans during a service call → sales-scripts; seasonal campaign messaging → customer-comms."
 metadata:
   version: 1.0.0
 ---

@@ -1,6 +1,6 @@
 ---
 name: agent-mesh
-description: Agent Mesh coordination. Use when you need to send files to other agents in the JamBot office-of-agents, receive and acknowledge messages, or bootstrap into the mesh at session start. TRIGGER on mentions of mesh, /mesh-on, mesh-send, mesh-recv, mesh-ack, /mnt/agent-mesh, PROTOCOL.md v2, inbox/sent/desk/snapshots, STATE_CHECK, REGISTRY, cc, BROADCAST, thread promotion, rebuild-imminent, quarantine, or any coordination with host@mesh, bun-desktop@mesh, josh-desktop@mesh and other peer agents.
+description: "Agent Mesh coordination — send/receive/ack messages with other JamBot agents and bootstrap into the mesh at session start. TRIGGER on: mesh, /mesh-on, mesh-send, mesh-recv, mesh-ack, /mnt/agent-mesh, PROTOCOL.md, inbox/sent/desk/snapshots, STATE_CHECK, REGISTRY, BROADCAST, thread promotion, quarantine, or any coordination with host@mesh and peer desktop agents."
 version: 1.0.0
 ---
 

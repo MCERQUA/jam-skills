@@ -1,6 +1,6 @@
 ---
 name: ui-ux-pro-max
-description: "UI/UX design intelligence. 50 styles, 21 palettes, 50 font pairings, 20 charts, 9 stacks (React, Next.js, Vue, Svelte, SwiftUI, React Native, Flutter, Tailwind, shadcn/ui). Actions: plan, build, create, design, implement, review, fix, improve, optimize, enhance, refactor, check UI/UX code. Projects: website, landing page, dashboard, admin panel, e-commerce, SaaS, portfolio, blog, mobile app, .html, .tsx, .vue, .svelte. Elements: button, modal, navbar, sidebar, card, table, form, chart. Styles: glassmorphism, claymorphism, minimalism, brutalism, neumorphism, bento grid, dark mode, responsive, skeuomorphism, flat design. Topics: color palette, accessibility, animation, layout, typography, font pairing, spacing, hover, shadow, gradient. Integrations: shadcn/ui MCP for component search and examples."
+description: "UI/UX design-decision REFERENCE — consult when choosing a design direction or reviewing UI code; premium-web-design is the default build system that executes it. 50 styles, 21 palettes, 50 font pairings, 20 chart types, 9 stacks (React, Next.js, Vue, Svelte, SwiftUI, React Native, Flutter, Tailwind, shadcn/ui). TRIGGER: choosing style/palette/typography/layout, reviewing/fixing/improving UI code in any stack (.html/.tsx/.vue/.svelte), accessibility, glassmorphism/brutalism/bento/dark-mode questions, charts. DO NOT TRIGGER for executing a build already styled by premium-web-design."
 ---
 
 # UI/UX Pro Max - Design Intelligence

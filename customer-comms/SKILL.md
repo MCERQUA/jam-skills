@@ -1,6 +1,6 @@
 ---
 name: customer-comms
-description: "Customer communication templates for local service businesses — appointment confirmations, on-the-way notifications, job complete summaries, payment reminders, seasonal outreach, weather delays, price increases, and more. Use when the owner mentions 'customer message,' 'appointment reminder,' 'on-the-way text,' 'job complete email,' 'payment reminder,' 'late payment,' 'collections,' 'seasonal reminder,' 'weather delay,' 'price increase letter,' 'holiday hours,' 'thank you note,' or wants help communicating with customers. For review requests specifically, see review-management. For post-service follow-up sequences, see customer-followup. For SMS marketing campaigns, see sms-marketing."
+description: "Customer communication templates for local service businesses — appointment confirmations, on-the-way texts, job-complete summaries, payment reminders, seasonal outreach, weather delays, price-increase letters, holiday hours, thank-yous. TRIGGER when the owner wants help messaging customers. Review requests → review-management; post-service sequences → customer-followup; SMS campaigns → sms-marketing."
 metadata:
   version: 1.0.0
 ---

@@ -1,6 +1,6 @@
 ---
 name: docker
-description: Mike-AI VPS Docker handbook. Inventory, image registry, compose locations, build/cleanup recipes, and maintenance discipline. Use when ANY docker question comes up — running containers, cached images, build cache, disk pressure, "what's that container", "is this image still needed", pruning, rebuilding, deploying. Replaces fumbling around with `docker images` / `docker ps` / find / grep — read this first.
+description: "Mike-AI VPS Docker handbook — inventory, image registry, compose locations, build/cleanup recipes, maintenance discipline. TRIGGER on ANY docker question: running containers, cached images, build cache, disk pressure, 'what's that container', pruning, rebuilding, deploying. Read this BEFORE running docker inventory or cleanup commands."
 ---
 
 # Docker handbook — Mike-AI VPS

@@ -1,11 +1,11 @@
 ---
 name: premium-web-design
-description: Premium enterprise web design system with Framer Motion animations, glassmorphism, multi-layered backgrounds, and Fortune 500 aesthetics. Use for ALL web design tasks.
+description: The default aesthetic system for BUILDING web pages and sites — Framer Motion animations, glassmorphism, multi-layered backgrounds, Fortune 500 look. TRIGGER when actually building or restyling a website, landing page, or web app. DO NOT TRIGGER for design-decision research (styles/palettes/typography selection, UI code review — see ui-ux-pro-max), static art (canvas-design), or artifact theming (theme-factory).
 ---
 
 # Premium Web Design Skill
 
-**DO NOT MAKE BLAND, BORING WEBSITES. USE THIS SKILL BY DEFAULT FOR ALL WEB DESIGN TASKS.**
+**DO NOT MAKE BLAND, BORING WEBSITES. This is the DEFAULT aesthetic system when building web pages.** (For choosing styles/palettes/fonts or reviewing UI code, consult ui-ux-pro-max; the two compose — ui-ux-pro-max decides, this skill builds.)
 
 ## Purpose
 
@@ -13,7 +13,7 @@ This skill documents the **premium enterprise design system** that creates moder
 
 ## When to Use This Skill
 
-**ALWAYS** - Use this approach for ANY website design, landing page, or web application unless explicitly told otherwise.
+Use this approach when building any website, landing page, or web application unless explicitly told otherwise. It governs HOW pages get built; ui-ux-pro-max is the reference for WHICH design direction to pick.
 
 ## The Problem This Solves
 
