@@ -853,6 +853,196 @@ def main():
     plan_path.write_text(_json2.dumps(plan, indent=2))
     print(f"    seo-plan.json → {plan_path}", file=sys.stderr)
 
+    # Emit brand-report-signals.json for the brand course auto-crediting system.
+    # course-lib.py reads this file to auto-flip course items that are already done.
+    try:
+        _platforms = data.get("platforms") or {}
+        _sp = (data.get("web_footprint") or {}).get("social_profiles") or {}
+
+        def _plat_url(name):
+            p = _platforms.get(name, {})
+            if p.get("exists"):
+                return p.get("url", "") or (_sp.get(name) or {}).get("url", "")
+            return (_sp.get(name) or {}).get("url", "")
+
+        # Quick homepage scrape for onpage signals not covered by Lighthouse/instant_pages.
+        # These feed course items: sitemap, og:image, tel-link, nap-on-page.
+        _onpage = {"sitemap_present": False, "og_image_present": False,
+                   "tel_link_present": False, "nap_on_page_match": False,
+                   "form_present": False, "faq_schema_present": False}
+        if domain:
+            try:
+                import urllib.request as _ur, urllib.error as _ue, re as _re
+                _headers = {"User-Agent": "Mozilla/5.0 (compatible; JamBot-BrandReport/1.0)"}
+                _home_req = _ur.Request(f"https://{domain}", headers=_headers)
+                _home_html = _ur.urlopen(_home_req, timeout=10).read().decode("utf-8", "replace")
+                _lh = _home_html.lower()
+                _onpage["og_image_present"]  = 'property="og:image"' in _lh or "property='og:image'" in _lh
+                _onpage["tel_link_present"]  = 'href="tel:' in _lh or "href='tel:" in _lh
+                _onpage["sitemap_present"]   = ('rel="sitemap"' in _lh or "rel='sitemap'" in _lh)
+                # Check /sitemap.xml if not in HTML head
+                if not _onpage["sitemap_present"]:
+                    try:
+                        _sm = _ur.urlopen(_ur.Request(f"https://{domain}/sitemap.xml", headers=_headers), timeout=5)
+                        _onpage["sitemap_present"] = _sm.status == 200
+                    except Exception:
+                        pass
+                _onpage["form_present"]       = bool(_re.search(r'<form[^>]+action=', _home_html, _re.I))
+                _onpage["faq_schema_present"] = '"faqpage"' in _lh
+                # NAP on-page: phone digits found in homepage body (strip non-digits for comparison)
+                _nap_phone = data.get("gmb_phone", "") or data.get("phone", "") or ""
+                if _nap_phone:
+                    _digits = _re.sub(r"\D", "", _nap_phone)
+                    _onpage["nap_on_page_match"] = bool(_digits) and _digits[-7:] in _re.sub(r"\D", "", _home_html)
+                print(f"    onpage quick-check: {_onpage}", file=sys.stderr)
+            except Exception as _op_e:
+                print(f"    onpage quick-check skipped ({_op_e})", file=sys.stderr)
+
+        # GBP photo count: from local data if available (DataForSEO places API includes photos array).
+        _gmb_photos = int((data.get("gmb_photos_count") or 0))
+        _gmb_photos_gte10 = _gmb_photos >= 10
+
+        _sigs = {
+            "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "domain":       data.get("domain", ""),
+            "brand_name":   data.get("brand_name", ""),
+            "score_total":  score_result.get("total", 0),
+            "score_grade":  score_result.get("grade", ""),
+            # website / hosting
+            "website_live":    data.get("_lh_perf_measured", False) or (data.get("lh_performance", 0) > 0),
+            "ssl_live":        data.get("_lh_perf_measured", False) or (data.get("lh_performance", 0) > 0),
+            "lh_performance":  data.get("lh_performance", 0),
+            "lcp_band":        data.get("lcp_band", ""),
+            "cls_band":        data.get("cls_band", ""),
+            # logo
+            "logo_found":  bool(data.get("logo_url")),
+            "logo_url":    data.get("logo_url", ""),
+            # GBP / GMB (gbp_found=True if DataForSEO confirmed OR if address/phone returned — both prove existence)
+            "gbp_found":           bool(data.get("gmb_found")) or bool(data.get("gmb_address") or data.get("gmb_phone")),
+            "gbp_rating":          float(data.get("gmb_rating", 0) or 0),
+            "gbp_review_count":    int(data.get("gmb_review_count", 0) or 0),
+            "gbp_categories":      data.get("gmb_categories", []),
+            "gbp_has_categories":  bool(data.get("gmb_categories")),
+            "gbp_phone":           data.get("gmb_phone", ""),
+            "gbp_address":         data.get("gmb_address", ""),
+            "gbp_photos_count":    _gmb_photos,
+            "gbp_photos_gte10":    _gmb_photos_gte10,
+            # reviews (city-validated, not name-collision)
+            "review_count":  int(data.get("review_count", 0) or 0),
+            "review_avg":    float(data.get("review_avg", 0) or 0),
+            # social profiles
+            "social_facebook":  _plat_url("facebook"),
+            "social_instagram": _plat_url("instagram"),
+            "social_linkedin":  _plat_url("linkedin"),
+            "social_tiktok":    _plat_url("tiktok"),
+            "social_youtube":   _plat_url("youtube"),
+            "social_twitter":   _plat_url("twitter"),
+            "social_platforms_claimed": int(data.get("platforms_claimed", 0) or 0),
+            # backlinks
+            "backlinks_total":         int(data.get("backlinks_total", 0) or 0),
+            "referring_domains_total": int(data.get("referring_domains_total", 0) or 0),
+            # organic keywords / rankings
+            "kw_total":          int(data.get("kw_total", 0) or 0),
+            "live_ranked_count": int(data.get("live_ranked_count", 0) or 0),
+            # AI / LLMs
+            "llms_txt_present": bool(data.get("llms_txt_present")),
+            "schema_present":   bool(data.get("schema_present")),
+            "ai_mode_cited":    bool(data.get("ai_mode_cited")),
+            # local
+            "map_pack_positions": data.get("map_pack_positions") or {},
+            # NAP from brand report (canonical source)
+            "nap_name":    data.get("brand_name", ""),
+            "nap_address": data.get("gmb_address", "") or "",
+            "nap_phone":   data.get("gmb_phone", "") or data.get("phone", "") or "",
+            # onpage quick-check signals (course auto-credit for existing sites)
+            "sitemap_present":    _onpage["sitemap_present"],
+            "og_image_present":   _onpage["og_image_present"],
+            "tel_link_present":   _onpage["tel_link_present"],
+            "nap_on_page_match":  _onpage["nap_on_page_match"],
+            "form_present":       _onpage["form_present"],
+            "faq_schema_present": _onpage["faq_schema_present"],
+        }
+
+        _sig_target = out_path.parent / "_data" / "brand-course" / "brand-report-signals.json"
+        _sig_target.parent.mkdir(parents=True, exist_ok=True)
+        _sig_target.write_text(_json2.dumps(_sigs, indent=2))
+        print(f"    brand-report-signals.json → {_sig_target}", file=sys.stderr)
+
+        # Auto-credit course items from brand report signals (the "sync" step that was missing).
+        # Without this, generate.py wrote signals.json but nobody consumed it.
+        if args.tenant and os.path.isdir(f"/mnt/clients/{args.tenant}/openvoiceui"):
+            try:
+                import subprocess as _sp2
+                _clib = "/home/mike/MIKE-AI/scripts/brand-course/course-lib.py"
+                if os.path.exists(_clib):
+                    _vl = _sp2.run(
+                        [sys.executable, _clib, "verify-local", args.tenant, "--source", "report"],
+                        capture_output=True, timeout=60,
+                    )
+                    _fl = [l for l in _vl.stderr.decode().splitlines() if l.startswith("flips:")]
+                    print(f"    course verify-local: {_fl[0] if _fl else 'ok'}", file=sys.stderr)
+            except Exception as _vl_e:
+                print(f"    course verify-local FAILED: {_vl_e}", file=sys.stderr)
+
+        # Auto-generate NAP canonical and base citation list for M4 course items.
+        # m4.nap.one-pager uses file: signal → needs nap-canonical.md in workspace.
+        # m4.nap.niche-discovery uses file: signal → needs citations/niche-directories.json.
+        if args.tenant and os.path.isdir(f"/mnt/clients/{args.tenant}/openvoiceui"):
+            try:
+                _biz_dir = f"/mnt/clients/{args.tenant}/openclaw/workspace/business"
+                os.makedirs(_biz_dir, exist_ok=True)
+                _nap_path = os.path.join(_biz_dir, "nap-canonical.md")
+                if not os.path.exists(_nap_path):
+                    _nap_phone = data.get("gmb_phone") or data.get("phone") or ""
+                    _nap_addr  = data.get("gmb_address") or ""
+                    _nap_site  = f"https://{domain}" if domain else ""
+                    _nap_md = (
+                        f"# NAP Canonical — {name}\n\n"
+                        "**This is the single source of truth. Copy-paste EXACTLY from this sheet for every listing, forever.**\n\n---\n\n"
+                        f"## Business Name\n{name}\n\n"
+                        f"## Address\n{_nap_addr or '(pending intake)'}\n\n"
+                        f"## Phone\n{_nap_phone or '(pending intake)'}\n\n"
+                        f"## Website\n{_nap_site}\n\n"
+                        f"_Generated: {datetime.utcnow().strftime('%Y-%m-%d')} from brand report signals_\n"
+                        "_Status: Awaiting verification with client_\n"
+                    )
+                    import pathlib as _pl
+                    _pl.Path(_nap_path).write_text(_nap_md)
+                    print(f"    nap-canonical.md → {_nap_path}", file=sys.stderr)
+
+                _cit_dir  = os.path.join(_biz_dir, "citations")
+                _nich_path = os.path.join(_cit_dir, "niche-directories.json")
+                if not os.path.exists(_nich_path):
+                    os.makedirs(_cit_dir, exist_ok=True)
+                    _tier1 = [
+                        {"name": "Yelp",                  "url": "https://biz.yelp.com",                     "tier": 1, "type": "general", "priority": "high",   "status": "pending"},
+                        {"name": "Bing Places",           "url": "https://www.bingplaces.com",               "tier": 1, "type": "general", "priority": "high",   "status": "pending"},
+                        {"name": "Apple Maps Business Connect", "url": "https://businessconnect.apple.com",   "tier": 1, "type": "general", "priority": "high",   "status": "pending"},
+                        {"name": "Facebook Business Page","url": "https://www.facebook.com/pages/create",     "tier": 1, "type": "social",  "priority": "high",   "status": "pending"},
+                        {"name": "BBB",                   "url": "https://www.bbb.org",                       "tier": 1, "type": "trust",   "priority": "medium", "status": "pending"},
+                        {"name": "Nextdoor Business",     "url": "https://business.nextdoor.com",             "tier": 1, "type": "local",   "priority": "medium", "status": "pending"},
+                        {"name": "Alignable",             "url": "https://www.alignable.com",                 "tier": 2, "type": "b2b",    "priority": "medium", "status": "pending"},
+                        {"name": "Yellow Pages Canada" if (city or "").endswith("ON") or (city or "").endswith("BC") or (city or "").endswith("AB") or (city or "").endswith("QC") else "Yellow Pages",
+                                                          "url": "https://www.yellowpages.ca" if (city or "").endswith("ON") or "Canada" in (city or "") else "https://www.yellowpages.com",
+                                                                                                               "tier": 2, "type": "general", "priority": "medium", "status": "pending"},
+                    ]
+                    _nich_data = {
+                        "generated": datetime.utcnow().strftime("%Y-%m-%d"),
+                        "tenant": args.tenant,
+                        "business_name": name,
+                        "niche": "general-local-business",
+                        "notes": "Base tier-1/tier-2 directories. Niche-specific tier-3 to be added after trade classification.",
+                        "directories": _tier1,
+                        "summary": {"total": len(_tier1), "tier1": sum(1 for d in _tier1 if d["tier"]==1), "tier2": sum(1 for d in _tier1 if d["tier"]==2), "pending": len(_tier1), "submitted": 0, "live": 0},
+                    }
+                    import json as _json3
+                    _pl.Path(_nich_path).write_text(_json3.dumps(_nich_data, indent=2))
+                    print(f"    niche-directories.json → {_nich_path}", file=sys.stderr)
+            except Exception as _nap_e:
+                print(f"    NAP/citations FAILED: {_nap_e}", file=sys.stderr)
+    except Exception as _sig_e:
+        print(f"    brand-report-signals.json FAILED: {_sig_e}", file=sys.stderr)
+
     # Write the human-readable background plan (gold-standard style) alongside it.
     try:
         from lib import plan_md as plan_md_mod

@@ -111,7 +111,7 @@ The JamBot overlay (rest of this file) wins for JamBot-tenant operations. Exampl
 
 - Provider routing → upstream documents `anthropic` provider against `api.anthropic.com`; JamBot must point `base_url` at `https://api.z.ai/api/anthropic` for the Z.AI Coding Plan subscription. See §2.
 - Container layout → upstream Docker docs describe the official `nousresearch/hermes-agent` image; JamBot ships `jambot/hermes:latest` from `/mnt/system/base/hermes/`. See §10.
-- Mid-flight abort/steer → upstream uses `POST /v1/runs/{run_id}/stop` (v0.13+); JamBot runtime is now v0.13.0 on test-dev (since 2026-05-16) but the plugin still uses the connection-close hack in `plugins/hermes-agent/gateway.py` because the upgrade swap wasn't done. See §6 — clean cancel via `/v1/runs/{run_id}/stop` is now available and should replace the connection-close trick.
+- Mid-flight abort/steer → upstream uses `POST /v1/runs/{run_id}/stop` (v0.13+); the JamBot fleet is now **v0.18.0** (all 4 tenants, rolled 2026-07-03 — see §1 for the authoritative version state) so `/v1/runs/{run_id}/stop` is available, but the plugin still uses the connection-close hack in `plugins/hermes-agent/gateway.py` because the swap to the clean-cancel endpoint was never done. See §6 — clean cancel via `/v1/runs/{run_id}/stop` should replace the connection-close trick.
 
 If you're unsure, look it up in the upstream corpus first (it's the source of truth for *how Hermes works*), then check this file for *how we wire it into JamBot*.
 

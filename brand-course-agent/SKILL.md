@@ -58,6 +58,27 @@ curl -s -X POST "$BASE/api/course/event?tenant=$TENANT" \
 
 **4. Execute per its `agent_playbook`.** The playbook is 1–3 sentences telling you HOW. Use your existing skills (dataforseo, seo-platform, article-writer, canvas-pages, customer-comms, ...) to do the actual work. Real work only — an item is not done because you wrote a plan for it.
 
+**4b. Commit and push if you created or changed any files.** Every task that writes files to a website repo MUST be committed and pushed before you mark it done. This triggers autodeploy so the work goes live immediately.
+
+```bash
+# Find your website repo (usually under ~/workspace/Websites/<project>/)
+REPO_DIR="$(find ~/.openclaw/workspace/Websites -maxdepth 1 -type d | grep -v '^~' | head -1)"
+# Or use the specific repo if you know it
+
+if [ -d "$REPO_DIR/.git" ]; then
+  cd "$REPO_DIR"
+  git add -A
+  git commit -m "brand-course: complete $ITEM_ID — $ITEM_TITLE"
+  git push origin HEAD
+fi
+```
+
+Rules for commit+push:
+- One commit per completed task, named `brand-course: complete <item_id> — <brief title>`
+- Push immediately after commit — every task, every time
+- If push fails (no key, auth error), note the error in your evidence and mesh the host: the host will fix git access and push the backlog
+- Canvas-pages and non-git files (prepared docs, business/ files) don't need git — only files inside a tracked website repo
+
 **5. Post the result with evidence:**
 
 - `status: "done"` — ONLY when verify.mode allows it and the work is verifiably complete.

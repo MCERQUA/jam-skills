@@ -93,3 +93,28 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 }
+
+/* ===== TOUCH TARGETS (WCAG 2.5.5 / 2.5.8) ===== */
+/* Source-level 44px floor so every built site clears QA's touch-target gate at source. */
+/* Adopted 2026-07-02 (pledge ce9b58fc) — traces to QA-manager's 36brickhouse NO-SHIP lesson. */
+/* In @layer base so it is a genuine FLOOR: `min-height` beats any `h-*` fixed-height utility */
+/* (min-height always wins over a smaller height), while an explicit `min-h-*` utility can still */
+/* opt a control out deliberately. Keeps Tailwind's cascade intact. */
+@layer base {
+  button,
+  [role="button"],
+  a.btn,
+  select,
+  textarea,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+  .edge-tab {
+    min-height: 44px;
+  }
+
+  /* Icon-only buttons collapse below 44px wide without a width floor too. */
+  button.icon,
+  .btn-icon,
+  [data-icon-only] {
+    min-width: 44px;
+  }
+}
