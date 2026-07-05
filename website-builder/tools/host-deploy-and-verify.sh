@@ -198,6 +198,44 @@ except Exception:
 
 log "  dev URL: $DEV_URL"
 
+# ── Public-DoH pre-check ─────────────────────────────────────────────────────
+# The container's local resolver (127.0.0.11 -> host stub 127.0.0.53) has been
+# observed serving stale/wrong A records for recently-changed domains, making
+# genuinely live sites read back as HTTP 000 "down". Resolve against a public
+# DoH endpoint (dns.google, falling back to cloudflare-dns.com) and pin curl to
+# that IP with --resolve so verification never trusts the container resolver.
+VERIFY_DOMAIN=$(python3 -c "from urllib.parse import urlparse; print(urlparse('$DEV_URL').hostname or '')")
+
+doh_lookup() {
+    local domain="$1" ip=""
+    for endpoint in "https://dns.google/resolve" "https://cloudflare-dns.com/dns-query"; do
+        ip=$(curl -s --max-time 8 -H "accept: application/dns-json" \
+                "${endpoint}?name=${domain}&type=A" 2>/dev/null \
+             | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    ans = [a['data'] for a in d.get('Answer', []) if a.get('type') == 1]
+    print(ans[0] if ans else '')
+except Exception:
+    print('')
+" 2>/dev/null)
+        [[ -n "$ip" ]] && break
+    done
+    echo "$ip"
+}
+
+RESOLVE_ARGS=()
+if [[ -n "$VERIFY_DOMAIN" ]]; then
+    PUBLIC_IP=$(doh_lookup "$VERIFY_DOMAIN")
+    if [[ -n "$PUBLIC_IP" ]]; then
+        log "  public-DoH: $VERIFY_DOMAIN -> $PUBLIC_IP (bypassing container resolver 127.0.0.11)"
+        RESOLVE_ARGS=(--resolve "${VERIFY_DOMAIN}:443:${PUBLIC_IP}" --resolve "${VERIFY_DOMAIN}:80:${PUBLIC_IP}")
+    else
+        log "  ⚠ public-DoH lookup failed for $VERIFY_DOMAIN — falling back to container resolver (may report false-down on stale records)"
+    fi
+fi
+
 # Required routes = intake.pages ∪ page-recommendations.md MUST-BUILD list
 ROUTES=$(python3 - <<PY
 import json, re, sys
@@ -225,7 +263,7 @@ for slug in $ROUTES; do
     TOTAL=$((TOTAL+1))
     url="${DEV_URL}/${slug}"
     [[ "$slug" == "home" || "$slug" == "" ]] && url="${DEV_URL}/"
-    code=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 15 "$url" 2>/dev/null || echo 000)
+    code=$(curl -sk "${RESOLVE_ARGS[@]}" -o /dev/null -w "%{http_code}" --max-time 15 "$url" 2>/dev/null || echo 000)
     if [[ "$code" == "200" ]]; then
         log "  ✓ $code  $url"
     else
