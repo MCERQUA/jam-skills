@@ -331,6 +331,17 @@ items = tasks[0]["result"][0].get("items") or []
 ```
 **Rule:** log the raw response *shape* (top status + `len(tasks)` + result-present bool) before processing every call — even 200s — and return early on empty. Never let an empty array become invented data. (Standing platform rule; promoted from the 2026-W26 learning-consolidation meeting.)
 
+### Tagging PAA (and other multi-client) pulls with `CLIENT_TAG`
+
+`dataforseo.sh` resolves cost tracking by container **tenant** (hostname), but one tenant can run PAA pulls for several distinct client businesses in the same session (e.g. src-desktop pulling PAA for both queen-anne-roofing and ballard-roofing). Set `CLIENT_TAG` before the call to attribute spend at the client level, not just the tenant level:
+
+```bash
+CLIENT_TAG=queen-anne-roofing bash dataforseo.sh "serp/google/organic/live/advanced" \
+  '[{"keyword":"roof repair cost","location_code":1027305,"language_code":"en","people_also_ask_click_depth":2,"depth":30}]'
+```
+
+`CLIENT_TAG` is optional — omit it for single-client tenants. It's sanitized to `[A-Za-z0-9_-]` and forwarded to the proxy as `client_tag`.
+
 ---
 
 ## SEO Data Persistence
