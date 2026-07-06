@@ -4,11 +4,3 @@ node_modules/
 *.pyc
 *.sqlite
 *.db
-# Secrets — never commit env files (skills ship to every tenant AND to GitHub).
-# The skills-snapshot cron was sweeping these in; keys belong in the platform
-# keys-file (.platform-keys.env / .openclaw-keys.env), injected at runtime.
-.env
-*.env
-.env.*
-*.env.bak*
-*-keys.env
