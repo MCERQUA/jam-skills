@@ -41,8 +41,11 @@ exec("bash /mnt/shared-skills/stitch/stitch-mcp.sh <tool> '<json>'")
 - Never spawn a z-code sub-agent to drive Stitch.
 
 ## Models
-- **`GEMINI_3_1_PRO`** (best) or `GEMINI_3_FLASH` (faster). **`GEMINI_3_PRO` is DEPRECATED** —
-  do NOT use it (the old skill defaulted to it).
+- **`GEMINI_3_1_PRO`** (default) or `GEMINI_3_FLASH` (faster). `GEMINI_3_PRO` is still ACCEPTED
+  by the API (verified 2026-07-07) and the website-creator 4-style pipeline deliberately pins it
+  (2026-06-07 audit: it produced fuller long pages). A 2026-07-07 same-prompt A/B measured both
+  at ~4-6K px on a 14K-px length contract — output length varies Stitch-side day to day, so
+  pipelines MUST gate on height/size and retry rather than trust any model id.
 
 ## DESKTOP vs MOBILE
 - Request `"deviceType": "DESKTOP"` for websites (MOBILE for app mockups). Note: a DESKTOP
@@ -108,7 +111,8 @@ curl -sL "<htmlCode.downloadUrl>" -o .stitch-pages/<slug>.html
    work, burns quota, and triggers transient 401 "auth errors" (rate limiting) that look like
    credential failure but aren't. If you see a 401 mid-batch: WAIT 60s, poll — don't re-auth,
    don't re-fire.
-3. **Model: `GEMINI_3_1_PRO`.** `GEMINI_3_PRO` is hard-deprecated in the API enum now.
+3. **Model: `GEMINI_3_1_PRO`** for general use; `GEMINI_3_PRO` still accepted (2026-07-07) and
+   pinned by the 4-style pipeline — see Models above before "fixing" either.
 4. **Multi-variant runs**: ONE project + ONE design system + N generate calls, each prompt
    carrying a DISTINCT layout archetype label (V1 minimal-cards / V2 HUD-gauges / V3
    timeline-board / V4 map-first / V5 bento-stats…). Fire, then poll `list_screens` once for
@@ -281,7 +285,8 @@ pipeline). Don't try to make Stitch do a full-stack tool's job.
 - "list_screens empty after generate" → NOT a failure. The screen is in the generate RESPONSE
   (`result.content[0].text → outputComponents[].design.screens[].htmlCode.downloadUrl`).
 - claude.ai MCP generate times out → use `stitch-mcp.sh` instead.
-- `GEMINI_3_PRO` error → deprecated; use `GEMINI_3_1_PRO`.
+- Short/truncated output → NOT model-deprecation; Stitch length varies per day (2026-07-07 A/B).
+  Gate on height/html-size and retry in a FRESH project.
 
 ## Canvas-page integration
 Download `htmlCode.downloadUrl` → strip `<script src="cdn.tailwindcss.com">` → inline CSS →
