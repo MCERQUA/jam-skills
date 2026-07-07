@@ -61,7 +61,9 @@ If `$PROJECT_DIR/package.json` already exists (resume case) → mark `scaffold` 
 
 Read `intake.stitchScreens` and `intake.stitchInstructions` to determine project ID and screen IDs.
 
-**Project ID parse:** look for `ID:\s*<digits>` in `stitchInstructions`. If not found, it's an error — halt build with `phases.stitch-fetch.status="failed"`.
+**Project ID resolution (in order):** (1) `intake.stitchProjectId` if non-empty (the Website Setup Creator flow sets this directly — e.g. from the chosen 4-style variant); (2) parse `ID:\s*<digits>` from `stitchInstructions`. If neither yields an ID, it's an error — halt build with `phases.stitch-fetch.status="failed"`.
+
+**Creator-style builds** (`intake.creatorStyle` non-empty): the single supplied screen is the client's CHOSEN homepage design — the literal blueprint AND the style contract. Convert it as `home`; every other page in the plan is an "extra page" (Phase 7) cloned from home's locked design. Do not treat the single-screen supply as an error.
 
 For each `{name, id}` in `intake.stitchScreens`:
 1. Use the `stitch` skill's `get_screen` with `screen_id = id` and the parsed `project_id`.
