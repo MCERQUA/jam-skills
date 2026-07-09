@@ -206,11 +206,19 @@ def _render_gbp_depth(
                 f"<td class='num'>{_escape(q.get('date',''))}</td>"
                 f"</tr>"
             )
-        empty_row = (
-            "<tr><td colspan='3' style='text-align:center;color:var(--brand-muted);padding:12px;'>"
-            "No Q&amp;A on profile &mdash; answering common questions improves engagement signals."
-            "</td></tr>"
-        )
+        if gbp_qna_count > 0:
+            empty_row = (
+                "<tr><td colspan='3' style='text-align:center;color:var(--brand-muted);padding:12px;'>"
+                f"{gbp_qna_count} question{'s' if gbp_qna_count != 1 else ''} on profile &mdash; "
+                "all unanswered. Responding to Q&amp;A improves local ranking signals."
+                "</td></tr>"
+            )
+        else:
+            empty_row = (
+                "<tr><td colspan='3' style='text-align:center;color:var(--brand-muted);padding:12px;'>"
+                "No Q&amp;A on profile &mdash; answering common questions improves engagement signals."
+                "</td></tr>"
+            )
         html += (
             f"\n    {_h3}GBP Q&amp;A</h3>"
             f"\n    <div class='panel' style='padding:0;overflow-x:auto;'>"
@@ -1247,7 +1255,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
         <table class="ls-gmb-table">
           <thead><tr><th>Element</th><th>Your Profile</th><th>Status</th></tr></thead>
           <tbody>
-            <tr><td>GMB Verified</td><td>{"Verified" if data.get("gmb_claimed") else ("Listed (unclaimed)" if data.get("gmb_found") else "Not found")}</td><td><span class="pill {"pill-ok" if data.get("gmb_claimed") else "pill-bad"}">{"Good" if data.get("gmb_claimed") else "Fix"}</span></td></tr>
+            <tr><td>GMB Verified</td><td>{"Active &amp; Verified" if (data.get("gmb_claimed") or rev_count >= 10) else ("Listed (unclaimed)" if data.get("gmb_found") else "Not found")}</td><td><span class="pill {"pill-ok" if (data.get("gmb_claimed") or rev_count >= 10) else ("pill-warn" if data.get("gmb_found") else "pill-bad")}">{"Good" if (data.get("gmb_claimed") or rev_count >= 10) else ("Check" if data.get("gmb_found") else "Fix")}</span></td></tr>
             <tr><td>Reviews</td><td>{rev_count} at {rev_avg:.1f}&star;</td><td><span class="pill {"pill-ok" if rev_count >= 40 else ("pill-warn" if rev_count >= 15 else "pill-bad")}">{"Good" if rev_count >= 40 else ("Fair" if rev_count >= 15 else "Low")}</span></td></tr>
             <tr><td>NAP Consistency</td><td>{"Phone mismatch across listings &mdash; GMB shows " + _escape(data.get("gmb_phone","")) if data.get("nap_phone_mismatch") else ("Consistent &mdash; " + _escape(data.get("gmb_phone","")) if data.get("gmb_phone") else "Verify name/address/phone match everywhere")}</td><td><span class="pill {"pill-bad" if data.get("nap_phone_mismatch") else ("pill-ok" if data.get("gmb_phone") else "pill-warn")}">{"Fix" if data.get("nap_phone_mismatch") else ("Good" if data.get("gmb_phone") else "Check")}</span></td></tr>
             <tr><td>Schema Markup</td><td>{"Present" if schema_present else "Missing"}</td><td><span class="pill {"pill-ok" if schema_present else "pill-bad"}">{"Good" if schema_present else "Missing"}</span></td></tr>
@@ -1263,8 +1271,8 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
       </div>
     </div>
 
-    {("<h3 class=\"text-base font-bold uppercase tracking-wider mb-3\" style=\"color:var(--brand-muted); font-family: var(--font-ui);\">Recent Reviews</h3>"
-      "<div class=\"panel\" style=\"padding:16px; margin-bottom:18px;\">"
+    {('<h3 class="text-base font-bold uppercase tracking-wider mb-3" style="color:var(--brand-muted); font-family: var(--font-ui);">Recent Reviews</h3>'
+      '<div class="panel" style="padding:16px; margin-bottom:18px;">'
       + "".join(
           f'<div style="padding:10px 0; border-bottom:1px solid var(--brand-border);">'
           f'<div style="color:var(--brand-warn,#f59e0b); font-size:13px;">{"&#9733;" * int(round(float(rv.get("rating") or 0)))}'
