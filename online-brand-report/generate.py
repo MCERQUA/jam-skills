@@ -628,7 +628,7 @@ def main():
                       file=sys.stderr)
 
     organic_data    = _run("organic/keywords",  fetch_organic.fetch_organic,   domain, location_code=location_code)
-    serp_data       = _run("serp/results",      fetch_serp.fetch_serp,         domain, service, city, state, location_code=location_code, location_coordinate=location_coordinate)
+    serp_data       = _run("serp/results",      fetch_serp.fetch_serp,         domain, service, city, state, location_code=location_code, location_coordinate=location_coordinate, name=name)
     local_data      = _run("local/reviews+map", fetch_local.fetch_local,       name, service, city, state, domain, location_code=location_code)
     backlink_data   = _run("backlinks",         fetch_backlinks.fetch_backlinks, domain)
     comp_data       = _run("competitive",       fetch_competitive.fetch_competitive, domain, competitors_raw, location_code=location_code)

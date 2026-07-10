@@ -558,15 +558,17 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
     #     40501 Invalid Field → 0 items → every Canadian/abbrev-US map-pack falsely
     #     read "not ranked". _map_location_name() expands 'ON'→'Ontario'.
     #  2) query a small VERTICAL keyword set, not just the single (often too-generic)
-    #     detected service. A supply/parts business ranks #1 for 'spray foam equipment'
-    #     but is invisible for the bare 'spray foam' head term. We keep the BEST position
-    #     per city and record which keyword earned it, so the real ranking shows.
+    #     detected service. We keep the BEST position per city and record which keyword
+    #     earned it, so the real ranking shows.
+    # Fix (2026-07-09): use service-intent modifiers (contractor/company/commercial/near me)
+    #     instead of equipment/supplies/parts — those are irrelevant to service businesses
+    #     and show up as displayed wins which confuses clients.
     base = (service or "").strip()
     _kw_candidates = []
     if base:
         _kw_candidates.append(base)
         low = base.lower()
-        for mod in ("equipment", "supplies", "parts"):
+        for mod in ("contractor", "company", "commercial", "near me"):
             if mod not in low:
                 _kw_candidates.append(f"{base} {mod}")
     _kw_candidates = _kw_candidates[:4]

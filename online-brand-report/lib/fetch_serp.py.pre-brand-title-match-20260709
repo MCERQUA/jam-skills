@@ -18,31 +18,8 @@ def _norm(s) -> str:
     `dom.lower()` (NoneType has no attribute 'lower') and kill the whole SERP block."""
     return (s or "").lower().replace("www.", "")
 
-
-_NAME_SUFFIXES = (" llc", " inc", " ltd", " corp", " co.", " company", " & co")
-
-def _brand_tokens(domain: str, name: str) -> list:
-    """Return lowercase strings; if ANY appears in a SERP result title → mark is_client.
-    Catches branded social/directory listings (Facebook, Yelp, Instagram) that carry
-    the client's name but not their domain."""
-    tokens = []
-    # Domain label: 'hrfoam' from hrfoam.com
-    label = (domain or "").replace("www.", "").split(".")[0].lower()
-    if label and len(label) > 2:
-        tokens.append(label)
-    # Cleaned business name (drop corporate suffixes)
-    n = (name or "").lower()
-    for sfx in _NAME_SUFFIXES:
-        n = n.replace(sfx, "")
-    n = n.strip(" ,.")
-    if n and len(n) > 3:
-        tokens.append(n)
-    return tokens
-
-
 def _serp_for_query(keyword: str, city: str, state: str, client_domain: str,
-                    location_code: int = 2840, location_coordinate: str = "",
-                    brand_tokens: list | None = None) -> dict:
+                    location_code: int = 2840, location_coordinate: str = "") -> dict:
     results = []
     try:
         # Geo-target: the business's exact coordinate (the real LOCAL SERP a nearby
@@ -69,9 +46,7 @@ def _serp_for_query(keyword: str, city: str, state: str, client_domain: str,
             title  = item.get("title") or ""
             dom    = _domain_from_url(url)
             cd     = _norm(client_domain)
-            title_norm = _norm(title)
-            is_client = (bool(cd) and cd in _norm(dom)) or \
-                        any(t in title_norm for t in (brand_tokens or []))
+            is_client = bool(cd) and cd in _norm(dom)
             if is_client:
                 client_found = True
             results.append({
@@ -106,15 +81,12 @@ def _serp_for_query(keyword: str, city: str, state: str, client_domain: str,
     }
 
 def fetch_serp(domain: str, service: str, city: str, state: str, extra_cities: list | None = None,
-               location_code: int = 2840, location_coordinate: str = "",
-               name: str = "") -> dict:
+               location_code: int = 2840, location_coordinate: str = "") -> dict:
     """Fetch SERP snapshots for 2-3 key queries. Never raises.
 
     location_code: DataForSEO country code (2840 US / 2124 CA).
-    location_coordinate: 'lat,lng' from the GMB/Places listing → geo-targeted LOCAL SERP.
-    name: Business name — used to highlight branded social/directory listings (Yelp, FB, etc.)."""
+    location_coordinate: 'lat,lng' from the GMB/Places listing → geo-targeted LOCAL SERP."""
     queries = []
-    btokens = _brand_tokens(domain, name)
     cities_to_check = [c for c in ([city] + (extra_cities or [])[:2]) if c]
 
     # service/industry may not be known yet (it's captured later in onboarding).
@@ -135,7 +107,7 @@ def fetch_serp(domain: str, service: str, city: str, state: str, extra_cities: l
 
     serp_blocks = []
     for (kw, c, s) in queries[:3]:
-        block = _serp_for_query(kw, c, s, domain, location_code, location_coordinate, btokens)
+        block = _serp_for_query(kw, c, s, domain, location_code, location_coordinate)
         serp_blocks.append(block)
 
     # Identify top recurring competitor
