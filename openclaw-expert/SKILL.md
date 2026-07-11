@@ -6,7 +6,7 @@ metadata: {"openclaw": {"emoji": "🧠"}}
 
 # OpenClaw Expert
 
-**OpenClaw npm latest:** `2026.5.2` (audited 2026-05-04; community-corroborated 2026-05-23). **Catalog refreshed:** see `catalog.json` `fetchedAt`.
+**OpenClaw deployed on JamBot:** `2026.5.7` (verified in openclaw-test-dev + `/mnt/system/base/openclaw/Dockerfile`, 2026-07-11 — the last full audit was against `2026.5.2`; changelog delta 5.2→5.7 not yet audited). **Catalog refreshed:** see `catalog.json` `fetchedAt`.
 
 This skill is a **router**, not a textbook. Upstream docs at `docs.openclaw.ai` are authoritative — we index them, layer JamBot-specific deltas, and surface **21 audit anchors** that mark version-specific corrections discovered in production:
 - Anchors 1-15: derived from the changelog audit (`docs/jambot/openclaw-skill-update-2026-05-04.md`)

@@ -9,6 +9,18 @@ You are building canvas pages that run inside an iframe in the JamBot voice assi
 
 ---
 
+## ⚠️ ACTIVE STYLE OVERRIDE — CHECK FIRST
+
+If `/app/runtime/canvas-pages/canvas-styles/ACTIVE-STYLE.md` exists, the user
+has picked their own design system on the Canvas Styles page. **That file
+overrides the COLOR SYSTEM and template path below** — follow its rules and
+start from `/app/runtime/canvas-pages/canvas-styles/active-template.html`
+instead of `canvas-template.html`. The craft standards in this skill
+(hierarchy, motion, depth, real content, banned purple/pink, no emoji icons)
+still apply on top of ANY style.
+
+---
+
 ## THE ENVIRONMENT (Non-Negotiable Constraints)
 
 - **Sandboxed iframe** — No `<script src="https://...">`, no CDN, no npm packages

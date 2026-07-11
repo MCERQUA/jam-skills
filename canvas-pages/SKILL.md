@@ -7,6 +7,24 @@ description: How to create, open, verify, and manage canvas pages in OpenVoiceUI
 
 Read this skill before creating ANY canvas page.
 
+## Step 0: Check the User's Chosen Style (ALWAYS FIRST)
+
+```bash
+cat /app/runtime/canvas-pages/canvas-styles/ACTIVE-STYLE.md
+```
+
+- **If this file exists**, the user has chosen a design system for THEIR pages.
+  It is LAW for every page you build: follow its design rules, and start every
+  new page by copying `/app/runtime/canvas-pages/canvas-styles/active-template.html`
+  (keep its full `<style>` foundation, replace the demo content). The color/theme
+  rules further down in this skill are OVERRIDDEN by the active style.
+- **If the file does not exist**, use the classic default system below
+  (dark theme + `canvas-web-design` skill).
+- The user changes styles on the "Canvas Styles" page (`canvas-styles.html`).
+  If they ask to change how their pages look, point them there — or call the
+  style API yourself: `curl -s http://openvoiceui:5001/api/canvas/styles` to list,
+  `curl -s -X POST http://openvoiceui:5001/api/canvas/styles/<id>/activate` to switch.
+
 ## Step 1: Write the File
 
 ```
@@ -46,6 +64,18 @@ Returns: `{"current_page": "my-page.html", "current_title": "...", "updated_at":
 - If still on old page → say so and send `[CANVAS:my-page]` again
 - If null/empty → canvas panel may be closed, send the tag again
 
+## Step 3.5: Lint It (REQUIRED)
+
+After writing or updating a page, run the deterministic QA check and fix EVERY issue:
+
+```bash
+curl -s http://openvoiceui:5001/api/canvas/lint/my-page
+```
+
+Returns `{"ok": true|false, "issues": [...]}` — flags emoji-as-icons, banned purple/pink,
+CDN frameworks, missing viewport/page-icon meta, and active-style mismatches.
+(If the endpoint 404s, this server predates the style system — skip.)
+
 ## Canvas Page HTML Rules
 
 - **Desktop icon (REQUIRED):** Add `<meta name="page-icon" content="ICON_TYPE">` in the `<head>`. This sets the desktop icon. Available types: `dashboard`, `game`, `music`, `tools`, `book`, `upload`, `image-creator`, `file-explorer`, `interactive-map`, `style-guide`, `crm`, `voice-studio`, `ai-app-library`, `website`, `internet`, `settings`, `document`. Pick the closest match.
@@ -53,11 +83,19 @@ Returns: `{"current_page": "my-page.html", "current_title": "...", "updated_at":
   - **Exception:** `cdn.jsdelivr.net` is whitelisted for Three.js and similar libraries
 - **All CSS and JS must be inline** — `<style>` and `<script>` tags only
 - **Google Fonts `@import` in `<style>` is OK** — graceful fallback to sans-serif
-- **Dark theme required:** background `#0d1117` or `#13141a`, text `#e2e8f0`
-- **Accent colors:** blue `#3b82f6`, cyan `#06b6d4`, amber `#f59e0b`, emerald `#10b981`
+- **Theme:** follow the ACTIVE STYLE (Step 0) if one is set. Only when no active
+  style exists: dark theme, background `#0d1117` or `#13141a`, text `#e2e8f0`,
+  accents blue `#3b82f6`, cyan `#06b6d4`, amber `#f59e0b`, emerald `#10b981`
 - **BANNED:** purple (#764ba2, #667eea), pink, magenta — NEVER use these
-- **BANNED:** emoji as UI icons — use SVG or Unicode symbols
+- **BANNED:** emoji as UI icons — copy professional inline SVG icons from
+  `/app/runtime/canvas-pages/canvas-styles/icons.html` (27 stroke icons, currentColor —
+  they inherit any style). If that file doesn't exist, use plain Unicode symbols or
+  hand-inline SVG. Emoji ONLY when the user explicitly asks for emoji content.
 - **Make it visual** — cards, grids, tables, real data. No blank pages.
+- **Mobile width (hard rule):** the host injects a 25px safe-area padding — that is
+  the ONLY horizontal inset. On phones (≤640px) wrappers/sections get ZERO side
+  padding; cards keep only their internal 16-20px. Never stack padded containers —
+  text should span the full width inside the safe area. Backgrounds may bleed wider.
 - For premium design patterns, read the `canvas-web-design` skill
 
 ## Interactive Buttons (postMessage)

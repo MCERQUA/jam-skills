@@ -1,0 +1,29 @@
+{
+  "_doc": "CLI coding-agent registry — read by BOTH the in-container wrapper (run.sh) and the host dispatcher (scripts/cli-agent-dispatcher.sh). mode:'local' = binary runs inside the openclaw container. mode:'remote' = task is filed to workspace/.cli-tasks/ and executed HOST-SIDE where the subscription lives — subscription credentials NEVER enter tenant containers (Mike, 2026-07-11). Adding a CLI = add an entry (+ binary in image if local / host install if remote) and flip enabled. Tenant-local overrides merge from ~/.openclaw/workspace/.cli-agents-local.json (same shape, only overridden keys). BILLING RULE: LLM CLIs are ALWAYS subscription-billed, never per-call API keys.",
+  "z-code": {
+    "enabled": true,
+    "mode": "local",
+    "cmd": "z-code -p \"$CLI_AGENT_PROMPT\" --allowedTools 'Edit,Write,Read,Glob,Grep'",
+    "provider": "Z.AI GLM (subscription — included, DEFAULT choice)",
+    "use_for": "default for all heavy coding: canvas pages, games, dashboards, multi-file edits, 100+ line files",
+    "timeout_s": 840
+  },
+  "claude-code": {
+    "enabled": true,
+    "mode": "remote",
+    "host_cmd": "/home/mike/MIKE-AI/scripts/with-claude-env.sh claude --model sonnet -p \"$CLI_AGENT_PROMPT\" --allowedTools \"Edit,Write,Read,Glob,Grep,Bash\"",
+    "provider": "Anthropic subscription, host-run (5h cap shared with host ops — dispatcher enforces one-at-a-time)",
+    "use_for": "hardest coding/review — escalation tier when z-code output isn't good enough, or when the user asks for Claude by name",
+    "timeout_s": 840,
+    "_note": "--model pin is MANDATORY (account default = opus). Runs host-side in the tenant's workspace dir; credentials never enter the container."
+  },
+  "opencode": {
+    "enabled": false,
+    "mode": "remote",
+    "host_cmd": "opencode run \"$CLI_AGENT_PROMPT\"",
+    "provider": "TBD on install (subscription lane only)",
+    "use_for": "coding (alternative harness)",
+    "timeout_s": 840,
+    "_note": "Stub — verify CLI syntax + provider when installed, then flip enabled."
+  }
+}
