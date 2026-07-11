@@ -963,10 +963,19 @@ def main():
             "faq_schema_present": _onpage["faq_schema_present"],
         }
 
-        _sig_target = out_path.parent / "_data" / "brand-course" / "brand-report-signals.json"
-        _sig_target.parent.mkdir(parents=True, exist_ok=True)
-        _sig_target.write_text(_json2.dumps(_sigs, indent=2))
-        print(f"    brand-report-signals.json → {_sig_target}", file=sys.stderr)
+        # ALWAYS land signals in the tenant's course data dir when the tenant is known —
+        # out_path.parent silently missed the course whenever the report HTML was written
+        # anywhere but canvas-pages/ (phatty + gksprayfoam absorbed ~nothing because of
+        # this; only nick's report landed where the course reads). Fixed 2026-07-11.
+        _sig_targets = [out_path.parent / "_data" / "brand-course" / "brand-report-signals.json"]
+        if args.tenant:
+            _canonical = Path(f"/mnt/clients/{args.tenant}/openvoiceui/canvas-pages/_data/brand-course/brand-report-signals.json")
+            if _canonical != _sig_targets[0] and os.path.isdir(f"/mnt/clients/{args.tenant}/openvoiceui"):
+                _sig_targets.append(_canonical)
+        for _sig_target in _sig_targets:
+            _sig_target.parent.mkdir(parents=True, exist_ok=True)
+            _sig_target.write_text(_json2.dumps(_sigs, indent=2))
+            print(f"    brand-report-signals.json → {_sig_target}", file=sys.stderr)
 
         # Auto-credit course items from brand report signals (the "sync" step that was missing).
         # Without this, generate.py wrote signals.json but nobody consumed it.
