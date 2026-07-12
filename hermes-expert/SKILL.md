@@ -1,6 +1,6 @@
 ---
 name: hermes-expert
-description: "Hermes Agent (Nous Research) expert — indexed mirror of hermes-agent.nousresearch.com/docs plus the JamBot operational overlay (Z.AI subscription routing, production version state, mid-flight pipeline, container layout) and r/hermesagent community patterns. Load by-need via index.json + sections/<id>.json — never read everything at once. TRIGGER when working on hermes-* containers, Hermes config/upgrades, or Hermes docs questions."
+description: "Hermes Agent (Nous Research) expert — indexed mirror of hermes-agent.nousresearch.com/docs plus the JamBot operational overlay (Z.AI subscription routing, production version state, mid-flight pipeline, container layout) and r/hermesagent community patterns. For health/optimization work START at overlay §0 — the Hermes × OpenVoiceUI optimization playbook (8-touchpoint integration map, ordered audit pass incl. scripts/session-health.sh + audit-anchors.sh, unshipped-upgrade backlog). Load docs by-need via index.json + sections/<id>.json — never read everything at once. TRIGGER when working on hermes-* containers, Hermes config/upgrades, optimizing/debugging the OVU hermes voice path, or Hermes docs questions."
 ---
 
 # Hermes Expert
@@ -138,13 +138,75 @@ That regenerates `index.json` from the section files. Schema for new sections is
 
 ---
 
+## 0. Hermes × OpenVoiceUI optimization playbook (START HERE — added 2026-07-12)
+
+**Purpose:** wherever this skill is loaded, this is the ordered pass that gets Hermes fully healthy AND fully optimized *in the context of the whole OVU stack* — not just "is the container up." Run it when asked to "optimize hermes," when onboarding a new hermes tenant, after any image roll, or on periodic review. Each row/step points to the deeper section.
+
+### The full OVU integration surface (know all 8 touchpoints before changing any one)
+
+| # | Touchpoint | Where | What breaks if wrong |
+|---|---|---|---|
+| 1 | LLM routing | `/mnt/clients/<t>/hermes/config.yaml` + `.env` (`ANTHROPIC_BASE_URL=api.z.ai/api/anthropic`) | 429 "insufficient balance" (§2) |
+| 2 | OVU plugin | `/mnt/clients/<t>/openvoiceui/plugins/hermes-agent/gateway.py` (SSE parse, session headers, empty-turn guard, v1.2.1 inline poison auto-heal, `_refresh_hermes_api_key` self-heal) | silent/empty voice turns (§1A, §8) |
+| 3 | Mid-flight routes | plugin `routes/hermes.py` + frontend `convPath()` in app.js (`gateway_id` in localStorage) | abort/steer hits openclaw instead (§6) |
+| 4 | Session store | Hermes' OWN SQLite `/opt/data/state.db` — OVU-side POST guards CANNOT protect it | session poison → 30–60s empty turns (§1A) |
+| 5 | Networking | tenant bridge `jambot-<t>` ONLY — hermes must NOT join `jambot-shared` (`--hostname hermes` registers DNS on every attached net → cross-tenant round-robin 401s) | intermittent 401 ~1-in-N (§1A second root cause) |
+| 6 | Auth | `API_SERVER_KEY` lives ONLY in `/opt/data/.env` (not process env); OVU's `HERMES_API_KEY` env can be stale (plugin self-heals in-process) | false-negative 401 diagnoses (§1A gotchas) |
+| 7 | Workspace + canvas | `/workspace` RW + `HERMES_WRITE_SAFE_ROOT=/workspace:/openvoiceui` (canvas dirs are symlinks into `/openvoiceui`); brain read-symlinks in `/opt/data`; bare-name writes = landmine | canvas writes denied / brain symlinks severed (§1C) |
+| 8 | Context injection | OVU `routes/conversation.py` prepends the master prompt → every voice turn is ~18KB user content, ~20K prompt tokens cold | cost, latency, and poison-spiral amplification (§1A) |
+
+### Ordered optimization pass
+
+```bash
+ROOT=/mnt/system/base/skills/hermes-expert
+# [0] Drift + baseline — one command, PASS/FAIL per anchor
+bash $ROOT/scripts/audit-anchors.sh
+
+# [1] Session health across the whole fleet (poison = the #1 recurring degrader)
+bash $ROOT/scripts/session-health.sh          # read-only; flags empty turns + trailing user-turn spirals
+# FLAG on `main` → recovery is `hermes sessions delete main --yes` (§1A). The plugin's v1.2.1
+#   auto-heal + health-monitor Check 7.5 should catch spirals now — a manual FLAG that persists
+#   means those layers missed it; investigate why before deleting.
+
+# [2] DNS isolation — exactly ONE IP per tenant or the cross-tenant leak is back
+for t in test-dev adrian danielle src; do
+  sg docker -c "docker exec openvoiceui-$t python3 -c 'import socket; print(\"$t\", sorted(set(r[4][0] for r in socket.getaddrinfo(\"hermes\",0))))'"
+done
+
+# [3] Live-turn latency probe (healthy: ~4s warm, ~17s cold; sustained >30s → back to [1])
+#     use the §9 "Probe from inside OVU container" recipe with the bearer key from /opt/data/.env
+
+# [4] Config levers per tenant (hermes config show + /opt/data/.env):
+#     curator.enabled=false · redaction per canvas needs · auxiliary.compression sane ·
+#     HERMES_WRITE_SAFE_ROOT=/workspace:/openvoiceui · GATEWAY_ALLOW_ALL_USERS=true
+```
+
+### Known-unshipped upgrades (the standing optimization backlog)
+
+Documented, verified-possible improvements nobody has shipped yet. When asked to "improve/optimize hermes," these are the shovel-ready items:
+
+1. **Clean cancel** — swap `abort_active_run`'s connection-close hack for `POST /v1/runs/{run_id}/stop` (available since v0.13; fleet is v0.18). §4, §6.
+2. **Tool-progress SSE events** — `gateway.py:_iter_sse_content` still ignores `event: hermes.tool.progress` lines, so the OVU UI shows nothing while Hermes runs tools. Parse them and surface tool activity (emoji ships in the payload). §5.
+3. **Non-Z.AI resilience** — credential pool (`anthropic` pool: Z.AI A + B + direct-Anthropic haiku) to survive the recurring Z.AI tail-latency windows. Needs Mike's call on token spend. §1A, §7.
+4. **Context-injection diet** — the ~18KB-per-turn OVU master-prompt injection is the multiplier behind cost, cold-start latency, AND poison-spiral growth (each failed turn stores another 18KB user row). Any reduction in `routes/conversation.py` context assembly pays off three ways. §1A.
+5. **Session headers** — verify the plugin sends BOTH `X-Hermes-Session-Id` and `X-Hermes-Session-Key` (§3); Session-Key enables per-tenant long-term memory.
+6. **Rebuild a rollback image** — both rollback tags were pruned 2026-07-12 (see §10A); until one is rebuilt or the next version bump preserves a `pre-roll` tag, revert = rebuild-from-source (slow path).
+
+*(Shipped from this list 2026-07-12: session-poison auto-heal — plugin v1.2.1 inline heal + health-monitor Check 7.5.)*
+
+**Before shipping any plugin change:** sync live ↔ catalog ↔ distribution (§8) — a reinstall from a stale catalog regresses hotfixes. After shipping: re-run `audit-anchors.sh` and update §13B anchor values in the same commit.
+
+---
+
 ## 1. Versions running today (updated 2026-07-03)
 
 | Where | Image | Hermes version | Notes |
 |---|---|---|---|
 | `hermes-test-dev` + `hermes-adrian` + `hermes-danielle` + `hermes-src` (production — **4 tenants**) | **`jambot/hermes:v0.18.0`** (1.14GB, built 2026-07-03 from `/mnt/system/base/hermes-v018-build/`, base `nousresearch/hermes-agent:v2026.7.1`) | **v0.18.0** (`2026.7.1`, "The Judgment Release") | **ROLLED 2026-07-03** (sandbox-verified, then per-tenant with session-active guard — `scripts/hermes-upgrade-v018-roll.sh`). Config auto-migrated schema →32 with `.bak` files per tenant. Same s6 structure as v0.15: uid 1000 BAKED at build (NOT runtime HERMES_UID), seeding via `cont-init.d/05-jambot-seed`, binary `/opt/hermes/.venv/bin/hermes`, SSE wire format UNCHANGED. §1C file-resolution behavior still applies. Pre-roll backups: `/mnt/clients/<t>/hermes-backup-20260703-*-pre-v0.18.0`. |
-| `jambot/hermes:v0.15.2` (preserved) | v0.15.2 build (5.53GB) | **v0.15.2** | **ROLLBACK image** — recreate with this tag to revert (config migrated to v32 is the one compat risk on rollback; per-tenant pre-roll backups above restore it). |
-| `jambot/hermes:0.6.0-rollback` (preserved) | original v0.6 build | **v0.6.0** (`2026.3.30`) | Deep insurance. Binary at `/usr/local/bin/hermes` in this image. |
+| `jambot/hermes:v0.15.2` | ~~v0.15.2 build (5.53GB)~~ | **v0.15.2** | ⚠️ **PRUNED** (gone by 2026-07-12 — casualty of the /mnt/system 100%-full image reclaim). Rebuild path: `/mnt/system/base/hermes-v015-build/`. |
+| `jambot/hermes:0.6.0-rollback` | ~~original v0.6 build~~ | **v0.6.0** (`2026.3.30`) | ⚠️ **PRUNED** (same reclaim). Binary was at `/usr/local/bin/hermes` in that image. |
+
+**⚠️ 2026-07-12: `docker images jambot/hermes` shows ONLY `v0.18.0` — there is NO instant-revert image anymore.** Rollback = rebuild from the preserved build dirs (`hermes-v015-build/`, `hermes-v018-build/`; upstream bases pullable from Docker Hub by date tag) — see §10A. Before the NEXT version roll, keep the outgoing image tagged (`pre-roll-<date>`) so instant revert is restored.
 
 **Upstream latest (verified 2026-07-03):** **v0.18.0** (`2026.7.1`) — we are CURRENT. v0.16 "desktop app" (2026-06-05), v0.17 "channels/iMessage + image slimming" (2026-06-19), v0.18 "Judgment — verification contracts, /learn, MoA presets, background fan-out" (2026-07-01). None broke our stack: s6/uid-bake/API-server/SSE all held; `HERMES_WRITE_SAFE_ROOT` now accepts multiple dirs (our single `/workspace` still valid); `/resume`+`/sessions` scoped to caller origin (IDOR fix — no impact, OVU uses headers); curator consolidation became opt-in (we disable curator anyway); `compression.summary_*` auto-migrated to `auxiliary.compression`.
 **Docker Hub:** date-based tags only (`v2026.7.1` = v0.18.0). `v0.X.Y` semver tags do NOT exist on Hub.
@@ -209,11 +271,46 @@ The long-running "empty responses / 30–250s timeouts on every voice turn" bug 
 sg docker -c "docker exec -u hermes -e HOME=/opt/data hermes-test-dev /opt/hermes/.venv/bin/hermes sessions delete main --yes"
 sg docker -c "docker exec -u hermes -e HOME=/opt/data hermes-test-dev /opt/hermes/.venv/bin/hermes sessions delete hermes-main --yes"
 ```
-**Recurrence prevention shipped:** `plugins/hermes-agent/gateway.py` (live bind-mount copy + source repo) patched to (a) never store empty assistant turns — roll back the user turn on empty, (b) strip empty-content turns before every POST. So `main` can't slowly re-poison.
+**Recurrence prevention shipped:** `plugins/hermes-agent/gateway.py` (live bind-mount copy + source repo) patched to (a) never store empty assistant turns — roll back the user turn on empty, (b) strip empty-content turns before every POST. So `main` can't slowly re-poison. **⚠️ 2026-07-12: this guard turned out INCOMPLETE — see "RECURRED" block below.**
+
+### ⚠️ RECURRED 2026-07-12 — the OVU-side guard does NOT protect Hermes' own store
+
+`main` on test-dev re-poisoned (81 messages, 344KB) and the agent went back to ~60s/turn (`response.content invalid (not a non-empty list)` → 3 retries with backoff). Two poison vectors, **both inside Hermes' `/opt/data/state.db`, which the OVU gateway.py guard never touches** (OVU only POSTs the new message; Hermes rebuilds history from its own SQLite):
+
+1. **Empty assistant tool-call turns** — assistant rows with `content=''` but `tool_calls` set (14 of them, from a 2026-06-05 tool session). Legit in OpenAI wire form, but GLM rejects the replayed history.
+2. **Compounding consecutive user turns** — when a turn fails all 3 retries, Hermes has already stored the ~18KB user message (OVU context injection makes every voice turn that big) but never stores an assistant reply. The next attempt appends another 18KB user turn. `main` ended with 6+ back-to-back user turns and no assistant between — each failure makes the next one likelier. This is a death spiral, not a slow drift.
+
+**Recovery (re-verified 2026-07-12):** `hermes sessions delete main --yes` (the `hermes-main` id from the old fix no longer exists — only `main`). Immediately after: first turn 17s (cold, ~20K prompt tokens = system prompt + skills, normal), warm turns 4s.
+
+**Diagnosis gotchas learned while verifying (saves 3 dead-ends next time):**
+- `API_SERVER_KEY` is **NOT in the container's process env** — it lives only in `/opt/data/.env`. `docker exec … env | grep API_SERVER_KEY` finds nothing; read the file.
+- The OVU container's `HERMES_API_KEY` env var can be stale and 401 — the **live plugin self-heals in-process** (`_refresh_hermes_api_key()` docker-execs the sibling and patches `os.environ`), so a fresh `docker exec openvoiceui-… python3` test process inheriting the stale env will 401 even while the real voice path works. Test with the `/opt/data/.env` key, not the OVU env var.
+- Healthy latency baseline: ~4s warm, ~17s on a cold session (20K-token prompt). Sustained >30s + the `not a non-empty list` log line = check `main` for poison first.
+
+**Poison check one-liner** (run when hermes feels slow, before anything else):
+```bash
+sg docker -c "docker exec hermes-<tenant> python3 -c \"
+import sqlite3; db=sqlite3.connect('/opt/data/state.db'); c=db.cursor()
+c.execute('SELECT COUNT(*), SUM(CASE WHEN trim(coalesce(content,\\\"\\\"))=\\\"\\\" THEN 1 ELSE 0 END) FROM messages WHERE session_id=\\\"main\\\"')
+print('total, empty:', c.fetchone())\""
+# empty > 0 or a tail of consecutive user rows → delete session main
+```
+
+**Open durable fix (not yet built):** a health-monitor check that detects the signature (empty turns or ≥3 trailing consecutive user turns in `main`) and auto-deletes/alerts — the OVU-side guard alone cannot prevent this class.
+
+### ⚠️ SECOND 2026-07-12 root cause — cross-tenant `hermes` DNS round-robin over jambot-shared (FIXED)
+
+Same session, separate fault: after the session purge, the browser showed "Connected to Hermes gateway — waiting for agent… Reconnecting…" and OVU logs showed `401 Invalid API key` **even after the plugin's self-heal refresh**. Cause: all 4 hermes containers were attached to `jambot-shared`, and **`--hostname hermes` registers a DNS record on every attached network** (aliases are irrelevant — removing them does NOT stop it). So from any OVU on the shared net, `hermes` resolved to ALL four hermes containers and requests round-robined across tenants; a foreign tenant's `API_SERVER_KEY` rejects the bearer → intermittent 401 (worked ~1-in-4). adrian/danielle never showed it only because their OVUs aren't on jambot-shared.
+
+**Fix (2026-07-12):** hermes containers must NOT be on `jambot-shared` at all — nothing consumes hermes over it (OVU uses the per-tenant bridge; monitors use `docker exec`). Detached all 4 live; fixed the three re-attach sources in the same change: `jambot-health-monitor.sh ensure_hermes_alias` (now DETACHES from shared as the heal; still enforces the alias on `jambot-<tenant>`), `jambot-provision-service.py` (dropped the `network connect jambot-shared` step; service bounced), `hermes-recreate-uid1000-test-dev.sh`.
+
+**Diagnostic:** `docker exec openvoiceui-<t> python3 -c 'import socket; print(sorted(set(r[4][0] for r in socket.getaddrinfo("hermes",0))))'` — MUST return exactly ONE IP (the tenant-bridge hermes). Multiple IPs = the leak is back.
+
+**§10 correction:** the per-tenant container spec listing "connect to jambot-shared" for hermes is superseded — tenant bridge ONLY.
 
 **PROVEN FACTS — stop re-litigating these:** Hermes uses the SAME `glm-5-turbo` via Z.AI as OpenClaw; the OVU master prompt IS injected (prepended to the message in `routes/conversation.py`); the openclaw workspace IS mounted RW at `/workspace` in the hermes container; Hermes emits `[CANVAS:...]`/`[MUSIC_PLAY:...]` action tags that OVU parses. Tool use is master-prompt-driven and framework-agnostic — any "hermes can't do X" is a session/setup issue, not a capability gap.
 
-**Watch — plugin drift (§8):** live runtime `gateway.py` (~839 lines) is AHEAD of source/catalog/distribution (~713). Live fix is on the client bind-mount (persists across restart/recreate) but a plugin **reinstall from catalog/distribution regresses** the fix + mid-flight pipeline. Sync live→distribution before any reinstall.
+**Watch — plugin drift (§8):** synced as of 2026-07-12 (v1.2.1, md5 `6fae1aad` across catalog + all 5 tenant runtimes + distribution). The standing risk remains: hotfixes land on tenant bind-mounts first, so ANY future hotfix re-opens the gap — a plugin **reinstall from a stale catalog/distribution regresses** fixes. Verify md5 parity (§13B anchor) before any reinstall, and sync live→catalog→distribution after any hotfix.
 
 **Full writeup:** `docs/jambot/hermes-setup-issues.md §9`. Historical dead-ends (for context only, superseded): `hermes-debugging-session-2026-05-21.md`, `hermes-debugging-session-2026-05-24.md`.
 
@@ -347,6 +444,12 @@ The agent has full RW via `/workspace/` paths + terminal tool. Two pieces shippe
 2. **`HERMES_WRITE_SAFE_ROOT=/workspace`** (seeded in `.env`, plumbed to CENV) — fences file-tool WRITES to /workspace. **Verified live:** full `/workspace/x` write succeeds + lands; a BARE-name write is **denied** ("blocked by the guard") instead of clobbering a symlink into /opt/data. Hermes' own `/opt/data` state (state.db/sessions/cache) is written by the gateway internals, NOT the file tool, so it's unaffected; `auth.json`/`config.yaml`/`.env` stay denylisted.
 
 Net: the agent reads its brain by bare name, reads+writes the whole workspace by `/workspace/` path, and bare-name writes fail loudly (agent retries with a path) instead of silently mislocating. Do NOT set `HERMES_HOME=/workspace` (skills/ collision + state clutter).
+
+### 2026-07-12 addendum — safe-root must be `/workspace:/openvoiceui` (canvas writes were denied)
+
+`workspace/canvas-pages|uploads|music|generated_music` are SYMLINKS to `/openvoiceui/*`, and the guard realpath-resolves — so `HERMES_WRITE_SAFE_ROOT=/workspace` alone denied every canvas-page write with the misleading error `"…is a protected system/credential file"` (it's just the outside-safe-root denial). v0.15.2+ supports multiple `:`-separated roots. Fixed to `/workspace:/openvoiceui` in all 4 tenants' `.env` + the `hermes-v018-build/cont-init-jambot.sh` seed default (needs an image rebuild to reach future tenants; existing `.env`s already carry it).
+
+**Agent-side self-model poison (fixed same day):** the tenant skill `skills/software-development/systematic-debugging/references/hermes-container-filesystem.md` (and its SKILL.md pointer) still described the pre-2026-06-03 `:ro` workspace and taught `os.unlink()`-the-symlink-and-rewrite as the workaround — i.e. it instructed the agent to sever its own brain symlinks. Rewritten with the current mount truth on test-dev. If an agent claims "/workspace is read-only" while the mount says `RW=true`, check (a) the gateway's effective `HERMES_WRITE_SAFE_ROOT` (in `/run/s6/container_environment/`, NOT `docker exec env` — exec shows the baked image env, not the with-contenv service env), and (b) stale skill/memory files feeding the belief.
 
 ---
 
@@ -718,7 +821,12 @@ admin UI "Install hermes-agent"
 - plugin-catalog was stale (557 lines, Apr 10) — **fixed in this session**
 - GitHub openvoiceui-plugins distribution was stale (557 lines) — **fixed by PR #4 (https://github.com/MCERQUA/openvoiceui-plugins/pull/4) in this session**
 
-### Plugin pin — UPDATED 2026-07-03 (v0.18.0 fleet roll)
+### Plugin pin — UPDATED 2026-07-12 (v1.2.1 inline auto-heal)
+
+- **plugin v1.2.1 / gateway.py md5 `6fae1aad`** across catalog + all 5 tenant runtime copies (test-dev/adrian/danielle/src/foambot) + distribution (`MCERQUA/openvoiceui-plugins` `d921835`, pushed). New in 1.2.1: **inline session-poison auto-heal** — 2 consecutive empty responses on a hermes session → plugin docker-execs the sibling and deletes that session (timeouts/conn-errors not counted). Loaded LIVE on test-dev; other tenants pick it up on their next OVU restart (health-monitor Check 7.5 covers them meanwhile).
+- **Upstream versions since our v0.18.0 image pin (checked 2026-07-12):** v0.18.1 + v0.18.2 (both 2026-07-07; ~667-commit infra patch + WhatsApp dep fix; curated notes deferred to v0.19). NOT rolled — no identified fix for our poison-replay issue; evaluate in sandbox before any image bump.
+
+### Plugin pin — 2026-07-03 (v0.18.0 fleet roll, superseded by v1.2.1 note above)
 
 - **manifest:** plugin v1.2.0 / `hermes_version 0.18.0` / `container.image nousresearch/hermes-agent:v2026.7.1` across ALL copies (plugin-catalog, 4 tenant runtimes, OVU-repo seed, distribution). gateway.py = the fleet's self-heal version (38681B, md5 **c14c4fa2**) — catalog was 4.6KB BEHIND the fleet (a fresh install would have REGRESSED tenants); synced catalog ← test-dev runtime (backup `gateway.py.bak-20260703-pre-v018sync`).
 - **distribution:** `MCERQUA/openvoiceui-plugins` rebased onto origin/main + PUSHED (`637b7a5`) — the §8 drift is CLOSED.
@@ -884,7 +992,9 @@ OVU container reaches Hermes via `ws://openclaw:18790`... wait, that's openclaw.
 
 ## 10A. Rollback procedure — `:0.6.0-rollback` retag + recreate
 
-**When to use:** any v0.13 regression that can't be fixed forward within 30 min. The rollback image is preserved in the local Docker registry and contains the entire v0.6.0 build.
+> **⚠️ 2026-07-12 STATUS: BOTH rollback images (`v0.15.2` + `0.6.0-rollback`) were PRUNED** during the /mnt/system disk reclaim — the retag procedure below cannot run as written. Current rollback path: **rebuild from source dirs** — `docker build /mnt/system/base/hermes-v015-build/` (v0.15.2) or `hermes-v018-build/` with an older base tag; upstream base images remain pullable from Docker Hub by date tag (`nousresearch/hermes-agent:v2026.X.Y`). Config auto-migrated to schema 32 at the v0.18 roll — restore per-tenant `config.yaml.bak-*` / `hermes-backup-20260703-*` when reverting below v0.18. The steps below remain valid once you've rebuilt-and-tagged a rollback image. Rule going forward: tag the outgoing image `pre-roll-<date>` before every version bump.
+
+**When to use:** any regression that can't be fixed forward within 30 min.
 
 **Verify the rollback image is still present BEFORE you start:**
 ```bash
@@ -1057,6 +1167,8 @@ Capability detection at runtime: `GET /v1/capabilities` (bearer-authed) returns 
 - [x] **DONE 2026-05-23:** §9 `hermes config migrate` safe operating procedure.
 - [x] **DONE 2026-05-23:** §10A runnable rollback procedure (`:0.6.0-rollback` retag + recreate).
 - [x] **DONE 2026-05-23:** §12 upstream PR cross-reference index (5 PRs we depend on).
+- [x] **DONE 2026-07-12:** §0 Hermes × OVU optimization playbook (integration-surface map, ordered audit pass, unshipped-upgrade backlog) + `scripts/session-health.sh` fleet poison scanner + audit-anchors updates (rollback images pruned → rebuild-dirs anchor; gateway.py fleet-parity check).
+- [ ] **Rebuild a rollback image** — both `:v0.15.2` and `:0.6.0-rollback` pruned 2026-07-12; tag outgoing image `pre-roll-<date>` at the next version bump (§10A).
 - [ ] **§13A `[[as_document]]` skill directive** — research from upstream skills section corpus + document the v0.13 media routing pattern.
 - [ ] Script catalog under `scripts/` parity with openclaw-expert (currently 2/9 — see §13B catalog below).
 - [ ] Audit-anchors for parts most likely to drift — see §13B "Audit anchors" section + `scripts/audit-anchors.sh`.
@@ -1085,9 +1197,10 @@ The fields most likely to silently drift from this skill's documentation:
 | Lane timeout (openclaw) | 45000ms (NOT exposed via `openclaw config set`) | Source-only; check `grep -r "45000" openclaw npm package` |
 | Provider chain identity | Z.AI A + Z.AI B (MiniMax dropped) | `docs/jambot/llm-provider-registry.md` |
 | Live tenant inventory | 4: hermes-{test-dev,adrian,danielle,src} | `docker ps --filter name=hermes --format '{{.Names}}'` |
-| Rollback images | `jambot/hermes:v0.15.2` (primary rollback) + `:0.6.0-rollback` (deep insurance) | `docker images jambot/hermes` |
+| Rollback images | **NONE since 2026-07-12** (both pruned in disk reclaim) — rebuild from `hermes-v015-build/` / `hermes-v018-build/`; expect only `v0.18.0` present | `docker images jambot/hermes` |
 | Provisioner image pin | `jambot/hermes:v0.18.0` | `grep 'jambot/hermes:' /home/mike/MIKE-AI/scripts/jambot-provision-service.py` |
-| Plugin pin (catalog + fleet + distribution) | plugin v1.2.0 / hermes_version 0.18.0 / gateway.py md5 c14c4fa2 | `md5sum /mnt/system/base/plugin-catalog/hermes-agent/gateway.py` |
+| Plugin pin (catalog + fleet + distribution) | plugin v1.2.1 / hermes_version 0.18.0 / gateway.py md5 **6fae1aad** (41875B, inline poison auto-heal — synced 2026-07-12) | `md5sum /mnt/system/base/plugin-catalog/hermes-agent/gateway.py` + same md5 on all tenant runtime copies |
+| Session health (poison) | 0 empty turns + no trailing user-turn run in `main` on all tenants | `bash scripts/session-health.sh` (this skill) |
 | JamFlow lane | n101 plat:hermes — poll_hermes glow (agent.log POST markers) + live per-tenant plugin table in desc | `curl -s 127.0.0.1:8777/api/watch/graph` |
 
 **Drift check script:** `bash /mnt/system/base/skills/hermes-expert/scripts/audit-anchors.sh` — runs all of the above and diffs against the documented values, prints a one-line PASS/FAIL per anchor. Run after any hermes/openclaw bump, any LLM-chain change, or any per-tenant Hermes deploy.
@@ -1098,7 +1211,8 @@ The fields most likely to silently drift from this skill's documentation:
 |---|---|---|
 | `lookup.sh` | ✅ exists | jq-backed CLI lookup against `index.json` |
 | `build-index.py` | ✅ exists | Rebuild `index.json` from `sections/*.json` |
-| `audit-anchors.sh` | ✅ NEW 2026-05-23 | Runtime drift detection (see §13B) |
+| `audit-anchors.sh` | ✅ 2026-05-23 (updated 2026-07-12: rollback-rebuild-dirs anchor + gateway.py fleet-parity check) | Runtime drift detection (see §13B) |
+| `session-health.sh` | ✅ NEW 2026-07-12 | Read-only session-poison scanner, whole fleet — empty turns + trailing user-turn spirals (§0 step 1, §1A) |
 | `refresh-catalog.sh` | ❌ TODO | Re-fetch upstream docs corpus (mirror of `openclaw-expert/refresh-catalog.sh`) |
 | `cleanup.sh` | ❌ TODO | Remove stale section files when upstream removes docs |
 | `link-anchors.py` | ❌ TODO | Auto-cross-link `[[name]]` references between sections |

@@ -90,11 +90,23 @@ check "config schema" "32" "$schema"
 count=$(sg docker -c "docker ps --filter name=hermes --format '{{.Names}}'" 2>/dev/null | wc -l)
 check "live hermes containers (count)" "4" "$count"
 
-# Rollback image present.
-# 2026-07-03: primary rollback for the v0.18.0 roll = jambot/hermes:v0.15.2
-# (+ per-tenant /mnt/clients/<t>/hermes-backup-20260703-*-pre-v0.18.0 dirs).
-rollback=$(sg docker -c "docker images jambot/hermes --format '{{.Repository}}:{{.Tag}}' 2>/dev/null" 2>/dev/null | grep -E "v0\.15\.2$" | head -1 || echo "missing")
-check "rollback image preserved" "jambot/hermes:v0.15.2" "$rollback"
+# Rollback path present.
+# 2026-07-12: BOTH rollback images (v0.15.2 + 0.6.0-rollback) were PRUNED in the
+# /mnt/system disk reclaim. Rollback = rebuild from source dirs (SKILL.md §10A).
+# Anchor now checks the rebuild dirs exist (+ per-tenant pre-v0.18.0 backups).
+rbdirs="missing"
+[ -f /mnt/system/base/hermes-v015-build/Dockerfile ] && [ -f /mnt/system/base/hermes-v018-build/Dockerfile ] && rbdirs="build-dirs-present"
+check "rollback rebuild dirs (images pruned 2026-07-12)" "build-dirs-present" "$rbdirs"
+
+# Plugin gateway.py parity — catalog must match every tenant runtime copy
+# (a stale catalog regresses hotfixes on reinstall; SKILL.md §8).
+cat_md5=$(md5sum /mnt/system/base/plugin-catalog/hermes-agent/gateway.py 2>/dev/null | cut -c1-8)
+parity="in-sync"
+for t in test-dev adrian danielle src; do
+  t_md5=$(md5sum /mnt/clients/$t/openvoiceui/plugins/hermes-agent/gateway.py 2>/dev/null | cut -c1-8)
+  [ "$t_md5" = "$cat_md5" ] || parity="DRIFT:$t=$t_md5,catalog=$cat_md5"
+done
+check "plugin gateway.py catalog==fleet parity" "in-sync" "$parity"
 
 # MiniMax key must NOT be active in env (it's dropped)
 mxguard=$(grep -E "^MINIMAX_API_KEY=" /mnt/system/base/.openclaw-keys.env 2>/dev/null || echo "absent-good")
