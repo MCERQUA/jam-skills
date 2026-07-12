@@ -1,0 +1,46 @@
+[
+ {
+  "var": "BUSINESS_NAME",
+  "desc": "the cannabis retailer's legal/trade business name"
+ },
+ {
+  "var": "OPERATOR_NAME",
+  "desc": "the name of the person/role the agent escalates and reports to (owner, manager, etc.)"
+ },
+ {
+  "var": "AGCO_LICENCE_NUMBER",
+  "desc": "the retailer's AGCO Cannabis Retail Store Authorization licence number"
+ },
+ {
+  "var": "RULES_LAST_VERIFIED_DATE",
+  "desc": "the date the compliance rules in this file were last confirmed accurate"
+ },
+ {
+  "var": "ACTUAL_OPERATING_HOURS",
+  "desc": "the store's actual current operating hours"
+ },
+ {
+  "var": "PICKUP_OR_DELIVERY_STATUS",
+  "desc": "whether the store offers pickup only, delivery, or both"
+ },
+ {
+  "var": "MUNICIPALITY_NAME",
+  "desc": "the city/town the store is located in"
+ },
+ {
+  "var": "STORE_ADDRESS",
+  "desc": "the store's physical street address"
+ },
+ {
+  "var": "SOCIAL_MEDIA_HANDLES",
+  "desc": "the platforms and handles where the business has a social presence"
+ },
+ {
+  "var": "REVIEW_REPUTATION_SUMMARY",
+  "desc": "a short factual summary of the business's review standing (e.g. platform + rating)"
+ },
+ {
+  "var": "MUNICIPALITY_BYLAWS_URL",
+  "desc": "link to the relevant municipality's by-laws page"
+ }
+]
