@@ -26,6 +26,23 @@ curl -s http://localhost:5001/api/icons/library/search?q=heart
 - **Building a tool/dashboard** → create icons for each section
 - **Customizing the desktop** → generate themed icons
 
+## Global Icon Library (cross-tenant, automatic)
+
+As of 2026-07-11, `/api/icons/generate` (and the server-side auto-gen hook)
+checks a **global cross-tenant icon library** BEFORE calling Gemini — every
+tenant's generated icons are searchable by every other tenant (real-time glob
+over the existing `/mnt/clients:ro` mount, no copy/sync step). If a close
+match exists (score ≥ 78, a deliberately high bar), the existing icon is
+reused and the API call is skipped entirely — the response includes
+`"reused": true` and `"source_tenant"` when this happens. You don't need to
+do anything differently — just keep writing good, specific prompts; a
+specific prompt is *more* likely to match a genuinely-similar existing icon
+and *less* likely to wrongly reuse something unrelated.
+
+Browse/search the whole library yourself: `curl -s "http://openvoiceui:5001/api/icons/global-library?q=<term>"`
+or open the `icon-library` canvas page — it lists every icon across every
+tenant, live (polls every 30s), with copy-URL on click.
+
 ## CRITICAL: Be Creative with Icons
 
 **DO NOT** make generic document/folder icons. Every icon should be UNIQUE and SPECIFIC to what it represents.
@@ -103,6 +120,16 @@ curl -s http://openvoiceui:5001/api/icons/library
 
 Returns all 1,700+ icon names.
 
+## Server Now Auto-Generates a Fallback Icon Too
+
+As of 2026-07-11, `routes/canvas.py`'s manifest sync runs a background hook: any
+page still missing an icon after HTML-meta extraction gets a real Gemini-generated
+icon automatically (prompt built from `display_name` + `category` + `description`),
+with a 6h backoff on failure. This is a **safety net**, not a replacement for you
+doing it well — the auto-fallback prompt is generic-good (category + title), not
+bespoke-good. Keep following the steps below whenever you build a page; a
+purpose-built prompt from you always beats the generic auto-fallback.
+
 ## Auto-Icon on Page Creation
 
 When creating a new canvas page, ALWAYS:
@@ -134,12 +161,16 @@ When creating a new canvas page, ALWAYS:
 
 ## Style Guidelines
 
-The default style produces Windows XP-era icons — vibrant, slightly 3D, recognizable at small sizes. You can override with:
+The default style is now **modern 3D glassmorphic** — frosted translucent glass, soft rounded
+squircle shape, subtle depth/drop shadow, vibrant gradient accent, macOS Big Sur / visionOS
+app-icon look. This replaced the old Windows-XP-era default (2026-07-11) to match the desktop's
+overall move toward a modern, Apple-style aesthetic. You can still override with:
 
 - `"style": "flat minimalist, single color, modern"` — for clean/modern UIs
 - `"style": "pixel art, 16-bit retro game style"` — for game-related pages
 - `"style": "professional corporate, muted colors, clean lines"` — for business tools
 - `"style": "playful cartoon, bright colors, rounded shapes"` — for fun/entertainment
+- `"style": "Windows XP style icon, clean vector art, vibrant colors, slight 3D shading"` — the old default, if a retro/OS-nostalgia page specifically calls for it
 
 ## User's Generated Icons
 

@@ -37,6 +37,40 @@ whenever the article contains quantitative content — and most do.
 
 ---
 
+## ⚠️ Three concrete markup bugs that passed Phase 8's score but broke on real render (2026-07-12)
+
+A fleet run of 6 articles all scored 8.9-9.3 and "PASSED" Phase 8, then a rendered screenshot check
+found 3 of the 6 had live bugs the score never caught. Avoid these when writing the HTML:
+
+1. **Every CSS class that sets a `background`/`background-image` MUST be applied to a real element
+   in the body — verify it, don't assume it.** The failure: `.aw-hero{background:linear-gradient(...)}`
+   gets defined, but the body only uses sub-parts like `.aw-hero-eyebrow`/`.aw-hero-img` and never
+   wraps them in `<div class="aw-hero">...</div>`. Result: the H1/dek/hero-image silently fall back to
+   the page's plain background with no gradient, and any `.aw-hero h1{color:#fff}`-style child rule
+   never applies (can leave text low-contrast). **Before finishing this phase**, grep every
+   background-bearing class name against the body HTML and confirm each one is actually used as a
+   `class="..."` value, wrapping all the content it's meant to contain.
+2. **Never let a `display:flex` container's direct children include a bare inline tag mixed with
+   sibling text.** `<li style="display:flex">icon-svg text <em>word</em> more text</li>` renders
+   broken: flexbox treats the `<em>` as its OWN flex item, inserting the container's `gap` around it
+   and killing natural text wrap (a word visually floats with dead space on both sides). **Always**
+   wrap the ENTIRE text portion of a flex item in one block-level child, e.g.
+   `<li><svg>...</svg> <span>text <em>word</em> more text</span></li>` — so the flex container has
+   exactly 2 children (icon + text-span) no matter how much inline emphasis is inside the span. This
+   applies to every flex-styled list item, callout, badge, or byline — not just `.aw-tldr li`.
+3. **Use exactly one relative image-path convention for the whole article and never mix it with
+   another.** If you reference generated images as `article-design/images/<file>.jpg`, use that
+   EXACT prefix for every single `<img src>` — never drop to a bare `images/<file>.jpg` (missing
+   segment) partway through. Downstream integration does a literal find-replace on the documented
+   convention; a second undocumented one ships as a silently-broken image path that only a rendered
+   screenshot (not a source read) reveals.
+
+**None of these are caught by reading the HTML source or by a content-completeness score** — they
+only show up when the page is actually rendered. See Phase 8's gate for the mandatory
+screenshot-based verification step this requires.
+
+---
+
 ## The self-contained design system (emit this `<style>` at the top of the fragment)
 
 Scope everything under a root class (default `.aw-article`) so it can't collide with a host site.
