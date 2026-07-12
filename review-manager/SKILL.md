@@ -15,6 +15,9 @@ Online reputation management system for local service companies. Monitors review
 
 For a local service company, online reviews ARE the marketing department. A single unanswered 1-star review costs more than a month of ad spend. This skill makes sure nothing slips through.
 
+## REVIEW-GATING BAN (compliance, 2026) — NON-NEGOTIABLE
+Never solicit public reviews only from satisfied customers, and never route dissatisfied customers to a private feedback form instead of the public review ask. Banned by Google Maps review policy (2026-04-16/17) and exposed under the FTC Consumer Review Rule (16 CFR 465, civil penalties up to $53,088/violation, enforced against local-service businesses since early 2026). Every customer gets the same public review invitation; incentivized reviews (discount/freebie for a review) are also banned.
+
 ## When to Use This Skill
 
 Activate when the user says anything like:

@@ -16,6 +16,8 @@ Comprehensive communication templates for local service businesses including HVA
 
 ## 1. Core Principles
 
+**Review requests must never be sentiment-gated** — see the review-gating ban (Google Maps 2026-04-16/17 + FTC 16 CFR 465, civil penalties up to $53,088/violation). Ask every customer the same way, via the same public review link; never route dissatisfied customers to a private-only form, and never incentivize reviews.
+
 ### Channel Selection: SMS vs Email
 
 **SMS (98% open rate, read within 3 minutes):**
@@ -1140,7 +1142,7 @@ Quick reference for choosing the right channel, tone, and timing for every messa
 - **Maximum 4 SMS per customer per month** (excluding appointment-related transactional messages)
 - **Maximum 2 marketing emails per month**
 - **Never stack messages** — if a customer is getting a payment reminder and a seasonal promo would also go out, skip the promo
-- **Cool-down period:** After a complaint or negative experience, no marketing messages for 30 days
+- **Cool-down period:** After a complaint or negative experience, no marketing messages for 30 days (promos only — the standard post-service review request is still sent to every customer once any issue is resolved; withholding it by sentiment = banned review gating)
 - **Post-service window:** Send job summary and review request within 4 hours; don't send anything else for 48 hours
 
 ---

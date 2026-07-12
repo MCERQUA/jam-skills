@@ -12,6 +12,9 @@ metadata:
 ## DOUBLE CONFIRMATION REQUIRED — READ TOOLS.md FIRST
 **Before sending ANY email or message, you MUST follow the double-confirmation procedure in TOOLS.md.** No email or SMS leaves without TWO explicit "yes" responses from the user. "Automated" means auto-DRAFT, not auto-SEND.
 
+## REVIEW-GATING BAN (compliance, 2026) — NON-NEGOTIABLE
+Never solicit public reviews only from satisfied customers, and never route dissatisfied customers to a private feedback form instead of the public review ask. Banned by Google Maps review policy (2026-04-16/17) and exposed under the FTC Consumer Review Rule (16 CFR 465, civil penalties up to $53,088/violation, enforced against local-service businesses since early 2026). Every customer gets the same public review invitation; incentivized reviews (discount/freebie for a review) are also banned.
+
 Automated post-service follow-up system for local service companies. Runs a 4-stage quality-gated pipeline after every completed job: satisfaction check, review request, referral offer, and maintenance plan pitch.
 
 ## When to Use
@@ -25,7 +28,7 @@ Use this skill when:
 
 ## Overview
 
-Every completed job triggers a 4-stage pipeline. Each stage has a quality gate — the pipeline only advances when the previous stage succeeds. If a customer is dissatisfied at Stage 1, the pipeline STOPS and the business owner gets alerted. No customer who reported a problem ever receives a review request or sales pitch.
+Every completed job triggers a 4-stage pipeline. Each stage has a quality gate — the pipeline only advances when the previous stage succeeds. If a customer is dissatisfied at Stage 1, remediation is triggered and the owner is alerted. Review gating is banned (Google Maps policy 2026-04-16/17; FTC 16 CFR 465): the Stage 2 review request is NOT withheld by sentiment — every customer receives the same public review invitation. Only the SALES stages (Stage 3 referral, Stage 4 maintenance pitch) are withheld until the problem is resolved.
 
 ```
 JOB COMPLETED
@@ -33,17 +36,19 @@ JOB COMPLETED
     v
 [Stage 1] Satisfaction Check (Day 1)
     |
-    +-- NOT satisfied --> STOP. Alert owner. Create remediation task.
-    |
-    +-- Satisfied -->
+    +-- NOT satisfied --> Remediation task + alert owner --> (resolve) --+
+    |                                                                    |
+    +-- Satisfied ------------------------------------------------------+
     v
-[Stage 2] Review Request (Day 2-3)
+[Stage 2] Review Request (Day 2-3) — SAME public review link for EVERY customer
+    |         (unsatisfied path: sent AFTER the issue is confirmed resolved — delay, never deny;
+    |          never a private-only form. Review ask is NEVER sentiment-gated.)
+    +-- unsatisfied & not yet resolved --> hold sales stages until resolved
+    v
+[Stage 3] Referral Offer (Day 7)          — SALES: satisfied or resolved only
     |
     v
-[Stage 3] Referral Offer (Day 7)
-    |
-    v
-[Stage 4] Maintenance Plan Pitch (Day 14-30)
+[Stage 4] Maintenance Plan Pitch (Day 14-30) — SALES: satisfied or resolved only
     |
     v
 PIPELINE COMPLETE
@@ -228,12 +233,15 @@ BEFORE any customer contact:
       STOP. Do not contact. Do not advance any stages.
 ```
 
-### 3. Satisfaction Gate
+### 3. Satisfaction Gate (SALES STAGES ONLY — never gate reviews)
+Review gating is banned (Google Maps 2026-04-16/17; FTC 16 CFR 465, $53,088/violation).
 ```
 IF stages.satisfaction_check.outcome == "unsatisfied":
-    pipeline_status = "stopped"
-    DO NOT advance to Stage 2, 3, or 4. EVER.
-    Alert the owner immediately.
+    Trigger remediation + owner alert; set a remediation flag.
+    Stage 2 (Review Request) STILL RUNS — same public review link + wording,
+    sent after the customer confirms the issue is resolved (delay, never deny;
+    never substitute a private-only feedback form).
+    DO NOT advance to Stage 3 (Referral) or Stage 4 (Maintenance pitch) until resolved.
     Create a remediation note in the followup entry.
 ```
 
@@ -315,7 +323,7 @@ Record: `outcome: "voicemail"` or `"no_answer"`, increment attempts, set `last_a
 ### STAGE 2: Review Request
 
 **When:** 2-3 days after service (config: `review_request_days`)
-**Prerequisite:** Stage 1 outcome must be `"satisfied"`
+**Prerequisite:** Stage 1 attempted (ANY outcome). The review request goes to ALL customers — satisfied or not — via the same public review link. NEVER condition the public review ask on sentiment (review-gating ban). For an unsatisfied customer, send it once they confirm the issue is resolved — delayed, not denied.
 **Goal:** Get a Google review while the positive experience is fresh.
 **Max attempts:** 2 (default)
 
@@ -326,6 +334,9 @@ Record: `outcome: "voicemail"` or `"no_answer"`, increment attempts, set `last_a
 
 **First attempt — standalone call:**
 > "Hey [name], it's [agent name] from [company]. Glad your [service type] is working well! I was hoping I could ask a small favor — would you be willing to leave us a quick Google review? A couple sentences goes a long way for us."
+
+**First attempt — after a resolved issue (unsatisfied → remediated):** the public review ask is still sent (delayed, never denied; never a private-only form):
+> "Now that we've got that sorted for you [name], would you mind sharing your experience in a quick review? [Google Review Link] — it genuinely helps a small business like ours, and I appreciate you giving us the chance to make it right."
 
 **If customer agrees:**
 > "You're the best, thank you! I'm sending you the link right now. It'll take you straight to the review page — super easy."

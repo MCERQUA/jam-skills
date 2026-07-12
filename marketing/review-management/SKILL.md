@@ -49,7 +49,7 @@ The #1 reason businesses don't have enough reviews: they don't ask. Build asking
 100% response rate signals to Google and customers that you're actively engaged. Respond within 24 hours. Every single one.
 
 ### 4. Never Gate Reviews
-FTC guidelines prohibit filtering customers before sending them to review platforms. You cannot ask "were you satisfied?" and only send happy customers to Google. This is illegal and platforms will penalize you.
+Review gating is BANNED — soliciting reviews only from satisfied customers, or routing dissatisfied customers to a private feedback form instead of the public review ask. Google's Maps review policy (2026-04-16/17) prohibits it outright, and the FTC Consumer Review Rule (16 CFR 465) exposes it to civil penalties up to $53,088/violation (enforced against local-service businesses since early 2026). You cannot ask "were you satisfied?" and only send happy customers to Google. Every customer gets the SAME public review invitation; for a dissatisfied customer, remediate first and send the same ask once the issue is resolved (delay, never deny — never a private-only form). Incentivized reviews (discount/freebie for a review) are also banned.
 
 ### 5. Negative Reviews Are Opportunities
 A perfect 5.0 looks fake. 4.3-4.7 with thoughtful responses to negative reviews builds more trust than 5.0 with no personality.
