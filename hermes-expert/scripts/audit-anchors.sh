@@ -25,12 +25,12 @@ check() {
     fi
 }
 
-echo "=== hermes-expert audit-anchors (2026-07-03 baseline — post v0.18.0 fleet roll) ==="
+echo "=== hermes-expert audit-anchors (2026-07-12 baseline — post v0.18.2 roll-forward) ==="
 echo
 
 # Hermes runtime version
 ver=$(sg docker -c "docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes --version 2>/dev/null" 2>/dev/null || echo "unreachable")
-check "hermes version" "0.18" "$ver"
+check "hermes version" "0.18.2" "$ver"
 
 # OpenClaw runtime version
 ocver=$(sg docker -c "docker exec openclaw-test-dev openclaw --version 2>/dev/null" 2>/dev/null || echo "unreachable")
@@ -83,10 +83,10 @@ fi
 
 # Config schema version
 schema=$(sg docker -c "docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config check 2>&1" 2>/dev/null | grep -i "version" | head -1)
-check "config schema" "32" "$schema"
+check "config schema" "33" "$schema"
 
 # Live tenant inventory (count must match docs).
-# 2026-07-03: fleet = test-dev + adrian + danielle + src, all on v0.18.0.
+# 2026-07-12: fleet = test-dev + adrian + danielle + src, all on v0.18.2.
 count=$(sg docker -c "docker ps --filter name=hermes --format '{{.Names}}'" 2>/dev/null | wc -l)
 check "live hermes containers (count)" "4" "$count"
 
@@ -95,8 +95,8 @@ check "live hermes containers (count)" "4" "$count"
 # /mnt/system disk reclaim. Rollback = rebuild from source dirs (SKILL.md §10A).
 # Anchor now checks the rebuild dirs exist (+ per-tenant pre-v0.18.0 backups).
 rbdirs="missing"
-[ -f /mnt/system/base/hermes-v015-build/Dockerfile ] && [ -f /mnt/system/base/hermes-v018-build/Dockerfile ] && rbdirs="build-dirs-present"
-check "rollback rebuild dirs (images pruned 2026-07-12)" "build-dirs-present" "$rbdirs"
+[ -f /mnt/system/base/hermes-v015-build/Dockerfile ] && [ -f /mnt/system/base/hermes-v0182-build/Dockerfile ] && rbdirs="build-dirs-present"
+check "rollback path (pre-roll-20260712 tag + rebuild dirs)" "build-dirs-present" "$rbdirs"
 
 # Plugin gateway.py parity — catalog must match every tenant runtime copy
 # (a stale catalog regresses hotfixes on reinstall; SKILL.md §8).

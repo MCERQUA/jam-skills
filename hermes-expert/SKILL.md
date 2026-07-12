@@ -198,12 +198,14 @@ Documented, verified-possible improvements nobody has shipped yet. When asked to
 
 ---
 
-## 1. Versions running today (updated 2026-07-03)
+## 1. Versions running today (updated 2026-07-12 — v0.18.2 roll-forward)
 
 | Where | Image | Hermes version | Notes |
 |---|---|---|---|
-| `hermes-test-dev` + `hermes-adrian` + `hermes-danielle` + `hermes-src` (production — **4 tenants**) | **`jambot/hermes:v0.18.0`** (1.14GB, built 2026-07-03 from `/mnt/system/base/hermes-v018-build/`, base `nousresearch/hermes-agent:v2026.7.1`) | **v0.18.0** (`2026.7.1`, "The Judgment Release") | **ROLLED 2026-07-03** (sandbox-verified, then per-tenant with session-active guard — `scripts/hermes-upgrade-v018-roll.sh`). Config auto-migrated schema →32 with `.bak` files per tenant. Same s6 structure as v0.15: uid 1000 BAKED at build (NOT runtime HERMES_UID), seeding via `cont-init.d/05-jambot-seed`, binary `/opt/hermes/.venv/bin/hermes`, SSE wire format UNCHANGED. §1C file-resolution behavior still applies. Pre-roll backups: `/mnt/clients/<t>/hermes-backup-20260703-*-pre-v0.18.0`. |
-| `jambot/hermes:v0.15.2` | ~~v0.15.2 build (5.53GB)~~ | **v0.15.2** | ⚠️ **PRUNED** (gone by 2026-07-12 — casualty of the /mnt/system 100%-full image reclaim). Rebuild path: `/mnt/system/base/hermes-v015-build/`. |
+| `hermes-test-dev` + `hermes-adrian` + `hermes-danielle` + `hermes-src` (production — **4 tenants**) | **`jambot/hermes:v0.18.2`** (built 2026-07-12 from `/mnt/system/base/hermes-v0182-build/`, base `nousresearch/hermes-agent:v2026.7.7.2`) | **v0.18.2** (`2026.7.7.2`, upstream `9de9c25f` — 2026-07-07 infra patch + WhatsApp dep fix) | **ROLLED 2026-07-12** at Mike's direction (sandbox-verified: health, Z.AI subscription completion, SSE format unchanged, schema 32→**33** clean auto-migrate, uid-1000 gateway, multi-root safe-root honored; then per-tenant with session-active guard — `scripts/hermes-upgrade-v0182-roll.sh`, which also DROPS the stale `jambot-shared` attach the old roll script still had). Per-tenant OVU-sibling probes verified real replies + single-IP DNS. Same s6 structure: uid 1000 BAKED at build, seeding via `cont-init.d/05-jambot-seed`, binary `/opt/hermes/.venv/bin/hermes`. §1C behavior still applies. Pre-roll backups: `/mnt/clients/<t>/hermes-backup-20260712-*-pre-v0.18.2`. |
+| `jambot/hermes:pre-roll-20260712` | = the v0.18.0 image, tagged before the roll | **v0.18.0** | **Instant-rollback tag** (the new pre-roll rule in action). Keep until v0.18.2 has soaked. |
+| `jambot/hermes:v0.18.0` | 1.14GB†, built 2026-07-03 from `hermes-v018-build/` | v0.18.0 | Previous production image (same bits as pre-roll tag). †docker reports 4.84GB uncompressed. |
+| `jambot/hermes:v0.15.2` | ~~v0.15.2 build (5.53GB)~~ | **v0.15.2** | ⚠️ **REMOVED 2026-07-06** (Mike-approved early drop, 3 days into stable v0.18.0 — see `docs/jambot/docker-images-registry.md`). Rebuild path: `/mnt/system/base/hermes-v015-build/`. |
 | `jambot/hermes:0.6.0-rollback` | ~~original v0.6 build~~ | **v0.6.0** (`2026.3.30`) | ⚠️ **PRUNED** (same reclaim). Binary was at `/usr/local/bin/hermes` in that image. |
 
 **⚠️ 2026-07-12: `docker images jambot/hermes` shows ONLY `v0.18.0` — there is NO instant-revert image anymore.** Rollback = rebuild from the preserved build dirs (`hermes-v015-build/`, `hermes-v018-build/`; upstream bases pullable from Docker Hub by date tag) — see §10A. Before the NEXT version roll, keep the outgoing image tagged (`pre-roll-<date>`) so instant revert is restored.
@@ -1187,19 +1189,19 @@ The fields most likely to silently drift from this skill's documentation:
 
 | Anchor | Current value (verify against runtime) | How to re-check |
 |---|---|---|
-| Hermes version (fleet, 2026-07-03) | v0.18.0 (`2026.7.1`, "Judgment") on all 4 tenants | `docker exec hermes-<t> /opt/hermes/.venv/bin/hermes --version` |
+| Hermes version (fleet, 2026-07-12) | v0.18.2 (`2026.7.7.2`, upstream `9de9c25f`) on all 4 tenants | `docker exec hermes-<t> /opt/hermes/.venv/bin/hermes --version` |
 | OpenClaw version on test-dev | 2026.5.7 (eeef486) | `docker exec openclaw-test-dev openclaw --version` |
 | LLM primary | `zai/glm-5-turbo` | `docker exec openclaw-test-dev openclaw config get agents.defaults.model.primary` |
 | LLM fallback | `zai_fb/glm-5-turbo` | `docker exec openclaw-test-dev openclaw config get agents.defaults.model.fallbacks` |
 | Hermes binary path | `/opt/hermes/.venv/bin/hermes` (v0.13+) or `/usr/local/bin/hermes` (v0.6 rollback only) | `docker exec hermes-test-dev which hermes \|\| ls /opt/hermes/.venv/bin/hermes` |
 | Z.AI subscription endpoint | `https://api.z.ai/api/anthropic` | `docker exec hermes-test-dev sh -c 'echo $ANTHROPIC_BASE_URL'` (host .env path is permission-restricted; check container env instead) |
-| Config schema version | 32 (auto-migrated at v0.18 first boot, `.bak` files kept) | `docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config check` |
+| Config schema version | 33 (auto-migrated at v0.18.2 first boot; was 32 at v0.18.0) | `docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config check` |
 | Lane timeout (openclaw) | 45000ms (NOT exposed via `openclaw config set`) | Source-only; check `grep -r "45000" openclaw npm package` |
 | Provider chain identity | Z.AI A + Z.AI B (MiniMax dropped) | `docs/jambot/llm-provider-registry.md` |
 | Live tenant inventory | 4: hermes-{test-dev,adrian,danielle,src} | `docker ps --filter name=hermes --format '{{.Names}}'` |
-| Rollback images | **NONE since 2026-07-12** (both pruned in disk reclaim) — rebuild from `hermes-v015-build/` / `hermes-v018-build/`; expect only `v0.18.0` present | `docker images jambot/hermes` |
-| Provisioner image pin | `jambot/hermes:v0.18.0` | `grep 'jambot/hermes:' /home/mike/MIKE-AI/scripts/jambot-provision-service.py` |
-| Plugin pin (catalog + fleet + distribution) | plugin v1.2.1 / hermes_version 0.18.0 / gateway.py md5 **6fae1aad** (41875B, inline poison auto-heal — synced 2026-07-12) | `md5sum /mnt/system/base/plugin-catalog/hermes-agent/gateway.py` + same md5 on all tenant runtime copies |
+| Rollback images | `jambot/hermes:pre-roll-20260712` (= v0.18.0, tagged before the 07-12 roll-forward) + `v0.18.0` tag; older rollbacks (v0.15.2, 0.6.0) remain pruned — rebuild dirs `hermes-v015-build/` / `hermes-v018-build/` / `hermes-v0182-build/` | `docker images jambot/hermes` |
+| Provisioner image pin | `jambot/hermes:v0.18.2` (service bounced 2026-07-12) | `grep 'jambot/hermes:' /home/mike/MIKE-AI/scripts/jambot-provision-service.py` |
+| Plugin pin (catalog + fleet + distribution) | plugin v1.2.1 / hermes_version 0.18.2 / gateway.py md5 **6fae1aad** (41875B, inline poison auto-heal — synced 2026-07-12) | `md5sum /mnt/system/base/plugin-catalog/hermes-agent/gateway.py` + same md5 on all tenant runtime copies |
 | Session health (poison) | 0 empty turns + no trailing user-turn run in `main` on all tenants | `bash scripts/session-health.sh` (this skill) |
 | JamFlow lane | n101 plat:hermes — poll_hermes glow (agent.log POST markers) + live per-tenant plugin table in desc | `curl -s 127.0.0.1:8777/api/watch/graph` |
 
