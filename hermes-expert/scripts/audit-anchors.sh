@@ -126,6 +126,18 @@ check "replay-sanitize patch live (all 4)" "in" "$rs"
 mxguard=$(grep -E "^MINIMAX_API_KEY=" /mnt/system/base/.openclaw-keys.env 2>/dev/null || echo "absent-good")
 check "MiniMax key absent (dropped guard)" "absent-good" "$mxguard"
 
+# OpenClaw-parity anchors (2026-07-12, v0.18.2-jb1 roll): mesh access + approvals off
+# + inert sanitize placeholder ("." — the old "(tool call)" got MIMICKED into TTS).
+mesh_ok="ok"; appr_ok="ok"; ph_ok="ok"
+for t in test-dev adrian danielle src; do
+  sg docker -c "docker exec hermes-$t sh -c 'test -d /mnt/agent-mesh && test -x /usr/local/bin/mesh-send'" 2>/dev/null || mesh_ok="MISSING:$t"
+  sg docker -c "docker exec hermes-$t grep -A1 '^approvals:' /opt/data/config.yaml" 2>/dev/null | grep -q 'mode: "off"' || appr_ok="MISSING:$t"
+  sg docker -c "docker exec hermes-$t grep -q '_m\[.content.\] = \".\"' /opt/hermes/agent/turn_context.py" 2>/dev/null || ph_ok="OLD-PLACEHOLDER:$t"
+done
+check "mesh parity (mount + mesh CLI, all 4)" "ok" "$mesh_ok"
+check "approvals.mode off (all 4)" "ok" "$appr_ok"
+check "sanitize placeholder inert '.' (all 4)" "ok" "$ph_ok"
+
 echo
 echo "=== summary: $PASS pass / $FAIL fail ==="
 exit "$FAIL"
