@@ -108,6 +108,20 @@ for t in test-dev adrian danielle src; do
 done
 check "plugin gateway.py catalog==fleet parity" "in-sync" "$parity"
 
+# Z.AI account-B fallback in credential pool with correct base_url (wired 2026-07-12)
+poolb=$(sg docker -c "docker exec hermes-test-dev python3 -c \"
+import json
+e=[x for x in json.load(open('/opt/data/auth.json'))['credential_pool'].get('anthropic',[]) if x.get('label')=='zai-account-B']
+print('present:'+e[0].get('base_url','') if e and e[0].get('access_token') else 'missing')\"" 2>/dev/null)
+check "Z.AI account-B pool entry (Z.AI base_url)" "present:https://api.z.ai/api/anthropic" "$poolb"
+
+# Replay-sanitize patch live in fleet (root fix for session poison, 2026-07-12)
+rs="in"
+for t in test-dev adrian danielle src; do
+  sg docker -c "docker exec hermes-$t grep -q 'JamBot replay sanitize' /opt/hermes/agent/turn_context.py" 2>/dev/null || rs="MISSING:$t"
+done
+check "replay-sanitize patch live (all 4)" "in" "$rs"
+
 # MiniMax key must NOT be active in env (it's dropped)
 mxguard=$(grep -E "^MINIMAX_API_KEY=" /mnt/system/base/.openclaw-keys.env 2>/dev/null || echo "absent-good")
 check "MiniMax key absent (dropped guard)" "absent-good" "$mxguard"

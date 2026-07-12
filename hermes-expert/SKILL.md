@@ -154,6 +154,8 @@ That regenerates `index.json` from the section files. Schema for new sections is
 | 6 | Auth | `API_SERVER_KEY` lives ONLY in `/opt/data/.env` (not process env); OVU's `HERMES_API_KEY` env can be stale (plugin self-heals in-process) | false-negative 401 diagnoses (§1A gotchas) |
 | 7 | Workspace + canvas | `/workspace` RW + `HERMES_WRITE_SAFE_ROOT=/workspace:/openvoiceui` (canvas dirs are symlinks into `/openvoiceui`); brain read-symlinks in `/opt/data`; bare-name writes = landmine | canvas writes denied / brain symlinks severed (§1C) |
 | 8 | Context injection | OVU `routes/conversation.py` prepends the master prompt → every voice turn is ~18KB user content, ~20K prompt tokens cold | cost, latency, and poison-spiral amplification (§1A) |
+| 9 | Transcripts → reflections | OVU `routes/transcripts.py save_conversation_turn` is gateway-AGNOSTIC — hermes voice turns land in `openvoiceui/transcripts/<date>/` and flow into the nightly-reflection conversation extract automatically. `gateway` field added to the schema 2026-07-12 (OVU branch `feat/transcript-gateway-attribution`, `cdb4c85`; hotfixed test-dev) so reflections can attribute turns per gateway. | reflections blind to which gateway handled a turn |
+| 10 | Fallback pool | `zai-account-B` in every tenant's `anthropic` credential pool (§7) — rotates on 429/402/401 | single-account quota/auth failures take the tenant down |
 
 ### Ordered optimization pass
 
@@ -300,7 +302,11 @@ print('total, empty:', c.fetchone())\""
 # empty > 0 or a tail of consecutive user rows → delete session main
 ```
 
-**Open durable fix (not yet built):** a health-monitor check that detects the signature (empty turns or ≥3 trailing consecutive user turns in `main`) and auto-deletes/alerts — the OVU-side guard alone cannot prevent this class.
+**Defense layers as of 2026-07-12 (all live):**
+1. **Replay sanitize (ROOT FIX, input-side)** — `agent/turn_context.py` patched (marker `JamBot replay sanitize`, applied via cont-init in both build dirs + live fleet): replayed history is normalized before every provider call — empty assistant turns WITH tool_calls get placeholder content `"(tool call)"` (preserves tool-result pairing), empty ones without are dropped. **Proven:** the worst poisoned session (8 empty turns) went from 3-retry/60s-empty to a 3.1s real reply, with correct history recall. This neutralizes existing latent poison WITHOUT purging (no memory loss).
+2. **Inline auto-heal (plugin v1.2.1)** — 2 consecutive empty responses → plugin purges the hermes-side session.
+3. **Cron backstop** — `jambot-health-monitor.sh` Check 7.5 detects the signature every 5 min.
+4. **Write-side guard (still owed, host v1.3)** — stop persisting empty turns into state.db at all; with layer 1 live this is belt-and-suspenders.
 
 ### ⚠️ SECOND 2026-07-12 root cause — cross-tenant `hermes` DNS round-robin over jambot-shared (FIXED)
 
@@ -715,7 +721,16 @@ Replace the "close HTTP connection" trick in `abort_active_run` with `POST /v1/r
 
 ---
 
-## 7. Credential pools (v0.13 capability — Phase 5 opportunity)
+## 7. Credential pools (WIRED 2026-07-12 — Z.AI account B live on all 4 tenants)
+
+**Status:** `zai-account-B` (env `ZAI_FALLBACK_API_KEY` from `.openclaw-keys.env`) is in every tenant's `anthropic` pool with `base_url: https://api.z.ai/api/anthropic`. Rotation fires on 429/402/401 (NOT plain latency — both accounts are Z.AI, so tail-latency windows still hit both; a non-Z.AI third entry remains the §0 backlog item).
+
+**Gotchas learned wiring it (2026-07-12):**
+- `hermes auth add` while the gateway is restarting gets silently wiped — add AFTER healthy, then verify in `/opt/data/auth.json`. A settled manual entry DOES survive restarts (tested).
+- `hermes auth add anthropic` defaults the entry's `base_url` to `https://api.anthropic.com` — a Z.AI key there 401s on rotation. There is no `--base-url` flag; fix the entry's `base_url` in `/opt/data/auth.json` directly (atomic tmp+rename, keep mode 600).
+- `hermes auth list` may show only env-sourced entries; `/opt/data/auth.json` `credential_pool.anthropic` is the truth.
+- Env-sourced entries show `token_len=0` in the file — normal (env is read live).
+- Anchor: `audit-anchors.sh` checks the pool entry exists with the Z.AI base_url.
 
 v0.13 supports multi-key-per-provider rotation. Different from fallback providers (cross-provider failover) — credential pools rotate within the same provider.
 
