@@ -196,6 +196,8 @@ Documented, verified-possible improvements nobody has shipped yet. When asked to
 
 **Before shipping any plugin change:** sync live ↔ catalog ↔ distribution (§8) — a reinstall from a stale catalog regresses hotfixes. After shipping: re-run `audit-anchors.sh` and update §13B anchor values in the same commit.
 
+**Before any container recreate (roll/rollback):** in-container hotfixes (files patched via `docker exec` into `/opt/hermes/...`) live in the container's writable layer and are WIPED by recreate. Proven 2026-07-12: the 644 new-file-mode patch was applied live to all 4 containers by one session, then wiped hours later by the v0.18.2 roll from a parallel session — and its cont-init copy had been appended AFTER `exit 0` (dead code), so nothing re-applied it. Rules: (a) every in-container patch MUST also land in the build's `cont-init-jambot.sh` **above the final `exit 0`**, idempotently; (b) before recreating, `grep` the live container for known patch markers (`else chmod 644` in `tools/file_operations.py` is the current one) and re-verify them after.
+
 ---
 
 ## 1. Versions running today (updated 2026-07-12 — v0.18.2 roll-forward)
