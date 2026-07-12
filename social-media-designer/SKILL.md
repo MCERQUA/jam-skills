@@ -1,12 +1,14 @@
 ---
 name: social-media-designer
-description: "Generate branded social-media ad images (Facebook/Instagram) with Gemini image generation — logo-referenced, percentage-based layout prompts, brand colors; adapt logo/brand paths per client. TRIGGER: create a social media post image, FB/IG ad graphic, branded promo image. DO NOT TRIGGER for posting/scheduling to platforms or writing captions — image generation only."
+description: "Generate branded social-media ad images (Facebook/Instagram) — logo-referenced, percentage-based layout prompts, brand colors; adapt logo/brand paths per client. METHOD BY NODE: agents WITH a desktop browser (mac-claude on macdaddy) drive the ON-SCREEN ChatGPT browser (see that node memory branded-social-images-drive-chatgpt-browser) — Gemini generation below is ONLY for agents WITHOUT browser/desktop access. TRIGGER: create a social media post image, FB/IG ad graphic, branded promo image. DO NOT TRIGGER for posting/scheduling to platforms or writing captions — image generation only."
 ---
 
 # Social Media Designer Skill
 
 ## Purpose
-Generate professional, branded social media advertisement images for Contractor's Choice Agency and other Josh websites using Gemini 3 Pro Image Generation.
+Generate professional, branded social media advertisement images for client businesses.
+
+**Method routing:** if your node has a desktop browser with ChatGPT open (macdaddy/mac-claude), USE THAT — drive the on-screen ChatGPT browser per that node's flow; it is the primary method there. The Gemini pipeline below is the NO-BROWSER path for headless/webtop agents (original use: Contractor's Choice Agency / Josh websites).
 
 ## Activation Triggers
 - "create social media post"
