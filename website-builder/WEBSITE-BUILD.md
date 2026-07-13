@@ -1785,6 +1785,31 @@ grep -A 20 'CTA\|cta' ~/Websites/<project>/src/app/page.tsx | grep -i 'phone\|te
 
 Fix any warnings from these checks before proceeding.
 
+### 11.5 Content-sweep close-out: full-corpus dedup re-verification (added 2026-07-13)
+
+Before marking any content-sweep batch (checks 1-3 above, or any ad-hoc placeholder/fabrication fix pass) DONE: re-run the exact detection grep across the FULL `src/` corpus one more time — not just the file list you already fixed. A fix list built from an initial enumerated/manual search can miss near-duplicate-filename variants of the same content (e.g. `ghost-policy-workers-comp.mdx` vs `workers-compensation-ghost-policy.mdx` vs `ghost-workers-comp-policy.mdx` — three token-permutations of one slug, where only one got caught the first pass).
+
+```bash
+cd ~/Websites/<project> && \
+grep -rln '<DETECTION_PATTERN>' src/ --include='*.tsx' --include='*.ts' --include='*.mdx' | \
+python3 -c "
+import sys, re
+seen = {}
+for path in sys.stdin.read().splitlines():
+    name = path.rsplit('/', 1)[-1].rsplit('.', 1)[0]
+    tokens = tuple(sorted(re.split(r'[-_]', name.lower())))
+    seen.setdefault(tokens, []).append(path)
+dupes = {k: v for k, v in seen.items() if len(v) > 1}
+if dupes:
+    print('⚠️  near-duplicate filename clusters — verify EVERY file in each cluster was fixed:')
+    for tokens, paths in dupes.items():
+        print('  ' + ' | '.join(paths))
+else:
+    print('✓ no near-duplicate filename clusters in remaining matches')
+"
+```
+Replace `<DETECTION_PATTERN>` with whatever grep pattern originally flagged the batch (placeholder text, fabricated claim, the specific string from the task). If the full-corpus re-run still returns ANY match — including a token-sorted duplicate of an already-fixed file — the sweep is not closed; fix it and re-run. Only proceed to commit (step 13) once this returns clean.
+
 ### 12. Final type-check (do NOT run pnpm build — webdev container handles compilation):
 ```bash
 cd ~/Websites/<project> && pnpm tsc --noEmit 2>&1 | head -30 || echo "Type errors found — fix before proceeding"
