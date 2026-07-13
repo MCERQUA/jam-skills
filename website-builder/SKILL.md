@@ -34,6 +34,7 @@ description: "Build production-ready Next.js 15 websites from scratch — resear
 5. **NEVER use scare tactics or fear-based headlines.** Write benefit-focused, SEO-targeted copy.
 6. **ALWAYS run the placeholder sweep** before presenting any site. Zero tolerance.
 7. **ALWAYS customize every section.** If a section renders built-in defaults, you forgot to pass props.
+8. **NEVER ship back-button hijacking.** No `history.pushState` loops, redirect-traps, or modal/overlay chains that stop the browser Back button from returning the user to the SERP — a Google spam-policy violation (malicious practices, enforced 2026-06-15) carrying manual-action + demotion risk. Audit exit-intent scripts, interstitials, and any included ad/library code (the violation often originates there, not first-party). Verify in Phase 12. (developers.google.com/search/blog/2026/04/back-button-hijacking)
 
 ---
 
@@ -373,6 +374,7 @@ Also verify:
 - Inline styles (use Tailwind classes)
 - Fear-based / scare-tactic headlines
 - Generic "we deliver quality service" copy without specifics
+- Defaulting new builds to AMP — since 2026-07-01 Google serves AMP from the publisher's own host (AMP Cache / viewer / signed-exchange retired), so AMP's speed edge is gone and it ranks like any page; build a fast responsive page with good CWV instead
 
 ---
 
