@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# qa-precheck.sh — pre-dispatch gate for build agents
+#
+# Usage: qa-precheck.sh <artifact-name> [client]
+#   artifact-name: e.g. "seo-tools.html", "brand-report.html"
+#   client: optional, e.g. "josh", "src" (narrows match; defaults to any)
+#
+# Exit 0 = safe to build (no open NO-SHIP for this artifact)
+# Exit 1 = BLOCKED (open NO-SHIP verdict exists — fix it before building)
+# Exit 2 = usage error
+#
+# Build agents: source this or call it at the top of your build task.
+# If it exits 1, post a reply citing the QUALITY/ report and halt.
+#
+# Implements pledge: build-agents-must-check-quality-for-open-no-ship-verdicts-be
+# Shipped: 2026-07-13 by quality-assurance-manager@mesh
+
+set -euo pipefail
+
+QUALITY_DIR="${QUALITY_DIR:-/mnt/agent-mesh/mesh/QUALITY}"
+MAX_AGE_DAYS="${MAX_AGE_DAYS:-7}"
+
+if [[ $# -lt 1 ]]; then
+  echo "usage: qa-precheck.sh <artifact-name> [client]" >&2
+  exit 2
+fi
+
+ARTIFACT_NAME="$1"
+CLIENT="${2:-}"
+TODAY=$(date -u +"%Y-%m-%d")
+
+if [[ ! -d "$QUALITY_DIR" ]]; then
+  echo "[qa-precheck] QUALITY dir not found — allowing build (gate unavailable)" >&2
+  exit 0
+fi
+
+found_block=0
+
+for report_file in "$QUALITY_DIR"/*.json; do
+  [[ -f "$report_file" ]] || continue
+  [[ "$report_file" == *"-gate-enforced.json" ]] && continue
+  [[ "$report_file" == *"-stagnant-escalated.json" ]] && continue
+
+  result=$(python3 -c "
+import json, sys
+try:
+    d = json.load(open('$report_file'))
+    artifact = d.get('artifact', '')
+    client = d.get('client', '')
+    verdict = d.get('verdict', '')
+    audit_date = d.get('audit_date', '')
+    crit = d.get('bug_counts', {}).get('CRITICAL', 0)
+    high = d.get('bug_counts', {}).get('HIGH', 0)
+
+    # Match artifact name
+    if '$ARTIFACT_NAME'.lower() not in artifact.lower():
+        sys.exit(0)
+
+    # Match client if provided
+    if '$CLIENT' and '$CLIENT'.lower() not in client.lower():
+        sys.exit(0)
+
+    # Only NO-SHIP matters
+    if verdict != 'NO-SHIP':
+        sys.exit(0)
+
+    # Check age
+    if audit_date:
+        from datetime import date
+        age = (date.fromisoformat('$TODAY') - date.fromisoformat(audit_date)).days
+        if age > $MAX_AGE_DAYS:
+            sys.exit(0)  # Expired — gate lets it pass (stagnant escalation handled separately)
+
+    print(f'BLOCKED|{artifact}|{client}|{audit_date}|{crit}|{high}|$report_file')
+except Exception as e:
+    sys.exit(0)
+" 2>/dev/null || echo "")
+
+  if [[ -n "$result" ]]; then
+    IFS='|' read -r _ artifact client audit_date crit high report <<< "$result"
+    echo "[qa-precheck] BLOCKED: open NO-SHIP for $artifact (client=$client)" >&2
+    echo "[qa-precheck] Audit: $audit_date — CRITICAL=$crit HIGH=$high" >&2
+    echo "[qa-precheck] Report: $report" >&2
+    echo "[qa-precheck] Fix the bugs, request re-audit from quality-assurance-manager@mesh, then rebuild." >&2
+    found_block=1
+  fi
+done
+
+if [[ "$found_block" -eq 1 ]]; then
+  exit 1
+fi
+
+echo "[qa-precheck] OK — no open NO-SHIP verdict for '$ARTIFACT_NAME'" >&2
+exit 0

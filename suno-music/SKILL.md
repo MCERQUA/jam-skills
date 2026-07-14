@@ -8,6 +8,15 @@ metadata: {"openclaw": {"emoji": "🎵"}}
 
 Generate AI songs and short branded jingles. **All generation is async.** Songs take 45–90s, jingles take 30–60s, and auto-appear in the player. **Default model: `V5_5`.**
 
+> **🆕 Refreshed 2026-07-14** against the live sunoapi.org OpenAPI specs. What's new / now available (full details in `reference/endpoint-catalog-full-api.md`):
+> - **Custom voices (voice cloning)** — the **Suno Voice API** (`voice/validate` → `voice/generate` → a `voiceId`), then sing in that voice by passing `personaId=<voiceId>` + `personaModel="voice_persona"` on a generation. *(Available in the API; not yet wired into `/api/suno` — needs the record-a-phrase + upload flow.)*
+> - **Split vocals from instrumentals** — `stem_separate` with `type`: `separate_vocal` (2-way, wired), `split_stem` (all stems at once), `split_stem_advanced` (isolate one instrument via `stemName`). *(Only 2-way is wired today.)*
+> - **Replace words / a section** — `replace_section` (wired) does 6–60s time-window lyric inpainting (not per-word find/replace).
+> - **Style personas** — `generate-persona` mints a reusable `personaId` (a consistent "artist voice/style" across songs). *(Available; not yet wired.)*
+> - Also new in the API: MIDI-from-stems, mashup (2 tracks), `suno/cover` from a taskId, and a File Upload API (`sunoapiorg.redpandaai.co`) to host user audio for cloning/cover.
+>
+> **Exact current model defaults (rollback reference): `BASELINE-2026-07-14-pre-update.md`.** Songs + SFX = `V5_5`; jingles = `V5` on purpose (V5.5 renders longer, bad for 10-15s clips).
+
 ---
 
 ## ⚠️ CRITICAL: How Generation Works
@@ -404,6 +413,39 @@ jq -r '.[$file].lyrics // empty' --arg file 'acme-plumbing-jingle.mp3' /home/nod
 
 ---
 
+## Voice Tracks & Personas — sing in a CLONED VOICE or a reusable STYLE (2026-07-14)
+
+Suno supports two kinds of persona you can attach to a `generate` call via the local wrapper:
+- **`voice_persona`** — a **cloned singing voice** (made with the Suno Voice API → a `voiceId`). The song is sung in that exact voice. **Requires lyrics (custom mode)** — the wrapper auto-promotes to custom mode when you pass a voice persona, but you should provide real `[Verse]/[Chorus]` lyrics for a good result.
+- **`style_persona`** — a reusable **style/artist identity** (from `generate-persona` → a `personaId`) that keeps a consistent vibe across songs.
+
+### BEST WAY — the `|voice` tag (shows the popup + adds to player + tells the user when ready)
+If your tenant has a cloned voice configured (`voice_persona_id` in the active profile), add a `voice` flag to the normal Suno tag. Put **PLAIN lyric lines** in the prompt (one per line, or separated by `/`). **Do NOT put `[Verse]`/`[Chorus]` brackets inside the tag** — they collide with the tag's `]` and truncate it.
+```
+[SUNO_GENERATE:Every time I do something things get better / Block City rising I'm the trendsetter|voice|title:Empire Grow|style:slow low stoner hype]
+```
+The server attaches the tenant's voiceId automatically (browser never sees it), sings in that voice, and it rides the normal popup → player → "your track is ready" flow. This is what a voice agent should use so the user gets visual feedback.
+
+### Fallback — direct API (structured `[Verse]`/`[Chorus]` lyrics, but NO popup — generates silently)
+```bash
+curl -s -X POST http://openvoiceui:5001/api/suno \
+  -H "X-Agent-Key: $AGENT_API_KEY" -H "Content-Type: application/json" \
+  -d '{"action":"generate","title":"My Track","style":"...",
+       "prompt":"[Verse]\n...your lyrics...\n[Chorus]\n...",
+       "persona_id":"<YOUR_VOICE_ID>","persona_model":"voice_persona"}'   # style_persona for a style id
+```
+Returns a `job_id`; poll `?action=status&job_id=<id>`; track lands at `/generated_music/<file>?download=1`. Use this only when you need full `[Verse]/[Chorus]` structure — otherwise prefer the `|voice` tag so the user sees it happen.
+
+### Where your persona/voice id lives
+- **The `voice` tag flag** reads `voice_persona_id` from the active OVU profile (server-side) — you don't handle the id at all, just add `|voice`.
+- **For the direct API** (or if you need the raw id), your cloned `voiceId` is in your `MEMORY.md`. If it's not there, you don't have a cloned voice yet — don't invent an id.
+- Example — Kyle/BHB's cloned voice is in his profile + MEMORY.md; `[SUNO_GENERATE:...|voice]` sings in Kyle's voice. Proven 2026-07-14.
+
+### Creating a NEW cloned voice
+The Suno Voice API (validate → record a phrase → upload → generate → `voiceId`) is in `reference/endpoint-catalog-full-api.md`. Save any new `voiceId` into the tenant's profile (`voice_persona_id`) AND `MEMORY.md` so both paths above work.
+
+---
+
 ## When Things Fail
 
 If generation fails (Suno API error, quota exceeded, content rejected), the system pushes to `failed_songs_queue`. On the **next user turn**, the agent's context will include:
@@ -418,54 +460,60 @@ The voice user also sees an error banner in the actions panel — but the agent 
 
 ---
 
-## Full Endpoint Catalog (sunoapi.org — credit costs)
+## Full Endpoint Catalog (sunoapi.org)
 
-**Each credit = $0.005 USD.** The local `/api/suno` endpoint wraps the most common operations. For others, you'd extend `routes/suno.py`.
+> **📌 Authoritative, verified reference:** `reference/endpoint-catalog-full-api.md`
+> (re-verified 2026-07-14 against the live OpenAPI specs — exact paths, model enums,
+> param names, callback shapes, and the Suno Voice / stem-split / persona details).
+> Rollback record of the pre-2026-07-14 model defaults: `BASELINE-2026-07-14-pre-update.md`.
+> The table below is the agent-facing summary — trust the reference file for exact fields.
 
-### Music generation
-| Endpoint | Credits | Cost | Local action |
-|---|---|---|---|
-| Generate Music (V5.5 / V5 / V4.5+ / V4.5 / V4 / V4.5ALL) | 12 | $0.060 | `?action=generate` |
-| **Sounds Generation (V5_5)** — short SFX/stingers, NOT vocal jingles | **2.5** | **$0.0125** | `?action=sfx` ✅ |
-| Extend Music (V5 / V4.5+ / V4.5 / V4 / V4.5ALL) | 12 | $0.060 | not yet wrapped |
-| Upload And Cover Audio | 12 | $0.060 | not yet wrapped |
-| Upload And Extend Audio | 12 | $0.060 | not yet wrapped |
-| Add Instrumental | 12 | $0.060 | not yet wrapped |
-| Add Vocals | 12 | $0.060 | not yet wrapped |
-| Replace Music Section | 5 | $0.025 | not yet wrapped |
-| Generate Music Cover | 0 | free | not yet wrapped |
+**The local `/api/suno` wrapper action for each operation (✅ = wired & callable today):**
 
-### Lyrics
-| Endpoint | Credits | Cost | Notes |
-|---|---|---|---|
-| Generate Lyrics (creates new lyrics from a prompt) | 0.4 | $0.002 | not yet wrapped |
-| Get Timestamped Lyrics (per-syllable timing for an existing track) | 0.5 | $0.0025 | not yet wrapped |
-
-**For pulling the lyrics OF an already-generated song:** the lyrics are already returned in the original `/api/v1/generate` response and stored locally in `generated_metadata.json` under `lyrics`. **No extra API call required** unless you need timestamped per-syllable timing for karaoke-style display.
-
-### Audio post-processing
-| Endpoint | Credits | Cost |
+| Operation | sunoapi.org endpoint | Local `action` |
 |---|---|---|
-| Convert to WAV Format | 0.4 | $0.002 |
-| Separate Vocals from Music (acapella + instrumental tracks) | 10 | $0.050 |
-| Split Stem (drums/bass/vocals/other separation) | 50 | $0.250 |
-| Boost Music Style (style-prompt enhancer) | 0.4 | $0.002 |
+| Generate full song | `POST /api/v1/generate` | `generate` ✅ |
+| Generate SFX/sound | `POST /api/v1/generate/sounds` | `sfx` ✅ |
+| Vocal logo jingle | `POST /api/v1/generate` (recipe) | `jingle` ✅ |
+| Extend a track | `POST /api/v1/generate/extend` | `extend` ✅ |
+| Cover an uploaded file | `POST /api/v1/generate/upload-cover` | `cover` ✅ |
+| Add vocals to instrumental | `POST /api/v1/generate/add-vocals` | `add_vocals` ✅ |
+| Add instrumental to vocal | `POST /api/v1/generate/add-instrumental` | `add_instrumental` ✅ |
+| Replace a section (inpaint lyrics) | `POST /api/v1/generate/replace-section` | `replace_section` ✅ |
+| Generate lyrics | `POST /api/v1/lyrics` | `generate_lyrics` ✅ |
+| Timestamped lyrics | `POST /api/v1/generate/get-timestamped-lyrics` | `timestamped_lyrics` ✅ |
+| Convert to WAV | `POST /api/v1/wav/generate` | `wav_convert` ✅ |
+| Separate vocals (2-way) | `POST /api/v1/vocal-removal/generate` | `stem_separate` ✅ |
+| Boost a style prompt | `POST /api/v1/style/generate` | `style_boost` ✅ |
+| Music video | `POST /api/v1/mp4/generate` | `music_video` ✅ |
+| Status / details | `GET /api/v1/generate/record-info` | `status` / `song_details` ✅ |
+| Remaining credits | `GET /api/v1/generate/credit` | `credits` ✅ |
 
-### Video
-| Endpoint | Credits | Cost |
-|---|---|---|
-| Create Music Video | 2 | $0.010 |
+**Now WIRED into `/api/suno` (2026-07-14):** `personaId`/`personaModel` passthrough on `generate` (+ the `|voice` tag flag), advanced stem split (`stem_separate` with `type=split_stem`/`split_stem_advanced` + `stem_name`), `generate_persona` (style persona), the full custom-voice cloning flow (`file_upload` → `voice_validate` → `voice_validate_info` → `voice_generate` → `voice_info` → `voice_check`), and `file_upload` (hosts a remote file on the File Upload host, returns a URL for uploadUrl/voiceUrl/verifyUrl). See the "Creating a NEW cloned voice" note below + `reference/endpoint-catalog-full-api.md` for exact params.
 
-### Polling / metadata (free)
-- Get Music Generation Details — `/api/v1/generate/record-info?taskId=…`
-- Get Remaining Credits — `?action=credits` locally
-- Get Music Cover Details, Get Lyrics Generation Details, Get WAV Conversion Details, Get Vocal Separation Details, Get Music Video Details — all 0 credits
-- Generate Persona — 0 credits (creates a reusable voice/style persona)
+**Still NOT wired** (add later if needed): MIDI-from-stems, mashup (2 tracks), `suno/cover` (from a taskId, distinct from upload-cover).
 
-### Cost rules of thumb
-- **Jingle (default tool here):** 12 credits = $0.06. Same cost as a full song. The Suno "Sounds Generation" endpoint at 2.5 credits is for SFX/ambient stingers, NOT vocal jingles — don't confuse them.
-- A jingle-maker session of 5 attempts = ~$0.30. Quote that to clients pricing this as a service.
-- Suno returns 2 clips per generation; we already keep only the first. (No way to suppress the 2nd; you pay for both.)
+### Creating a NEW cloned voice (the full flow, all via `/api/suno`)
+1. `action=file_upload` `{fileUrl}` → host the source recording → returns a hosted URL.
+2. `action=voice_validate` `{voiceUrl, vocalStartS, vocalEndS}` → returns a `taskId` + a validation phrase.
+3. `action=voice_validate_info` `{task_id}` → poll for the phrase + `status`.
+4. Record the person SINGING that phrase, host it (`action=file_upload`) → verifyUrl.
+5. `action=voice_generate` `{task_id, verifyUrl, voiceName}` → returns a `taskId`.
+6. `action=voice_info` `{task_id}` → returns the `voiceId`. `action=voice_check` `{task_id}` → `isAvailable`.
+7. Save the `voiceId` into the tenant profile (`voice_persona_id`) + `MEMORY.md`; then `[SUNO_GENERATE:lyrics|voice]` sings in it.
+
+### Stems: `action=stem_separate` `{task_id, audio_id, type, stem_name?}`
+`type`: `separate_vocal` (vocals+instrumental), `split_stem` (all stems), `split_stem_advanced` (isolate ONE instrument named by `stem_name`, e.g. `Bass`, `Drum Kit`, `Lead Vocal`).
+
+**Model note:** full songs + SFX default to `V5_5`; **jingles deliberately use `V5`** (V5.5 renders longer — bad for 10-15s). See the reference for the per-endpoint model enum (`sounds` is `V5`-only per current docs).
+
+**Lyrics of an already-generated song** are already in the original response + `generated_metadata.json` under `lyrics` — no extra call needed unless you want per-syllable timing (`timestamped_lyrics`).
+
+### Cost rules of thumb (credits; ~$0.005/credit historically — costs are NOT published in the current docs, only a `429 insufficient-credits` signal + `GET /api/v1/generate/credit` balance)
+- **Jingle / full song:** ~12 credits. SFX (`sounds`): ~2.5 credits.
+- A jingle-maker session of 5 attempts ≈ $0.30 — quote that to clients pricing this as a service.
+- Suno returns 2 clips per generation; we keep only the first (you still pay for both).
+- Generated files auto-delete after **15 days** on sunoapi.org — our wrapper downloads on completion so local copies persist.
 
 ---
 
