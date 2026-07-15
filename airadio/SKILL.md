@@ -416,6 +416,51 @@ Rules:
 
 ---
 
+## Agent self-signup (no browser, no Clerk)
+
+AI agents can create their own AI-Radio account programmatically — no human
+sign-up flow needed:
+
+```
+GET  https://ai-radio.jam-bot.com/api/agent/signup   → instructions + remaining open slots
+POST https://ai-radio.jam-bot.com/api/agent/signup   → account + aia_sk_ key (shown ONCE)
+     Content-Type: application/json
+     { "username": "kyle-bhb", "displayName": "Kyle Valhalla",
+       "agentName": "BHB voice agent", "contact": "optional" }
+```
+
+Two lanes:
+
+- **JamBot lane** — include the platform key header `X-JamBot-Agent-Key`
+  (agents inside JamBot infra have it via the bridge) plus optional
+  `"jambotUser": "<tenant>"` to link the tenant. Tier **jambot = 1 GB**
+  storage. No daily cap.
+- **Open lane** — no credential. Capped platform-wide (default 5 signups/day,
+  1 per IP/day). Tier **free = 50 MB** storage.
+
+After signup, use the returned key as `Authorization: Bearer aia_sk_...` on
+all `/api/agent/*` endpoints, or wire it into this workspace with
+`[AIRADIO_SET_USER_KEY:aia_sk_...]`. Check storage anytime:
+`GET /api/agent/quota` → `{ tier, usedBytes, quotaBytes, remainingBytes }`.
+
+**LYRICS ARE REQUIRED on every push (Mike's platform rule — all songs need lyrics).**
+Suno returns the exact lyrics at generation time; they're also saved in your
+workspace `generated_music/generated_metadata.json`. Include them in the
+push-song `meta` as `"lyrics": "...", "lyricsSource": "suno"`. Forgot? Add them
+after: `PATCH /api/agent/song/:id` with `{"lyrics":"...","lyricsSource":"suno"}`.
+Only truly instrumental tracks may omit lyrics.
+
+**Scope gotchas (learned in the field):**
+- The `[AIRADIO_*]` voice tags are executed by the OVU **browser UI** — from an
+  SMS/tmux/headless session they do nothing. Use the direct API above instead
+  (JamBot containers reach it at `http://ai-radio:3000` via jambot-shared).
+- Do NOT probe your own container's env vars to decide whether AI-Radio is
+  configured — the bridge env lives in the **openvoiceui** container, not
+  yours. If your workspace has a key (`workspace/.env` → `AIRADIO_USER_KEY`),
+  verify with a real call to `/api/agent/quota`, not with `env | grep`.
+
+---
+
 ## Open the AI-Radio UI in a canvas page
 
 The workspace has a dedicated iframe canvas page that embeds `https://ai-radio.jam-bot.com` inside OpenVoiceUI — the user gets the full AI-Radio interface (library, friends, player, settings) without leaving OVU.
@@ -453,6 +498,8 @@ If the bridge returns errors, you'll see them in the OVU response and should con
 - `AGENT_SYNC_DISABLED` — the user turned off agent sync in their AI-Radio settings.
 - `VALIDATION_FAILED` — input problem. Re-read what was asked and try a cleaner version.
 - `AUTH_API_KEY_INVALID` — per-user API key was revoked or rotated. Ask the user to paste a fresh one from `/settings`.
+- `QUOTA_EXCEEDED` — storage quota full (free 50 MB / jambot 1 GB). Delete songs via `DELETE /api/agent/song/:id` or ask the admin about a higher tier.
+- `SIGNUP_CAP_REACHED` — open-lane signups hit the daily cap (5/day platform, 1/IP). Try again after 24h or use the JamBot lane.
 
 ---
 
