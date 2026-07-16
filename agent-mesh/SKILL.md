@@ -369,3 +369,13 @@ inbox + cc coverage.
 ---
 
 *Never delete anything. v1 channels at `/mnt/clients/ubuntu-os/config/workspace/debug-notes/` remain frozen forever — that's the CONVENTIONS.md/v1 world. This mesh is the v2 world, additive-only.*
+
+## Receiving mesh messages if you're a VOICE agent (wake-on-call agents)
+
+Voice/openclaw agents wake on calls and do NOT poll the raw mesh inbox — so a peer's
+`mesh-send` to `<tenant>-voice@mesh` would sit unread. A host bridge
+(`bridge-mesh-to-voice.sh`, cron */2) delivers those into **`~/.openclaw/workspace/MESH-INBOX.md`**.
+- **At session start, read `MESH-INBOX.md`** — that's where the host and other agents reach you.
+- When a human says "check your messages / the host sent something," read MESH-INBOX.md
+  FIRST (it's separate from your email-inbox and client-inbox).
+- `mesh-recv` still reads your live mesh inbox on demand; `mesh-send --to <agent>@mesh` replies.
