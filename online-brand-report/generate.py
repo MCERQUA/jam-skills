@@ -1001,6 +1001,12 @@ def main():
                 _biz_dir = f"/mnt/clients/{args.tenant}/openclaw/workspace/business"
                 os.makedirs(_biz_dir, exist_ok=True)
                 _nap_path = os.path.join(_biz_dir, "nap-canonical.md")
+                # Bind here (not inside the if-blocks below): the NAP write and the
+                # citations write are sibling `if not exists(...)` blocks, so an import
+                # inside the first is unbound when the NAP file already exists but the
+                # citations JSON does not (UnboundLocalError _pl). Hoist above both.
+                import pathlib as _pl
+                import json as _json3
                 if not os.path.exists(_nap_path):
                     _nap_phone = data.get("gmb_phone") or data.get("phone") or ""
                     _nap_addr  = data.get("gmb_address") or ""
@@ -1015,7 +1021,6 @@ def main():
                         f"_Generated: {datetime.utcnow().strftime('%Y-%m-%d')} from brand report signals_\n"
                         "_Status: Awaiting verification with client_\n"
                     )
-                    import pathlib as _pl
                     _pl.Path(_nap_path).write_text(_nap_md)
                     print(f"    nap-canonical.md → {_nap_path}", file=sys.stderr)
 
@@ -1044,7 +1049,6 @@ def main():
                         "directories": _tier1,
                         "summary": {"total": len(_tier1), "tier1": sum(1 for d in _tier1 if d["tier"]==1), "tier2": sum(1 for d in _tier1 if d["tier"]==2), "pending": len(_tier1), "submitted": 0, "live": 0},
                     }
-                    import json as _json3
                     _pl.Path(_nich_path).write_text(_json3.dumps(_nich_data, indent=2))
                     print(f"    niche-directories.json → {_nich_path}", file=sys.stderr)
             except Exception as _nap_e:
