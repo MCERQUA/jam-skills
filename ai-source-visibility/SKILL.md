@@ -93,6 +93,11 @@ This is a hard block — not a ranking disadvantage, a complete content failure.
 9. **Stop treating ChatGPT like Google** — it reads context differently; 278 fetches → 11 cites means raw traffic intuition doesn't apply
 10. **Local search caps at 2 results** — for local businesses, the competition is tighter than organic
 
+### Measuring + controlling Google AI visibility (2026-06-03)
+
+11. **Track it in Search Console:** the Search Generative AI performance report (UK-first rollout, expanding) shows impressions — no clicks — for AI Overviews / AI Mode, data from 2026-05-18. Add "check GSC gen-AI report" to monthly client reporting.
+12. **Opt-out toggle exists — keep it OFF (default OPT-IN):** Search Console → Settings → Search generative AI can remove a site from AI Overviews / AI Mode / AIO-in-Discover without affecting blue-link ranking (not a ranking signal). We WANT AI-surface visibility for clients, so leave this documented-but-OFF by default; flip it on only at explicit client instruction, and record the state in the site handover.
+
 ---
 
 ## Limitations of the Research

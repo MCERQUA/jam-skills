@@ -5,6 +5,8 @@ description: "Palmier Pro — Swift-native macOS video editor with local MCP ser
 
 # Palmier Pro — Claude Code Skill
 
+> **On macdaddy (the video-node Mac):** read `~/palmier-pipeline/LEARNINGS.md` + `recipes/` BEFORE driving Palmier — that local brain evolves per-use (mac-claude LEARN-LOOP) and carries the current rig/recipe; this static skill is the baseline.
+
 Palmier Pro is a Swift-native video editor for macOS built for AI-first workflows. YC S24. Open-source (GPLv3). When the app is open it exposes a local MCP server — agents can generate media, edit the timeline, and export, all without leaving the project.
 
 ## When to use

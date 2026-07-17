@@ -23,6 +23,8 @@ Shared script for generating JSON-LD schema blocks for local business landers. O
 
 LocalBusiness includes `hasOfferCatalog`, `areaServed`, and `aggregateRating` when config supplies them.
 
+> **Merchant/product listings (reference, 2026-07-07):** this generator targets local-business landers, not ecommerce. If you hand-author `Product`/`Offer` JSON-LD for a store, Google now (a) accepts `Product.category` as `Text` (own taxonomy) and/or `CategoryCode` (Google Product Category via `inCodeSet` + `codeValue`), and (b) supports a sale-price date range via `validFrom` + `validThrough`/`priceValidUntil` on the `Offer`/`PriceSpecification`. Add both for discounted products — rich-result eligibility/quality, not a ranking lever. (developers.google.com/search/docs/appearance/structured-data/merchant-listing)
+
 ## Usage
 
 ```bash

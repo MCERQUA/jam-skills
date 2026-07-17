@@ -218,7 +218,7 @@ host path is `/mnt/system/base/skills/...`. Use whichever exists in your environ
 | **Topic / FAQ / pain-point mining** | **`social-research`** skill | "Every customer question is a blog post." Reddit public JSON (zero cost) — real questions, complaints, objections, the language customers actually use. Feeds topic-research + faq-research. |
 | **General web facts / source discovery** | built-in `web_search` first, then `serper-search` | Brave for general research; Serper when you need Google structure or Brave rate-limits. |
 | **Phase 3 + Phase 8 quality gates** | **`quality-review`** skill | The ship/no-ship gate. Runs functional + visual checks on the HTML; we keep the score-8+/9+ auto-proceed behavior but route the decision through quality-review instead of an ad-hoc agent rubric. |
-| **AI-visibility / GEO check** (optional) | `dataforseo` `serp/google/ai_mode` + `ai_optimization/llm_mentions` | Is the brand/topic cited in Google AI Mode / LLM answers? Informs angle + schema for snippet/AI-Overview targeting. |
+| **AI-visibility / GEO check** (optional) | `dataforseo` `serp/google/ai_mode` + `ai_optimization/llm_mentions` | Is the brand/topic cited in Google AI Mode / LLM answers? Informs angle + schema for snippet/AI-Overview targeting. For post-publish measurement use Search Console's Search Generative AI report (2026-06) — see `ai-source-visibility`. Default clients OPT-IN to AI surfaces (leave the GSC opt-out toggle off). |
 | **Free domain authority** (optional, for picking authority links) | `dataforseo` skill → Ahrefs DR free endpoint | DR 0-100 to qualify which external sources are worth citing. |
 
 **Invocation cheat-sheet** (full detail in each skill's SKILL.md):

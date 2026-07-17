@@ -1,7 +1,7 @@
 # X API Pricing — Full Reference
 
-**Pricing source of truth:** https://console.x.com (verify before quoting).
-**Last cross-checked:** 2026-04-20.
+**Pricing source of truth:** https://console.x.com + https://docs.x.com/x-api/getting-started/pricing (verify before quoting).
+**Last cross-checked:** 2026-07-16 (live docs.x.com/x-api/getting-started/pricing).
 
 ## The model (what changed 2026-02)
 
@@ -13,19 +13,26 @@ Existing Free-tier developers who were recently active received a **one-time $10
 
 **Purchase credits upfront in the Developer Console.** Credits are deducted per API call with real-time tracking. Unused credits roll forward.
 
-### Per-call prices (USD)
+### Per-call prices (USD) — verified live 2026-07-16
 
 | Operation | Cost | Notes |
 |-----------|------|-------|
-| **Post read** (any GET returning a Post) | $0.005 | dedup'd within UTC day |
-| **Post write** (POST /2/tweets) | $0.01 | |
-| **Post delete** | $0.01 | counts as a write |
-| **User profile lookup** | $0.01 | dedup'd within UTC day |
-| **DM send** | $0.01 – $0.015 | depends on media |
+| **Post read** (any GET returning a Post) | **$0.005** | per resource returned; dedup'd within UTC day |
+| **Owned read** (your OWN posts/bookmarks/followers/lists) | **$0.001** | dropped from $0.005 on 2026-04-20 — cheapest read |
+| **Like read** | $0.001 | per resource |
+| **User profile lookup** | **$0.010** | per resource; dedup'd within UTC day |
+| **Post write** (POST /2/tweets) | **$0.015** | rose from $0.010 on 2026-04-20 |
+| **Post write containing a URL** | **$0.200** | URLs are ~13× a normal write — batch/avoid |
+| **Delete** (interaction) | $0.010 | |
+| **Follow action** (webhook `follow.follow`) | $0.010 | |
+| **Media metadata** | $0.005 | alt-text / tagged users |
+| **Media upload init/append/finalize** | nominal / bundled | billed per finalize; a video post is still ~$0.015 write |
+| **DM send** | **not billed** | per live docs 2026-07-16 |
 | **DM read** | $0.005 | per event returned |
-| **Search (recent, per request)** | priced by posts returned | read price × count |
-| **Media upload init/append/finalize** | nominal | bundle billed per finalize |
-| **Follow / like / retweet action** | $0.01 | write-class |
+| **Search (recent, per request)** | priced by posts returned | post-read price × count returned |
+| **Mentions lookup** (`/users/:id/mentions`) | **$0.005 × posts returned** | each mention is a post read; dedup'd per UTC day → `since_id` polling ≈ free on quiet polls |
+
+> **This table now matches `SKILL.md` (both verified against live docs 2026-07-16) and the cost model in the BHB `x-guard.py` wrapper.** The 2026-04-20 change: owned reads → $0.001, standard writes $0.010 → $0.015.
 
 ### Monthly ceiling
 

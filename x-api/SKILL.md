@@ -1,6 +1,6 @@
 ---
 name: x-api
-description: Build against the X (Twitter) API v2 — auth flows (OAuth 2.0 PKCE / 1.0a / Bearer), endpoint catalog, pay-per-use & tier pricing, and per-endpoint rate limits. Trigger when code imports twitter/tweepy/twitter-api-v2, hits api.x.com or api.twitter.com, handles tweets/posts/DMs/media/spaces/lists, or the user asks about X API pricing, rate limits, or auth. Last verified 2026-04-20.
+description: Build against the X (Twitter) API v2 — auth flows (OAuth 2.0 PKCE / 1.0a / Bearer), endpoint catalog, pay-per-use & tier pricing, and per-endpoint rate limits. Trigger when code imports twitter/tweepy/twitter-api-v2, hits api.x.com or api.twitter.com, handles tweets/posts/DMs/media/spaces/lists, or the user asks about X API pricing, rate limits, or auth. Last verified 2026-07-13 (pricing → pure pay-per-use / prepaid credits at console.x.com; monthly Basic/Pro tiers retired).
 ---
 
 # X API v2 Reference Skill
@@ -25,16 +25,24 @@ Authoritative reference for integrating with the X API v2 (api.x.com). Optimized
 - **429 recovery:** sleep until `x-rate-limit-reset`, then exponential backoff on retries
 - **Deduplication:** on pay-per-use, the same resource (same post ID etc.) re-requested inside the same UTC day is **free on the second+ hit**. Cache-friendly designs save real money.
 
-## Pricing at a glance (2026-04)
+## Pricing at a glance (updated 2026-07-13)
 
-| Tier | Cost | Who can buy | Monthly cap | Use when |
-|------|------|-------------|-------------|----------|
-| **Pay-Per-Use** | $0.005/read, $0.01/write | Everyone (default) | 2M reads → Enterprise | Unpredictable / low-volume |
-| **Basic** | $200/mo | Legacy only | ~50k writes, ~10–15k reads | Small steady app, pre-2026-02 |
-| **Pro** | $5,000/mo | Legacy only | ~300k writes, 1M reads | Full-archive search, streaming |
-| **Enterprise** | $42k–$50k+/mo | Contract | 50M+ reads, firehose | Platform-scale data |
+**Pure pay-per-use with prepaid credits — no subscriptions, no monthly tiers, no minimum spend.**
+Sign up + buy credits + create an app at **https://console.x.com** (the old developer.x.com
+portal and the $200/mo Basic + $5,000/mo Pro tiers are RETIRED — legacy accounts only).
+Credits are deducted per request; monitor usage in the Developer Console.
 
-Pay-per-use tops out at **2M post reads/month** — above that, Enterprise is required. See `references/pricing.md` for per-endpoint cost.
+| Operation | Cost | Notes |
+|-----------|------|-------|
+| **Read — post** | **$0.005** / resource returned | charged per resource in the response, not per call |
+| **Read — user** | $0.010 / resource | |
+| **Read — like** | $0.001 / resource | |
+| **Read — OWNED data** (your own account) | **$0.001** / resource | cheapest — personal dashboards / own-account activity |
+| **Write — standard post** | $0.015 / request | |
+| **Write — post containing a URL** | $0.200 / request | URLs are pricey — batch/avoid where possible |
+| **Webhook event** (post.create) | $0.005 / event | follow actions $0.010 |
+
+**Dedup:** the same resource re-requested within 24h is charged **once** — cache-friendly designs save real money. No monthly cap gate anymore; you simply spend credits until they run out, so put a spend guard on any polling loop. Verify live rates at https://console.x.com (rates change; `references/pricing.md` may lag).
 
 ## Tier → endpoint access
 

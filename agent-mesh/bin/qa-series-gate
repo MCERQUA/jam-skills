@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+# qa-series-gate.sh — template-first gate for series submissions
+#
+# Usage: qa-series-gate.sh <template-path> [series-artifact-1 series-artifact-2 ...]
+#
+# Audits the shared template at 375px (mobile) before accepting any state-variation
+# series into the audit queue. If the template fails (CRIT or HIGH bugs), blocks
+# the entire series and exits 1.
+#
+# Exit 0 = template passes, series may proceed to audit queue
+# Exit 1 = template fails (CRIT/HIGH bugs found) — block entire series
+# Exit 2 = usage error or environment problem
+#
+# Implements pledge: add-template-gate-to-qa-series-submission-audit-the-shared-t
+# Shipped: 2026-07-15 by quality-assurance-manager@mesh
+
+set -euo pipefail
+
+QUALITY_DIR="${QUALITY_DIR:-/mnt/agent-mesh/mesh/QUALITY}"
+
+if [[ $# -lt 1 ]]; then
+    echo "usage: qa-series-gate.sh <template-path> [series-artifact ...]" >&2
+    exit 2
+fi
+
+TEMPLATE_PATH="$1"
+shift
+SERIES_ARTIFACTS=("$@")
+
+if [[ ! -f "$TEMPLATE_PATH" ]]; then
+    echo "[qa-series-gate] ERROR: template not found: $TEMPLATE_PATH" >&2
+    exit 2
+fi
+
+TEMPLATE_NAME=$(basename "$TEMPLATE_PATH")
+AUDIT_DATE=$(date -u +"%Y-%m-%d")
+AUDIT_DIR="$QUALITY_DIR/series-gate-${TEMPLATE_NAME%.html}-${AUDIT_DATE}"
+mkdir -p "$AUDIT_DIR/screenshots"
+
+echo "[qa-series-gate] Running 375px template gate on: $TEMPLATE_PATH" >&2
+
+RESULT=$(python3 << PYEOF
+import json, sys
+from playwright.sync_api import sync_playwright
+
+TEMPLATE_PATH = "$TEMPLATE_PATH"
+AUDIT_DIR = "$AUDIT_DIR"
+AUDIT_DATE = "$AUDIT_DATE"
+TEMPLATE_NAME = "$TEMPLATE_NAME"
+
+bugs = []
+
+def check_mobile(page):
+    findings = []
+    doc_scroll = page.evaluate("document.documentElement.scrollWidth")
+    doc_client = page.evaluate("document.documentElement.clientWidth")
+    if doc_scroll > doc_client:
+        findings.append({
+            "severity": "HIGH",
+            "title": "Horizontal overflow on document (mobile 375px)",
+            "detail": f"scrollWidth={doc_scroll} > clientWidth={doc_client}",
+            "selector": "document"
+        })
+
+    # Per-element overflow (excluding intentional scroll containers)
+    el_overflow = page.evaluate("""() => {
+        const results = [];
+        for (const el of document.querySelectorAll('*')) {
+            const style = window.getComputedStyle(el);
+            if (style.overflowX === 'auto' || style.overflowX === 'scroll') continue;
+            if (el.scrollWidth > el.clientWidth + 2) {
+                results.push({tag: el.tagName, cls: el.className.substr(0,40), sw: el.scrollWidth, cw: el.clientWidth});
+            }
+            if (results.length >= 20) break;
+        }
+        return results;
+    }""")
+    for item in el_overflow:
+        findings.append({
+            "severity": "HIGH",
+            "title": f"Element overflow: {item['tag']} (mobile 375px)",
+            "detail": f"scrollWidth={item['sw']} > clientWidth={item['cw']}",
+            "selector": f"{item['tag']}.{item['cls']}"
+        })
+
+    # Badge/pill contrast
+    contrast_fails = page.evaluate("""() => {
+        function lum(rgb) {
+            const vals = rgb.match(/\\d+/g).slice(0,3).map(Number).map(v => {
+                v /= 255;
+                return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
+            });
+            return 0.2126*vals[0] + 0.7152*vals[1] + 0.0722*vals[2];
+        }
+        function ratio(c1, c2) {
+            const l1 = Math.max(lum(c1), lum(c2));
+            const l2 = Math.min(lum(c1), lum(c2));
+            return (l1 + 0.05) / (l2 + 0.05);
+        }
+        const results = [];
+        for (const el of document.querySelectorAll('.pill,.sev-crit,.sev-high,.sev-med,.sev-low,.status,.badge,.mention')) {
+            const style = window.getComputedStyle(el);
+            const r = ratio(style.color, style.backgroundColor);
+            if (r < 4.5) {
+                results.push({sel: el.className.substr(0,30), ratio: r.toFixed(2), fg: style.color, bg: style.backgroundColor});
+            }
+        }
+        return results;
+    }""")
+    for item in contrast_fails:
+        findings.append({
+            "severity": "CRITICAL",
+            "title": f"WCAG contrast fail on .{item['sel']} (mobile)",
+            "detail": f"ratio={item['ratio']} fg={item['fg']} bg={item['bg']}",
+            "selector": f".{item['sel']}"
+        })
+
+    # Touch targets
+    touch_fails = page.evaluate("""() => {
+        const results = [];
+        for (const el of document.querySelectorAll('button,.chip,.tab-btn,a.btn')) {
+            const style = window.getComputedStyle(el);
+            const h = el.getBoundingClientRect().height;
+            if (h < 44 && h > 0) {
+                results.push({tag: el.tagName, cls: el.className.substr(0,30), h: h});
+            }
+            if (results.length >= 10) break;
+        }
+        return results;
+    }""")
+    for item in touch_fails:
+        findings.append({
+            "severity": "HIGH",
+            "title": f"Touch target <44px: {item['tag']} (mobile)",
+            "detail": f"height={item['h']:.0f}px < 44px",
+            "selector": f"{item['tag']}.{item['cls']}"
+        })
+
+    return findings
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    page = browser.new_page(viewport={"width": 375, "height": 812})
+    try:
+        page.goto(f"file://{TEMPLATE_PATH}", wait_until="networkidle", timeout=30000)
+        page.wait_for_timeout(1000)
+        page.screenshot(path=f"{AUDIT_DIR}/screenshots/mobile_375_gate.png", full_page=True)
+        bugs = check_mobile(page)
+    finally:
+        page.close()
+        browser.close()
+
+crit = sum(1 for b in bugs if b["severity"] == "CRITICAL")
+high = sum(1 for b in bugs if b["severity"] == "HIGH")
+verdict = "PASS" if (crit == 0 and high == 0) else "FAIL"
+
+report = {
+    "template": TEMPLATE_NAME,
+    "template_path": TEMPLATE_PATH,
+    "audit_date": AUDIT_DATE,
+    "auditor": "quality-assurance-manager@mesh",
+    "audit_type": "series-gate",
+    "viewport": "mobile-375px",
+    "bug_counts": {"CRITICAL": crit, "HIGH": high},
+    "total_bugs": len(bugs),
+    "verdict": verdict,
+    "bugs": bugs,
+    "report_path": AUDIT_DIR + "/audit-report.json"
+}
+
+with open(AUDIT_DIR + "/audit-report.json", "w") as f:
+    json.dump(report, f, indent=2)
+
+print(f"{verdict}|{crit}|{high}|{len(bugs)}|{AUDIT_DIR}/audit-report.json")
+PYEOF
+)
+
+IFS='|' read -r verdict crit high total report_path <<< "$RESULT"
+
+if [[ "$verdict" == "PASS" ]]; then
+    echo "[qa-series-gate] PASS: template $TEMPLATE_NAME passed 375px gate (0 CRIT, 0 HIGH)" >&2
+    echo "[qa-series-gate] Report: $report_path" >&2
+    if [[ ${#SERIES_ARTIFACTS[@]} -gt 0 ]]; then
+        echo "[qa-series-gate] Series may proceed to audit queue: ${SERIES_ARTIFACTS[*]}" >&2
+    fi
+    exit 0
+else
+    echo "[qa-series-gate] FAIL: template $TEMPLATE_NAME BLOCKED at 375px gate (CRIT=$crit HIGH=$high)" >&2
+    echo "[qa-series-gate] Fix the template before resubmitting the series." >&2
+    echo "[qa-series-gate] Report: $report_path" >&2
+    if [[ ${#SERIES_ARTIFACTS[@]} -gt 0 ]]; then
+        echo "[qa-series-gate] BLOCKED series artifacts (${#SERIES_ARTIFACTS[@]}):" >&2
+        for a in "${SERIES_ARTIFACTS[@]}"; do
+            echo "[qa-series-gate]   - $a" >&2
+        done
+    fi
+    exit 1
+fi

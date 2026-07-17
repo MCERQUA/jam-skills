@@ -76,6 +76,23 @@ Returns `{"ok": true|false, "issues": [...]}` — flags emoji-as-icons, banned p
 CDN frameworks, missing viewport/page-icon meta, and active-style mismatches.
 (If the endpoint 404s, this server predates the style system — skip.)
 
+## Step 3.6: Mobile Viewport Pass (MANDATORY — before QA submission)
+
+A page that clears CRITICAL bugs but skips the viewport pass ships as `0 CRIT / N HIGH`
+and the build agent believes it is almost done — it is not. Responsive breakage is HIGH,
+not cosmetic. **Check all three viewports and fix every layout break BEFORE submitting to
+QA — this is required, not a bonus step** (QA finding 2026-07-12):
+
+1. **Desktop** — ~1280px wide: intended layout, nothing clipped.
+2. **Tablet** — ~768px: grids reflow, no horizontal scroll, tap targets ≥44px.
+3. **Mobile** — ~375px: single-column where needed, no text/element overflow, no
+   horizontal page scroll (wide tables/diagrams/code scroll INSIDE their own
+   `overflow-x:auto` container — the page body must never scroll sideways).
+
+Verify by resizing the browser (or DevTools device toolbar) at each width. Any element
+that overflows, clips, or forces body-level horizontal scroll is a blocking fix, not a
+QA note. Only submit once all three pass.
+
 ## Canvas Page HTML Rules
 
 - **Desktop icon (REQUIRED):** Add `<meta name="page-icon" content="ICON_TYPE">` in the `<head>`. This sets the desktop icon. Available types: `dashboard`, `game`, `music`, `tools`, `book`, `upload`, `image-creator`, `file-explorer`, `interactive-map`, `style-guide`, `crm`, `voice-studio`, `ai-app-library`, `website`, `internet`, `settings`, `document`. Pick the closest match.
