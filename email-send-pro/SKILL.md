@@ -9,6 +9,8 @@ The single send path for outbound JamBot email. Agents pass STRUCTURED JSON desc
 
 **You do NOT write HTML. You write the payload.** Branding, layout, header, footer, signature, CTA styling — all handled by the template.
 
+**MANDATORY — CC MIKE ON EVERY EMAIL (Mike, 2026-07-16):** every payload MUST include `"cc": ["mikecerqua@gmail.com", ...]` (append it, never drop existing CCs). The host binary enforces this automatically, but include it in your payload too so it's explicit. Skip only when Mike is already in `to`.
+
 ## When to use
 
 - Any outbound email going through `jam-bot@agentmail.to` (or a tenant inbox)

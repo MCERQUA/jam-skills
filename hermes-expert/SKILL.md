@@ -188,13 +188,13 @@ done
 Documented, verified-possible improvements nobody has shipped yet. When asked to "improve/optimize hermes," these are the shovel-ready items:
 
 1. **Clean cancel** — swap `abort_active_run`'s connection-close hack for `POST /v1/runs/{run_id}/stop` (available since v0.13; fleet is v0.18). §4, §6.
-2. **Tool-progress SSE events** — `gateway.py:_iter_sse_content` still ignores `event: hermes.tool.progress` lines, so the OVU UI shows nothing while Hermes runs tools. Parse them and surface tool activity (emoji ships in the payload). §5.
+2. ~~Tool-progress SSE events~~ — **SHIPPED** (verified 2026-07-16): `_iter_sse_content` is a typed parser yielding `tool_progress` events; `emit_tool_progress` surfaces them. §5.
 3. **Non-Z.AI resilience** — credential pool (`anthropic` pool: Z.AI A + B + direct-Anthropic haiku) to survive the recurring Z.AI tail-latency windows. Needs Mike's call on token spend. §1A, §7.
-4. **Context-injection diet** — the ~18KB-per-turn OVU master-prompt injection is the multiplier behind cost, cold-start latency, AND poison-spiral growth (each failed turn stores another 18KB user row). Any reduction in `routes/conversation.py` context assembly pays off three ways. §1A.
-5. **Session headers** — verify the plugin sends BOTH `X-Hermes-Session-Id` and `X-Hermes-Session-Key` (§3); Session-Key enables per-tenant long-term memory.
-6. **Rebuild a rollback image** — both rollback tags were pruned 2026-07-12 (see §10A); until one is rebuilt or the next version bump preserves a `pre-roll` tag, revert = rebuild-from-source (slow path).
+4. **Context-injection diet — PARTIALLY SHIPPED** (verified 2026-07-16): `routes/conversation.py` static-block dedup sends the full ~12-18KB blob only on session start / content change / every 10 turns / 15 min; steady-state ~0.5-2KB/turn. Residual: measure warm-session token profile under load. §1A.
+5. ~~Session headers~~ — **SHIPPED** (verified 2026-07-16): gateway.py sends BOTH `X-Hermes-Session-Id` (:211) and `X-Hermes-Session-Key` (:213). §3.
+6. ~~Rebuild a rollback image~~ — **RESOLVED by discipline** (2026-07-16 jb2 roll): `v0.18.2-jb1` kept tagged as instant rollback; keep this pattern every bump (pre-v0.18.2 reverts still rebuild-from-source).
 
-*(Shipped from this list 2026-07-12: session-poison auto-heal — plugin v1.2.1 inline heal + health-monitor Check 7.5.)*
+*(Shipped 2026-07-12: session-poison auto-heal — plugin v1.2.1 + health-monitor Check 7.5. Shipped 2026-07-16 in `v0.18.2-jb2` on all 6 tenants: **write-side empty-turn guard** — defense layer 4, spec `docs/jambot/hermes-write-side-empty-turn-guard-spec.md` — and **replay-sanitize v2** (poison shape v3: orphan tool-results, dead tool-chain tails, consecutive same-role merges). Sandbox-verified 6/6; roll script `scripts/hermes-upgrade-jb2-roll.sh` — its open-turn gate greps agent.log POST timestamps, NOT file mtime, which the 30s healthcheck keeps forever fresh.)*
 
 **Before shipping any plugin change:** sync live ↔ catalog ↔ distribution (§8) — a reinstall from a stale catalog regresses hotfixes. After shipping: re-run `audit-anchors.sh` and update §13B anchor values in the same commit.
 
@@ -306,7 +306,7 @@ print('total, empty:', c.fetchone())\""
 1. **Replay sanitize (ROOT FIX, input-side)** — `agent/turn_context.py` patched (marker `JamBot replay sanitize`, applied via cont-init in both build dirs + live fleet): replayed history is normalized before every provider call — empty assistant turns WITH tool_calls get placeholder content `"."` (preserves tool-result pairing), empty ones without are dropped. **Proven:** the worst poisoned session (8 empty turns) went from 3-retry/60s-empty to a 3.1s real reply, with correct history recall. This neutralizes existing latent poison WITHOUT purging (no memory loss). **⚠️ Placeholder MUST be inert (learned 2026-07-12 PM):** the original `"(tool call)"` placeholder got MIMICKED by GLM into its own live replies — TTS literally spoke "(tool call)" in Mike's greetings, and the mimicked text persisted as new assistant rows in state.db (test-dev `main` had 4 consecutive such rows). Fixed to `"."` in the `v0.18.2-jb1` image; its cont-init also auto-repairs an already-patched file that still carries the old string. Never pick a placeholder a voice model could plausibly speak.
 2. **Inline auto-heal (plugin v1.2.1)** — 2 consecutive empty responses → plugin purges the hermes-side session.
 3. **Cron backstop** — `jambot-health-monitor.sh` Check 7.5 detects the signature every 5 min.
-4. **Write-side guard (still owed, host v1.3)** — stop persisting empty turns into state.db at all; with layer 1 live this is belt-and-suspenders.
+4. **Write-side guard — SHIPPED 2026-07-16 (`v0.18.2-jb2`, all 6 tenants)** — empty assistant rows never persist into state.db (`hermes_state.py` `append_message` early-return sentinel `-1`; all 6 call sites verified return-ignoring). Plus replay-sanitize v2 (shape-v3 defense) in the same image.
 
 ### ⚠️ SECOND 2026-07-12 root cause — cross-tenant `hermes` DNS round-robin over jambot-shared (FIXED)
 
@@ -1206,7 +1206,7 @@ The fields most likely to silently drift from this skill's documentation:
 
 | Anchor | Current value (verify against runtime) | How to re-check |
 |---|---|---|
-| Hermes version (fleet, 2026-07-12) | v0.18.2 (`2026.7.7.2`, upstream `9de9c25f`) on all 4 tenants | `docker exec hermes-<t> /opt/hermes/.venv/bin/hermes --version` |
+| Hermes version (fleet, 2026-07-16) | v0.18.2 (`2026.7.7.2`) image `jambot/hermes:v0.18.2-jb2` on all **6** tenants (test-dev, adrian, danielle, src, bhb, koolfoam) | `docker exec hermes-<t> /opt/hermes/.venv/bin/hermes --version` |
 | OpenClaw version on test-dev | 2026.5.7 (eeef486) | `docker exec openclaw-test-dev openclaw --version` |
 | LLM primary | `zai/glm-5-turbo` | `docker exec openclaw-test-dev openclaw config get agents.defaults.model.primary` |
 | LLM fallback | `zai_fb/glm-5-turbo` | `docker exec openclaw-test-dev openclaw config get agents.defaults.model.fallbacks` |
@@ -1215,10 +1215,12 @@ The fields most likely to silently drift from this skill's documentation:
 | Config schema version | 33 (auto-migrated at v0.18.2 first boot; was 32 at v0.18.0) | `docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config check` |
 | Lane timeout (openclaw) | 45000ms (NOT exposed via `openclaw config set`) | Source-only; check `grep -r "45000" openclaw npm package` |
 | Provider chain identity | Z.AI A + Z.AI B (MiniMax dropped) | `docs/jambot/llm-provider-registry.md` |
-| Live tenant inventory | 4: hermes-{test-dev,adrian,danielle,src} | `docker ps --filter name=hermes --format '{{.Names}}'` |
-| Rollback images | `jambot/hermes:v0.18.2` (pre-jb1 image, instant rollback for the 07-12 PM parity roll) + `pre-roll-20260712` (= v0.18.0) + `v0.18.0` tag; older rollbacks (v0.15.2, 0.6.0) remain pruned — rebuild dirs `hermes-v015-build/` / `hermes-v018-build/` / `hermes-v0182-build/` | `docker images jambot/hermes` |
-| Provisioner image pin | `jambot/hermes:v0.18.2-jb1` (OpenClaw-parity rebuild 2026-07-12 PM: mesh CLI symlinks + inert `"."` sanitize placeholder + approvals-off backfill in cont-init; sqlite3 + jq baked; provisioner also adds `/mnt/agent-mesh` + `transcripts` mounts and `AGENT_URI={user}-voice@mesh` + `MESH_ROOT` env; service bounced, all 4 tenants rolled + E2E-verified) | `grep 'jambot/hermes:' /home/mike/MIKE-AI/scripts/jambot-provision-service.py` |
-| OpenClaw parity (mesh/approvals/placeholder) | all 4 containers: `/mnt/agent-mesh` mounted, `mesh-send` on PATH, `approvals.mode "off"`, placeholder `"."` | `bash scripts/audit-anchors.sh` (3 dedicated checks) |
+| Live tenant inventory | 6: hermes-{test-dev,adrian,danielle,src,bhb,koolfoam} (audit-anchors now discovers dynamically — 2026-07-16) | `docker ps --filter name=hermes --format '{{.Names}}'` |
+| Rollback images | `jambot/hermes:v0.18.2-jb1` = instant rollback for the 2026-07-16 jb2 roll; `v0.18.2` (pre-jb1) = second step. `pre-roll-20260712`/`v0.18.0` tags are PRUNED (found gone 2026-07-16) — older rollbacks rebuild from `hermes-v015-build/` / `hermes-v018-build/` / `hermes-v0182-build/` | `docker images jambot/hermes` |
+| Provisioner image pin | `jambot/hermes:v0.18.2-jb2` (2026-07-16 — jb1 history: (OpenClaw-parity rebuild 2026-07-12 PM: mesh CLI symlinks + inert `"."` sanitize placeholder + approvals-off backfill in cont-init; sqlite3 + jq baked; provisioner also adds `/mnt/agent-mesh` + `transcripts` mounts and `AGENT_URI={user}-voice@mesh` + `MESH_ROOT` env; service bounced, all 4 tenants rolled + E2E-verified) | `grep 'jambot/hermes:' /home/mike/MIKE-AI/scripts/jambot-provision-service.py` |
+| OpenClaw parity (mesh/approvals/placeholder) | all tenants: `/mnt/agent-mesh` mounted, `mesh-send` on PATH, `approvals.mode "off"`, placeholder `"."` | `bash scripts/audit-anchors.sh` (3 dedicated checks, dynamic tenant discovery since 2026-07-16) |
+| **Write-side empty-turn guard (jb2)** | `JamBot write-side empty-turn guard` marker in `/opt/hermes/hermes_state.py`, all tenants — empty assistant rows return sentinel `-1`, never persisted (all callers verified return-ignoring) | `bash scripts/audit-anchors.sh` (dedicated check) |
+| **Replay-sanitize v2 (jb2, poison shape v3)** | `JamBot replay sanitize v2` marker in `/opt/hermes/agent/turn_context.py`, all tenants — orphan tool rows dropped, dead tool-chain tails dropped, consecutive same-role text rows merged | `bash scripts/audit-anchors.sh` (dedicated check) |
 | Plugin pin (catalog + fleet + distribution) | plugin v1.3.1 / hermes_version 0.18.2 / gateway.py md5 **32c83eeb** + routes/hermes.py **8a4c93b8** (no-redirect interject + cleanup-abort guard — synced 2026-07-12) | `md5sum /mnt/system/base/plugin-catalog/hermes-agent/gateway.py` + same md5 on all tenant runtime copies |
 | Session health (poison) | 0 empty turns + no trailing user-turn run in `main` on all tenants | `bash scripts/session-health.sh` (this skill) |
 | JamFlow lane | n101 plat:hermes — poll_hermes glow (agent.log POST markers) + live per-tenant plugin table in desc | `curl -s 127.0.0.1:8777/api/watch/graph` |

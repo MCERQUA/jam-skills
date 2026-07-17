@@ -26,7 +26,12 @@ import sqlite3
 db = sqlite3.connect('/opt/data/state.db')
 c = db.cursor()
 c.execute('SELECT DISTINCT session_id FROM messages')
-for (sid,) in c.fetchall():
+sids = c.fetchall()
+if not sids:
+    # 0 rows is a HEALTHY state (tenant never used for voice), not an error —
+    # empty output used to false-flag as could-not-read (koolfoam, 2026-07-16).
+    print('ok\t(no sessions)\tmsgs=0\tempty=0\ttrailing_user=0')
+for (sid,) in sids:
     c.execute('SELECT role, trim(coalesce(content,\"\"))=\"\" FROM messages WHERE session_id=? ORDER BY rowid', (sid,))
     rows = c.fetchall()
     empty = sum(1 for _, e in rows if e)

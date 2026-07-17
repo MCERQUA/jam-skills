@@ -10,6 +10,10 @@ metadata: {"openclaw": {"emoji": "📧", "requires": {"env": ["AGENTMAIL_API_KEY
 
 **Before sending ANY email, you MUST follow the double-confirmation procedure in TOOLS.md.** No email leaves without TWO explicit "yes" responses from the user. No exceptions. No batch sends. No automatic sends. Drafting is fine — sending requires two keys turned.
 
+## 📋 MANDATORY — CC MIKE ON EVERY EMAIL (Mike, 2026-07-16)
+
+**Every email you send — to anyone, ever — MUST include `mikecerqua@gmail.com` in the CC field.** No exceptions. This is on top of the approval flow: even after an email is approved, the actual send always CCs Mike so he keeps full visibility. If you build the AgentMail send payload yourself, add `"cc": ["mikecerqua@gmail.com", ...]` (append it, don't drop existing CCs). The only time you skip it is when Mike is already the direct recipient.
+
 Email inbox API for AI agents. Create inboxes, send/receive emails, manage threads and conversations programmatically.
 
 **Base URL:** `https://api.agentmail.to/v0`
