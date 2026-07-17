@@ -10,6 +10,10 @@ set -u
 PASS=0
 FAIL=0
 
+# Dynamic tenant discovery (2026-07-16, W3): the fleet grew past the original 4 —
+# never hardcode tenant lists; per-container anchors cover every RUNNING hermes.
+mapfile -t HERMES_TENANTS < <(sg docker -c "docker ps --filter name=hermes- --format '{{.Names}}'" 2>/dev/null | sed 's/^hermes-//' | sort)
+
 check() {
     local label="$1"
     local expected="$2"
@@ -85,10 +89,16 @@ fi
 schema=$(sg docker -c "docker exec hermes-test-dev /opt/hermes/.venv/bin/hermes config check 2>&1" 2>/dev/null | grep -i "version" | head -1)
 check "config schema" "33" "$schema"
 
-# Live tenant inventory (count must match docs).
-# 2026-07-12: fleet = test-dev + adrian + danielle + src, all on v0.18.2.
-count=$(sg docker -c "docker ps --filter name=hermes --format '{{.Names}}'" 2>/dev/null | wc -l)
-check "live hermes containers (count)" "4" "$count"
+# Live tenant inventory: every PROVISIONED tenant (a /mnt/clients/<t>/hermes/config.yaml
+# exists) must have a RUNNING container, and vice versa. (2026-07-16: dynamic — the
+# hardcoded "4" went stale the day bhb+koolfoam were provisioned.)
+provisioned=$(ls -d /mnt/clients/*/hermes/config.yaml 2>/dev/null | sed 's|/mnt/clients/||;s|/hermes/config.yaml||' | sort | tr '\n' ' ')
+running=$(printf '%s ' "${HERMES_TENANTS[@]}")
+if [ "$provisioned" = "$running" ]; then
+    check "hermes fleet (provisioned==running)" "match" "match"
+else
+    check "hermes fleet (provisioned==running)" "match" "provisioned:[$provisioned] running:[$running]"
+fi
 
 # Rollback path present.
 # 2026-07-12: BOTH rollback images (v0.15.2 + 0.6.0-rollback) were PRUNED in the
@@ -102,11 +112,22 @@ check "rollback path (pre-roll-20260712 tag + rebuild dirs)" "build-dirs-present
 # (a stale catalog regresses hotfixes on reinstall; SKILL.md §8).
 cat_md5=$(md5sum /mnt/system/base/plugin-catalog/hermes-agent/gateway.py 2>/dev/null | cut -c1-8)
 parity="in-sync"
-for t in test-dev adrian danielle src; do
+for t in "${HERMES_TENANTS[@]}"; do
   t_md5=$(md5sum /mnt/clients/$t/openvoiceui/plugins/hermes-agent/gateway.py 2>/dev/null | cut -c1-8)
   [ "$t_md5" = "$cat_md5" ] || parity="DRIFT:$t=$t_md5,catalog=$cat_md5"
 done
 check "plugin gateway.py catalog==fleet parity" "in-sync" "$parity"
+
+# agent.reasoning_effort=none in EVERY tenant config (2026-07-17: 6/7 tenants were
+# missing it — GLM burns the response on thinking and returns EMPTY content
+# ("response.content invalid" → "Empty response from agent" in the voice UI).
+# Hermes equivalent of OpenClaw thinkingDefault:"off". Seed+backfill now in
+# cont-init (v0182 build); this anchor catches any config rewrite that drops it.
+re="all-set"
+for t in "${HERMES_TENANTS[@]}"; do
+  grep -q 'reasoning_effort' /mnt/clients/$t/hermes/config.yaml 2>/dev/null || re="MISSING:$t"
+done
+check "agent.reasoning_effort present (all tenants)" "all-set" "$re"
 
 # Z.AI account-B fallback in credential pool with correct base_url (wired 2026-07-12)
 poolb=$(sg docker -c "docker exec hermes-test-dev python3 -c \"
@@ -117,10 +138,10 @@ check "Z.AI account-B pool entry (Z.AI base_url)" "present:https://api.z.ai/api/
 
 # Replay-sanitize patch live in fleet (root fix for session poison, 2026-07-12)
 rs="in"
-for t in test-dev adrian danielle src; do
+for t in "${HERMES_TENANTS[@]}"; do
   sg docker -c "docker exec hermes-$t grep -q 'JamBot replay sanitize' /opt/hermes/agent/turn_context.py" 2>/dev/null || rs="MISSING:$t"
 done
-check "replay-sanitize patch live (all 4)" "in" "$rs"
+check "replay-sanitize patch live (all tenants)" "in" "$rs"
 
 # MiniMax key must NOT be active in env (it's dropped)
 mxguard=$(grep -E "^MINIMAX_API_KEY=" /mnt/system/base/.openclaw-keys.env 2>/dev/null || echo "absent-good")
@@ -129,14 +150,27 @@ check "MiniMax key absent (dropped guard)" "absent-good" "$mxguard"
 # OpenClaw-parity anchors (2026-07-12, v0.18.2-jb1 roll): mesh access + approvals off
 # + inert sanitize placeholder ("." — the old "(tool call)" got MIMICKED into TTS).
 mesh_ok="ok"; appr_ok="ok"; ph_ok="ok"
-for t in test-dev adrian danielle src; do
+for t in "${HERMES_TENANTS[@]}"; do
   sg docker -c "docker exec hermes-$t sh -c 'test -d /mnt/agent-mesh && test -x /usr/local/bin/mesh-send'" 2>/dev/null || mesh_ok="MISSING:$t"
-  sg docker -c "docker exec hermes-$t grep -A1 '^approvals:' /opt/data/config.yaml" 2>/dev/null | grep -q 'mode: "off"' || appr_ok="MISSING:$t"
+  sg docker -c "docker exec hermes-$t grep -A1 '^approvals:' /opt/data/config.yaml" 2>/dev/null | grep -qE "mode: [\"']off[\"']" || appr_ok="MISSING:$t"
   sg docker -c "docker exec hermes-$t grep -q '_m\[.content.\] = \".\"' /opt/hermes/agent/turn_context.py" 2>/dev/null || ph_ok="OLD-PLACEHOLDER:$t"
 done
-check "mesh parity (mount + mesh CLI, all 4)" "ok" "$mesh_ok"
-check "approvals.mode off (all 4)" "ok" "$appr_ok"
-check "sanitize placeholder inert '.' (all 4)" "ok" "$ph_ok"
+check "mesh parity (mount + mesh CLI, all tenants)" "ok" "$mesh_ok"
+check "approvals.mode off (all tenants)" "ok" "$appr_ok"
+check "sanitize placeholder inert '.' (all tenants)" "ok" "$ph_ok"
+
+# jb2 anchors (2026-07-16): write-side empty-turn guard + replay-sanitize v2
+wg="ok"; s2="ok"
+for t in "${HERMES_TENANTS[@]}"; do
+  sg docker -c "docker exec hermes-$t grep -q 'JamBot write-side empty-turn guard' /opt/hermes/hermes_state.py" 2>/dev/null || wg="MISSING:$t"
+  sg docker -c "docker exec hermes-$t grep -q 'JamBot replay sanitize v2' /opt/hermes/agent/turn_context.py" 2>/dev/null || s2="MISSING:$t"
+done
+check "write-side empty-turn guard live (jb2, all tenants)" "ok" "$wg"
+check "replay-sanitize v2 shape-v3 defense live (jb2, all tenants)" "ok" "$s2"
+
+# Provisioner image pin matches the fleet
+pin=$(grep -oE 'f"jambot/hermes:[^"]+"' /home/mike/MIKE-AI/scripts/jambot-provision-service.py | sed 's/^f"//;s/"$//' | head -1)
+check "provisioner image pin" "jambot/hermes:v0.18.2-jb2" "$pin"
 
 echo
 echo "=== summary: $PASS pass / $FAIL fail ==="
