@@ -104,6 +104,8 @@ Same host `https://api.sunoapi.org`, same BearerAuth. Full flow to mint a `voice
 
 **USE the cloned voice in generation:** set `personaId = <voiceId>` **and** `personaModel = "voice_persona"` (custom mode only) on generate/extend/upload-cover/upload-extend. (A `generate-persona` STYLE persona instead uses `personaModel:"style_persona"` — the default.)
 
+**⚠️ EXPIRY (verified in production 2026-07-18, NOT in the docs):** cloned `voiceId`s expire after ~3 days (Kyle/BHB: cloned 07-14, dead 07-17). Failure modes: task fails with `"The voice has expired. Please recreate the voice or switch to a new voice"`, or the generate call returns `{"code":553,"msg":"Voice persona generation failed, please regenerate voice account and retry."}`. `check-voice` (free) returns `isAvailable:false` — the clone taskId doubles as the voiceId for this check. No keep-alive exists; re-clone to get a NEW voiceId. STYLE personas (`generate-persona` from a generated track) have no documented expiry — mint one from a song sung in the cloned voice for a durable identity. Automated re-clone: `MIKE-AI/scripts/suno-voice-reclone-kyle.py`.
+
 ## Stem separation `type` (on `vocal-removal/generate`)
 - `separate_vocal` (default) → 2 tracks: `vocal_url` + `instrumental_url` (+`origin_url`).
 - `split_stem` → many at once: `vocal_url,backing_vocals_url,bass_url,brass_url,drums_url,fx_url,guitar_url,keyboard_url,percussion_url,strings_url,synth_url,woodwinds_url,origin_url`.

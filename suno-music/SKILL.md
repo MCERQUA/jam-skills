@@ -441,8 +441,16 @@ Returns a `job_id`; poll `?action=status&job_id=<id>`; track lands at `/generate
 - **For the direct API** (or if you need the raw id), your cloned `voiceId` is in your `MEMORY.md`. If it's not there, you don't have a cloned voice yet — don't invent an id.
 - Example — Kyle/BHB's cloned voice is in his profile + MEMORY.md; `[SUNO_GENERATE:...|voice]` sings in Kyle's voice. Proven 2026-07-14.
 
+### ⚠️ CLONED VOICES EXPIRE (~3 days) — verified 2026-07-18
+**Suno custom voices (`voiceId` from the Voice API) are NOT permanent.** Kyle/BHB's voice was cloned 2026-07-14, worked that day, and was dead by 2026-07-17: generation fails with `"The voice has expired. Please recreate the voice or switch to a new voice"` / `{"code":553,"msg":"Voice persona generation failed, please regenerate voice account and retry"}`. Neither sunoapi.org nor suno.com documents the window — observed lifetime is **days, not weeks**. There is NO keep-alive; the only fix is re-cloning (new `voiceId` each time).
+
+**What to do about it (both layers):**
+1. **Check before you sing:** `action=voice_check` `{task_id:<voiceId>}` is FREE and returns `{isAvailable:true/false}` (the clone taskId == the voiceId). If `false`, don't burn credits — re-clone first.
+2. **Automated re-clone (no human recording needed):** if the tenant's "real voice" is itself a TTS clone (Kyle = Resemble), the whole flow is scriptable — `scripts/suno-voice-reclone-kyle.py` on the host does: host sample → `voice_validate` → poll phrase → render phrase in the tenant's Resemble voice → `voice_generate` → poll `voiceId` → write `voice_persona_id` into the OVU profile. Re-run any time it expires; adapt per tenant.
+3. **Durable identity — mint a STYLE persona from a song sung in the cloned voice:** `action=generate_persona` `{task_id,audio_id,name,description,style}` on a track that was generated WITH the voice persona. Persona docs state no expiry (only "each audioId can generate a Persona once"), and this matches suno.com's own product direction (Personas/Custom Models built FROM songs). Use it with `persona_id=<personaId>` + `persona_model="style_persona"`. **Do this within 15 days of the song's generation** (file retention window). Kyle's durable persona: `aeb2f6a79651fafadafa0b8e1578301a` (from *Kyle the Consultant*, minted 2026-07-18) — fallback voice identity if the fresh clone is expired.
+
 ### Creating a NEW cloned voice
-The Suno Voice API (validate → record a phrase → upload → generate → `voiceId`) is in `reference/endpoint-catalog-full-api.md`. Save any new `voiceId` into the tenant's profile (`voice_persona_id`) AND `MEMORY.md` so both paths above work.
+The Suno Voice API (validate → record a phrase → upload → generate → `voiceId`) is in `reference/endpoint-catalog-full-api.md`. Save any new `voiceId` into the tenant's profile (`voice_persona_id`) AND `MEMORY.md` so both paths above work. **Remember it will expire in days** — after the first song generates in the new voice, immediately mint a style persona from that song (step 3 above) so the identity survives.
 
 ---
 
