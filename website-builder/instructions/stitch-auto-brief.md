@@ -53,6 +53,20 @@ archetype so no two are identical. Rotate among, e.g.:
 - testimonial spotlight · FAQ accordion · pricing/coverage matrix · big-CTA closer
 Each page: a different hero treatment + a different section rhythm. State the archetype in the prompt.
 
+### 3b. SECTION RHYTHM — NO MONOTONE PAGES (critical — Mike, 2026-07-17)
+The #1 recurring failure: pages where every section sits on the same background — one long
+dark sheet with dark containers ("dark hole") or one long white sheet ("bright document").
+Bake this into EVERY prompt, verbatim in spirit:
+> Adjacent sections must NEVER share the same background. Rotate at least 3 distinct
+> full-width band treatments down the page: base color · tinted/elevated band · inverted
+> contrast band (a dark band on a light site / a light band on a dark site — use it for
+> trust bar, testimonials, or CTA) · accent wash · full-bleed image band with overlay.
+> Every section boundary must be visible in a zoomed-out thumbnail. Cards must contrast
+> against their band — never dark-box-on-dark-band or white-box-on-white-band.
+Then make it concrete in the numbered section list (section 5 below): tag each section with
+its band, e.g. `[bg: base white]`, `[bg: charcoal contrast band, white text]`,
+`[bg: full-bleed photo + overlay]` — rotating so no two adjacent tags match.
+
 ### 4. SEO + conversion plan (per page — bake intent into the design)
 For each page state: the **target keyword + search intent** (from keywords.md), what the page
 must **convey** to rank + earn trust, and the **conversion path** (every page leads + ends with
@@ -64,10 +78,10 @@ From `page-recommendations.md`: the exact sections this page needs, in order, ea
 3-4 sections even with the Pro model. Enumerate every section explicitly:
 
 > Generate ALL [N] sections in one scrollable page:
-> 1. HERO: [headline] [subhead] [CTA] [trust indicators]
-> 2. [SECTION NAME]: [content description]
-> 3. [SECTION NAME]: [content description]
-> ... through [N]
+> 1. HERO: [headline] [subhead] [CTA] [trust indicators] [bg: full-bleed photo + overlay]
+> 2. [SECTION NAME]: [content description] [bg: contrast band]
+> 3. [SECTION NAME]: [content description] [bg: base]
+> ... through [N] — every section carries a [bg: …] tag, rotated per §3b (no two adjacent alike)
 
 Typical full homepage has 8-10 sections: Hero, Services/Features, Comparison or Stats,
 Proof/Gallery, How It Works, Testimonials, FAQ, CTA close, Footer.

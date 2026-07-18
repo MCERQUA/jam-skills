@@ -48,6 +48,8 @@ Phase 1.5 BRAND-EXTRACT may still write `.brand/colors.json` for reference + fav
 
 **RULE 13 — Effects library for premium/modern briefs.** When a brief calls for a sleek, modern, premium, "SaaS", or AI-product aesthetic (dark UI, glassmorphism, tasteful glow), study `references/EFFECTS-LIBRARY.md` + `references/glow-glass-kit.html` (this skill dir) and **lift the specific commented technique** you need — gradient `mask-composite` glow borders, cursor-spotlight edges, colored-glass pills/tooltips, ambient bloom. All are accent-driven by one RGB-triplet custom property, so they re-theme to the brand in one line. **Caveat:** these are for premium-aesthetic briefs ONLY — never on a home-service conversion site (RULE 12), where heavy `backdrop-filter` blur/glow hurts mobile PageSpeed and buries the phone CTA. Match the tool to the brief.
 
+**RULE 14 — SECTION RHYTHM: NO MONOTONE PAGES (Mike, 2026-07-17).** Applies to EVERY tier and every business type. A page is a stack of full-width bands, and **adjacent bands must never share the same background**. Every page rotates ≥3 visibly distinct background treatments — base color · tinted/elevated band · inverted contrast band (dark band on a light site / light band on a dark site — trust bar, testimonials, or CTA are the natural spots) · accent wash · full-bleed image band with overlay. Every section boundary must be obvious in a zoomed-out thumbnail. A page that reads as one continuous white sheet ("bright document") or one continuous dark sheet with dark containers ("dark hole") is a FAILED design even when every section is present, and the Phase 7 visual gate treats it as a fail. Cards must contrast against their band — never dark-box-on-dark-band or white-box-on-white-band. On 1.A/1.A-CREATOR builds the supplied Stitch design stays locked as always — but when GENERATING (1.B/1.C, extra pages, style-continuation prompts), the band rhythm goes into every Stitch prompt per `instructions/stitch-auto-brief.md` §3b.
+
 ---
 
 ## ⚠️ CONTAINER RULE — NON-NEGOTIABLE
@@ -171,7 +173,7 @@ These fallback rules exist for 1.C builds because a dark SaaS aesthetic on a loc
 
 **Background:** WHITE (`#ffffff`) or very light gray (`#f9fafb`). **NEVER dark.** Do not use dark backgrounds, dark cards, or dark hero sections for service businesses. Customers expect professional and trustworthy, not "startup cool."
 
-**Section alternation:** Alternate `bg-white` → `bg-gray-50` → `bg-white` → `bg-gray-50` (or equivalent via CSS vars). Never stack two dark sections.
+**Section alternation (RULE 14 applies here too — white→gray-50 alone is NOT enough):** the page must never read as one bright white document. Rotate real band changes: `bg-white` → warm tint (`bg-gray-50`/soft brand wash) → **deep navy/charcoal contrast band with white text** (use for the trust bar, one testimonial/stats band, and the closing CTA band — this is standard trustworthy-contractor design, not "startup cool") → full-bleed photo band with overlay. No two adjacent sections on the same background; never stack two dark bands; the page stays light-dominant overall (dark bands are punctuation, ~2-3 per page, not the base).
 
 **Phone number placement — REQUIRED in ALL of these locations:**
 - Navbar (desktop header — before the CTA button)

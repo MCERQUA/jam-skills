@@ -11,6 +11,10 @@ than asking a vision model "does this look ok":
   - broken/missing images: <img> that loaded but naturalWidth==0
   - clipped containers: elements whose content overflows a fixed/hidden box
   - empty sections: <section>/<main> blocks with no real content
+  - section rhythm / monotone: effective background of every full-width band —
+    a page whose sections all sit on one background ("dark hole" / "bright white
+    document") FAILS; too few distinct bands or same-bg adjacent sections WARNS
+    (RULE 14, Mike 2026-07-17: adjacent sections never share a background)
 Saves a full-page screenshot per page×viewport for the human eye too.
 
 USAGE
@@ -67,6 +71,33 @@ JS = r"""
   // empty sections
   for(const s of document.querySelectorAll('section,main>div')){
     if(s.textContent.trim().length<15 && !s.querySelector('img,svg,canvas,video,iframe')) out.emptySections++; }
+  // section band rhythm (monotone-page check, RULE 14)
+  try{
+    let cands=[...document.querySelectorAll('section,header,footer')]
+      .filter(el=>el.offsetHeight>=250 && el.offsetWidth>=window.innerWidth*0.8);
+    cands=cands.filter(el=>!cands.some(o=>o!==el && el.contains(o)));  // keep innermost bands
+    const bandOf=el=>{
+      let c=null, img=false;
+      const cand=[el,...[...el.children].filter(ch=>ch.offsetHeight>el.offsetHeight*0.7)];
+      for(const x of cand){ const cs=getComputedStyle(x);
+        if(cs.backgroundImage!=='none') img=true;
+        if(!c){ const p=parseRGB(cs.backgroundColor); if(p && p.a>0.05) c=p; } }
+      const bigImg=[...el.querySelectorAll('img')].some(i=>
+        i.offsetHeight>el.offsetHeight*0.6 && i.offsetWidth>el.offsetWidth*0.6);
+      if(img||bigImg) return {img:true};
+      if(!c){ let n=el.parentElement; while(n){ const p=parseRGB(getComputedStyle(n).backgroundColor);
+        if(p && p.a>0.05){ c=p; break; } n=n.parentElement; } }
+      if(!c) c={r:255,g:255,b:255};
+      return {img:false, r:c.r, g:c.g, b:c.b};
+    };
+    // visually-same threshold: <40 RGB distance won't read as a band change in a thumbnail
+    const dist=(a,b)=> (a.img||b.img) ? ((a.img&&b.img)?0:999) : Math.hypot(a.r-b.r,a.g-b.g,a.b-b.b);
+    const bands=cands.map(bandOf);
+    let adjacentSame=0;
+    for(let i=1;i<bands.length;i++) if(dist(bands[i-1],bands[i])<40) adjacentSame++;
+    const reps=[]; for(const b of bands){ if(!reps.some(r=>dist(r,b)<40)) reps.push(b); }
+    out.rhythm={sections:bands.length, distinctBands:reps.length, adjacentSame};
+  }catch(e){ out.rhythm=null; }
   return out;
 }
 """
@@ -128,6 +159,18 @@ def review(url, routes, viewports, out_dir):
                         findings.append({"severity": "warn", "check": "clipped", "where": tag, "detail": f"content clipped in {cl}"})
                     if r["emptySections"]:
                         findings.append({"severity": "warn", "check": "empty-section", "where": tag, "detail": f'{r["emptySections"]} empty section(s)'})
+                    # section rhythm — desktop viewport only (mobile stacking distorts band detection)
+                    rh = r.get("rhythm") or {}
+                    if vw >= 1000 and rh.get("sections", 0) >= 4:
+                        if rh["distinctBands"] <= 1:
+                            findings.append({"severity": "fail", "check": "monotone", "where": tag,
+                                             "detail": f'MONOTONE PAGE: all {rh["sections"]} sections sit on one background — '
+                                                       f'no band rhythm (RULE 14: rotate >=3 treatments, adjacent sections never share a bg)'})
+                        elif rh["distinctBands"] < 3 or rh["adjacentSame"] >= 2:
+                            findings.append({"severity": "warn", "check": "section-rhythm", "where": tag,
+                                             "detail": f'weak band rhythm: {rh["distinctBands"]} distinct background(s) across '
+                                                       f'{rh["sections"]} sections, {rh["adjacentSame"]} adjacent same-bg pair(s) '
+                                                       f'(want >=3 treatments, 0 adjacent repeats)'})
                 except Exception as e:
                     findings.append({"severity": "warn", "check": "render", "where": tag, "detail": f"render error: {str(e)[:100]}"})
                 finally:

@@ -150,6 +150,17 @@ Based on the visual audit, the brand intake, and the industry, make DELIBERATE s
 - **Overall feel:** [airy/spacious / balanced / dense/compact]
 - **Section padding:** [generous py-24+ / standard py-16 / tight py-8]
 - **Why:** [e.g., "Spacious — luxury feel, lets content breathe, differentiates from cluttered competitor sites"]
+
+## Section Band Rhythm (REQUIRED — no monotone pages)
+The page is a stack of full-width bands; adjacent sections NEVER share the same background.
+Define the ≥3 band treatments this site rotates, then assign one to every section:
+| Band | Background | Text | Used for |
+|------|-----------|------|----------|
+| Base | [e.g. white #ffffff / near-black #0a0a0b] | [ink / light] | [default sections] |
+| Tint | [e.g. warm cream wash / elevated charcoal #16181d] | [ink / light] | [alternating breather sections] |
+| Contrast (inverted) | [e.g. deep navy band on a light site / warm off-white band on a dark site] | [white / ink] | [trust bar, testimonials, CTA — at least 1 per page] |
+| Image | [full-bleed photo + gradient overlay] | [white] | [hero, mid-page proof band] |
+**Failure test:** in a zoomed-out thumbnail, if the page reads as one continuous sheet (all-white "bright document" or all-dark "dark hole"), the rhythm plan failed — reassign bands.
 ```
 
 ---
@@ -285,6 +296,8 @@ Motion is what separates a "regular" site from one that feels alive. But motion 
 **Output:** `ai/design/page-wireframes.md`
 
 For each page, document the exact section-by-section layout. This is the blueprint you follow during build.
+
+**Every section header in the wireframe MUST name its background band** (from the Section Band Rhythm table in Step 2) — e.g. `### Section 4: Services [py-24, band: tint]`. Scan the finished wireframe top-to-bottom: if two adjacent sections carry the same band, reassign one before building.
 
 ### Document:
 

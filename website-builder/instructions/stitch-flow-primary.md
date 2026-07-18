@@ -49,7 +49,10 @@ sure it has all the stuff, if not give the page back… in a loop until it has e
 
 5. **OUTPUT REVIEW LOOP** (Mike's "review the OUTPUT too"). After generation, verify the rendered
    HTML contains EVERY section the brief planned (programmatic section presence + screenshot
-   review for contrast/light-on-light/dark-on-dark/unstyled-CTA). **If a section is missing, loop
+   review for contrast/light-on-light/dark-on-dark/unstyled-CTA **+ the MONOTONE check**: in the
+   zoomed-out screenshot, sections must visibly separate via ≥3 distinct background treatments
+   and no two adjacent sections on the same background — a page reading as one continuous dark
+   or white sheet FAILS even with all sections present). **If a section is missing, loop
    back** — re-prompt emphasizing the missing section (or use `edit_screens` for a surgical add).
    NOTE the Stitch "content budget" seesaw: forcing one section back can compress another, so
    check ALL sections each pass; converges in 2–3 iterations. Prefer `edit_screens` over full
@@ -74,6 +77,13 @@ purely on prompt quality.
 ## Contrast / component rules (bake into every prompt — Mike's QC point)
 On dark bg use light text; on light surface use dark text; NEVER light-on-light or dark-on-dark.
 EVERY CTA is a FILLED accent button with dark text — never plain text. WCAG AA legible.
+
+## Section rhythm rule (bake into every prompt — Mike's 2026-07-17 QC point)
+Adjacent sections must NEVER share the same background. Rotate ≥3 distinct full-width band
+treatments per page (base · tinted band · inverted contrast band · accent wash · full-bleed
+image band w/ overlay), with at least one inverted band (dark band on a light site / light band
+on a dark site). A page that reads as one continuous dark or white sheet is a FAILED design —
+"alive and eye-catching, each section separate from the last." Cards contrast against their band.
 
 ## brief-review-rubric (the reviewer's gate)
 Pass ONLY if all present + substantive: meta title ≤60 kw-led · meta desc ≤155 kw+CTA · one

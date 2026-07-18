@@ -169,6 +169,13 @@ npm install framer-motion
 </section>
 ```
 
+**⚠️ SECTION RHYTHM — NO MONOTONE PAGES (as essential as the layering itself):**
+Multi-layering every section over the SAME dark base produces a monotone "dark hole" — one continuous dark sheet with dark containers. The layers make a section rich; the BAND CHANGES make the page alive. Rules:
+- **Adjacent sections must NEVER share the same background.** Rotate ≥3 visibly distinct band treatments down the page: base color · tinted/elevated band · inverted contrast band · accent wash · full-bleed image band with overlay.
+- **At least one INVERTED band per page** — a warm off-white/light band on a dark site (testimonials or process are natural spots), a deep navy/charcoal band on a light site (trust bar, CTA).
+- **Thumbnail test:** zoom out — every section boundary must be obvious. One continuous dark sheet or bright white sheet = failed design, no matter how many orbs and gradients are in it.
+- **Cards contrast against their band** — never a dark glass card on a dark band or a white card on a white band.
+
 ---
 
 ### 4. Professional Color System
@@ -738,6 +745,7 @@ export function ServicesSection() {
 Before calling a design "done", verify:
 
 - [ ] **Framer Motion installed** and used for animations
+- [ ] **Section band rhythm** — no two adjacent sections share a background; ≥3 distinct band treatments; at least one inverted contrast band; page passes the zoomed-out thumbnail test (not one continuous dark or white sheet)
 - [ ] **Multi-layered backgrounds** (image + gradient + orbs + grid)
 - [ ] **Animated gradient orbs** in background (pulsing)
 - [ ] **Glassmorphism** (`backdrop-blur-xl`) on cards/modals
@@ -868,6 +876,7 @@ Use cases: variable-height list virtualization, shrink-to-fit chat bubbles (`wal
 
 ```
 Premium Website =
+  Section Band Rhythm (no two adjacent sections same bg) +
   Framer Motion Animations +
   Multi-Layered Backgrounds +
   Glassmorphism +

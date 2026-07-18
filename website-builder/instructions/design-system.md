@@ -11,11 +11,17 @@ Use their colors as primary. Build supporting palette:
 - **Primary:** Client's main brand color
 - **Secondary:** Complementary or analogous to primary
 - **Accent:** High-contrast pop color for CTAs and highlights
-- **Background:** Dark (`#0a0a0a` to `#0d1117`) or light (`#fafafa` to `#ffffff`)
-- **Surface:** Slightly lighter than background for cards (`#111827`, `#1a1d2e`)
+- **Background:** Dark (`#0a0a0a` to `#0d1117`) or light (`#fafafa` to `#ffffff`) — per-industry decision (`WEBSITE-BUILD.md` business-type rules), never a blanket default
+- **Surface:** Clearly stepped from its band background for cards — a card must be visibly distinct from the band it sits on, never a near-identical dark-on-dark or white-on-white
 - **Text:** High contrast (`#e2e8f0` on dark, `#0f172a` on light)
 - **Muted:** De-emphasized text (`#94a3b8`)
 - **Border:** Subtle separation (`#1e293b` on dark, `#e2e8f0` on light)
+
+**PLUS the band set (REQUIRED — feeds the Section Band Rhythm plan from `design-plan.md`):**
+- **Band-base:** the default section background (= Background above)
+- **Band-tint:** a visibly tinted alternate (warm cream / soft brand wash on light sites; elevated charcoal `#16181d`-range on dark sites) — must be distinguishable from base in a thumbnail, not a 2% gray shift
+- **Band-contrast:** the INVERTED band — deep navy/charcoal with white text on a light site, warm off-white with ink text on a dark site. Every page uses it at least once (trust bar / testimonials / CTA)
+- **Band-accent:** a deep wash of the brand accent for one statement band (optional but recommended)
 
 ### If no brand colors:
 Query the design system database:
@@ -102,10 +108,17 @@ Set in `src/app/globals.css`. Use the `design-tokens.css` template and fill in:
 
   /* Radius */
   --radius: 0.75rem;
+
+  /* Section band rhythm (see design-plan.md — adjacent sections never share a band) */
+  --band-base: <same as --background>;
+  --band-tint: <visibly tinted alternate>;
+  --band-contrast: <inverted band bg>;
+  --band-contrast-foreground: <text on the inverted band>;
+  --band-accent: <deep brand-accent wash>;
 }
 ```
 
-These variables are consumed by shadcn/ui components automatically.
+These variables are consumed by shadcn/ui components automatically. Section components take their background from a band variable per the wireframe's band assignment — never hardcode one background across all sections.
 
 ---
 

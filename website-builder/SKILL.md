@@ -352,9 +352,17 @@ Also verify:
 
 ## Style Rules
 
+**DESIGN SOURCE PRECEDENCE (check FIRST, before any styling decision):** If Stitch is available (the `stitch` skill / MCP responds), the styled template comes from Stitch — either supplied screens, the chosen 4-style Creator variant, or a generated home screen — and that template is the locked style contract for every other page on the site (`WEBSITE-BUILD.md` RULE 0 tiers; same-project `generate_screen_from_text` style-continuation for additional pages). Hand-styling from scratch is the FALLBACK for when Stitch is genuinely unavailable after retries — never the first move.
+
+**SECTION RHYTHM — NO MONOTONE PAGES (applies to every page, both paths):**
+- Adjacent sections must NEVER share the same background — the page is a stack of visibly distinct full-width bands
+- Rotate ≥3 background treatments per page: base color · tinted/elevated band · inverted contrast band (dark band on a light site / light band on a dark site) · accent wash · full-bleed image band with overlay
+- At least one inverted contrast band per page (trust bar, testimonials, or CTA are the natural spots)
+- Every section boundary must be obvious in a zoomed-out thumbnail; one continuous white sheet ("bright document") or dark sheet with dark containers ("dark hole") = FAILED design
+- Cards must contrast against their band — never dark-box-on-dark-band or white-box-on-white-band
+
 **REQUIRED:**
-- Dark mode as default (light mode optional)
-- Professional dark palette: backgrounds `#0a0a0a` / `#0d1117`, text `#e2e8f0`
+- Light vs dark mode is an INDUSTRY decision, not a default: local/home-service and professional-service sites are light-dominant (dark bands as punctuation); SaaS/tech/portfolio may be dark-dominant (with at least one light band for breathing room). See `WEBSITE-BUILD.md` "DESIGN RULES BY BUSINESS TYPE".
 - Brand accent colors via CSS variables (not hardcoded)
 - All interactive elements: hover state + `cursor-pointer`
 - Animations respect `prefers-reduced-motion`
