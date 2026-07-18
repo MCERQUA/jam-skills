@@ -865,8 +865,12 @@ def main():
                 return p.get("url", "") or (_sp.get(name) or {}).get("url", "")
             return (_sp.get(name) or {}).get("url", "")
 
-        # Quick homepage scrape for onpage signals not covered by Lighthouse/instant_pages.
-        # These feed course items: sitemap, og:image, tel-link, nap-on-page.
+        # On-page signal scrape. OLD design checked ONLY the homepage and only confirmed sitemap
+        # PRESENCE — so page-specific signals (contact form, FAQ schema, NAP, tel-link) that live on a
+        # discovered page like /contact-us/ were missed, and no slug was ever discovered (hardcoding
+        # /contact would just be a guess). FIX (2026-07-18): PARSE the sitemap the tool already proves
+        # exists, then OR the page-specific signals across the homepage + a bounded, contact-first set
+        # of REAL discovered pages. No slug is assumed — every URL comes from the site's own sitemap.
         _onpage = {"sitemap_present": False, "og_image_present": False,
                    "tel_link_present": False, "nap_on_page_match": False,
                    "form_present": False, "faq_schema_present": False}
@@ -874,27 +878,78 @@ def main():
             try:
                 import urllib.request as _ur, urllib.error as _ue, re as _re
                 _headers = {"User-Agent": "Mozilla/5.0 (compatible; JamBot-BrandReport/1.0)"}
-                _home_req = _ur.Request(f"https://{domain}", headers=_headers)
-                _home_html = _ur.urlopen(_home_req, timeout=10).read().decode("utf-8", "replace")
-                _lh = _home_html.lower()
-                _onpage["og_image_present"]  = 'property="og:image"' in _lh or "property='og:image'" in _lh
-                _onpage["tel_link_present"]  = 'href="tel:' in _lh or "href='tel:" in _lh
-                _onpage["sitemap_present"]   = ('rel="sitemap"' in _lh or "rel='sitemap'" in _lh)
-                # Check /sitemap.xml if not in HTML head
-                if not _onpage["sitemap_present"]:
+
+                def _fetch(_url, _to=8):
+                    return _ur.urlopen(_ur.Request(_url, headers=_headers), timeout=_to).read().decode("utf-8", "replace")
+
+                # A real lead form OR a known embedded form provider. The old `<form...action=` regex
+                # false-negatived Netlify/React/Next.js forms (they submit via JS + data-netlify/
+                # name="form-name", no action= on the tag) — most modern sites, including the ones we build.
+                def _has_form_on(_html):
+                    _l = _html.lower()
+                    _real = bool(_re.search(r'<form\b', _html, _re.I)) and bool(_re.search(
+                        r'<textarea\b|data-netlify|name=["\']?(email|phone|message|form-name)\b'
+                        r'|type=["\']?(email|tel)\b|<input[^>]+name=["\']?(name|email|phone|fname|lname|first|last)\b',
+                        _html, _re.I))
+                    _embed = bool(_re.search(
+                        r'jotform|typeform|hubspot|wpforms|gravityforms|contact-form-7|wpcf7|formstack|formidable'
+                        r'|tally\.so|123formbuilder|forms\.gle|google\.com/forms|calendly|wufoo|zoho', _l))
+                    return _real or _embed
+
+                _nap_phone = data.get("gmb_phone", "") or data.get("phone", "") or ""
+                _nap_digits = _re.sub(r"\D", "", _nap_phone)
+
+                def _apply_page(_html):
+                    """OR page-specific signals in from any scanned page (never downgrade a True)."""
+                    _l = _html.lower()
+                    if _has_form_on(_html):                       _onpage["form_present"] = True
+                    if '"faqpage"' in _l:                         _onpage["faq_schema_present"] = True
+                    if 'href="tel:' in _l or "href='tel:" in _l:  _onpage["tel_link_present"] = True
+                    if not _onpage["og_image_present"]:
+                        _onpage["og_image_present"] = 'property="og:image"' in _l or "property='og:image'" in _l
+                    if _nap_digits and _nap_digits[-7:] in _re.sub(r"\D", "", _html):
+                        _onpage["nap_on_page_match"] = True
+
+                # Homepage first.
+                _home_html = _fetch(f"https://{domain}", 10)
+                _apply_page(_home_html)
+
+                # Sitemap: PARSE it (not just presence). Handle a sitemap-index (nested .xml <loc>s).
+                _pages, _sm_xml = [], ""
+                try:
+                    _sm_xml = _fetch(f"https://{domain}/sitemap.xml", 6)
+                    _onpage["sitemap_present"] = True
+                except Exception:
+                    _onpage["sitemap_present"] = ('rel="sitemap"' in _home_html.lower())
+                if _sm_xml:
+                    _locs = _re.findall(r'<loc>\s*([^<\s]+)\s*</loc>', _sm_xml, _re.I)
+                    for _cs in [u for u in _locs if u.lower().rstrip('/').endswith('.xml')][:3]:
+                        try:
+                            _locs += _re.findall(r'<loc>\s*([^<\s]+)\s*</loc>', _fetch(_cs, 6), _re.I)
+                        except Exception:
+                            pass
+                    _seen = set()
+                    for _u in _locs:
+                        _ul = _u.lower()
+                        if domain not in _ul or _ul.rstrip('/').endswith('.xml'): continue
+                        if _re.search(r'\.(jpe?g|png|webp|gif|svg|pdf|css|js|ico)(\?|$)', _ul): continue
+                        if _u in _seen: continue
+                        _seen.add(_u); _pages.append(_u)
+
+                # Scan discovered pages ONLY for still-missing page-specific signals, contact-ish first,
+                # capped so a big sitemap can't blow up runtime (plain GETs, no API cost).
+                def _rank(_u):
+                    return 0 if _re.search(r'contact|quote|estimate|schedule|get-?a-?quote|book|appointment|faq|about', _u, _re.I) else 1
+                _home_norm = f"https://{domain}".rstrip('/')
+                for _u in sorted(_pages, key=_rank)[:10]:
+                    if all(_onpage[k] for k in ("form_present", "faq_schema_present", "tel_link_present", "nap_on_page_match")):
+                        break
+                    if _u.rstrip('/') == _home_norm: continue
                     try:
-                        _sm = _ur.urlopen(_ur.Request(f"https://{domain}/sitemap.xml", headers=_headers), timeout=5)
-                        _onpage["sitemap_present"] = _sm.status == 200
+                        _apply_page(_fetch(_u, 6))
                     except Exception:
                         pass
-                _onpage["form_present"]       = bool(_re.search(r'<form[^>]+action=', _home_html, _re.I))
-                _onpage["faq_schema_present"] = '"faqpage"' in _lh
-                # NAP on-page: phone digits found in homepage body (strip non-digits for comparison)
-                _nap_phone = data.get("gmb_phone", "") or data.get("phone", "") or ""
-                if _nap_phone:
-                    _digits = _re.sub(r"\D", "", _nap_phone)
-                    _onpage["nap_on_page_match"] = bool(_digits) and _digits[-7:] in _re.sub(r"\D", "", _home_html)
-                print(f"    onpage quick-check: {_onpage}", file=sys.stderr)
+                print(f"    onpage quick-check: {_onpage}  (sitemap pages discovered: {len(_pages)})", file=sys.stderr)
             except Exception as _op_e:
                 print(f"    onpage quick-check skipped ({_op_e})", file=sys.stderr)
 
