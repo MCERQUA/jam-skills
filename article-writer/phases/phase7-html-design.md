@@ -64,6 +64,13 @@ found 3 of the 6 had live bugs the score never caught. Avoid these when writing 
    segment) partway through. Downstream integration does a literal find-replace on the documented
    convention; a second undocumented one ships as a silently-broken image path that only a rendered
    screenshot (not a source read) reveals.
+4. **NEVER emit an `@media (prefers-color-scheme: dark)` block.** The article renders inside the
+   site's always-light shell — a per-article dark override desynchronizes from the page around it
+   and ships dark-purple-on-dark headings and grey-on-light cards to every dark-mode phone (DSF
+   incident 2026-07-19, 5 articles affected). One light theme, high contrast, period. Also keep
+   every `display:grid` list/column at `grid-template-columns: minmax(0,1fr)` (or wider minmax
+   forms) and give the article root `overflow-wrap: break-word; overflow-x: clip` — grid blowout
+   and stray wide elements are the standing mobile-overflow classes.
 
 **None of these are caught by reading the HTML source or by a content-completeness score** — they
 only show up when the page is actually rendered. See Phase 8's gate for the mandatory
@@ -259,11 +266,13 @@ generously:
 
 ### 1. Generated imagery + infographics (Phase 6, embedded here)
 Embed every image from `article-design/images/` via `.aw-figure` (SEO alt + `loading="lazy"`).
-**Gemini image generation is strong now** — lean on it for **infographics, diagrams, cutaways,
-comparison visuals, conceptual/explainer graphics, and hero art** (see the `gemini-image` skill;
-`gemini-2.5-flash-image` / `gemini-3-pro-image-preview`). Use real photos from the site gallery when
-you have a genuine on-location shot, but you are **not** restricted from AI imagery — generate freely.
-If `images/` is empty, return to Phase 6 and generate first.
+Phase 6 produces these via `asset-briefs.json` → the **ChatGPT lane** (mac-claude browser delegate —
+excellent infographics, diagrams, and programmatically-plotted charts) with **FLUX-via-HF-router
+fallback**. Use real photos from the site gallery when you have a genuine on-location shot, but you
+are **not** restricted from AI imagery — generate freely.
+If `images/` is empty, return to Phase 6 and generate first. Alt/placement come from the brief —
+keep them; cross-check every `<img src>` filename against what actually landed in `images/` (the
+ChatGPT lane can deliver a subset — never reference an undelivered file).
 
 ### 2. Native inline-SVG data charts (built HERE, from the article's REAL numbers)
 For **quantitative** content — costs, percentages, ranges, trends, breakdowns — render an actual

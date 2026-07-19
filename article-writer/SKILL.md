@@ -2,7 +2,7 @@
 name: article-writer
 description: "Autonomous research-driven article pipeline — topic + keyword in, publication-ready 3500-5000 word article out (markdown + designed HTML + JSON-LD schema), backed by real research (dataforseo, serper-search, social-research) with quality gates and a compounding per-client knowledge brain so research is never re-paid. TRIGGER: 'write an article / blog post', 'research and write a post about X', 'add a blog post to <site>'. DO NOT TRIGGER: social posts (social-media-designer), whole sites (website-builder), content calendars/strategy."
 metadata:
-  version: 1.4.0
+  version: 1.5.1
   tags:
     - content
     - seo

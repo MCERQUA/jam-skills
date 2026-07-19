@@ -10,12 +10,23 @@ python3 /mnt/shared-skills/quality-review/check.py --dir <work_dir>/<slug> \
   --routes "/article-final.html" \
   --require "Frequently Asked Questions,Conclusion" --out /tmp/qr-<slug>-final
 
-# Visual: contrast (no light-on-light), mobile overflow, broken images — at 390 + 1440
-python3 /mnt/shared-skills/quality-review/visual-check.py --url <served-html-url> \
-  --viewports 390,1440 --out /tmp/qr-<slug>-visual
+# Visual gate — LIVES IN THIS SKILL (scripts/verify/visual-check.py), never skip it because
+# an external quality-review path is missing. Renders 390px in DARK scheme + 1280px light,
+# hard-fails on horizontal overflow / broken images / prefers-color-scheme:dark blocks,
+# and writes JPEG strips of the whole page:
+python3 <this-skill>/scripts/verify/visual-check.py \
+  --serve-dir <built site root or article dir> --path /blog/<slug>/ --out /tmp/qr-<slug>-visual
 ```
-(If the HTML isn't reachable over HTTP, point `check.py` at the file/dir and run the visual check
-against the served file.)
+(If `check.py` is missing on the host, self-apply its checks; the visual gate has NO such
+fallback — it must actually run.)
+
+**THEN LOOK AT THE STRIPS.** Open several `strip-*.jpg` with the Read tool (they're sized for
+it) — the mobile-dark set especially. You are looking for what scripts can't score: light-grey
+text on white, brand-purple headings on dark, muddy/dark overall cast, cramped or overlapping
+components, clipped chart labels. An article is NOT publication-ready until a rendered
+screenshot has been seen by the reviewing agent. (DSF 2026-07-19: three articles shipped with
+half-baked dark-mode overrides — dark-on-dark H2s, grey-on-cream callouts on every dark-mode
+phone — because this step was skipped when the old gate path didn't exist.)
 
 ## Agent review (content parity + standards)
 - Content parity: every markdown section present in HTML and vice-versa (the Phase-7 design
