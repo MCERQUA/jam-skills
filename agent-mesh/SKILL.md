@@ -17,6 +17,7 @@ protocol file is the source of truth. On first use each session, also run
 
 ## When to use
 
+- **Send a task to host or mac-host → `mesh-task host "<what you want done>"`** — the one-liner wrapper for dispatching work. Auto-fills your identity, kind, and reply-expected so you don't fumble `mesh-send` flags. Recipients: `host`, `mac-host`, `host-clone`, `sms-host`, or any `<name>@mesh`. Examples: `mesh-task host "rebuild devilinsurance.com around the mascot"` · `mesh-task mac-host "run the wilson radar pull"`. Prefer this over raw `mesh-send` for tasks.
 - Starting a session and need to coordinate with peer agents → run `/mesh-on`
 - Sending a file to another agent → `mesh-send --to <peer>@mesh --kind <kind> --subject <topic>`
 - Checking your inbox → `mesh-recv`

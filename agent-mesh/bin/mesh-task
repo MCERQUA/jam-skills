@@ -1,0 +1,85 @@
+#!/bin/bash
+# mesh-task — the ONE-LINER a voice/tenant agent uses to send a task to host or mac-host.
+# No flags to remember, no stdin gotcha, no --kind enum. Just:
+#
+#     mesh-task host "rebuild devilinsurance.com around the mascot logo"
+#     mesh-task mac-host "pull the latest radar data for wilson"
+#     echo "longer multi-line body..." | mesh-task host "short subject here"
+#
+# It auto-fills: your identity (AGENT_URI, already set by openclaw), kind=task,
+# a subject (from the message or a given one), and end-of-turn (recipient — reply expected).
+# Recipient shorthands: host, mac-host (aka mac), host-clone, sms-host — or any full x@mesh.
+#
+# Prints a clear confirmation + where it landed. This is a thin, reliable wrapper over mesh-send.
+set -uo pipefail
+
+usage() {
+  cat <<'U'
+mesh-task — send a task to another agent (host, mac-host, ...). Usage:
+
+  mesh-task <who> "<message>"              send a task, message inline
+  mesh-task <who> "<subject>" "<message>"  give an explicit subject + message
+  echo "body" | mesh-task <who> "<subject>"  pipe a longer body on stdin
+
+  <who>:  host | mac-host | mac | host-clone | sms-host | <anything>@mesh
+
+Examples:
+  mesh-task host "rebuild devilinsurance.com around the Devil mascot logo"
+  mesh-task mac-host "run the wilson radar pull now"
+U
+}
+[ $# -eq 0 ] && { usage; exit 0; }
+case "$1" in -h|--help|help) usage; exit 0;; esac
+
+# --- resolve recipient (shorthand -> full @mesh) ---
+who="$1"; shift
+case "$who" in
+  *@mesh) to="$who" ;;
+  host)        to="host@mesh" ;;
+  mac-host|mac|machost) to="mac-host@mesh" ;;
+  host-clone|clone)     to="host-clone@mesh" ;;
+  sms-host|sms)         to="sms-host@mesh" ;;
+  *) to="${who}@mesh" ;;   # any other bare name -> name@mesh
+esac
+
+# --- resolve subject + body (TTY-independent: agents run non-interactively) ---
+# forms: (A) mesh-task <who> "<message>"            -> body=arg, subject derived
+#        (B) mesh-task <who> "<subject>" "<message>" -> explicit subject + message
+#        (C) echo "body" | mesh-task <who>            -> body from stdin (NO message arg)
+# Rule: if a message ARG is present, it wins (stdin ignored). Only read stdin when no arg.
+subject=""; body=""
+if [ $# -ge 2 ]; then
+  subject="$1"; body="$2"
+elif [ $# -eq 1 ]; then
+  body="$1"; subject="$(printf '%s' "$1" | cut -c1-70)"
+else
+  body="$(cat 2>/dev/null || true)"; subject="$(printf '%s' "$body" | head -1 | cut -c1-70)"
+fi
+[ -n "$body" ] || { echo "mesh-task: need a message. Try: mesh-task $who \"what you want done\"" >&2; exit 2; }
+[ -n "$subject" ] || subject="task from ${AGENT_URI:-unknown}"
+
+# --- identity check (openclaw sets this; be explicit if missing) ---
+if [ -z "${AGENT_URI:-}" ]; then
+  echo "mesh-task: AGENT_URI is not set — I don't know who you are, so I can't send. (openclaw normally sets this.)" >&2
+  exit 3
+fi
+
+# --- send via mesh-send (body on stdin, kind=task, reply expected) ---
+BIN="$(dirname "$0")/mesh-send"
+[ -x "$BIN" ] || BIN="mesh-send"
+# NOTE: the shared mesh-send enum has no "task" kind — use "message" (reliable everywhere);
+# the "reply expected" end-of-turn is what marks it as an actionable ask.
+out="$(printf '%s' "$body" | "$BIN" --to "$to" --kind message --subject "$subject" \
+        --end-of-turn "$to — reply expected" 2>&1)"
+rc=$?
+if [ $rc -eq 0 ]; then
+  path="$(printf '%s' "$out" | grep -oE '/mnt/agent-mesh/[^ ]+\.md' | head -1)"
+  echo "✓ task sent to ${to} (from ${AGENT_URI})"
+  echo "  subject: ${subject}"
+  [ -n "$path" ] && echo "  landed: ${path}"
+  echo "  they'll see it in their inbox and reply to you."
+else
+  echo "✗ mesh-task failed to send to ${to}:" >&2
+  printf '%s\n' "$out" >&2
+  exit $rc
+fi
