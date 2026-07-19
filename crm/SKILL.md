@@ -169,13 +169,14 @@ Notes are standalone objects. Link them to people, companies, or opportunities v
 exec("curl -sf 'https://crm.jam-bot.com/rest/notes?limit=20' \
   -H 'Authorization: Bearer $TWENTY_CRM_API_KEY'")
 
-# Create a note
+# Create a note — NOTE: current Twenty rejects a flat "body" field ("Object note doesn't have
+# any body field", verified 2026-07-19). Use bodyV2.markdown:
 exec("curl -sf -X POST 'https://crm.jam-bot.com/rest/notes' \
   -H 'Authorization: Bearer $TWENTY_CRM_API_KEY' \
   -H 'Content-Type: application/json' \
   -d '{
     \"title\": \"Phone call - initial inquiry\",
-    \"body\": \"Called about roof damage from recent storm. Wants inspection this week. Has insurance claim open.\"
+    \"bodyV2\": {\"markdown\": \"Called about roof damage from recent storm. Wants inspection this week. Has insurance claim open.\"}
   }'")
 
 # Link a note to a person
