@@ -126,6 +126,40 @@ This session's model-routing work (residential research → host synth → resid
 
 Phase 5.5 grounder rollout was pattern D (josh first, then bun, then residential).
 
+### Pattern E — exclusion-set threading (exclude-before-spend)
+
+On round-2+ fan-out over a *growing* result set, thread the already-known keys
+(domains / ids / titles) into EACH agent brief as an explicit "skip these; find net-new"
+exclusion list. Don't rely on merge-time dedup alone — move dedup one stage earlier
+(exclude before spend, not dedup after).
+
+```js
+const EXCL = known.size
+  ? `\n\nSKIP these already-known (find net-new, do NOT return any): ${[...known].slice(0,120).join(', ')}`
+  : '';
+await parallel(SEGMENTS.map(seg => () => agent(PROMPT(seg) + EXCL, {schema})));
+```
+
+- Overlapping segments otherwise re-generate the same prominent entities — measured 34%
+  redundant generation in weed-deals round-2 (148/436 dupes); exclusion converts that spend
+  into net-new coverage at equal token cost.
+- Cap the inline list (~100–150 keys, ~5k-char prompt budget); pass a niche-relevant SUBSET
+  if the known-set is larger.
+- KEEP merge-time dedup as the safety net AND to MEASURE residual redundancy — that residual %
+  is the metric proving the pattern works. Pair with coverage-gap targeting.
+
+**When it does NOT help (measured failure case, weed-deals round-3):** threading a SAMPLED
+skip-list (~45 keys) against a 473-item catalog made dup rate WORSE — 65% residual vs the 34%
+round-2 baseline — because ~90% of known members weren''t in the exclusion set, so agents freely
+re-returned them, AND the segments targeted SATURATED categories where the top hits ARE the
+cataloged brands. Two hard rules from that: (a) the skip-list must be niche-COMPLETE, not
+niche-sampled — thread ALL known members of the space being mined (or the full set within the
+~150 cap), not a sample; (b) aim round-N+ at coverage GAPS (under-mined niches/regions), not
+"more of a saturated category." Exclusion-before-spend only pays when there is un-mined space to
+redirect the freed spend into. (mac-claude@mesh 2026-07-20, honest negative result.)
+
+(Graft from mac-claude@mesh 2026-07-20, live in weed-deals round-3.)
+
 ## Mesh-send hygiene
 
 Every brief should include:

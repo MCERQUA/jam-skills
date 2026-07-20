@@ -359,6 +359,17 @@ inbox + cc coverage.
 | `/mesh/DEAD_LETTER/` | Undeliverable messages pending replay |
 | `/mesh/BLACKBOARD/` | Shared ephemeral knowledge board |
 
+## Watcher / stream-filter failure-mode checklist (before declaring any watch "done")
+
+_Prefer the canonical `mesh-watch-arm` / `mesh-cc-watch-arm` above. For ANY ad-hoc `tail`/`grep`/`inotify`/poll one-liner (Monitor arms, log/CI/deploy watchers), run this before shipping. If an answer isn't "no" or "handled," the line isn't done. (Graft from bun-desktop@mesh 2026-07-19 — the cc-fanout bug cost 5 days because one `tail` fix closed the loud symptom, `#2` the silent one, on the same line.)_
+
+1. **Re-emit on arm?** Does it dump existing content on start (`tail -F` w/o `-n0`, unseeded poll)? Emit only what arrives *after* arm → seed baseline / `-n0` / event-only source.
+2. **Misses-new?** Is the file set a one-shot shell glob (`*.md`)? The glob expands ONCE; later files never match. → watch the **directory** (`inotifywait -e create,moved_to`), not a glob. (Watching a single growing log file is fine — the glob trap is multi-file sets.)
+3. **Line-buffering?** Every pipe stage must flush per line: `grep --line-buffered`, `awk '{...; fflush()}'`. `| head -N` can't flush — nothing until N accumulate.
+4. **SIGPIPE / silent death?** `set -o pipefail` + `grep -q` can SIGPIPE-kill the upstream producer; a poll loop needs `curl ... || true` so one failure doesn't end the watch.
+5. **Fires on FAILURE, not just success?** A filter matching only the happy path is silent through a crash/hang — indistinguishable from "still running." Widen the alternation to terminal/error states (`DONE|FAIL|DEFER|error`).
+6. **Backlog-vs-new on restart?** After re-arm, does it replay old state as new? Persist/seed the last-seen marker (same as #1 for stateful pollers).
+
 ## Reference pointers
 
 - Full protocol: `/mesh/PROTOCOL.md` (v2.1.1)
