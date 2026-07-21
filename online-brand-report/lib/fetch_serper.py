@@ -92,9 +92,13 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
         return out
 
     # Prefer the place whose website matches the client domain (strong match); else ONLY accept
-    # a place we can CONFIRM is in the requested city/state. Taking places[0] blindly let a
-    # same-named business elsewhere (an out-of-state "EZ Roof") contaminate the report. A
-    # business with genuinely no local GMB must return gmb_found=False (an honest finding).
+    # a place we can CONFIRM is in the requested city/state AND whose name plausibly matches
+    # the brand. Taking places[0] blindly let a same-named business elsewhere (an out-of-state
+    # "EZ Roof") contaminate the report — _loc_ok alone fixed THAT, but location match alone
+    # still lets a same-city, DIFFERENT-NAME business through (Hartsupport's query returning
+    # "Hearts at Home" — same metro, zero name overlap). _brand_slugs/_matches_brand are
+    # already imported above for exactly this check but were never wired into this loop.
+    # A business with genuinely no local GMB must return gmb_found=False (an honest finding).
     dom = (domain or "").lower().replace("www.", "")
     pick = None
     for p in places:
@@ -103,9 +107,18 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
             pick = p
             break
     if pick is None:
+        slugs = _brand_slugs(brand_name, domain)
+        for p in places:
+            if _loc_ok(p, city, state) and _matches_brand(p.get("website") or "", p.get("title") or "", slugs):
+                pick = p
+                break
+    if pick is None:
+        # location matched but name didn't (or neither did) -- low-confidence, don't guess.
         for p in places:
             if _loc_ok(p, city, state):
-                pick = p
+                print(f"[WARN] Serper places: '{p.get('title')}' is in {city} {state} but its name "
+                      f"doesn't match brand '{brand_name}' — treating as no confirmed local GMB "
+                      f"(low-confidence match withheld, not auto-picked)", file=sys.stderr)
                 break
     if pick is None:
         print(f"[INFO] Serper places: {len(places)} same-named listing(s) but none confirmed in "
