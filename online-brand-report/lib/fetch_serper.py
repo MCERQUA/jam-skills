@@ -13,6 +13,7 @@ or the call fails, the DataForSEO GMB data stands unchanged.
 """
 
 import os
+import re
 import sys
 import json
 import urllib.request
@@ -50,8 +51,29 @@ def _norm_phone(p: str) -> str:
     return "".join(ch for ch in (p or "") if ch.isdigit())[-10:]
 
 
+_VERTICAL_STOPWORDS = {
+    "the", "and", "for", "inc", "llc", "ltd", "co", "company", "corp", "group",
+    "services", "service", "solutions", "of", "in", "at", "on", "a", "an", "shop",
+    "store", "business", "local",
+}
+
+
+def _vertical_words(s: str) -> set:
+    return {w for w in re.sub(r"[^a-z0-9 ]", " ", (s or "").lower()).split()
+            if w not in _VERTICAL_STOPWORDS and len(w) >= 3}
+
+
+def _vertical_sanity(intake_service: str, gmb_category: str) -> bool | None:
+    """True = plausible overlap, False = no shared distinctive words (flag it),
+    None = not enough signal on one side to judge either way."""
+    a, b = _vertical_words(intake_service), _vertical_words(gmb_category)
+    if not a or not b:
+        return None
+    return bool(a & b)
+
+
 def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = "",
-                     cli_phone: str = "") -> dict:
+                     cli_phone: str = "", intake_service: str = "") -> dict:
     """Return rich, verified GMB data from Serper Places. Never raises.
 
     Returns:
@@ -61,6 +83,11 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
           "gmb_name", "gmb_rating", "gmb_review_count", "gmb_phone",
           "gmb_address", "gmb_website", "gmb_category",
           "nap_phone_mismatch": bool,   # CLI/site phone vs the verified GMB phone
+          "vertical_mismatch": bool | None,  # intake --service vs gmb_category, no shared
+                                              # distinctive words (name+location matched but
+                                              # industries don't -- the Hartsupport/IT-consulting
+                                              # vs Hearts-at-Home/in-home-care class of error).
+                                              # None = not enough signal to judge.
         }
     """
     out = {"available": False, "gmb_found": False}
@@ -147,9 +174,17 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
     else:
         out["nap_phone_mismatch"] = False
 
+    # Vertical sanity: name+location can both check out (the loop above) while the
+    # INDUSTRY is still wrong -- Hartsupport (IT consulting) matched to a same-metro
+    # "Hearts at Home" (in-home care) is exactly this shape. Compare the client's own
+    # stated --service against what this GMB listing's category actually says.
+    out["vertical_mismatch"] = (_vertical_sanity(intake_service, out["gmb_category"]) is False)
+
     print(f"[INFO] Serper GMB: {out['gmb_name']} — {out['gmb_rating']}★ "
           f"({out['gmb_review_count']} reviews) {out['gmb_phone']} | {out['gmb_address']}"
-          + ("  [NAP PHONE MISMATCH]" if out['nap_phone_mismatch'] else ""), file=sys.stderr)
+          + ("  [NAP PHONE MISMATCH]" if out['nap_phone_mismatch'] else "")
+          + ("  [VERTICAL MISMATCH: intake='%s' vs gmb='%s']" % (intake_service, out["gmb_category"])
+             if out["vertical_mismatch"] else ""), file=sys.stderr)
     return out
 
 
@@ -283,4 +318,5 @@ def apply_serper_gmb(brand_out: dict, serper: dict) -> dict:
     if serper.get("gmb_category"):     brand_out["gmb_categories"] = [serper["gmb_category"]]
     brand_out["gmb_source"] = "serper-places"
     brand_out["nap_phone_mismatch"] = serper.get("nap_phone_mismatch", False)
+    brand_out["vertical_mismatch"] = serper.get("vertical_mismatch", False)
     return brand_out

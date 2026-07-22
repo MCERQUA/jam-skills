@@ -651,9 +651,14 @@ def main():
 
     # Serper Places enrichment — the richest verified GMB (full NAP + real review count +
     # category) and a NAP phone cross-check. Authoritative for the listing fields when present.
-    serper_gmb      = _run("serper/places-GMB", fetch_serper.fetch_serper_gmb, domain, name, city, state, phone)
+    serper_gmb      = _run("serper/places-GMB", fetch_serper.fetch_serper_gmb, domain, name, city, state, phone, service)
     if serper_gmb.get("gmb_found"):
         fetch_serper.apply_serper_gmb(brand_data, serper_gmb)
+    if serper_gmb.get("vertical_mismatch"):
+        print(f"[WARN] vertical-sanity: intake service '{service}' doesn't match GMB category "
+              f"'{serper_gmb.get('gmb_category')}' for the matched listing — name+location "
+              f"passed but the industry looks wrong. Verify this is really the right business "
+              f"before treating the report as correct.", file=sys.stderr)
 
     # Connected/supporting sites + full brand-mention inventory via Serper search ("find
     # everything connected to this brand"). Uses the VERIFIED GMB phone/address for the
