@@ -17,29 +17,47 @@ Think of it as a colleague at a real computer you can hand a task to. You don't 
 Always `mac-claude@mesh`. **Not** `mac`, `macdaddy`, `chatgpt-mac`, or anything else — a wrong address makes `mesh-send` fail with "recipient not found". (That mistake is exactly why earlier attempts "couldn't find the Mac".)
 
 ## How to send it a task
-Your container already mounts the full mesh, so `mesh-send` reaches it directly. Body goes on **stdin** (not a flag):
+
+### Image generation (DALL-E via ChatGPT) — USE THIS FORMAT
+The Mac's `mac-claude-listener` auto-dispatches subjects containing **`image-gen`**:
 ```bash
-printf '%s\n' "Please generate an image: <clear prompt + any style/character notes>. Deliver it to the shared drop and reply here when done." \
-  | mesh-send --to mac-claude@mesh --kind task --subject "<short what-you-need>"
+printf '%s\n' '{"prompt":"A professional spray foam insulation team on a job site, cinematic lighting","tenant":"danielle"}' \
+  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: danielle spray-foam-team"
+# → Mac generates via ChatGPT DALL-E (~60-90s), drops PNG to EVENTS/danielle-images/,
+#   replies to YOUR inbox with the VPS path. Relay copies to your uploads/ in ~2min.
 ```
-- `--kind task` for work you want done; `--kind message` for a question/chat.
-- Be specific: for images, give the full prompt + character/style guidance + where to deliver.
-- `mesh-send` is on your PATH (same place as your other mesh tools).
+**Critical**: subject MUST contain `image-gen` or `chatgpt-image` for auto-dispatch.
+Without that keyword, the listener acks silently and nothing runs.
+
+JSON body fields: `prompt` (required), `tenant` (your tenant name), `drop_dir` (defaults to `{tenant}-images`).
+
+For full detail: read the `mac-image-gen` skill.
+
+### Generic Claude task
+```bash
+printf '%s\n' '{"task":"<your task>","model":"claude-sonnet-4-6"}' \
+  | mesh-send --to mac-claude@mesh --kind task --subject "claude-task: <short description>"
+```
+
+### Body goes on **stdin** (not a flag). `mesh-send` is on your PATH.
 
 ## How results come back
 1. **Text / links / status** → the Mac replies with a mesh message straight to **your inbox** — read it with your normal `mesh-recv` / inbox check.
-2. **Files (images, etc.)** → the Mac drops them into a shared mesh drop it and you both can see:
-   `/mnt/agent-mesh/mesh/EVENTS/<topic>/` (e.g. `.../kyle-images/`). You mount the mesh, so you can **read those files directly**. It will tell you the exact path/filenames in its reply.
-   - If you need the file inside your own workspace/uploads (e.g. to post or serve it), copy it from the shared drop into your uploads. (For some tenants a host relay does this automatically — e.g. Kyle's `kyle-image-relay.sh` lands mac images in bhb's uploads; if you don't have one, just `cp` from the shared drop.)
+2. **Files (images, etc.)** → the Mac drops them to the VPS EVENTS drop:
+   `/mnt/agent-mesh/mesh/EVENTS/{tenant}-images/` — you can read these directly.
+   The VPS relay (`danielle-image-relay.sh`, `kyle-image-relay.sh`) then copies to
+   your `uploads/` and notifies you (runs every 2 minutes).
 
 ## Worked example (image generation)
 ```bash
-printf '%s\n' \
-  "Generate a cartoon image of <subject>, <style>, <any character sheet notes>." \
-  "Save it to the shared kyle-images drop and reply with the filename." \
-  | mesh-send --to mac-claude@mesh --kind task --subject "image: <subject>"
-# → the Mac generates via ChatGPT, drops the PNG to /mnt/agent-mesh/mesh/EVENTS/kyle-images/,
-#   and replies to your inbox with the filename. Read the file from that path.
+# Danielle's voice agent requests an image:
+printf '%s\n' '{"prompt":"Modern luxury home, architectural photography, blue sky","tenant":"danielle"}' \
+  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: danielle luxury home"
+
+# Mac generates (~60-90s), drops gen-<ts>.png to EVENTS/danielle-images/
+# Relay copies to /mnt/clients/danielle/openvoiceui/uploads/ in ~2 min
+# Relay notifies danielle-voice@mesh: "Images ready in uploads..."
+# Serve at: https://danielle.jam-bot.com/uploads/gen-<ts>.png
 ```
 
 ## Notes / gotchas
