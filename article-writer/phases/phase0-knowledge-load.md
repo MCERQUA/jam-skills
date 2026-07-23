@@ -52,6 +52,25 @@ and `CLIENT.md` voice; and the durable insight this pipeline distills becomes kn
 voice/SMS agent then uses on calls, texts, and future articles. One brain, many readers — but only
 ever **this client's** brain.
 
+## 🧠 Shared NICHE brain (additive read — does NOT break isolation)
+
+Separate from the per-client brain, a **shared niche brain** may exist at
+`/mnt/system/base/brains/<niche>/` (e.g. `spray-foam-insulation/`). This is generic, region- and
+client-NEUTRAL industry knowledge (domain facts, `services.json`, `faq-bank.json`,
+`objection-handling.json`, `keyword-corpus.json`, `topical-map.json`, page/blog templates). It is a
+**read-only shared reference, not another tenant's private data** — reading it does NOT violate the
+per-client isolation rule above (that rule forbids reading another CLIENT's brain, not a shared
+industry reference).
+
+**In Phase 0, if `/mnt/system/base/brains/<niche>/` exists for this client's niche:** read its
+`keyword-corpus.json`, `faq-bank.json`, `objection-handling.json`, `topical-map.json`, and the
+relevant `domain-facts/*.md` ALONGSIDE the client's Tier-2 brain, and fold them into the
+**ALREADY KNOWN** side of the gap brief — so Phase 2 does NOT re-pay DataForSEO or re-research
+generic industry facts already captured there. Determine the niche from the client's niche tag /
+`/mnt/backlinks/niche-configs/*.yaml` (not the tenant slug). If no niche brain exists, skip silently.
+Never WRITE client-specific facts back into the shared niche brain — the completion write-back at the
+end of this file targets the CLIENT's Tier-2 brain only.
+
 ---
 
 ## Phase 0 — Load & Gap-Analysis
