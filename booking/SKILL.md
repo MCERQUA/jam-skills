@@ -33,8 +33,15 @@ All calls use the internal OVU address over the Docker network:
 http://openvoiceui:5001/api/booking
 ```
 
-Use `curl -s` (silent). These are plain JSON endpoints — no auth header needed from
-inside the container.
+Use `curl -s` (silent). **Every call needs the internal agent auth header** — OVU's
+global auth gate requires it even for same-Docker-network calls (verified 2026-07-23):
+
+```
+-H "X-Agent-Key: $AGENT_API_KEY"
+```
+
+`AGENT_API_KEY` is already set in your environment — just include the header, don't
+hardcode the value.
 
 ---
 
@@ -45,7 +52,8 @@ inside the container.
 Trigger: "When can I come in?", "Are you free Thursday?", "What times are open?"
 
 ```bash
-curl -s "http://openvoiceui:5001/api/booking/slots?eventTypeId=30min&start=2026-06-10&end=2026-06-12&timeZone=America/Phoenix"
+curl -s -H "X-Agent-Key: $AGENT_API_KEY" \
+  "http://openvoiceui:5001/api/booking/slots?eventTypeId=30min&start=2026-06-10&end=2026-06-12&timeZone=America/Phoenix"
 ```
 
 - `eventTypeId` (or `eventTypeSlug`) — the appointment type. Ask the client which
@@ -62,6 +70,7 @@ Trigger: customer picks a time. "Book me Thursday at 2pm."
 
 ```bash
 curl -s -X POST http://openvoiceui:5001/api/booking/bookings \
+  -H "X-Agent-Key: $AGENT_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
     "start": "2026-06-12T14:00:00.000Z",
@@ -86,6 +95,7 @@ Trigger: "Cancel my appointment", "I need to reschedule" (cancel, then re-book).
 
 ```bash
 curl -s -X POST http://openvoiceui:5001/api/booking/bookings/<uid>/cancel \
+  -H "X-Agent-Key: $AGENT_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"cancellationReason": "Customer requested cancellation"}'
 ```
@@ -100,6 +110,7 @@ Friday", "Don't let anyone book me tomorrow afternoon."
 
 ```bash
 curl -s -X POST http://openvoiceui:5001/api/booking/block \
+  -H "X-Agent-Key: $AGENT_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
     "start": "2026-06-10T00:00:00.000Z",
@@ -119,7 +130,7 @@ Trigger: "What appointments do I have?", "Who's coming in tomorrow?", and to fin
 `uid` before cancelling.
 
 ```bash
-curl -s "http://openvoiceui:5001/api/booking/bookings?status=upcoming"
+curl -s -H "X-Agent-Key: $AGENT_API_KEY" "http://openvoiceui:5001/api/booking/bookings?status=upcoming"
 ```
 
 - `status` — `upcoming` (default), `past`, or `cancelled`.
@@ -132,7 +143,7 @@ curl -s "http://openvoiceui:5001/api/booking/bookings?status=upcoming"
 **Before reporting any booking failure to the user, check status:**
 
 ```bash
-curl -s http://openvoiceui:5001/api/booking/status
+curl -s -H "X-Agent-Key: $AGENT_API_KEY" http://openvoiceui:5001/api/booking/status
 ```
 
 | status response | What it means | What to tell the user |
