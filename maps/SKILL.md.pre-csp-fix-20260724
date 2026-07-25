@@ -19,11 +19,6 @@ open with `[CANVAS:page-name]`).
 | "find restaurants near me" / "nearby gas stations / hotels" | **4. Nearby Places** |
 | "show me X on a map" / "where is X" (a place/city/area) | **1. Map Explorer** |
 | "show [business name]" / "directions to [one specific business]" | **5. Embed Map with Marker** |
-| plot **many records** on a US/region map (leads, clients, coverage, choropleth) | **6. Offline SVG data map** |
-
-**Templates 1–5 are Google Maps** (live, interactive, needs auth for the key).
-**Template 6 is a build-time SVG** — no external requests, works on public pages, free.
-Pick 6 whenever the map is *data visualization* rather than *navigation*.
 
 For a quick spoken answer with NO page (user just wants the ETA), you can skip the
 canvas entirely and call the server-side directions endpoint (section "Server-side
@@ -54,36 +49,8 @@ async function loadMaps(libs) {
 }
 ```
 
-### CSP — fixed 2026-07-24, but still preflight it
-
-**History (do not re-learn this the hard way):** until 2026-07-24 the Maps hosts were
-in NO tenant's CSP, despite this skill claiming they were allowed. Every Google Maps
-canvas page rendered an empty box, silently — the only signal is a console CSP
-violation, so it looks like your code is wrong when it isn't. mac-claude burned a build
-cycle on it. Host fixed both CSP blocks (`app.py` + `routes/canvas.py`) to add
-`maps.googleapis.com` + `maps.gstatic.com` to `script-src`, the tile/StreetView hosts to
-`img-src`, and `maps.googleapis.com` to canvas `connect-src`.
-
-**A tenant still running a pre-fix image fails the old way.** One command:
-
-```bash
-curl -sIL https://<tenant>.jam-bot.com/pages/<any-page> | grep -i content-security-policy | tail -1
-```
-
-Read the header on the FINAL response (`tail -1` — the first hop is a 301, and the
-ingress and app can each emit one).
-
-- `maps.googleapis.com` PRESENT in `script-src` → use the Google Maps flow below.
-- ABSENT → that tenant's image predates the fix. Get it rebuilt, or ship **Template 6**.
-  Do NOT substitute another external provider (Leaflet/OSM/Mapbox) — they were never
-  allowlisted either and fail identically. This was "no external map provider at all",
-  not a Google-specific problem.
-
-Also: `/api/maps/config` **requires auth**, so a page you later make PUBLIC loses its
-map for anonymous viewers. Public + map ⇒ Template 6.
-
-**Never ship a map page you haven't seen render.** 401 on `GET /pages/<id>` means
-correctly gated, not working — it proves nothing about the map.
+`maps.googleapis.com` is an ALLOWED external script source in canvas pages (it is a
+legitimate API CDN, not one of the banned CSS frameworks).
 
 - ❌ NEVER paste the API key into page HTML — always fetch from `/api/maps/config`.
 - ❌ NEVER use localStorage for anything (trips, recent searches) — server API only.
@@ -793,53 +760,6 @@ you'll hear the request and can then build the Directions page with origin = use
 location. That keeps one page simple instead of cramming both modes in.
 
 ---
-
-## Template 6 — Offline SVG data map (no external provider)
-
-For plotting **many records** on a US map: leads, clients, coverage areas, per-state
-rollups, choropleths. Projects at BUILD time and emits a plain inline `<svg>` — zero
-external requests, zero API cost, works Clerk-gated **or public**, immune to CSP changes.
-
-Ships with the skill: `assets/usmap.py` + `assets/us-states.geojson` (50 states, full
-resolution, ~57KB of path data).
-
-```python
-import sys
-sys.path.insert(0, '/mnt/shared-skills/maps/assets')   # container path
-import usmap
-
-# 1. State outlines -> list of {'name': 'Alabama', 'd': 'M636.7 374.6L...'}
-paths = usmap.state_paths()          # viewBox is 0 0 960 600
-
-# 2. Project each record's lat/lng into the SAME coordinate space
-for rec in records:
-    rec['x'], rec['y'] = usmap.project(rec['lng'], rec['lat'])   # NOTE: lng FIRST
-
-svg = ['<svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg">']
-svg += [f'<path d="{p["d"]}" class="state"><title>{p["name"]}</title></path>' for p in paths]
-svg += [f'<circle cx="{r["x"]:.1f}" cy="{r["y"]:.1f}" r="4" class="pin"/>' for r in records]
-svg.append('</svg>')
-```
-
-Style the map with CSS in the page (`.state { fill:#1a1d24; stroke:#2a2f3a }`,
-`.pin { fill:#3b82f6 }`) so it honours the tenant's ACTIVE-STYLE like any other element.
-
-### Gotchas already solved in `usmap.py` — do not "fix" them
-- **Alaska is inset bottom-left**, projected separately (standard AlbersUsa composite).
-  `project()` routes Alaskan coordinates there automatically.
-- **Antimeridian** — the Aleutians cross +180°; the longitude delta is wrapped into
-  [-180,180]. Without this the auto-fit for the entire map is destroyed.
-- **Screen-vs-projected Y** — `Albers.__call__` flips Y, so auto-fit anchors *both* axes
-  on the minimum. Anchoring Y on the max pushes Washington off-frame.
-- **Inset collision** — the Alaska inset is anchored below CONUS's lowest left-strip
-  point (New Mexico, y=446) so it can't land on Arizona.
-- **Do not pass `simplify_every=2`.** Dropping every other vertex shreds state borders
-  into white slivers. Full resolution is only ~57KB — just ship it.
-
-### Always look at the pixels before shipping
-All four bugs above were found by rendering, not by reading code. Extract the `<svg>`,
-inline the fill/stroke, and rasterize — on the Mac: `qlmanage -t -s 1000 -o . map.svg`
-(no rsvg/cairosvg installed there). Then actually **view the PNG**.
 
 ## Server-side directions (no canvas page needed)
 
