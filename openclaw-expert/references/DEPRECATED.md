@@ -6,7 +6,7 @@ Pre-redesign prose snapshots from 2026-03-04 / 2026-03-18 / 2026-04-01. **Do not
 
 | Old reference file | New location |
 |--------------------|--------------|
-| Upstream prose copies (architecture, gateway, channels, etc.) | Lazy-fetch via `scripts/fetch-page.sh <page-id>` from `catalog.json` (464 indexed pages) |
+| Upstream prose copies (architecture, gateway, channels, etc.) | Lazy-fetch via `scripts/fetch-page.sh <page-id>` from `catalog.json` (761 indexed pages as of 2026-07-25) |
 | JamBot-specific deltas | `annotations/<page-id>.md` — keyed by upstream URL |
 | What JamBot does differently than docs | `overrides/*.md` |
 | Multi-page workflows | `playbooks/*.md` |

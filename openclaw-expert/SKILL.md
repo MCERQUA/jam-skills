@@ -157,6 +157,7 @@ When answering ANY question touching these topics, the anchor wins over upstream
 | `cache/<page-id>.md` (+ `.meta.json`) | lazy Markdown snapshot, 24h TTL |
 | `overrides/*.md` · `playbooks/*.md` | see tables above |
 | `reference/openclaw-2026.3.24-deep-reference.md` | frozen deep reference for the 3.24 era — historical, do not extend |
+| `scripts/{build-skill,watchdog,cleanup}.sh` | ⚠️ **ORPHANED, do not run** — March-2026 build scaffolding, referenced by nothing. `cleanup.sh` removes cron entries. Kept per the never-delete rule; banner-marked in-file |
 | `references/` | **DEPRECATED** — pre-redesign prose. Do not extend. New work → annotations or playbooks |
 | `SKILL.md.pre-2026-05-04` | frozen pre-redesign skill for archaeology |
 

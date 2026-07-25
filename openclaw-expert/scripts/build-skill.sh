@@ -1,5 +1,13 @@
 #!/bin/bash
 # =============================================================
+# ⚠️ ORPHANED — DO NOT RUN (reviewed 2026-07-25)
+# One-shot scaffolding from the March-2026 build of this skill.
+# Referenced by nothing; left in place per the never-delete rule.
+# The skill is now maintained by: refresh-catalog.sh -> sync-annotations.py
+# -> link-anchors.py. See SKILL.md "Maintenance discipline".
+# Launches a 4-hour unattended agent fleet to re-prose upstream docs — the exact anti-pattern SKILL.md now forbids ("never re-prose upstream docs; cache them").
+# =============================================================
+# =============================================================
 # OpenClaw Expert Skill — Autonomous Build Pipeline
 # =============================================================
 # Runs unattended for ~4 hours. Launches claude-code agents in

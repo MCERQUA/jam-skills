@@ -1,5 +1,13 @@
 #!/bin/bash
 # =============================================================
+# ⚠️ ORPHANED — DO NOT RUN (reviewed 2026-07-25)
+# One-shot scaffolding from the March-2026 build of this skill.
+# Referenced by nothing; left in place per the never-delete rule.
+# The skill is now maintained by: refresh-catalog.sh -> sync-annotations.py
+# -> link-anchors.py. See SKILL.md "Maintenance discipline".
+# Watchdog for that dead build pipeline. Restarts agents that no longer exist.
+# =============================================================
+# =============================================================
 # Watchdog — monitors the build pipeline every 15 minutes
 # Detects hung agents, restarts them, enforces deadlines
 # =============================================================

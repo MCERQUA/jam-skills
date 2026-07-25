@@ -1,5 +1,13 @@
 #!/bin/bash
 # =============================================================
+# ⚠️ ORPHANED — DO NOT RUN (reviewed 2026-07-25)
+# One-shot scaffolding from the March-2026 build of this skill.
+# Referenced by nothing; left in place per the never-delete rule.
+# The skill is now maintained by: refresh-catalog.sh -> sync-annotations.py
+# -> link-anchors.py. See SKILL.md "Maintenance discipline".
+# DANGEROUS: kills processes and REMOVES CRON ENTRIES. Written for the build pipeline's own temporary crontab; running it today would touch unrelated jobs.
+# =============================================================
+# =============================================================
 # Hard Cleanup — runs at the 4.5h mark
 # Kills ALL remaining build processes, removes cron entries
 # =============================================================
