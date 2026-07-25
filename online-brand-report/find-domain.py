@@ -70,6 +70,11 @@ _EXTRA_KEY_FILES = (
 )
 
 
+# Minimum GMB match confidence before a Places listing is auto-adopted (pledge 5984181f).
+# 0.72 accepts a strong name match with locality agreement, and rejects a same-name
+# business in the wrong city — the case that would onboard a stranger's domain.
+GMB_MATCH_MIN = float(os.environ.get("GMB_MATCH_MIN", "0.72"))
+
 def _serper_key() -> str:
     """Serper key via the brand-report loader first, then container-local files."""
     if _serper_key_base is not None:
@@ -284,6 +289,46 @@ def _strong_named_domain_from_organic(key: str, name: str, query: str,
     return ""
 
 
+
+def _gmb_match_confidence(place, name, city, state):
+    """How sure are we that this Places listing IS the business we asked about?
+
+    WHY THIS EXISTS (pledge 5984181f): the caller trusted the FIRST Places result
+    unconditionally and set confident=True. Serper happily returns a same-name
+    business in another city — "Precision Insulation" exists in a dozen states — and
+    onboarding would then adopt THAT company's domain, run their brand report, and
+    hand a client a report about a stranger. The failure is silent: every field looks
+    populated, the report renders, and nothing indicates it is the wrong company.
+
+    Returns (score 0.0-1.0, [reasons]). Name agreement is necessary but not
+    sufficient; locality is what separates a real match from a same-name twin.
+    """
+    import difflib
+    reasons = []
+    title = (place.get("title") or "").strip()
+    addr = " ".join(str(place.get(k) or "") for k in ("address", "formatted_address", "vicinity"))
+
+    def norm(x):
+        x = re.sub(r"[^a-z0-9 ]", " ", (x or "").lower())
+        x = re.sub(r"\b(llc|inc|ltd|co|company|corp|the|and)\b", " ", x)
+        return re.sub(r"\s+", " ", x).strip()
+
+    n_score = difflib.SequenceMatcher(None, norm(title), norm(name)).ratio() if title else 0.0
+    reasons.append(f"name~{n_score:.2f} ({title!r} vs {name!r})")
+
+    loc_score, a = 0.0, norm(addr)
+    if city and norm(city) and norm(city) in a:
+        loc_score = 1.0; reasons.append(f"city MATCH ({city})")
+    elif state and norm(state) and re.search(r"\b" + re.escape(norm(state)) + r"\b", a):
+        loc_score = 0.6; reasons.append(f"state only ({state})")
+    elif not addr.strip():
+        loc_score = 0.5; reasons.append("no address returned — cannot verify locality")
+    else:
+        reasons.append(f"LOCALITY MISMATCH (asked {city or state or '?'}, got {addr[:60]!r})")
+
+    score = round(0.6 * n_score + 0.4 * loc_score, 3)
+    return score, reasons
+
 def find_domain(name: str, city: str = "", state: str = "", num: int = 20) -> dict:
     """Search + rank candidate domains. Never raises."""
     name = (name or "").strip()
@@ -305,11 +350,22 @@ def find_domain(name: str, city: str = "", state: str = "", num: int = 20) -> di
         site = (place.get("website") or "").strip()
         host = _host(site) if site else ""
         if host and not _is_excluded(host, excluded):
+            # Gate on match confidence — do NOT adopt a listing just because it came
+            # back first. Below the bar we still RETURN the candidate (so a human or
+            # the caller can decide) but confident=False, which stops onboarding from
+            # silently running a report for the wrong company.
+            _conf, _why = _gmb_match_confidence(place, name, city, state)
+            out["match_confidence"] = _conf
+            out["match_reasons"] = _why
             out["candidates"] = [{"domain": host, "title": place.get("title") or name, "rank": 1}]
             out["best"] = host
-            out["confident"] = True
             out["source"] = "places"
             out["gmb_found"] = True
+            out["confident"] = _conf >= GMB_MATCH_MIN
+            if not out["confident"]:
+                out["needs_review"] = True
+                out["review_reason"] = (
+                    f"GMB match confidence {_conf} < {GMB_MATCH_MIN}: " + "; ".join(_why))
             return out
         # The business EXISTS (found in Places) but its GMB lists NO website. Before
         # declaring GREENFIELD, try ONE strict recovery: an organic result whose domain
