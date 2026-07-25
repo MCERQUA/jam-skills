@@ -67,8 +67,20 @@ if [[ "$NO_CACHE" -eq 0 && -f "$CACHE_FILE" ]]; then
 fi
 
 if [[ "$CACHE_FRESH" -eq 0 ]]; then
-    if ! curl -fsSL --max-time 30 -o "$CACHE_FILE.tmp" "$URL"; then
-        echo "ERROR: fetch failed for $URL" >&2
+    # Upstream serves the clean Markdown export at `<url>.md` (llms.txt: "Append
+    # `.md` to any docs page URL"). Catalog URLs lost their `.md` suffix when the
+    # llms.txt format changed in ~2026-06, which silently started caching 70KB of
+    # rendered HTML into files named `.md`. Always request the Markdown export.
+    FETCH_URL="$URL"
+    [[ "$FETCH_URL" == *.md ]] || FETCH_URL="${FETCH_URL}.md"
+    if ! curl -fsSL --max-time 30 -H 'Accept: text/markdown' -o "$CACHE_FILE.tmp" "$FETCH_URL"; then
+        echo "ERROR: fetch failed for $FETCH_URL" >&2
+        rm -f "$CACHE_FILE.tmp"
+        exit 1
+    fi
+    if head -c 200 "$CACHE_FILE.tmp" | grep -qi '<!doctype html\|<html'; then
+        echo "ERROR: $FETCH_URL returned HTML, not Markdown — refusing to cache it." >&2
+        echo "       Upstream may have changed the export path; check llms.txt." >&2
         rm -f "$CACHE_FILE.tmp"
         exit 1
     fi

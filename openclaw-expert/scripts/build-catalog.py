@@ -23,7 +23,20 @@ UPSTREAM = "https://docs.openclaw.ai/llms.txt"
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_OUT = SKILL_ROOT / "catalog.json"
 
-LINK_RE = re.compile(r"^\s*-\s*\[(?P<title>.+?)\]\((?P<url>https?://[^)]+)\)\s*$")
+# Upstream llms.txt link line. Two formats seen in the wild:
+#   pre-2026-06 : "- [Title](https://docs.openclaw.ai/path.md)"
+#   2026-06+    : "- [Title](https://docs.openclaw.ai/path): One-line description."
+# The trailing description is OPTIONAL — a regex anchored at `)$` silently matched
+# 2 of 765 links after upstream added descriptions (found 2026-07-25). Keep the
+# description group optional forever; capture it as `summary`.
+LINK_RE = re.compile(
+    r"^\s*-\s*\[(?P<title>.+?)\]\((?P<url>https?://[^)]+)\)\s*(?::\s*(?P<summary>.*?))?\s*$"
+)
+
+# llms.txt also lists non-page resources under "## Agent Resources". They are not
+# doc pages and must never enter the catalog.
+# (openapi.json is kept — it is a real reference artifact.)
+NON_PAGE_SUFFIXES = (".xml", ".txt")
 
 # Section taxonomy keyed by URL path prefix
 SECTION_MAP = {
@@ -138,6 +151,33 @@ HIGH_RELEVANCE_PATHS = {
     "start/getting-started.md", "start/setup.md", "start/bootstrapping.md",
     # Misc
     "auth-credential-semantics.md", "logging.md", "network.md",
+
+    # --- Added 2026-07-25 with the 5.7->7.1 catalog rebuild (464 -> 761 pages). ---
+    # Upstream shipped a large docs expansion; these landed as "med" by default but
+    # are directly load-bearing for a multi-tenant Docker deployment.
+    # Gateway hosting + exposure — the JamBot deployment shape now has real docs
+    "gateway/multi-tenant-hosting.md", "gateway/security/exposure-runbook.md",
+    "gateway/security/rate-limiting.md", "gateway/security/audit-checks.md",
+    "gateway/security/secure-file-operations.md", "gateway/restart-recovery.md",
+    "gateway/clients.md", "gateway/audit.md", "gateway/external-apps.md",
+    "concepts/multi-user.md", "concepts/main-session.md", "concepts/session-state.md",
+    "concepts/session-search.md",
+    # ClawHub supply-chain surface — anchor-18 territory, now a full doc section
+    "clawhub/security.md", "clawhub/security-audits.md", "clawhub/moderation.md",
+    "clawhub/skill-format.md", "clawhub/publishing.md", "clawhub/cli.md",
+    "security/incident-response.md",
+    # Tools that changed how agents behave in production
+    "tools/skill-workshop.md", "tools/permission-modes.md", "tools/code-mode.md",
+    "tools/tool-search.md", "tools/goal.md", "tools/swarm.md", "tools/self-learning.md",
+    "tools/ask-user.md",
+    # Provider/plugin reference pages we actually run
+    "plugins/reference/zai.md", "plugins/reference/anthropic.md",
+    "plugins/reference/memory-core.md", "plugins/reference/memory-lancedb.md",
+    "plugins/reference/canvas.md", "plugins/reference/voice-call.md",
+    "plugins/reference/groq.md", "plugins/reference/vault.md",
+    "plugins/plugin-permission-requests.md", "plugins/install-overrides.md",
+    # Release notes — the delta this skill has to keep auditing
+    "releases.md", "releases/2026.7.1.md", "releases/2026.6.11.md",
 }
 
 LOW_RELEVANCE_PATHS = {
@@ -179,6 +219,19 @@ LOW_RELEVANCE_PATHS = {
 }
 
 
+# The relevance sets above are keyed WITH a `.md` suffix (the pre-2026-06 URL shape).
+# Upstream dropped `.md` from llms.txt URLs, which silently demoted every page to
+# "med". Normalize both sides to a suffix-free path instead of rewriting the sets.
+HIGH_RELEVANCE_PATHS = {p[:-3] if p.endswith(".md") else p for p in HIGH_RELEVANCE_PATHS}
+LOW_RELEVANCE_PATHS = {p[:-3] if p.endswith(".md") else p for p in LOW_RELEVANCE_PATHS}
+
+
+def norm_path(url: str) -> str:
+    """URL -> docs-root-relative path with any `.md` suffix stripped."""
+    path = url.replace("https://docs.openclaw.ai/", "")
+    return path[:-3] if path.endswith(".md") else path
+
+
 def fetch_upstream(url: str) -> tuple[str, str]:
     """Fetch URL, return (text, sha256)."""
     req = urllib.request.Request(url, headers={"User-Agent": "openclaw-expert-catalog/1.0"})
@@ -188,18 +241,35 @@ def fetch_upstream(url: str) -> tuple[str, str]:
 
 
 def parse_links(text: str) -> list[dict]:
-    """Extract (title, url) pairs from llms.txt body."""
+    """Extract (title, url, summary) triples from the llms.txt body.
+
+    Upstream prefixes the body with an "## Agent Resources" block that links the
+    sitemap, robots.txt, and — critically — re-links start/getting-started under
+    the label "Markdown page export". Parsing from the top let that label win the
+    id and mis-title a high-relevance page. Start at the documentation index.
+    """
+    lines = text.splitlines()
+    start = 0
+    for i, line in enumerate(lines):
+        if line.startswith("#") and "documentation index" in line.lower():
+            start = i + 1
+            break
+
     out = []
-    for line in text.splitlines():
+    for line in lines[start:]:
         m = LINK_RE.match(line)
         if not m:
             continue
-        out.append({"title": m.group("title"), "url": m.group("url")})
+        out.append({
+            "title": m.group("title"),
+            "url": m.group("url"),
+            "summary": (m.group("summary") or "").strip(),
+        })
     return out
 
 
 def derive_section(url: str) -> str:
-    path = url.replace("https://docs.openclaw.ai/", "")
+    path = norm_path(url)
     for prefix, name in SECTION_MAP.items():
         if path.startswith(prefix):
             return name
@@ -207,16 +277,18 @@ def derive_section(url: str) -> str:
 
 
 def derive_id(url: str) -> str:
-    path = url.replace("https://docs.openclaw.ai/", "").replace(".md", "")
-    return path.replace("/", "__")
+    return norm_path(url).replace("/", "__")
 
 
 def derive_relevance(url: str) -> str:
-    path = url.replace("https://docs.openclaw.ai/", "")
-    if path in HIGH_RELEVANCE_PATHS:
-        return "high"
-    if path in LOW_RELEVANCE_PATHS:
-        return "low"
+    path = norm_path(url)
+    # Upstream also collapsed section landing pages: `automation/index.md` -> `automation`.
+    # Check the bare path first, then the legacy `<path>/index` spelling.
+    for candidate in (path, f"{path}/index"):
+        if candidate in HIGH_RELEVANCE_PATHS:
+            return "high"
+        if candidate in LOW_RELEVANCE_PATHS:
+            return "low"
     return "med"
 
 
@@ -227,7 +299,11 @@ def build_pages(links: list[dict]) -> list[dict]:
         url = link["url"]
         if not url.startswith("https://docs.openclaw.ai/"):
             continue
+        if norm_path(url).endswith(NON_PAGE_SUFFIXES):
+            continue
         pid = derive_id(url)
+        if not pid:            # bare docs root
+            continue
         if pid in seen_ids:
             continue
         seen_ids.add(pid)
@@ -236,6 +312,7 @@ def build_pages(links: list[dict]) -> list[dict]:
             "url": url,
             "section": derive_section(url),
             "title": link["title"],
+            "summary": link.get("summary", ""),
             "relevance": derive_relevance(url),
             "annotation": None,
             "audit_anchors": [],
@@ -255,7 +332,9 @@ def merge_existing(new_pages: list[dict], existing_path: Path) -> list[dict]:
         return new_pages
     by_id = {p["id"]: p for p in existing.get("pages", [])}
     for page in new_pages:
-        prior = by_id.get(page["id"])
+        # `automation__index` -> `automation` etc. after upstream collapsed section
+        # landing-page URLs. Without the alias, every landing-page annotation orphans.
+        prior = by_id.get(page["id"]) or by_id.get(f"{page['id']}__index")
         if not prior:
             continue
         for k in ("annotation", "audit_anchors", "lastVerified", "tags"):
@@ -271,8 +350,13 @@ def diff_against(new_pages: list[dict], existing_path: Path) -> dict:
     existing = json.loads(existing_path.read_text())
     old_by_id = {p["id"]: p for p in existing.get("pages", [])}
     new_by_id = {p["id"]: p for p in new_pages}
-    added = [pid for pid in new_by_id if pid not in old_by_id]
-    removed = [pid for pid in old_by_id if pid not in new_by_id]
+    # Treat `<x>` and `<x>__index` as the same page so upstream's landing-page URL
+    # collapse does not read as 10 removals + 10 additions.
+    def known(pid, table):
+        return pid in table or f"{pid}__index" in table or pid.removesuffix("__index") in table
+
+    added = [pid for pid in new_by_id if not known(pid, old_by_id)]
+    removed = [pid for pid in old_by_id if not known(pid, new_by_id)]
     title_changed = [
         {"id": pid, "old": old_by_id[pid]["title"], "new": new_by_id[pid]["title"]}
         for pid in new_by_id
@@ -320,6 +404,17 @@ def main():
         },
         "pages": pages,
     }
+
+    # Carry forward hand-patch provenance so a regen does not erase the record of
+    # which anchors/annotations were bulk-applied and when.
+    if out_path.exists():
+        try:
+            prior = json.loads(out_path.read_text())
+        except json.JSONDecodeError:
+            prior = {}
+        for k in ("_lastPatchedAt", "_lastPatchSummary"):
+            if prior.get(k):
+                catalog[k] = prior[k]
 
     out_path.write_text(json.dumps(catalog, indent=2) + "\n")
     print(f"Wrote {out_path} — {len(pages)} pages "

@@ -21,6 +21,14 @@ sources:
 
 # Anchor #19 — `openclaw doctor` is destructive; never let agents edit `openclaw.json` directly
 
+> **VERSION SCOPE (added 2026-07-25) — read `anchor-25-doctor-reworked-in-7.1.md` alongside this.**
+> Everything below is confirmed for **≤2026.6.x**, which includes JamBot's pinned `2026.5.7`.
+> **v2026.7.1 reworked doctor**: it now refuses to replace an unreadable `openclaw.json` (#96469),
+> shows rather than auto-applies sensitive changes like `gateway.bind=loopback` (#99776), and adds a
+> structured non-mutating `--lint --only <check>` system. The JamBot rule — agents never hand-edit
+> `openclaw.json`, always `openclaw config set` — is **unchanged** on every version. Do not answer a
+> 7.x question from this anchor alone.
+
 ## What changed
 
 This isn't a version-flip — it's a behavioral correction from production. Upstream docs frame `openclaw doctor` and `openclaw doctor --fix` as helpful diagnostics. Community reports across multiple threads disagree:

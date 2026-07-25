@@ -1,182 +1,209 @@
 ---
 name: openclaw-expert
-description: "OpenClaw expertise for JamBot — catalog-indexed router into 464 upstream doc pages plus JamBot-specific overrides and version-anchor corrections (Anthropic subscription cutover, CVE-2026-25253, ClawHavoc supply chain, destructive `openclaw doctor`, GLM-5 reliability divergence). TRIGGER: teach, debug, configure, or build on OpenClaw."
+description: "OpenClaw expertise for JamBot — catalog-indexed router into 761 upstream doc pages plus JamBot-specific overrides and 28 version-anchor corrections (gateway fail-closed on non-loopback bind, pairing/trusted-proxy hardening, database-first SQLite migration, doctor rework, CVE-2026-25253, ClawHavoc supply chain, GLM-5.2/Z.AI thinking ladder, upstream's own `openclaw fleet` multi-tenant model). TRIGGER: teach, debug, configure, or build on OpenClaw."
 metadata: {"openclaw": {"emoji": "🧠"}}
 ---
 
 # OpenClaw Expert
 
-**OpenClaw deployed on JamBot:** `2026.5.7` (verified in openclaw-test-dev + `/mnt/system/base/openclaw/Dockerfile`, 2026-07-11 — the last full audit was against `2026.5.2`; changelog delta 5.2→5.7 not yet audited). **Catalog refreshed:** see `catalog.json` `fetchedAt`.
+| | |
+|---|---|
+| **JamBot runs** | `2026.5.7` — verified in `openclaw-test-dev` + the three pinned installer paths, 2026-07-25 |
+| **Upstream `latest`** | `2026.7.1-2` (npm, 2026-07-18); a `2026.6.33` maintenance line also exists |
+| **Catalog** | 761 pages · rebuilt 2026-07-25 · see `catalog.json` `fetchedAt` |
+| **Anchors** | 28 · waves 1–15 (changelog ≤5.2), 16–21 (community), 22–28 (the 5.7→7.1 delta) |
 
-This skill is a **router**, not a textbook. Upstream docs at `docs.openclaw.ai` are authoritative — we index them, layer JamBot-specific deltas, and surface **21 audit anchors** that mark version-specific corrections discovered in production:
-- Anchors 1-15: derived from the changelog audit (`docs/jambot/openclaw-skill-update-2026-05-04.md`)
-- Anchors 16-21: derived from a 2026-05-23 r/openclaw deep-read covering the Apr 4 2026 Anthropic subscription cutover, CVE-2026-25253, the ClawHavoc supply-chain campaign, destructive `openclaw doctor` behavior, community shift to QMD/hybrid memory, and GLM-5 reliability divergence
+> ⚠️ **We are ~2 months of releases behind the pin, and that gap is not benign.** Anchors #22–#27 cover it. Four of them describe changes that break JamBot's specific deployment shape — **`#22` means every tenant gateway refuses to start on ≥2026.5.17 unless the auth mode is made explicit first.** Read `playbooks/upgrade-5.7-to-7.x.md` before touching `bump-openclaw-version.sh`.
+
+This skill is a **router**, not a textbook. Upstream docs at `docs.openclaw.ai` are authoritative — we index them, layer JamBot deltas, and surface version-specific corrections found in production.
+
+---
 
 ## How to use this skill
 
 ### 1. Find the right page
 
 ```bash
-# By keyword (most common)
-bash {baseDir}/scripts/lookup.sh compaction
-
-# By section
-bash {baseDir}/scripts/lookup.sh section:Plugins
-bash {baseDir}/scripts/lookup.sh section:Channels
-
-# By JamBot relevance (high|med|low)
-bash {baseDir}/scripts/lookup.sh relevance:high
-
-# By audit-anchor number (1–15)
-bash {baseDir}/scripts/lookup.sh anchor:13     # YOLO exec defaults flip
-
-# Pages with JamBot annotation
-bash {baseDir}/scripts/lookup.sh annotated
-
-# Annotations not verified in 60+ days
-bash {baseDir}/scripts/lookup.sh stale 60
+bash {baseDir}/scripts/lookup.sh compaction        # keyword (also searches upstream one-line summaries)
+bash {baseDir}/scripts/lookup.sh section:Plugins   # by section
+bash {baseDir}/scripts/lookup.sh relevance:high    # 241 JamBot-relevant pages
+bash {baseDir}/scripts/lookup.sh anchor:22         # by audit-anchor number (1–28)
+bash {baseDir}/scripts/lookup.sh annotated         # pages we've annotated (34)
+bash {baseDir}/scripts/lookup.sh stale 60          # annotations not re-verified in 60 days
 ```
 
 ### 2. Read the right layer first
 
 Order matters when answering a question:
 
-1. **`audit-anchors/`** — version-specific corrections. If the page has an anchor, the skill knows upstream prose is misleading and what to say instead.
-2. **`overrides/`** — what JamBot does *differently* than docs. Multi-tenant Docker, `trustedProxies`, `dangerouslyDisableDeviceAuth`, voice flow constraints, etc.
-3. **`annotations/<page>.md`** — page-specific JamBot notes, burns, related files. Updated when we touch the topic in production.
-4. **`cache/<page>.md`** — frozen snapshot of upstream page (fetched lazily by `fetch-page.sh`, 24h TTL).
-5. **Live upstream** — only when current truth matters more than speed: `WebFetch` the URL.
+1. **`audit-anchors/`** — version-specific corrections. If a page carries an anchor, upstream prose is known to be misleading and the anchor says what to say instead. **Check the anchor's version scope** — several are pin-relative (see the table in `audit-anchors/README.md`).
+2. **`overrides/`** — what JamBot does *differently*. The override wins.
+3. **`annotations/<page>.md`** — page-specific JamBot notes, burns, related files.
+4. **`cache/<page>.md`** — frozen upstream snapshot (lazy, 24h TTL).
+5. **Live upstream** — when current truth beats speed: `WebFetch` the URL.
 
 ```bash
-# Fetch and cache one page
-bash {baseDir}/scripts/fetch-page.sh concepts__compaction
-
-# Print cached file path
+bash {baseDir}/scripts/fetch-page.sh concepts__compaction        # fetch + cache + print
 bash {baseDir}/scripts/fetch-page.sh --path-only plugins__voice-call
-
-# Force refetch
-bash {baseDir}/scripts/fetch-page.sh --no-cache providers__zai
+bash {baseDir}/scripts/fetch-page.sh --no-cache providers__zai   # force refetch
 ```
 
 ### 3. Refresh when OpenClaw releases
 
 ```bash
-# Re-fetch llms.txt, diff, regenerate catalog. Posts diff to stdout.
-bash {baseDir}/scripts/refresh-catalog.sh
+bash {baseDir}/scripts/refresh-catalog.sh      # fetch llms.txt, diff, regenerate (guarded)
+python3 {baseDir}/scripts/sync-annotations.py  # relink annotation files -> pages
+python3 {baseDir}/scripts/link-anchors.py      # rebuild anchor <-> page edges
 ```
 
-Exit 0 = no changes. Exit 2 = added/removed/renamed pages — review the diff, decide which new pages need annotations.
+Run them **in that order** — `link-anchors.py` rebuilds the anchor edges from scratch each time.
 
-## Audit anchors (21 total — 15 from changelog audit + 6 from community deep-read)
+| Exit | Meaning |
+|---|---|
+| 0 | no page-set change |
+| 1 | fetch failed |
+| 2 | pages added/removed/renamed — review the diff, annotate new high-relevance pages |
+| 3 | **REFUSED** — the diff claimed >20% of pages removed. That is a parser break, not an upstream deletion. Catalog left untouched; fix `LINK_RE` in `build-catalog.py`. |
 
-When answering ANY question about a topic in this list, the audit anchor wins over the upstream prose:
+---
 
-### Changelog audit (anchors 1-15, v2026.4.20 → v2026.5.2)
+## Audit anchors (28)
+
+When answering ANY question touching these topics, the anchor wins over upstream prose. Full index with version scope + upgrade reading order: **`audit-anchors/README.md`**. Each anchor has a file with sources (changelog lines / PR numbers / Reddit post ids), exact config keys, and affected skill files.
+
+### Wave 1 — changelog audit, v2026.4.20 → v2026.5.2 (applies at our pin)
 
 | # | Topic | One-liner |
 |---|-------|-----------|
-| 1 | Plugin SDK breaking | `registerEmbeddedExtensionFactory` removed v2026.4.24 → use `registerAgentToolResultMiddleware` |
+| 1 | Plugin SDK breaking | `registerEmbeddedExtensionFactory` removed v4.24 → use `registerAgentToolResultMiddleware` |
 | 2 | memory-core auto-activates | Bundled `memory-core` + active-memory sub-agent run before every reply unless `plugins.slots.memory: "none"` |
-| 3 | Strict tool-allowlist | v5.2 hard-errors with "No callable tools remain after resolving explicit tool allowlist" if allowlisted tool's plugin is disabled |
-| 4 | Embedded run timeout = 15s | NOT `agents.defaults.timeoutSeconds`; embedded path uses its own (low) default |
-| 5 | Per-file bootstrap caps | TOOLS.md ≈ 24K chars, MEMORY.md ≈ 10.5K chars (auto-truncated with marker) |
-| 6 | Compaction trigger ≈ 68% prompt usage | Plus `midTurnPrecheck` (4.27), `maxActiveTranscriptBytes` (4.26), `memoryFlush.model` (4.27), pluggable provider (4.7) |
-| 7 | `meta.lastTouchedVersion` migration | Auto-runs on first 5.2 start; auto-adds zai to plugins.allow when referenced |
-| 8 | Bonjour disabled by default | For bundled Compose gateways on bridge networking — opt back in via `OPENCLAW_DISABLE_BONJOUR=0` |
-| 9 | GLM-5 consecutive-turn fix | v5.2 preserves prior context for z.ai/openrouter z-ai/in-house GLM gateways |
-| 10 | Anthropic-messages scoping | v4.20 — custom providers MUST explicitly set `api: "anthropic-messages"` |
-| 11 | plugins.entries vs skills.entries | `plugins.slots.memory: "none"` is the only single-knob disable for memory-core |
-| 12 | External plugin migration | v5.2 wholesale move: ACPX, OTel, Discord, WhatsApp, Voice Call, Brave, Codex, Memory LanceDB, Teams, Diffs, Lobster, BlueBubbles, Mattermost, Matrix, Tlon, Google Chat, LINE, Nextcloud Talk, Nostr, Zalo, QQ Bot, Synology Chat, Twitch, Feishu, Google Meet, Yuanbao |
-| 13 | tools.exec defaults flipped to YOLO | v4.5 — gateway/node host now `security: "full", ask: "off"` (was `deny`/`on-miss`) |
-| 14 | messages.queue.mode default flipped | v4.29 — default now `steer` with 500ms followup-fallback debounce (was `collect`) |
-| 15 | rotateBytes deprecated | v4.27 — `session.maintenance.rotateBytes` removed; use `session.writeLock.acquireTimeoutMs` (default 60s) |
+| 3 | Strict tool-allowlist | v5.2 hard-errors: "No callable tools remain after resolving explicit tool allowlist" |
+| 4 | Embedded run timeout = 15s | NOT `agents.defaults.timeoutSeconds` — the embedded path has its own low default |
+| 5 | Per-file bootstrap caps | TOOLS.md ≈24K chars, MEMORY.md ≈10.5K (auto-truncated with marker). 7.1 made caps per-agent (#84424) |
+| 6 | Compaction trigger ≈68% | Plus `midTurnPrecheck` (4.27), `maxActiveTranscriptBytes` (4.26), `memoryFlush.model` (4.27) |
+| 7 | `meta.lastTouchedVersion` migration | Auto-runs on first 5.2 start; auto-adds zai to `plugins.allow` when referenced |
+| 8 | Bonjour disabled by default | Bundled Compose gateways on bridge networking — `OPENCLAW_DISABLE_BONJOUR=0` opts back in |
+| 9 | GLM-5 consecutive-turn fix | v5.2 preserves prior context for z.ai/openrouter/in-house GLM gateways |
+| 10 | Anthropic-messages scoping | v4.20 — custom providers MUST set `api: "anthropic-messages"` |
+| 11 | plugins.entries vs skills.entries | `plugins.slots.memory: "none"` is the only single-knob memory-core disable |
+| 12 | External plugin migration | v5.2 moved ~26 channels/tools out of the bundle. **BlueBubbles fully removed in 5.12** |
+| 13 | tools.exec defaults → YOLO | v4.5 — gateway/node host now `security: "full", ask: "off"` |
+| 14 | messages.queue.mode default flipped | v4.29 — now `steer` with 500ms followup-fallback debounce |
+| 15 | rotateBytes deprecated | v4.27 — use `session.writeLock.acquireTimeoutMs` (default 60s) |
 
-### Community deep-read (anchors 16-21, added 2026-05-23 from r/openclaw)
+### Wave 2 — r/openclaw community deep-read, 2026-05-23 (applies at our pin)
 
 | # | Topic | One-liner |
 |---|-------|-----------|
-| 16 | Anthropic subscription cutover (Apr 4 2026) | Pro/Max OAuth-token extraction killed; sanctioned replacement is `providers.anthropic.type: "claude-cli"` + `mode: "oauth"`; 5h cap kills cron-on-sub |
-| 17 | CVE-2026-25253 + gateway-bind exposure | ~500k OpenClaw instances exposed on `0.0.0.0`; CVE patched, but config default still needs `gateway.bind: loopback` |
-| 18 | ClawHavoc supply-chain campaign | 1,467 malicious ClawHub skills caught; flagship `capability-evolver` (35k installs) exfiltrating data; **mandatory Skill Vetter + JamBot allowlist** |
-| 19 | `openclaw doctor` is destructive | `--fix` overwrites custom config with defaults; 3+ community gateway-crash incidents; **never let agents edit openclaw.json directly** |
-| 20 | QMD memory default shift | Default markdown+keyword memory under-performs; community converged on QMD plugin or memory-lancedb hybrid via `plugins.slots.memory` |
-| 21 | GLM-5 reliability divergence | Community signal diverges; JamBot triage: rule budget → anti-loop → version migration BEFORE escalating; don't panic-switch primary |
+| 16 | Anthropic subscription cutover | Pro/Max OAuth extraction killed 2026-04-04; use `providers.anthropic.type: "claude-cli"` + `mode: "oauth"`; 5h cap kills cron-on-sub |
+| 17 | CVE-2026-25253 + gateway-bind exposure | ~500k instances exposed on `0.0.0.0`; CVE patched, config default still needs `gateway.bind: loopback` |
+| 18 | ClawHavoc supply chain | 1,467 malicious ClawHub skills; flagship `capability-evolver` (35k installs) exfiltrating — **mandatory vetting + allowlist** |
+| 19 | `openclaw doctor` is destructive | `--fix` can overwrite custom config. **Version-scoped by #25** — reworked in 7.1 |
+| 20 | QMD memory default shift | Default markdown+keyword memory under-performs; community uses QMD or memory-lancedb via `plugins.slots.memory` |
+| 21 | GLM-5 reliability divergence | Triage rule budget → anti-loop → version migration BEFORE panic-switching the primary |
 
-Each anchor has a full file in `audit-anchors/anchor-NN-<slug>.md` with sources (changelog line numbers OR Reddit post IDs), exact config keys, and skill files affected.
+### Wave 3 — the v2026.5.7 → v2026.7.1 delta, audited 2026-07-25 (does NOT apply at our pin — these describe what breaks when it moves)
+
+| # | Topic | Version | One-liner |
+|---|-------|---------|-----------|
+| 22 | **Gateway fails closed on non-loopback bind** | 5.17 | 🔴 No shared-secret or trusted-proxy auth → gateway won't start. Image default command no longer bypasses config validation. **The upgrade blocker.** |
+| 23 | Pairing + trusted-proxy hardening | 5.12 | 🔴 Setup-code/browser/Control-UI pairing now require approval; trusted-proxy source validation hardened; partial relax in 5.19 |
+| 24 | Database-first SQLite migration | 6.5–6.9 | 🟠 State moves into SQLite — agent-repo snapshots + backups silently under-capture. `openclaw backup sqlite` is the new path |
+| 25 | `openclaw doctor` reworked | 7.1 | 🟢 Refuses to replace an unreadable `openclaw.json`; shows rather than applies sensitive changes; adds `--lint --only <check>` |
+| 26 | Agent cron scoping + WS protocol v4 | 7.1 / 5.19 | 🟠 Agent cron scoped to own jobs, mixed-version fails closed; gateway requires v4 clients (OVU-side check) |
+| 27 | GLM-5.2 + Z.AI thinking ladder | 6.8–7.1 | 🟡 `off/low/high/max` replaces binary thinking; 429s distinguish overload from rate-limit → retune the breaker |
+| 28 | `openclaw fleet` multi-tenant model | experimental | ℹ️ Upstream now documents per-tenant "cells" — our overrides can no longer claim the docs are silent. **Do not migrate onto it.** |
+
+---
 
 ## JamBot-specific overrides
 
-`overrides/` holds things JamBot does that docs don't describe:
+`overrides/` holds what JamBot does that docs don't describe. **The override wins.**
 
-- `openclaw-json-deltas.md` — the 4 critical fields (`thinkingDefault`, `trustedProxies`, `allowInsecureAuth`, `dangerouslyDisableDeviceAuth`) + compaction tuning
-- `docker-deployment.md` — `name: jambot-<user>` rule, `jambot-shared` network, NO `external: true` in compose
-- `voice-flow-quirks.md` — single-instance SpeechRecognition rule, wake-word abort loop
-- `multi-tenant-isolation.md` — per-user openclaw + openvoiceui pair, port registry
-- `skill-allowlist.md` *(added 2026-05-23)* — JamBot ClawHub allowlist + blocklist; mandatory vetting before adding to `/mnt/system/base/skills/`
-- `glm5-turbo-pin.md` *(added 2026-05-23)* — primary-model version policy + fallback chain; community-divergence triage
-
-When the user asks about anything in these overrides, **the override wins** — docs may describe a different deployment model.
+| File | Covers |
+|---|---|
+| `openclaw-json-deltas.md` | the 4 critical fields (`thinkingDefault`, `trustedProxies`, `allowInsecureAuth`, `dangerouslyDisableDeviceAuth`) + compaction tuning |
+| `config-edit-policy.md` | NON-NEGOTIABLE `openclaw.json` mutation rule — `openclaw config set` or template, never a direct edit |
+| `docker-deployment.md` | `name: jambot-<user>`, `jambot-shared`, no `external: true` in compose |
+| `multi-tenant-isolation.md` | per-tenant container pair/network/data tree, the deliberate `jambot-shared` hole, gaps vs upstream's hardened baseline |
+| `voice-flow-quirks.md` | single-instance SpeechRecognition rule, wake-word abort loop |
+| `skill-allowlist.md` | ClawHub allowlist/blocklist; mandatory vetting before anything enters `/mnt/system/base/skills/` |
+| `glm5-turbo-pin.md` | primary-model version policy + fallback chain; community-divergence triage |
 
 ## Playbooks (task-shaped recipes)
 
-`playbooks/` holds end-to-end workflows that span multiple doc pages:
+| File | Covers |
+|---|---|
+| `upgrade-5.7-to-7.x.md` | **the pending upgrade** — phased plan, gates, rollback. Status: NOT STARTED |
+| `provision-new-tenant.md` | openclaw-layer provisioning, verification, version-dependent traps |
+| `tune-compaction.md` | live JamBot values, diagnose-before-tune order, the 4.26/4.27 key map |
+| `add-new-channel.md` | channel plugin install, vetting, the allowlist hard-error trap |
+| `debug-empty-final.md` | the 13-fix MiniMax empty-response recovery cascade |
+| `safe-config-edit.md` | atomic, validated, git-tracked `openclaw.json` editing (anchor #19) |
+| `skill-install-vetting.md` | pre-install vetting workflow with Skill Vetter (anchor #18) |
+| `migrate-to-claude-cli-provider.md` | wiring `providers.anthropic.type: "claude-cli"` post-cutover (anchor #16) |
+| `cron-as-sub-agent.md` | heartbeats dispatch sub-agents, never run work directly (anchor #16's 5h cap) |
 
-- `debug-empty-final.md` — the 13-fix MiniMax empty-response recovery cascade
-- `tune-compaction.md` — sizing context window, cache TTL, transcript rotation
-- `provision-new-tenant.md` — full client provisioning flow
-- `add-new-channel.md` — Telegram/Discord/Slack channel onboarding
-- `migrate-to-claude-cli-provider.md` *(added 2026-05-23)* — wire `providers.anthropic.type: "claude-cli"` post-Apr-4-cutover; Docker install caveat
-- `safe-config-edit.md` *(added 2026-05-23)* — atomic, validated, git-tracked `openclaw.json` editing per anchor-19
-- `skill-install-vetting.md` *(added 2026-05-23)* — pre-install vetting workflow with Skill Vetter (anchor-18)
-- `cron-as-sub-agent.md` *(added 2026-05-23)* — heartbeats dispatch sub-agents, never run work directly (anchor-16 5h cap defense)
+---
 
-## Version metadata
+## Files
 
-| File | Purpose |
-|------|---------|
-| `catalog.json` | 464 doc pages × {url, section, relevance, annotation, audit_anchors, lastVerified, tags} |
-| `audit-anchors/anchor-NN-*.md` | 21 version-anchor correction files (15 changelog + 6 community deep-read) |
-| `annotations/<page-id>.md` | JamBot notes per upstream page (page id = url path with `/` → `__`) |
-| `cache/<page-id>.md` | Lazy-fetched frozen snapshot (24h TTL) |
-| `cache/<page-id>.meta.json` | Fetch metadata (sha256, fetchedAt, bytes) |
-| `overrides/*.md` | JamBot-specific deployment deltas |
-| `playbooks/*.md` | Multi-page task recipes |
-| `references/` | **DEPRECATED** — pre-redesign prose. Do not extend. New work goes into annotations or playbooks. |
-| `SKILL.md.pre-2026-05-04` | Frozen pre-redesign skill for archaeology |
+| Path | Purpose |
+|---|---|
+| `catalog.json` | 761 pages × {url, section, title, summary, relevance, annotation, audit_anchors, lastVerified, tags} |
+| `catalog.json.bak` | previous catalog, written by `refresh-catalog.sh` before every regen |
+| `audit-anchors/anchor-NN-*.md` + `README.md` | 28 anchors with version scope + upgrade reading order |
+| `annotations/<page-id>.md` | JamBot notes per upstream page (id = url path, `/` → `__`) |
+| `cache/<page-id>.md` (+ `.meta.json`) | lazy Markdown snapshot, 24h TTL |
+| `overrides/*.md` · `playbooks/*.md` | see tables above |
+| `reference/openclaw-2026.3.24-deep-reference.md` | frozen deep reference for the 3.24 era — historical, do not extend |
+| `references/` | **DEPRECATED** — pre-redesign prose. Do not extend. New work → annotations or playbooks |
+| `SKILL.md.pre-2026-05-04` | frozen pre-redesign skill for archaeology |
 
 ## Quick reference
 
 **Default ports:** Gateway WS `127.0.0.1:18789`, Clawdbot `18791`, Canvas host `18793`
-**Config file:** `~/.openclaw/openclaw.json` (JSON5)
-**Workspace:** `~/.openclaw/workspace/`
-**Logs:** `~/.openclaw/logs/`
-**Sessions:** `~/.openclaw/agents/<agent>/sessions/`
-**Cron runs:** `~/.openclaw/cron/runs/<jobId>.jsonl`
+**Config:** `~/.openclaw/openclaw.json` (JSON5) · **Workspace:** `~/.openclaw/workspace/` · **Logs:** `~/.openclaw/logs/`
+**Sessions:** `~/.openclaw/agents/<agent>/sessions/` · **Cron runs:** `~/.openclaw/cron/runs/<jobId>.jsonl`
+⚠️ On ≥2026.6.9 a growing share of this is SQLite, not files (anchor #24).
 
-**JamBot-specific paths:**
-- Container config: `/mnt/clients/<user>/openclaw/openclaw.json`
-- Container workspace: `/mnt/clients/<user>/openclaw/workspace/`
-- Shared skills (mounted into containers): `/mnt/system/base/skills/`
-- Canonical openclaw.json template: `/mnt/system/base/templates/openclaw.json`
+**JamBot paths:**
+- Tenant config: `/mnt/clients/<user>/openclaw/openclaw.json`
+- Tenant workspace: `/mnt/clients/<user>/openclaw/workspace/`
+- Shared skills (mounted into every container): `/mnt/system/base/skills/`
+- **Canonical config template:** `/mnt/system/base/templates/openclaw.json`
 
-## Diagnostic commands (verbatim)
+## Diagnostic commands
 
 ```bash
 openclaw status
 openclaw gateway status
-openclaw doctor                          # since v5.2 also runs meta.lastTouchedVersion migration
-openclaw gateway restart --force --wait 60s   # NEW v5.2 (anchor #15 territory)
+openclaw doctor                               # since v5.2 also runs meta.lastTouchedVersion migration
+openclaw doctor --help                        # RE-VERIFY flags after any version bump (anchor #25)
+openclaw gateway restart --force --wait 60s
 openclaw logs --follow
-openclaw channels status --probe
-openclaw plugins registry --refresh      # NEW v4.25
-openclaw plugins deps                    # NEW v4.27
-openclaw migrate plan --dry-run          # NEW v4.26
-openclaw sandbox explain                 # debug sandbox/tool-policy/elevated layering
+openclaw channels status --probe              # probes the provider; plain status only reports local belief
+openclaw plugins registry --refresh           # v4.25+
+openclaw plugins deps                         # v4.27+
+openclaw migrate plan --dry-run               # v4.26+
+openclaw sandbox explain                      # sandbox / tool-policy / elevated layering
+openclaw doctor --lint --all --json           # v7.1+ ONLY — non-mutating structured checks (anchor #25)
+openclaw backup sqlite create|list|verify     # v7.x — sanctioned state snapshot (anchor #24)
 ```
+
+In JamBot, prefix with `sg docker -c "docker exec openclaw-<tenant> ..."`.
 
 ## Maintenance discipline
 
-- After ANY OpenClaw upgrade: run `refresh-catalog.sh`. If exit code 2, review diff and add annotations for new high-relevance pages.
-- After hitting a production gotcha: write an annotation file, link it in `catalog.json`, bump `lastVerified` to today.
-- Annotations older than 60 days: re-verify with `bash scripts/lookup.sh stale 60`. If still correct, bump `lastVerified` only.
-- Never re-prose upstream docs in this skill. Cache them. Annotate the deltas.
+- **After any OpenClaw upgrade:** `refresh-catalog.sh` → `sync-annotations.py` → `link-anchors.py`, in that order. Exit 2 → review the diff and annotate new high-relevance pages. Exit 3 → the parser broke; fix it, don't force it.
+- **After a production gotcha:** write an annotation, bump its `last-verified`, re-run `sync-annotations.py`.
+- **Annotations older than 60 days:** `bash scripts/lookup.sh stale 60`. If still correct, bump `last-verified` only.
+- **Never re-prose upstream docs here.** Cache them. Annotate the deltas.
+- **State staleness honestly.** This skill's job is to be trusted about versions; a confident answer from a stale anchor is worse than "the anchor covers ≤6.x, let me check 7.x."
+
+### Known coverage gaps (as of 2026-07-25)
+
+- The 5.7→7.1 audit targeted **config, auth, storage, cron, protocol, and provider** behavior. **Channels, Control UI, macOS/iOS, and the Codex harness were NOT audited** across that delta.
+- 33 of 34 annotations are >60 days old (all predate the 7.x docs expansion).
+- 297 pages were added to the catalog in the 2026-07-25 rebuild; the new high-relevance ones (ClawHub section, `gateway/multi-tenant-hosting`, `tools/swarm`, `tools/code-mode`, `tools/permission-modes`, `plugins/reference/*`) have **no annotations yet**.
+- There is **no cron** running `refresh-catalog.sh`. Drift is found only when someone runs it by hand — which is how the parser break went unnoticed from ~2026-06 to 2026-07-25.

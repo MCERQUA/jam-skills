@@ -16,6 +16,18 @@ CATALOG = SKILL_DIR / "catalog.json"
 
 FM_RE = re.compile(r"^---\n(.*?)\n---", re.DOTALL)
 
+# Annotation filename -> current catalog page id, for upstream pages that were
+# renamed or retired out from under an annotation we still want to keep.
+# Verified against the 2026-07-25 catalog rebuild (761 pages).
+RENAMED_PAGES = {
+    "security__anti-loop": "tools__loop-detection",
+    "security__prompt-injection": "security__THREAT-MODEL-ATLAS",
+    "skills__skill-vetter": "clawhub__security-audits",
+    "providers__glm": "providers__zai",
+    "channels__bluebubbles": "channels__imessage-from-bluebubbles",
+    "plugins__skill-workshop": "tools__skill-workshop",
+}
+
 
 def parse_fm(text):
     m = FM_RE.match(text)
@@ -36,7 +48,15 @@ def main():
     updated = 0
     for ann_file in sorted(ANN_DIR.glob("*.md")):
         page_id = ann_file.stem  # filename without .md
-        page = by_id.get(page_id)
+        # Upstream collapsed section landing pages (`automation/index.md` ->
+        # `automation`) in ~2026-06. Annotation filenames keep the legacy `__index`
+        # spelling; alias both directions rather than renaming client-visible files.
+        page = (
+            by_id.get(page_id)
+            or by_id.get(page_id.removesuffix("__index"))
+            or by_id.get(f"{page_id}__index")
+            or by_id.get(RENAMED_PAGES.get(page_id, ""))
+        )
         if not page:
             print(f"  WARN: annotation '{ann_file.name}' has no matching catalog page id")
             continue

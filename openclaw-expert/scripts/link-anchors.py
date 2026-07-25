@@ -46,9 +46,40 @@ def parse_frontmatter(text: str) -> dict:
     return out
 
 
+# Upstream page ids that moved out from under an existing anchor's frontmatter.
+# Keep the anchor files historically accurate; remap here instead of rewriting them.
+RENAMED_PAGES = {
+    "providers__glm": "providers__zai",          # GLM docs consolidated under Z.AI in 5.22
+    "channels__bluebubbles": "channels__imessage-from-bluebubbles",
+    "skills__skill-vetter": "clawhub__security-audits",
+    "security__anti-loop": "tools__loop-detection",
+    "security__prompt-injection": "security__THREAT-MODEL-ATLAS",
+    "plugins__skill-workshop": "tools__skill-workshop",
+}
+
+
 def url_to_page_id(url: str) -> str:
-    path = url.replace("https://docs.openclaw.ai/", "").replace(".md", "")
+    path = url.replace("https://docs.openclaw.ai/", "")
+    if path.endswith(".md"):
+        path = path[:-3]
     return path.replace("/", "__")
+
+
+def resolve_page(pid: str, pages_by_id: dict):
+    """Resolve an anchor's page id against the current catalog.
+
+    Handles two upstream shifts: section landing pages collapsed
+    (`tools/index.md` -> `tools`), and pages renamed or merged outright.
+    """
+    for candidate in (
+        pid,
+        pid.removesuffix("__index"),
+        f"{pid}__index",
+        RENAMED_PAGES.get(pid, ""),
+    ):
+        if candidate and candidate in pages_by_id:
+            return pages_by_id[candidate]
+    return None
 
 
 def main():
@@ -71,7 +102,7 @@ def main():
             urls = [urls]
         for url in urls:
             pid = url_to_page_id(url)
-            page = pages_by_id.get(pid)
+            page = resolve_page(pid, pages_by_id)
             if page is None:
                 print(f"  WARN: anchor {anchor_num} references unknown page id '{pid}' (url: {url})")
                 continue

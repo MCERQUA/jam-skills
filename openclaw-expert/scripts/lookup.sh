@@ -32,8 +32,12 @@ SHIFT_ARG="${2:-}"
 python3 - "$CATALOG" "$QUERY" "$SHIFT_ARG" <<'PYEOF'
 import json
 import re
+import signal
 import sys
 from datetime import datetime, timezone, timedelta
+
+# `lookup.sh relevance:high | head` is the normal usage — don't traceback on SIGPIPE.
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 catalog_path, query, shift_arg = sys.argv[1], sys.argv[2], sys.argv[3]
 catalog = json.load(open(catalog_path))
@@ -58,10 +62,15 @@ def matches(p, kind, value):
         if not lv:
             return True
         dt = datetime.fromisoformat(lv.replace("Z", "+00:00"))
+        # Date-only values ("2026-05-24") parse NAIVE and used to crash the whole
+        # command with a TypeError. Assume UTC for anything without a tzinfo.
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
         return (datetime.now(timezone.utc) - dt) > timedelta(days=days)
-    # Fallback: keyword search
+    # Fallback: keyword search — includes the upstream one-line summary, which is
+    # often the only place a feature name appears (e.g. "Gmail PubSub", "swarms").
     blob = " ".join([
-        p["id"], p["title"], p["url"], p["section"],
+        p["id"], p["title"], p["url"], p["section"], p.get("summary") or "",
         " ".join(p.get("tags") or []),
     ]).lower()
     return value.lower() in blob
