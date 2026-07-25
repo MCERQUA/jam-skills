@@ -11,6 +11,38 @@ only thing enforcing the **$1.00/day hard spend cap**, per-action cost tracking,
 balance estimate, and the low-balance alarm. Raw calls bypass all of that and can drain the
 account's pay-per-use credits.
 
+
+## ⛔ LENGTH LIMITS — the #1 cause of "posting is broken"
+
+**If a post fails, CHECK LENGTH FIRST. It is almost always this.**
+
+| what | hard limit | note |
+|---|---|---|
+| tweet text | **280 characters** | every URL counts as **23** no matter how long — trimming a link saves nothing |
+| video | **140 seconds** | and 0.5s minimum, ≤512 MB, H.264 mp4/mov |
+| images | 4 per tweet | ≤5 MB each |
+
+x-guard now checks these BEFORE spending or uploading and tells you the exact
+overage plus the fix command. An over-length failure looks like this and is NOT
+an API fault:
+
+```
+TOO LONG — video is 151.7s, the X limit is 140s. You are 11.7s over.
+  THIS IS NOT A BROKEN API and retrying will not help. Trim it first:
+    ffmpeg -y -i in.mp4 -t 140 -c copy in-140s.mp4
+```
+
+**Do not report "X is broken" or "nothing I can do" on a length failure.** Trim and
+retry — that is the whole fix. Retrying the same over-length asset will fail forever.
+
+Trim a video:      `ffmpeg -y -i in.mp4 -t 140 -c copy out-140s.mp4`
+Check duration:    `ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 in.mp4`
+Count tweet chars: remember URLs = 23 each; if you are near 280, shorten prose, not links.
+
+For a video that MUST stay longer than 140s, X requires a different product tier —
+post a trimmed cut plus a link, or split it into a thread of ≤140s clips.
+
+
 ## ⚠️ CREDENTIAL ISOLATION — this skill is GLOBAL, credentials are NOT
 
 This is a shared/global skill (the same how-to for every tenant), but **X credentials are
