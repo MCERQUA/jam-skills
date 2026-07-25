@@ -57,8 +57,19 @@ compaction) can read it without paying for the work again.
 
 ```bash
 curl -s http://jambot-parakeet:8770/health
-# {"ok":true,"model":"istupakov/parakeet-tdt-0.6b-v3-onnx","loaded":true}
+# {"ok":true,"model":"istupakov/...","loaded":false,"idle_unload_s":900,"idle_s":1873}
 ```
+
+**`"loaded": false` is NORMAL and does NOT mean the service is broken.** The model
+is released from memory after 15 minutes with no traffic and reloaded on the next
+request — it holds ~2 GB resident, which is too much to keep parked for a service
+used a few times a day. `"ok": true` is the liveness signal; read that, not `loaded`.
+
+The cost is real and worth planning around: a request after an idle period spends
+**~18-35 seconds loading the model before it starts transcribing** (measured, not
+estimated). So give the FIRST call after a quiet spell a generous `--max-time` — 300+.
+If you are about to transcribe several files, the first one warms it and the rest run
+at full speed. Do not mistake that first slow call for a hang.
 
 ## Notes and limits
 
@@ -79,5 +90,6 @@ curl -s http://jambot-parakeet:8770/health
 |---|---|---|
 | `Could not resolve host: jambot-parakeet` | container not on `jambot-shared` | tell host@mesh — needs `docker network connect jambot-shared <your-container>` |
 | connection refused | service down | `curl .../health`; if it fails, tell host@mesh |
+| first call slow (~18-35s) | model reloading after idle | expected — see the health note above, not a fault. Use `--max-time 300`. |
 | 422 | wrong field name | the form field must be exactly `audio` |
 | empty `text` | file has no speech / no audio track | confirm the file actually has audio |
