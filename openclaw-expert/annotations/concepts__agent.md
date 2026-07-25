@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/concepts/agent.md
 relevance: jambot-critical
-last-verified: 2026-05-04
+last-verified: 2026-07-25
 audit_anchors: [4, 14]
 related_pages: [concepts__agent-loop, concepts__agent-runtimes, concepts__queue, concepts__system-prompt]
 ---
@@ -73,3 +73,22 @@ Per-file caps in v5.2: TOOLS.md ~24K, MEMORY.md ~10.5K, others ~20K. Auto-trunca
 - `overrides/voice-flow-quirks.md`
 - `/jambot-voice-flow` skill — STT, wake word, PTT lifecycle
 - `/jambot-performance` skill — heartbeat, contextPruning, compaction tuning
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 7/8 confirmed present in the 2026.5.7 schema.**
+
+Not resolvable as schema paths (expected for RPC method names, plugin-manifest fields, OTel metric names, and shorthand references — confirm the kind before treating as drift):
+
+- `agents.defaults.llm.idleTimeoutSeconds`
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

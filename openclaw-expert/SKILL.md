@@ -205,6 +205,7 @@ In JamBot, prefix with `sg docker -c "docker exec openclaw-<tenant> ..."`.
 ### Known coverage gaps (as of 2026-07-25)
 
 - The 5.7→7.1 audit targeted **config, auth, storage, cron, protocol, and provider** behavior. **Channels, Control UI, macOS/iOS, and the Codex harness were NOT audited** across that delta.
-- 33 of 34 annotations are >60 days old (all predate the 7.x docs expansion).
-- 297 pages were added to the catalog in the 2026-07-25 rebuild; the new high-relevance ones (ClawHub section, `gateway/multi-tenant-hosting`, `tools/swarm`, `tools/code-mode`, `tools/permission-modes`, `plugins/reference/*`) have **no annotations yet**.
+- **Annotations: 0 stale.** All 33 pre-existing annotations were re-verified 2026-07-25 and 4 new ones added (38 pages carry an annotation; some files are linked from two pages). Each carries a `<!-- verification-stamp -->` block stating exactly what was checked — **config keys against the live `2026.5.7` binary schema, not prose against 7.x docs.** Read the stamp before trusting a page's currency for 7.x.
+- 297 pages were added in the 2026-07-25 rebuild. Annotated so far: `gateway/security/exposure-runbook`, `tools/permission-modes`, `concepts/multi-user`, `tools/swarm`. **Still unannotated:** the ClawHub section, `gateway/multi-tenant-hosting` (covered by anchor #28 instead), `tools/code-mode`, `tools/workboard`, and all of `plugins/reference/*`.
 - There is **no cron** running `refresh-catalog.sh`. Drift is found only when someone runs it by hand — which is how the parser break went unnoticed from ~2026-06 to 2026-07-25.
+- **`openclaw security audit` is not wired into monitoring** despite existing at our pin. It currently reports 1 critical + 2 warn on every tenant — all knowingly accepted; see `annotations/gateway__security__exposure-runbook.md`.

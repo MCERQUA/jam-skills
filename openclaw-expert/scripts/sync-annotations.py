@@ -64,15 +64,24 @@ def main():
         fm = parse_fm(ann_file.read_text())
         rel_path = f"annotations/{ann_file.name}"
 
-        page["annotation"] = rel_path
-        if fm.get("last-verified"):
-            page["lastVerified"] = f"{fm['last-verified']}T00:00:00+00:00"
-        if fm.get("relevance") == "jambot-critical":
-            page["relevance"] = "high"
-            tags = page.get("tags") or []
-            if "jambot-critical" not in tags:
-                tags.append("jambot-critical")
-            page["tags"] = tags
+        # A single annotation file can be pointed at by more than one page — e.g. a
+        # renamed upstream page keeps the old link while the remap adds the new one.
+        # Stamp lastVerified on EVERY page pointing at this file, or a page keeps
+        # reporting stale after the annotation was re-verified.
+        targets = [page] + [
+            p for p in catalog["pages"]
+            if p is not page and p.get("annotation") == rel_path
+        ]
+        for target in targets:
+            target["annotation"] = rel_path
+            if fm.get("last-verified"):
+                target["lastVerified"] = f"{fm['last-verified']}T00:00:00+00:00"
+            if fm.get("relevance") == "jambot-critical":
+                target["relevance"] = "high"
+                tags = target.get("tags") or []
+                if "jambot-critical" not in tags:
+                    tags.append("jambot-critical")
+                target["tags"] = tags
         updated += 1
 
     CATALOG.write_text(json.dumps(catalog, indent=2) + "\n")

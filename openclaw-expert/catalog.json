@@ -1,7 +1,7 @@
 {
   "schema": "openclaw-expert-catalog/1",
   "upstream": "https://docs.openclaw.ai/llms.txt",
-  "fetchedAt": "2026-07-25T21:07:24+00:00",
+  "fetchedAt": "2026-07-25T21:52:33+00:00",
   "upstreamSha256": "be0e13e0927a601fd90a627ad0d51f4d3da7586981445129d254a3a278928a7b",
   "pageCount": 761,
   "relevanceCounts": {
@@ -1497,9 +1497,10 @@
       "annotation": "annotations/concepts__active-memory.md",
       "audit_anchors": [
         2,
+        11,
         20
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -1513,9 +1514,10 @@
       "relevance": "high",
       "annotation": "annotations/concepts__agent.md",
       "audit_anchors": [
-        4
+        4,
+        14
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -1605,7 +1607,7 @@
       "audit_anchors": [
         6
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -1643,7 +1645,7 @@
       "relevance": "high",
       "annotation": "annotations/concepts__delegate-architecture.md",
       "audit_anchors": [],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": []
     },
     {
@@ -1752,9 +1754,11 @@
       "annotation": "annotations/concepts__memory.md",
       "audit_anchors": [
         2,
+        5,
+        11,
         20
       ],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -1890,10 +1894,14 @@
       "title": "Multi-user mode",
       "summary": "How session ownership and presence work when several people operate one agent",
       "relevance": "high",
-      "annotation": null,
-      "audit_anchors": [],
-      "lastVerified": null,
-      "tags": []
+      "annotation": "annotations/concepts__multi-user.md",
+      "audit_anchors": [
+        28
+      ],
+      "lastVerified": "2026-07-25T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
     },
     {
       "id": "concepts__oauth",
@@ -1978,7 +1986,7 @@
       "audit_anchors": [
         14
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -2020,9 +2028,10 @@
       "relevance": "high",
       "annotation": "annotations/concepts__session.md",
       "audit_anchors": [
+        6,
         15
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -2110,7 +2119,7 @@
       "audit_anchors": [
         5
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -2349,11 +2358,16 @@
       "audit_anchors": [
         3,
         4,
+        6,
         7,
+        11,
+        13,
+        14,
         15,
-        17
+        17,
+        19
       ],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -2474,8 +2488,10 @@
       "summary": "Heartbeat polling messages and notification rules",
       "relevance": "high",
       "annotation": "annotations/gateway__heartbeat.md",
-      "audit_anchors": [],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "audit_anchors": [
+        16
+      ],
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": []
     },
     {
@@ -2650,7 +2666,7 @@
       "audit_anchors": [
         26
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": []
     },
     {
@@ -2700,7 +2716,7 @@
       "audit_anchors": [
         13
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -2802,7 +2818,7 @@
       "audit_anchors": [
         23
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -2826,12 +2842,17 @@
       "title": "Gateway exposure runbook",
       "summary": "Pre-flight and rollback checklist before exposing an OpenClaw Gateway beyond loopback",
       "relevance": "high",
-      "annotation": null,
+      "annotation": "annotations/gateway__security__exposure-runbook.md",
       "audit_anchors": [
-        22
+        17,
+        22,
+        23,
+        28
       ],
-      "lastVerified": null,
-      "tags": []
+      "lastVerified": "2026-07-25T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
     },
     {
       "id": "gateway__security__rate-limiting",
@@ -2986,10 +3007,13 @@
       "relevance": "high",
       "annotation": "annotations/help__troubleshooting.md",
       "audit_anchors": [
+        3,
+        7,
+        8,
         19,
         25
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -3139,9 +3163,10 @@
       "relevance": "high",
       "annotation": "annotations/install__hetzner.md",
       "audit_anchors": [
+        8,
         17
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -3858,7 +3883,7 @@
         18,
         20
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -3932,7 +3957,7 @@
       "relevance": "high",
       "annotation": "annotations/plugins__codex-computer-use.md",
       "audit_anchors": [],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -6187,8 +6212,10 @@
       "summary": "Place outbound and accept inbound voice calls via Twilio, Telnyx, or Plivo, with optional realtime voice and streaming transcription",
       "relevance": "high",
       "annotation": "annotations/plugins__voice-call.md",
-      "audit_anchors": [],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "audit_anchors": [
+        12
+      ],
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -6265,7 +6292,7 @@
         10,
         16
       ],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -6447,7 +6474,7 @@
       "relevance": "low",
       "annotation": "annotations/providers__deepseek.md",
       "audit_anchors": [],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": []
     },
     {
@@ -6675,7 +6702,7 @@
       "relevance": "high",
       "annotation": "annotations/providers__minimax.md",
       "audit_anchors": [],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -7040,10 +7067,11 @@
       "annotation": "annotations/providers__zai.md",
       "audit_anchors": [
         9,
+        10,
         21,
         27
       ],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -7542,7 +7570,7 @@
       "relevance": "high",
       "annotation": "annotations/automation__index.md",
       "audit_anchors": [],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -7570,7 +7598,7 @@
       "audit_anchors": [
         12
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -7763,8 +7791,10 @@
       "summary": "How to understand ClawHub security audit results before installing a skill or plugin.",
       "relevance": "high",
       "annotation": "annotations/skills__skill-vetter.md",
-      "audit_anchors": [],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "audit_anchors": [
+        18
+      ],
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -7816,7 +7846,7 @@
       "audit_anchors": [
         19
       ],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -8045,8 +8075,11 @@
       "summary": "Model providers (LLMs) supported by OpenClaw",
       "relevance": "high",
       "annotation": "annotations/providers__index.md",
-      "audit_anchors": [],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "audit_anchors": [
+        9,
+        10
+      ],
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -8219,8 +8252,10 @@
       "summary": "OpenClaw threat model mapped to the MITRE ATLAS framework",
       "relevance": "high",
       "annotation": "annotations/security__prompt-injection.md",
-      "audit_anchors": [],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "audit_anchors": [
+        18
+      ],
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -8617,9 +8652,13 @@
       "summary": "Redirect to /clawhub",
       "relevance": "high",
       "annotation": "annotations/skills__skill-vetter.md",
-      "audit_anchors": [],
-      "lastVerified": "2026-05-24",
-      "tags": []
+      "audit_anchors": [
+        18
+      ],
+      "lastVerified": "2026-07-25T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
     },
     {
       "id": "tools__code-execution",
@@ -8716,7 +8755,7 @@
       "audit_anchors": [
         13
       ],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -8852,7 +8891,7 @@
       "relevance": "high",
       "annotation": "annotations/security__anti-loop.md",
       "audit_anchors": [],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -8948,10 +8987,15 @@
       "title": "Permission modes",
       "summary": "Permission modes for host exec, Codex Guardian approvals, and ACPX harness sessions",
       "relevance": "high",
-      "annotation": null,
-      "audit_anchors": [],
-      "lastVerified": null,
-      "tags": []
+      "annotation": "annotations/tools__permission-modes.md",
+      "audit_anchors": [
+        13,
+        22
+      ],
+      "lastVerified": "2026-07-25T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
     },
     {
       "id": "tools__perplexity-search",
@@ -9061,7 +9105,7 @@
         11,
         18
       ],
-      "lastVerified": "2026-05-23T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "jambot-critical"
       ]
@@ -9113,7 +9157,7 @@
       "relevance": "high",
       "annotation": "annotations/tools__subagents.md",
       "audit_anchors": [],
-      "lastVerified": "2026-07-11T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": [
         "subagents",
         "sessions_yield",
@@ -9128,10 +9172,14 @@
       "title": "Swarm",
       "summary": "Orchestrate concurrent sub-agents from Code Mode scripts with structured results, bounded fan-out, and live progress",
       "relevance": "high",
-      "annotation": null,
-      "audit_anchors": [],
-      "lastVerified": null,
-      "tags": []
+      "annotation": "annotations/tools__swarm.md",
+      "audit_anchors": [
+        24
+      ],
+      "lastVerified": "2026-07-25T00:00:00+00:00",
+      "tags": [
+        "jambot-critical"
+      ]
     },
     {
       "id": "tools__tavily",
@@ -9192,7 +9240,7 @@
       "relevance": "high",
       "annotation": "annotations/tools__trajectory.md",
       "audit_anchors": [],
-      "lastVerified": "2026-05-04T00:00:00+00:00",
+      "lastVerified": "2026-07-25T00:00:00+00:00",
       "tags": []
     },
     {

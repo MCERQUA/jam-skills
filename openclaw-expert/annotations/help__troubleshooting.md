@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/help/troubleshooting.md
 relevance: jambot-critical
-last-verified: 2026-05-04
+last-verified: 2026-07-25
 audit_anchors: [3, 7, 8]
 related_pages: [help__faq, help__debugging, gateway__doctor, gateway__troubleshooting]
 ---
@@ -86,3 +86,18 @@ v4.29 added `Restart=always` / `RestartPreventExitStatus=78` to systemd/launchd 
 - `annotations/tools__exec.md` — anchor #13 YOLO defaults
 - `/jambot-session-monitor` skill — secondary monitoring layer
 - `bare-no-response-fix.md` (memory)
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 2/2 confirmed present in the 2026.5.7 schema.**
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

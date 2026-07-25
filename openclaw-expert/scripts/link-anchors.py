@@ -110,6 +110,32 @@ def main():
                 page["audit_anchors"].append(anchor_num)
                 linked_count += 1
 
+    # Second direction: an annotation may declare `audit_anchors: [13, 22]` in its
+    # own frontmatter for a page the anchor file doesn't list as an upstream_page.
+    # Without this, a correct declaration in the annotation is silently ignored and
+    # `lookup.sh anchor:N` misses the page.
+    ann_dir = SKILL_DIR / "annotations"
+    for page in catalog["pages"]:
+        rel = page.get("annotation")
+        if not rel:
+            continue
+        ann_file = SKILL_DIR / rel
+        if not ann_file.exists():
+            continue
+        raw = parse_frontmatter(ann_file.read_text()).get("audit_anchors")
+        if not raw:
+            continue
+        if isinstance(raw, str):
+            raw = re.findall(r"\d+", raw)
+        for n in raw:
+            try:
+                n = int(str(n).strip())
+            except ValueError:
+                continue
+            if n not in page["audit_anchors"]:
+                page["audit_anchors"].append(n)
+                linked_count += 1
+
     # Sort audit_anchors per page for stability
     for p in catalog["pages"]:
         p["audit_anchors"].sort()

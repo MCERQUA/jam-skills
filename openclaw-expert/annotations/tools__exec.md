@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/tools/exec.md
 relevance: jambot-critical
-last-verified: 2026-05-04
+last-verified: 2026-07-25
 audit_anchors: [13]
 related_overrides: [openclaw-json-deltas.md]
 related_pages: [tools__exec-approvals, gateway__sandbox-vs-tool-policy-vs-elevated]
@@ -46,6 +46,12 @@ If you DO add `agents.list[N].tools.allow: ["exec", ...]`, v5.2 hard-errors at c
 - v4.27 line 1249: `host=auto` no longer cross-host-overrides; `host=node` preserved when configured
 - v4.5 line 3020: `browser.ssrfPolicy.allowPrivateNetwork` REMOVED; use per-policy CIDR fields
 
+> **⚠️ KEY NAME CORRECTED 2026-07-25.** The removed key is right, but the replacement is not
+> "per-policy CIDR fields" generically — at `2026.5.7` the live schema exposes
+> `browser.ssrfPolicy.dangerouslyAllowPrivateNetwork`, `browser.ssrfPolicy.allowedHostnames`,
+> and `browser.ssrfPolicy.hostnameAllowlist`. Grepping for `allowPrivateNetwork` finds nothing;
+> the modern spelling carries the `dangerously` prefix.
+
 ## Burns / incidents
 
 - 2026-05-04 audit: production-observed strict allowlist hard-error from anchor #3 — verified path
@@ -56,3 +62,23 @@ If you DO add `agents.list[N].tools.allow: ["exec", ...]`, v5.2 hard-errors at c
 - `overrides/jambot-exec-policy.md` (TODO write)
 - `overrides/openclaw-json-deltas.md`
 - `/mnt/system/base/templates/openclaw.json`
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 2/4 confirmed present in the 2026.5.7 schema.**
+
+Not resolvable as schema paths (expected for RPC method names, plugin-manifest fields, OTel metric names, and shorthand references — confirm the kind before treating as drift):
+
+- `browser.ssrfPolicy.allowPrivateNetwork`
+- `system.run`
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

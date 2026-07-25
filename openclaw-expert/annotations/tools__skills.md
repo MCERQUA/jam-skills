@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/tools/skills.md
 relevance: jambot-critical
-last-verified: 2026-05-23
+last-verified: 2026-07-25
 audit_anchors: [11, 18]
 related_pages: [tools__skills-config, tools__creating-skills, tools__clawhub, plugins__architecture]
 ---
@@ -36,7 +36,7 @@ For memory specifically, the single-knob kill switch is `plugins.slots.memory: "
 | Surface | Introduced | Source |
 |---------|-----------|--------|
 | `skills.entries.coding-agent.enabled` strictly required | v4.27 line 837 | Bundled coding-agent skill won't expose without this |
-| Skills snapshot invalidates on `skills.allowBundled` / `skills.entries.<id>.enabled` / `skills.profile` writes | v4.15 line 2478 | Re-bootstrap on next turn |
+| Skills snapshot invalidates on `skills.allowBundled` / `skills.entries.<id>.enabled` writes (NOT `skills.profile` — see correction below) | v4.15 line 2478 | Re-bootstrap on next turn |
 | `metadata.clawdbot.requires` / `metadata.clawdbot.install` legacy compat | v4.25 line 1902 | Honor legacy when `metadata.openclaw` absent |
 | Chokidar v5 hot-reload | v4.25 | New file-watcher behavior |
 | TaskFlow / coding-agent bundled-skill enablement gating | v4.10 / v4.27 | strict gating |
@@ -104,3 +104,30 @@ Per memory `feedback_research_latest_versions`: never trust cached version knowl
 - `feedback_tools_md_routing.md` (memory) — TOOLS.md routing rule
 - `/maintain-skills` skill — JamBot-side skills audit tool
 - `/setup-skills` skill — JamBot-side skill installer
+
+---
+
+> **⚠️ CORRECTED 2026-07-25 — `skills.profile` does not exist.** Verified absent from the live
+> `2026.5.7` schema (`openclaw config schema`, 6,441 paths — the only `skills.*` keys are
+> `allowBundled`, `entries.*`, `install.*`, `limits.*`, `load.*`) **and** absent from the 7.x
+> config-reference docs. The snapshot-invalidation claim holds for `skills.allowBundled` and
+> `skills.entries.<id>.enabled`; treat the third as an error in the original audit, not a key to set.
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 3/6 confirmed present in the 2026.5.7 schema.**
+
+Not resolvable as schema paths (expected for RPC method names, plugin-manifest fields, OTel metric names, and shorthand references — confirm the kind before treating as drift):
+
+- `skills.entries.X.enabled`
+- `skills.entries.coding-agent.enabled`
+- `skills.profile`
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/cli/index.md
 relevance: jambot-critical
-last-verified: 2026-05-23
+last-verified: 2026-07-25
 audit_anchors: [19]
 related_pages: [cli__gateway, cli__doctor, cli__plugins, cli__sessions, cli__sandbox, help__troubleshooting]
 ---
@@ -118,3 +118,18 @@ openclaw infer model run --gateway "test prompt"  # test LLM without bootstrap
 - `annotations/help__troubleshooting.md` — triage ladder
 - `audit-anchors/anchor-{3,7,12}.md`
 - `/jambot-openclaw` skill — container UIDs, z-code wrapper, `jb` CLI
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**No config keys asserted here** — nothing schema-checkable; prose-only annotation.
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

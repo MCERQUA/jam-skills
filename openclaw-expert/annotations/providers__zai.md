@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/providers/zai.md
 relevance: jambot-critical
-last-verified: 2026-05-23
+last-verified: 2026-07-25
 audit_anchors: [9, 10, 21]
 related_pages: [providers__glm, providers__minimax, providers__index, providers__anthropic]
 ---
@@ -72,3 +72,18 @@ The standing rule (MiniMax=primary, GLM=fallback) still applies — this is an o
 - `overrides/openclaw-json-deltas.md` — thinkingDefault rule
 - `glm-primary-temporary-swap.md` (in memory) — current operational state
 - `feedback_hermes_primary_llm.md` (in memory) — standing rule
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 1/1 confirmed present in the 2026.5.7 schema.**
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

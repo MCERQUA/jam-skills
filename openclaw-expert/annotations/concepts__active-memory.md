@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/concepts/active-memory.md
 relevance: jambot-critical
-last-verified: 2026-05-04
+last-verified: 2026-07-25
 audit_anchors: [2, 11]
 related_pages: [concepts__memory, concepts__memory-search, concepts__memory-builtin]
 ---
@@ -60,3 +60,18 @@ Keep enabled. Recall quality > latency for our use case. Memory-core's sub-agent
 - `annotations/concepts__compaction.md`
 - `/jambot-performance` skill — perf tuning
 - `docs/jambot/office-system-overview.md` — Office filing-cabinet (replaces some memory-wiki use cases)
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 4/4 confirmed present in the 2026.5.7 schema.**
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/concepts/system-prompt.md
 relevance: jambot-critical
-last-verified: 2026-05-04
+last-verified: 2026-07-25
 audit_anchors: [5]
 related_pages: [concepts__agent-workspace, reference__templates__AGENTS]
 ---
@@ -56,9 +56,15 @@ Order matters when caps bite — files later in the order may be more truncated.
 Session `skillsSnapshot` invalidates when ANY of these write:
 - `skills.allowBundled`
 - `skills.entries.<id>.enabled`
-- `skills.profile`
+- ~~`skills.profile`~~ — **does not exist**, see correction below
 
 Forces a re-bootstrap on next turn.
+
+> **⚠️ CORRECTED 2026-07-25 — `skills.profile` does not exist.** Verified absent from the live
+> `2026.5.7` schema (`openclaw config schema`, 6,441 paths — the only `skills.*` keys are
+> `allowBundled`, `entries.*`, `install.*`, `limits.*`, `load.*`) **and** absent from the 7.x
+> config-reference docs. The snapshot-invalidation claim holds for `skills.allowBundled` and
+> `skills.entries.<id>.enabled`; treat the third as an error in the original audit, not a key to set.
 
 ## /context commands
 
@@ -78,3 +84,22 @@ Forces a re-bootstrap on next turn.
 - `/home/mike/.claude/projects/-home-mike-MIKE-AI/memory/MEMORY.md` (the file getting truncated)
 - `docs/jambot/openvoiceui-system-prompt.md`
 - `annotations/concepts__memory.md`
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 3/4 confirmed present in the 2026.5.7 schema.**
+
+Not resolvable as schema paths (expected for RPC method names, plugin-manifest fields, OTel metric names, and shorthand references — confirm the kind before treating as drift):
+
+- `skills.profile`
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

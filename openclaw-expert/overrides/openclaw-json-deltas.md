@@ -10,8 +10,23 @@ These four fields MUST exist in every JamBot client's openclaw.json:
 |-------|-------|-----|
 | `thinkingDefault` | `"off"` | Z.AI/GLM returns thinking-only blocks with NO visible text without this — visible text disappears |
 | `trustedProxies` | `["172.0.0.0/8", "10.0.0.0/8"]` | Required for Docker network WebSocket connections (openvoiceui→openclaw via internal bridge). See anchor in `gateway/trusted-proxy-auth.md` |
-| `allowInsecureAuth` | `true` | Bypasses control UI auth — fine for single-tenant container behind nginx |
-| `dangerouslyDisableDeviceAuth` | `true` | **CRITICAL** — disables WebSocket device pairing. Without this, sessions get `NOT_PAIRED` forever |
+| `allowInsecureAuth` | `true` | Relaxes the secure-context requirement for the Control UI. ⚠️ **It does NOT bypass device identity checks** — see the correction below |
+| `dangerouslyDisableDeviceAuth` | `true` | **CRITICAL** — disables WebSocket device pairing. Without this, sessions get `NOT_PAIRED` forever. This is the flag that actually disables device identity |
+
+> **⚠️ CORRECTED 2026-07-25 — the two flags do different things, and we had them conflated.**
+> Verified by running `openclaw security audit` inside `openclaw-test-dev` at `2026.5.7`. The
+> binary's own finding text:
+>
+> > `gateway.controlUi.allowInsecureAuth=true` **does not bypass secure context or device identity
+> > checks; only `dangerouslyDisableDeviceAuth` disables Control UI device identity checks.**
+>
+> So "bypasses control UI auth" was wrong for `allowInsecureAuth`. Practical consequence: if you
+> ever try to reduce risk by dropping `dangerouslyDisableDeviceAuth` and keeping `allowInsecureAuth`,
+> you get `NOT_PAIRED` sessions — the flag you kept was never the one doing that work.
+>
+> Both flags are **knowingly accepted risk** for JamBot (audit rates them CRITICAL + WARN). The
+> justification is the deployment shape, not a claim that the audit is wrong — see
+> `annotations/gateway__security__exposure-runbook.md` for the recorded accepted-risk entry.
 
 ## Forbidden field
 

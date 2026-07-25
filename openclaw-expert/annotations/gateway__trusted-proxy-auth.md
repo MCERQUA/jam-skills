@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/gateway/trusted-proxy-auth.md
 relevance: jambot-critical
-last-verified: 2026-05-04
+last-verified: 2026-07-25
 audit_anchors: []
 related_overrides: [openclaw-json-deltas.md, docker-deployment.md]
 related_pages: [gateway__authentication, gateway__operator-scopes]
@@ -65,3 +65,18 @@ Multi-tenant CRM (`crm.jam-bot.com` + `<user>.crm.jam-bot.com`) → could route 
 - `overrides/openclaw-json-deltas.md` — `trustedProxies` + `dangerouslyDisableDeviceAuth` setup
 - `overrides/docker-deployment.md` — network topology
 - `clerk-signup-config.md` (memory) — Clerk auth chain context
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 7/7 confirmed present in the 2026.5.7 schema.**
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

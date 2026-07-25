@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/gateway/protocol.md
 relevance: high
-last-verified: 2026-05-04
+last-verified: 2026-07-25
 audit_anchors: []
 related_pages: [gateway__configuration, gateway__bridge-protocol, gateway__openai-http-api, gateway__tools-invoke-http-api]
 ---
@@ -67,3 +67,18 @@ v5.2 line 47: GPT-5 API-key sessions in fresh Control UI/WebChat default to Open
 - `overrides/openclaw-json-deltas.md` — `dangerouslyDisableDeviceAuth` + `trustedProxies`
 - `overrides/docker-deployment.md` — internal `ws://openclaw:18789`
 - `annotations/gateway__configuration.md` — config side
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**No config keys asserted here** — nothing schema-checkable; prose-only annotation.
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

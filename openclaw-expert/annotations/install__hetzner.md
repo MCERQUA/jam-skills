@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/install/hetzner.md
 relevance: jambot-critical
-last-verified: 2026-05-04
+last-verified: 2026-07-25
 audit_anchors: [8]
 related_overrides: [docker-deployment.md]
 related_pages: [install__docker, install__updating]
@@ -72,3 +72,18 @@ When upgrading client containers from <5.2:
 - `/jambot-openclaw` skill — Dockerfile + z-code wrapper
 - `/docker` skill — image registry discipline
 - `docs/jambot/docker-images-registry.md`
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**No config keys asserted here** — nothing schema-checkable; prose-only annotation.
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

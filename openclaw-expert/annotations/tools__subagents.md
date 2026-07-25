@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/tools/subagents.md
 relevance: jambot-high
-last-verified: 2026-07-11
+last-verified: 2026-07-25
 audit_anchors: []
 related_pages: [automation__tasks, gateway__heartbeat, concepts__queue, gateway__protocol]
 ---
@@ -64,3 +64,18 @@ learned alias→canonical table, falling back to stripping the
 - `/mnt/system/base/OpenVoiceUI/src/app.js` — `proactive_message` handler,
   WS auto-reconnect
 - `/mnt/system/base/templates/AGENTS.md` — the agent-facing contract
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 1/1 confirmed present in the 2026.5.7 schema.**
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

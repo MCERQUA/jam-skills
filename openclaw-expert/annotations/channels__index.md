@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/channels/index.md
 relevance: jambot-critical
-last-verified: 2026-05-04
+last-verified: 2026-07-25
 audit_anchors: [12]
 related_pages: [channels__access-groups, channels__channel-routing, channels__group-messages]
 ---
@@ -59,3 +59,18 @@ For any client we add a real channel to (e.g. customer-facing Telegram bot), use
 - `annotations/plugins__voice-call.md`
 - `/twilio-dev` skill — relevant for any phone channel work
 - `docs/jambot/client-registry.md` — per-client channel state (currently none beyond webchat)
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 2/2 confirmed present in the 2026.5.7 schema.**
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

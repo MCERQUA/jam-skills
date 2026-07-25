@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/gateway/configuration.md
 relevance: jambot-critical
-last-verified: 2026-05-23
+last-verified: 2026-07-25
 audit_anchors: [6, 7, 11, 13, 14, 15, 17, 19]
 related_overrides: [openclaw-json-deltas.md, glm5-turbo-pin.md, skill-allowlist.md]
 ---
@@ -102,6 +102,12 @@ JamBot configs may still have these — proactively clean:
 - `agents.<>.sandbox.perSession` — v4.5 → use `sandbox.scope` + `enabled`
 - `hooks.internal.handlers` — v4.5 → use `hooks.transformsDir`
 - `browser.ssrfPolicy.allowPrivateNetwork` — v4.5 → per-policy CIDR fields
+
+> **⚠️ KEY NAME CORRECTED 2026-07-25.** The removed key is right, but the replacement is not
+> "per-policy CIDR fields" generically — at `2026.5.7` the live schema exposes
+> `browser.ssrfPolicy.dangerouslyAllowPrivateNetwork`, `browser.ssrfPolicy.allowedHostnames`,
+> and `browser.ssrfPolicy.hostnameAllowlist`. Grepping for `allowPrivateNetwork` finds nothing;
+> the modern spelling carries the `dangerously` prefix.
 - `MOLTBOT_*`, `CLAWDBOT_*` env vars — v4.27 warns; use `OPENCLAW_*`
 - `dreaming.storage.mode: "inline"` — v4.15 default flipped to `"separate"`
 
@@ -112,3 +118,25 @@ JamBot configs may still have these — proactively clean:
 - `audit-anchors/anchor-{6,7,11,13,14,15}.md`
 - `/jambot-performance` skill — full perf tuning context
 - `docs/jambot/openclaw-skill-update-2026-05-04.md` §2.1, §3, §4
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**Config keys asserted here: 23/27 confirmed present in the 2026.5.7 schema.**
+
+Not resolvable as schema paths (expected for RPC method names, plugin-manifest fields, OTel metric names, and shorthand references — confirm the kind before treating as drift):
+
+- `browser.ssrfPolicy.allowPrivateNetwork`
+- `hooks.internal.handlers`
+- `talk.apiKey`
+- `talk.voiceId`
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.

@@ -1,7 +1,7 @@
 ---
 upstream: https://docs.openclaw.ai/concepts/memory.md
 relevance: jambot-critical
-last-verified: 2026-05-23
+last-verified: 2026-07-25
 audit_anchors: [2, 5, 11, 20]
 related_pages: [concepts__active-memory, concepts__memory-builtin, concepts__memory-search, concepts__heartbeat]
 ---
@@ -128,3 +128,18 @@ JamBot doesn't use `memory-wiki` — we have the Office filing-cabinet system (`
 - `docs/jambot/office-system-overview.md` — Office filing cabinet (replaces memory-wiki use case)
 - `/jambot-performance` skill — memory perf tuning
 - `/home/mike/.claude/projects/-home-mike-MIKE-AI/memory/MEMORY.md` — the file in question
+
+---
+
+<!-- verification-stamp -->
+## Verification — 2026-07-25
+
+**Method (be precise about what this stamp does and does not mean):**
+
+- Every config key this file asserts was checked against the **live schema of the version JamBot actually runs** — `openclaw config schema` inside `openclaw-test-dev` at `2026.5.7`, 6,441 schema paths.
+- Upstream page re-fetched as Markdown on 2026-07-25 (`scripts/fetch-page.sh --no-cache`).
+- **Not done:** the prose was not re-read line-by-line against the 7.x docs. Upstream is at `2026.7.1`; this file is verified for our pin, not for upstream HEAD.
+
+**No config keys asserted here** — nothing schema-checkable; prose-only annotation.
+
+If you change this file, re-run `python3 scripts/sync-annotations.py` so `lastVerified` reaches `catalog.json`.
