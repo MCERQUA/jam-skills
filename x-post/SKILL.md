@@ -12,6 +12,40 @@ balance estimate, and the low-balance alarm. Raw calls bypass all of that and ca
 account's pay-per-use credits.
 
 
+## ✅ ALWAYS PREFLIGHT FIRST — this is the whole workflow
+
+**Do not attempt a post and see what happens. Check, fix, post once.**
+
+```sh
+$GX preflight "<your text>" [media paths...]     # sends nothing, costs nothing
+```
+
+It validates auth, remaining daily budget, text length, video duration/size,
+image size and attachment count IN ONE CALL, and prints either
+`PREFLIGHT PASS — safe to post` or an exact list of what to fix with the fix command.
+
+```
+✗ VIDEO clip.mp4: 151.7s > 140s limit. FIX:
+      ffmpeg -y -i clip.mp4 -t 139 -c copy clip-140s.mp4
+      then post clip-140s.mp4
+```
+
+### The rule
+
+1. `preflight` → 2. fix everything it lists → 3. post ONCE.
+
+**If a post fails, run `preflight` to find out why. Do not retry the same thing
+unchanged — it will fail identically, every time.**
+
+**NEVER report "X is broken", "the API is down", or "nothing I can do" without
+running `preflight` first.** In practice the cause is almost always length, and
+length is fixable by you, right now, without asking anyone. Reporting a fixable
+problem back to Mike instead of fixing it is the failure — not the original error.
+
+Only escalate when preflight PASSES and the post still fails. That is a genuine
+fault worth a human. Anything preflight catches is yours to fix and re-run.
+
+
 ## ⛔ LENGTH LIMITS — the #1 cause of "posting is broken"
 
 **If a post fails, CHECK LENGTH FIRST. It is almost always this.**
