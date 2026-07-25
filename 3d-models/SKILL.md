@@ -4,6 +4,11 @@ description: Unified 3D model skill — FIND a ready-made free model (Objaverse,
 metadata: {"openclaw": {"requires": {"env": ["MESHY_API_KEY"], "anyBins": ["curl", "python3"]}}}
 ---
 
+> ⚠️ **Host API address:** `172.17.0.1` is the DEFAULT docker bridge and NO tenant
+> container is on it — that address hangs or refuses. The awk snippet below reads your
+> real default gateway from `/proc/net/route` (no `ip` binary needed, it is not installed).
+> Fixed fleet-wide 2026-07-25 after it silently blocked otm-voice and cc-backlinks.
+
 # 3D Models — Unified Skill
 
 One skill for every 3D task. **Start by asking: can I FIND this instead of generating it?** Generation costs credits; the Objaverse catalog is free and has 800K+ models.
@@ -477,7 +482,7 @@ TASK=$(curl -s https://api.meshy.ai/openapi/v2/text-to-3d \
   | python3 -c "import sys,json;print(json.load(sys.stdin)['result'])")
 
 # 2. Register with the tracker (tenant header required — env has JAMBOT_TENANT pre-set)
-curl -s http://172.17.0.1:6350/api/meshy/track \
+curl -s http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/meshy/track \
   -H "Content-Type: application/json" -H "X-Tenant: $JAMBOT_TENANT" \
   -d "{\"task_id\":\"$TASK\",\"filename\":\"mug\",\"kind\":\"text-to-3d-preview\"}"
 
@@ -487,7 +492,7 @@ curl -s http://172.17.0.1:6350/api/meshy/track \
 ## 7b. Check saved location when ready
 
 ```bash
-curl -s http://172.17.0.1:6350/api/meshy/task/$TASK
+curl -s http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/meshy/task/$TASK
 # → { ok: true, record: { status: "SUCCEEDED", saved_glb: "...", finished_at: ... }, public_url: "/pages/mug.glb" }
 ```
 
@@ -572,7 +577,7 @@ curl -s https://api.tripo3d.ai/v2/openapi/user/balance \
 # → { "data": { "balance": 123.45, "frozen": 2.0 } }
 
 # Via platform bridge (no auth header needed, internal only)
-curl -s http://172.17.0.1:6350/api/meshy/balance
+curl -s http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/meshy/balance
 ```
 
 Always check balance before a batch run. Cost rule-of-thumb:

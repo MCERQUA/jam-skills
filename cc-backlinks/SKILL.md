@@ -4,6 +4,11 @@ description: "Free backlink discovery powered by the Common Crawl hyperlink grap
 version: 1.0.0
 ---
 
+> ⚠️ **Host API address:** `172.17.0.1` is the DEFAULT docker bridge and NO tenant
+> container is on it — that address hangs or refuses. The awk snippet below reads your
+> real default gateway from `/proc/net/route` (no `ip` binary needed, it is not installed).
+> Fixed fleet-wide 2026-07-25 after it silently blocked otm-voice and cc-backlinks.
+
 # Common Crawl Backlinks (Free Backlink Lookup)
 
 You have access to a free backlink discovery tool powered by the Common Crawl hyperlink graph. Use this as an **additive free check** alongside the paid DataForSEO backlink data — it costs nothing per query, so you can run it liberally for every client and every competitor.
@@ -26,7 +31,7 @@ The tool lives at `/mnt/system/base/tools/cc-backlinks/`. You call it through th
 
 ### Preferred — SEO platform endpoint
 ```
-GET http://172.17.0.1:6350/api/seo/cc-backlinks?domain=example.com&limit=200
+GET http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/seo/cc-backlinks?domain=example.com&limit=200
 ```
 (Endpoint status: see SEO dashboard integration plan — may be pending deployment.)
 

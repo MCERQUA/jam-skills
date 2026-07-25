@@ -97,11 +97,28 @@ industry-standard number); cite the dashboard's DataForSEO rank as "internal lin
 
 You can add, list, and batch-import projects for your client. This is how domains get into the SEO dashboard.
 
-**Base URL:** `http://172.17.0.1:6350/api/seo`
+**Base URL:** derive it — do NOT hardcode an IP.
+
+```sh
+# The SEO API runs on the HOST, not in a container, so you reach it through your
+# container's default gateway. Derive it at runtime:
+SEO=http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/seo
+curl -s "$SEO/../health"     # sanity check -> {"status":"ok",...}
+```
+
+⚠️ **`172.17.0.1` IS WRONG AND WILL HANG.** That is the DEFAULT docker bridge
+gateway, and no tenant container is on the default bridge — each has its own
+network (`jambot-<tenant>`) plus `jambot-shared`, with different gateways
+(e.g. 10.50.208.1, 172.19.0.1). Calling 172.17.0.1 gives connection-refused or a
+hang with no response. This blocked otm-voice from adding ANY project and also
+broke cc-backlinks during a brand-report run — the agent was doing everything
+right and the address was dead. The awk one-liner above reads the real gateway
+from /proc/net/route; it needs no `ip` binary (which is NOT installed in these
+containers) and is correct on every tenant regardless of network.
 
 ### List Projects
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/projects?tenant=<USER>"
+curl -s "$SEO/projects?tenant=<USER>"
 ```
 Returns all active projects with their domain, label, location, competitors, GMB data.
 
@@ -109,7 +126,7 @@ Returns all active projects with their domain, label, location, competitors, GMB
 ```bash
 curl -s -X POST -H "Content-Type: application/json" \
   -d '{"domain":"example.com","label":"Example Site","brand_name":"Example Inc","location_name":"United States","language_name":"English"}' \
-  "http://172.17.0.1:6350/api/seo/projects?tenant=<USER>"
+  "$SEO/projects?tenant=<USER>"
 ```
 Fields: `domain` (required), `label`, `brand_name`, `phone`, `address`, `business_category`, `location_name` (default: "United States"), `language_name` (default: "English"), `competitors` (array), `gmb_query` (search term for Google Business Profile lookup).
 
@@ -119,7 +136,7 @@ If the domain already exists, only the fields you provide are updated — existi
 ```bash
 curl -s -X POST -H "Content-Type: application/json" \
   -d '{"projects":[{"domain":"site1.com","label":"Site 1"},{"domain":"site2.com","label":"Site 2"}]}' \
-  "http://172.17.0.1:6350/api/seo/projects/batch?tenant=<USER>"
+  "$SEO/projects/batch?tenant=<USER>"
 ```
 Accepts an array of project objects. Each uses the same fields as single add. Returns `{ added: [...], updated: [...], errors: [...], total: N }`. Domains are auto-cleaned (strips `https://`, trailing slashes, lowercased). Safe to re-run — existing domains are updated, not duplicated.
 
@@ -131,7 +148,7 @@ curl -s -X POST -H "Content-Type: application/json" \
     {"domain":"clientblog.com","label":"Blog"},
     {"domain":"clientstore.com","label":"Store","business_category":"E-commerce"}
   ]}' \
-  "http://172.17.0.1:6350/api/seo/projects/batch?tenant=<USER>"
+  "$SEO/projects/batch?tenant=<USER>"
 ```
 
 ### Connect Google Business Profile (COSTS ~$0.004)
@@ -140,7 +157,7 @@ After adding a project, search for the business on Google Maps to connect their 
 # Step 1: Search for the business
 curl -s -X POST -H "Content-Type: application/json" \
   -d '{"endpoint":"business_data/google/my_business_info/live","data":[{"keyword":"Business Name City","location_name":"United States","language_name":"English"}]}' \
-  "http://172.17.0.1:6350/api/seo/proxy?tenant=<USER>"
+  "$SEO/proxy?tenant=<USER>"
 ```
 This returns matching businesses with `title`, `address`, `phone`, `rating`, `cid`, `place_id`, `category`.
 
@@ -148,7 +165,7 @@ This returns matching businesses with `title`, `address`, `phone`, `rating`, `ci
 # Step 2: Connect the matching business to the project
 curl -s -X POST -H "Content-Type: application/json" \
   -d '{"domain":"example.com","gmb_cid":"<cid>","gmb_place_id":"<place_id>","gmb_name":"<title>","gmb_address":"<address>","gmb_phone":"<phone>","gmb_rating":"<rating>","gmb_category":"<category>"}' \
-  "http://172.17.0.1:6350/api/seo/projects?tenant=<USER>"
+  "$SEO/projects?tenant=<USER>"
 ```
 
 ### When to Add Projects
@@ -163,23 +180,23 @@ curl -s -X POST -H "Content-Type: application/json" \
 
 All accumulated data endpoints read from the database. Use these to answer client questions about their SEO performance.
 
-**Base URL:** `http://172.17.0.1:6350/api/seo`
+**Base URL:** `$SEO`
 
 ### Quick Summary
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/dashboard?tenant=<USER>"
+curl -s "$SEO/dashboard?tenant=<USER>"
 ```
 Returns: total queries, cost, tools used, top targets, recent queries.
 
 ### Keywords
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/accumulated/keywords?tenant=<USER>&domain=<DOMAIN>&limit=50"
+curl -s "$SEO/accumulated/keywords?tenant=<USER>&domain=<DOMAIN>&limit=50"
 ```
 Returns: keyword, volume, cpc, difficulty, intent, rank, domain. Sorted by volume.
 
 ### Backlinks
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/accumulated/backlinks?tenant=<USER>&domain=<DOMAIN>"
+curl -s "$SEO/accumulated/backlinks?tenant=<USER>&domain=<DOMAIN>"
 ```
 Returns: summary (total, referring_domains, rank, dofollow/nofollow), individual backlinks (url_from, url_to, anchor, type).
 
@@ -191,43 +208,43 @@ Returns: `{"domain_rating": {"domain_rating": 34.0}}` — Ahrefs DR on a 0–100
 
 ### Competitors
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/accumulated/competitors?tenant=<USER>&domain=<DOMAIN>"
+curl -s "$SEO/accumulated/competitors?tenant=<USER>&domain=<DOMAIN>"
 ```
 Returns: competitor domains with organic keywords, traffic, common keywords, rank.
 
 ### Site Audit
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/accumulated/audits?tenant=<USER>&domain=<DOMAIN>"
+curl -s "$SEO/accumulated/audits?tenant=<USER>&domain=<DOMAIN>"
 ```
 Returns: onpage_score, pages_count, warnings, errors, notices, checks.
 
 ### Local SEO
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/accumulated/local?tenant=<USER>"
+curl -s "$SEO/accumulated/local?tenant=<USER>"
 ```
 Returns: maps rankings, business data, reviews with star distribution.
 
 ### Brand Mentions
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/accumulated/content-monitor?tenant=<USER>&domain=<DOMAIN>"
+curl -s "$SEO/accumulated/content-monitor?tenant=<USER>&domain=<DOMAIN>"
 ```
 Returns: mentions, news, phrase trends, top sources, sentiment breakdown.
 
 ### Alerts
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/alerts?tenant=<USER>"
+curl -s "$SEO/alerts?tenant=<USER>"
 ```
 Returns: active alerts (rank drops, traffic changes, backlink losses).
 
 ### Tracked Keywords
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/tracked-keywords?tenant=<USER>&domain=<DOMAIN>"
+curl -s "$SEO/tracked-keywords?tenant=<USER>&domain=<DOMAIN>"
 ```
 Returns: keywords being actively monitored.
 
 ### Data Pipeline Health
 ```bash
-curl -s "http://172.17.0.1:6350/api/seo/diagnostic?tenant=<USER>&domain=<DOMAIN>"
+curl -s "$SEO/diagnostic?tenant=<USER>&domain=<DOMAIN>"
 ```
 Returns: per-view data health checks, field validation, staleness detection.
 
@@ -261,7 +278,7 @@ These call DataForSEO live API. Only trigger when the client explicitly asks.
 ```bash
 curl -s -X POST -H "Content-Type: application/json" \
   -d '{"domain":"<DOMAIN>"}' \
-  "http://172.17.0.1:6350/api/seo/report/generate?tenant=<USER>"
+  "$SEO/report/generate?tenant=<USER>"
 ```
 
 Returns a URL to the generated HTML report. The report includes:
