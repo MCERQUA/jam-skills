@@ -1,6 +1,6 @@
 ---
 name: openclaw-expert
-description: "OpenClaw expertise for JamBot — catalog-indexed router into 761 upstream doc pages plus JamBot-specific overrides and 28 version-anchor corrections (gateway fail-closed on non-loopback bind, pairing/trusted-proxy hardening, database-first SQLite migration, doctor rework, CVE-2026-25253, ClawHavoc supply chain, GLM-5.2/Z.AI thinking ladder, upstream's own `openclaw fleet` multi-tenant model). TRIGGER: teach, debug, configure, or build on OpenClaw."
+description: "OpenClaw expertise for JamBot — catalog-indexed router into 761 upstream doc pages plus JamBot-specific overrides and 29 version-anchor corrections (gateway fail-closed on non-loopback bind, pairing/trusted-proxy hardening, database-first SQLite migration, doctor rework, CVE-2026-25253, ClawHavoc supply chain, GLM-5.2/Z.AI thinking ladder, upstream's own `openclaw fleet` multi-tenant model). TRIGGER: teach, debug, configure, or build on OpenClaw."
 metadata: {"openclaw": {"emoji": "🧠"}}
 ---
 
@@ -11,9 +11,9 @@ metadata: {"openclaw": {"emoji": "🧠"}}
 | **JamBot runs** | `2026.5.7` — verified in `openclaw-test-dev` + the three pinned installer paths, 2026-07-25 |
 | **Upstream `latest`** | `2026.7.1-2` (npm, 2026-07-18); a `2026.6.33` maintenance line also exists |
 | **Catalog** | 761 pages · rebuilt 2026-07-25 · see `catalog.json` `fetchedAt` |
-| **Anchors** | 28 · waves 1–15 (changelog ≤5.2), 16–21 (community), 22–28 (the 5.7→7.1 delta) |
+| **Anchors** | 29 · waves 1–15 (changelog ≤5.2), 16–21 (community), 22–29 (the 5.7→7.1 delta) |
 
-> ⚠️ **We are ~2 months of releases behind the pin, and that gap is not benign.** Anchors #22–#27 cover it. Four of them describe changes that break JamBot's specific deployment shape — **`#22` means every tenant gateway refuses to start on ≥2026.5.17 unless the auth mode is made explicit first.** Read `playbooks/upgrade-5.7-to-7.x.md` before touching `bump-openclaw-version.sh`.
+> ⚠️ **We are ~2 months of releases behind the pin, and that gap is not benign.** Anchors #22–#29 cover it. Four of them describe changes that break JamBot's specific deployment shape — **`#22` means every tenant gateway refuses to start on ≥2026.5.17 unless the auth mode is made explicit first.** Read `playbooks/upgrade-5.7-to-7.x.md` before touching `bump-openclaw-version.sh`.
 
 This skill is a **router**, not a textbook. Upstream docs at `docs.openclaw.ai` are authoritative — we index them, layer JamBot deltas, and surface version-specific corrections found in production.
 
@@ -27,8 +27,8 @@ This skill is a **router**, not a textbook. Upstream docs at `docs.openclaw.ai` 
 bash {baseDir}/scripts/lookup.sh compaction        # keyword (also searches upstream one-line summaries)
 bash {baseDir}/scripts/lookup.sh section:Plugins   # by section
 bash {baseDir}/scripts/lookup.sh relevance:high    # 241 JamBot-relevant pages
-bash {baseDir}/scripts/lookup.sh anchor:22         # by audit-anchor number (1–28)
-bash {baseDir}/scripts/lookup.sh annotated         # pages we've annotated (34)
+bash {baseDir}/scripts/lookup.sh anchor:22         # by audit-anchor number (1–29)
+bash {baseDir}/scripts/lookup.sh annotated         # pages we've annotated (38)
 bash {baseDir}/scripts/lookup.sh stale 60          # annotations not re-verified in 60 days
 ```
 
@@ -67,7 +67,7 @@ Run them **in that order** — `link-anchors.py` rebuilds the anchor edges from 
 
 ---
 
-## Audit anchors (28)
+## Audit anchors (29)
 
 When answering ANY question touching these topics, the anchor wins over upstream prose. Full index with version scope + upgrade reading order: **`audit-anchors/README.md`**. Each anchor has a file with sources (changelog lines / PR numbers / Reddit post ids), exact config keys, and affected skill files.
 
@@ -113,6 +113,7 @@ When answering ANY question touching these topics, the anchor wins over upstream
 | 26 | Agent cron scoping + WS protocol v4 | 7.1 / 5.19 | 🟠 Agent cron scoped to own jobs, mixed-version fails closed; gateway requires v4 clients (OVU-side check) |
 | 27 | GLM-5.2 + Z.AI thinking ladder | 6.8–7.1 | 🟡 `off/low/high/max` replaces binary thinking; 429s distinguish overload from rate-limit → retune the breaker |
 | 28 | `openclaw fleet` multi-tenant model | experimental | ℹ️ Upstream now documents per-tenant "cells" — our overrides can no longer claim the docs are silent. **Do not migrate onto it.** |
+| 29 | Release-notes ops behavior changes | 6.11 / 7.1 | 🔴 **Crash-loop repair pauses auto-restart — it fights our Layer 1A/2 restart reflex.** Plus: OOM survival (systemd only), readiness-drain signal, cron stuck-call recovery, ClawHub pre-download blocking, durable audit history |
 
 ---
 
@@ -152,7 +153,7 @@ When answering ANY question touching these topics, the anchor wins over upstream
 |---|---|
 | `catalog.json` | 761 pages × {url, section, title, summary, relevance, annotation, audit_anchors, lastVerified, tags} |
 | `catalog.json.bak` | previous catalog, written by `refresh-catalog.sh` before every regen |
-| `audit-anchors/anchor-NN-*.md` + `README.md` | 28 anchors with version scope + upgrade reading order |
+| `audit-anchors/anchor-NN-*.md` + `README.md` | 29 anchors with version scope + upgrade reading order |
 | `annotations/<page-id>.md` | JamBot notes per upstream page (id = url path, `/` → `__`) |
 | `cache/<page-id>.md` (+ `.meta.json`) | lazy Markdown snapshot, 24h TTL |
 | `overrides/*.md` · `playbooks/*.md` | see tables above |
@@ -204,7 +205,9 @@ In JamBot, prefix with `sg docker -c "docker exec openclaw-<tenant> ..."`.
 
 ### Known coverage gaps (as of 2026-07-25)
 
-- The 5.7→7.1 audit targeted **config, auth, storage, cron, protocol, and provider** behavior. **Channels, Control UI, macOS/iOS, and the Codex harness were NOT audited** across that delta.
+- **The catalog indexes 761 pages; ~50 have actually been read.** Indexed ≠ reviewed. Every page has an upstream title + one-line summary (searchable via `lookup.sh`), which is enough to route — not enough to answer from.
+- The 5.7→7.1 audit ran in two passes: a **keyword grep** of the raw 7,500-line changelog (anchors #22–#28, covering config/auth/storage/cron/protocol/provider), then a **read of the curated release notes** for `2026.6.11` and `2026.7.1` at highlight + targeted-section level (anchor #29, which caught operational changes the grep structurally could not — they are described in prose, not key names).
+- **Still open:** the **Control UI** overhaul in 7.1 vs our per-tenant Control UI exposure; the **Codex harness**; **macOS/iOS** (we don't use them). Releases `5.20 → 6.10` and `6.33` have **no curated release-notes page** in the catalog and were covered only by the keyword grep.
 - **Annotations: 0 stale.** All 33 pre-existing annotations were re-verified 2026-07-25 and 4 new ones added (38 pages carry an annotation; some files are linked from two pages). Each carries a `<!-- verification-stamp -->` block stating exactly what was checked — **config keys against the live `2026.5.7` binary schema, not prose against 7.x docs.** Read the stamp before trusting a page's currency for 7.x.
 - 297 pages were added in the 2026-07-25 rebuild. Annotated so far: `gateway/security/exposure-runbook`, `tools/permission-modes`, `concepts/multi-user`, `tools/swarm`. **Still unannotated:** the ClawHub section, `gateway/multi-tenant-hosting` (covered by anchor #28 instead), `tools/code-mode`, `tools/workboard`, and all of `plugins/reference/*`.
 - There is **no cron** running `refresh-catalog.sh`. Drift is found only when someone runs it by hand — which is how the parser break went unnoticed from ~2026-06 to 2026-07-25.

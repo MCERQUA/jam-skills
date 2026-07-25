@@ -1,10 +1,10 @@
 # Audit Anchors — v2026.4.20 → v2026.7.1
 
-28 confirmed deltas between upstream docs and real OpenClaw behavior, in three waves:
+29 confirmed deltas between upstream docs and real OpenClaw behavior, in three waves:
 
 - **1–15** — changelog audit, v2026.4.20 → v2026.5.2 (`docs/jambot/openclaw-skill-update-2026-05-04.md`)
 - **16–21** — r/openclaw community deep-read, 2026-05-23
-- **22–28** — the v2026.5.7 → v2026.7.1 delta audit, 2026-07-25 (upstream CHANGELOG.md + a full catalog rebuild, 464 → 761 pages)
+- **22–29** — the v2026.5.7 → v2026.7.1 delta audit, 2026-07-25 (upstream CHANGELOG.md + a full catalog rebuild, 464 → 761 pages)
 
 JamBot runs **`2026.5.7`**. Anchors 22–28 describe what changes when that pin moves; anchors 1–21 describe behavior at or before the pin. When answering any question that touches one of these topics, **the audit anchor wins over upstream prose**.
 
@@ -70,8 +70,9 @@ JamBot pin = `2026.5.7`. "Applies at pin" = true for the version we run today.
 | 26 | agent-cron-scoping-and-protocol-v4 | confirmed | **v2026.5.19 / 7.1** | no |
 | 27 | glm-5.2-and-zai-thinking-ladder | confirmed | **v2026.6.8–7.1** | no |
 | 28 | openclaw-fleet-first-party-multi-tenant | confirmed | experimental upstream | n/a — informational |
+| 29 | release-notes-ops-behavior-changes | confirmed | **v2026.6.11 / 7.1** | no — **crash-loop repair fights our auto-heal layers** |
 
 ## Upgrade reading order
 
 Bumping `OPENCLAW_VERSION` past `2026.5.7`? Read in this order, then `playbooks/upgrade-5.7-to-7.x.md`:
-**#22** (will the gateway even start) → **#23** (will it let anyone in) → **#26B** (will OVU's WS client still speak to it) → **#24** (is the backup still capturing the agent) → **#26A** (will tenant cron survive a staggered roll) → **#27** (retune the Z.AI breaker) → **#25** (doctor is safer now, rules unchanged).
+**#22** (will the gateway even start) → **#23** (will it let anyone in) → **#26B** (will OVU's WS client still speak to it) → **#24** (is the backup still capturing the agent) → **#26A** (will tenant cron survive a staggered roll) → **#27** (retune the Z.AI breaker) → **#29** (crash-loop repair vs our Layer 1A/2 restart reflex) → **#25** (doctor is safer now, rules unchanged).
