@@ -13,7 +13,9 @@ metadata: {"openclaw": {"emoji": "🧠"}}
 | **Catalog** | 761 pages · rebuilt 2026-07-25 · see `catalog.json` `fetchedAt` |
 | **Anchors** | 29 · waves 1–15 (changelog ≤5.2), 16–21 (community), 22–29 (the 5.7→7.1 delta) |
 
-> ⚠️ **We are ~2 months of releases behind the pin, and that gap is not benign.** Anchors #22–#29 cover it. Four of them describe changes that break JamBot's specific deployment shape — **`#22` means every tenant gateway refuses to start on ≥2026.5.17 unless the auth mode is made explicit first.** Read `playbooks/upgrade-5.7-to-7.x.md` before touching `bump-openclaw-version.sh`.
+> ⚠️ **We are ~2 months of releases behind the pin, and that gap is not benign.** Anchors #22–#29 cover it. Several describe changes that break JamBot's specific deployment shape. Read `playbooks/upgrade-5.7-to-7.x.md` before touching `bump-openclaw-version.sh`.
+>
+> ✅ **`#22` is CLEARED as of 2026-07-25 — it is no longer the upgrade blocker.** It was believed to mean "every tenant gateway refuses to start on ≥2026.5.17." Verified experimentally against a real `openclaw@2026.7.1` binary: **our config already satisfies it.** All 26 tenants carry `gateway.auth.mode: "token"` with a unique 64-char per-tenant secret, so the `lan` bind is accepted (it lints as a *warning*, not an error). The control — same config with `auth`/`trustedProxies` removed — does produce `Refusing to bind gateway to lan without auth.`, confirming the behavior is real and that our token is what satisfies it. **Phase 0 auth-mode decision is DONE: option (B), already implemented; ratify, don't build.** The blockers that remain are **#23, #24, #26A, #26B, #27**.
 
 This skill is a **router**, not a textbook. Upstream docs at `docs.openclaw.ai` are authoritative — we index them, layer JamBot deltas, and surface version-specific corrections found in production.
 

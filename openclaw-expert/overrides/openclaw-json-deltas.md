@@ -2,16 +2,25 @@
 
 Canonical template: `/mnt/system/base/templates/openclaw.json`. Scripts MUST copy from this template (with token substitution), NEVER inline heredocs. The template has been wrong twice from inline drift. See CLAUDE.md "OpenClaw Config — CRITICAL FIELDS".
 
-## The 4 non-negotiable fields
+## The 5 non-negotiable fields
 
-These four fields MUST exist in every JamBot client's openclaw.json:
+These MUST exist in every JamBot client's openclaw.json. **Note the exact nesting** — two of them
+sit under `gateway.controlUi`, not at gateway top level, and reading them as gateway-wide auth is
+the mistake that made anchor #22 look like an upgrade blocker for a year.
 
-| Field | Value | Why |
+| Field (full path) | Value | Why |
 |-------|-------|-----|
-| `thinkingDefault` | `"off"` | Z.AI/GLM returns thinking-only blocks with NO visible text without this — visible text disappears |
-| `trustedProxies` | `["172.0.0.0/8", "10.0.0.0/8"]` | Required for Docker network WebSocket connections (openvoiceui→openclaw via internal bridge). See anchor in `gateway/trusted-proxy-auth.md` |
-| `allowInsecureAuth` | `true` | Relaxes the secure-context requirement for the Control UI. ⚠️ **It does NOT bypass device identity checks** — see the correction below |
-| `dangerouslyDisableDeviceAuth` | `true` | **CRITICAL** — disables WebSocket device pairing. Without this, sessions get `NOT_PAIRED` forever. This is the flag that actually disables device identity |
+| `agents.defaults.thinkingDefault` | `"off"` | Z.AI/GLM returns thinking-only blocks with NO visible text without this — visible text disappears |
+| **`gateway.auth`** | `{mode: "token", token: "${OPENCLAW_GATEWAY_TOKEN}"}` | **This is JamBot's actual gateway authentication** — a unique 64-char per-tenant secret from compose `.env`, expanded at config load. It is what lets us bind `lan` at all. On ≥2026.5.17 a `lan` bind without this **refuses to start** (anchor #22). Never remove it, and never let it fall back to a literal placeholder. |
+| `gateway.trustedProxies` | `["172.16.0.0/12", "10.0.0.0/8"]` | Required for Docker network WebSocket connections (openvoiceui→openclaw via internal bridge). We deliberately carry BOTH this and `gateway.auth` — the two accepted auth modes — which is why #22 was a non-event. See anchor #23 (5.12 hardened the trusted-proxy path). |
+| `gateway.controlUi.allowInsecureAuth` | `true` | Relaxes the secure-context requirement for the Control UI. ⚠️ **It does NOT bypass device identity checks** — see the correction below. **Control-UI scoped; not gateway auth.** |
+| `gateway.controlUi.dangerouslyDisableDeviceAuth` | `true` | **CRITICAL** — disables WebSocket device pairing. Without this, sessions get `NOT_PAIRED` forever. This is the flag that actually disables device identity. **Control-UI scoped; not gateway auth.** |
+
+> **Verified 2026-07-25 across 26/26 tenants** — every one has `gateway.auth.mode: "token"` with a
+> unique 64-char token, plus `gateway.bind: "lan"` and `trustedProxies`. Confirmed experimentally
+> against a real `openclaw@2026.7.1` binary: our config starts clean, and the same config with
+> `auth`/`trustedProxies` removed produces `Refusing to bind gateway to lan without auth.`
+> Full evidence in `audit-anchors/anchor-22-*.md` and `playbooks/upgrade-5.7-to-7.x.md` Phase 0.
 
 > **⚠️ CORRECTED 2026-07-25 — the two flags do different things, and we had them conflated.**
 > Verified by running `openclaw security audit` inside `openclaw-test-dev` at `2026.5.7`. The

@@ -22,9 +22,53 @@ sources:
 
 # Anchor #22 — Gateway fails closed on non-loopback bind without explicit auth (v2026.5.17)
 
+> ## ✅ RESOLVED FOR JAMBOT — 2026-07-25, verified experimentally against a real 2026.7.1 binary
+>
+> **This anchor is NOT an upgrade blocker for us. It never was.** The original text below
+> asserted that our template "leans on `allowInsecureAuth` + `dangerouslyDisableDeviceAuth`
+> instead of a shared secret." **That is factually wrong**, and the error came from reading
+> the changelog rather than the config.
+>
+> What is actually true (audited across **26/26 openclaw tenants**, 2026-07-25):
+>
+> - `gateway.auth.mode: "token"` with `token: "${OPENCLAW_GATEWAY_TOKEN}"` — **already set on every tenant**
+> - every tenant has a **unique 64-char** token in its compose `.env`; no two tenants share one
+> - `gateway.bind: "lan"` (the trigger condition) — yes, as described
+> - `gateway.trustedProxies` present as well, so **both** accepted auth modes are configured
+> - `allowInsecureAuth` / `dangerouslyDisableDeviceAuth` are scoped to **`gateway.controlUi.*`**,
+>   NOT to gateway auth. They were never the thing standing in for a shared secret.
+>
+> **Experimental proof** (throwaway `node:22-slim` + `npm i -g openclaw@2026.7.1`, real
+> test-dev config mounted read-only, originals untouched):
+>
+> | Test | Config | Result |
+> |---|---|---|
+> | Ours as-is | `bind: lan` + `auth.mode: token` + token in env | **gateway ran, exit 0** — no fail-closed |
+> | `doctor --lint --all` | same | 51 checks; bind is a **warning**, not an error |
+> | **Control** | `bind: lan`, `auth` and `trustedProxies` REMOVED | **`Refusing to bind gateway to lan without auth.`** |
+>
+> The control confirms the fail-closed behavior is real in 7.1 — and that our existing
+> token config is what satisfies it. Upstream's own error text names the very env var we
+> already use: *"Set `OPENCLAW_GATEWAY_TOKEN` or `OPENCLAW_GATEWAY_PASSWORD`"*.
+>
+> **Phase 0 decision: Option (B) per-tenant shared secret — ALREADY IMPLEMENTED. Ratify, do not build.**
+> No OVU-side code change is required; OVU already carries the same token in its env.
+>
+> ### What this does NOT clear
+> Config acceptance and gateway start only. Anchors **#23** (pairing), **#26B** (WS protocol v4 /
+> the OVU client), **#24** (SQLite state vs our snapshots), **#26A** (cron scoping) and **#27**
+> (Z.AI breaker) are untouched by this test and still gate the upgrade. #22 is off the list; the
+> upgrade is not.
+>
+> ### One real finding this surfaced (new work, not a blocker)
+> 7.1's `core/doctor/security` flags `gateway.auth.token` as a **plaintext secret-bearing config
+> field** and wants it migrated to a SecretRef (`openclaw secrets configure` → verify with
+> `openclaw secrets audit --check`). Worth doing on the upgrade, and it aligns with the
+> per-role-secret direction already tracked in SUDO-QUEUE.
+
 ## The one-liner
 
-**This is the single biggest upgrade blocker between JamBot's pinned `2026.5.7` and anything ≥ `2026.5.17`.** Every JamBot openclaw container binds non-loopback by design (the OpenVoiceUI container reaches it at `ws://openclaw:18789` across the per-tenant bridge network). Our template leans on `allowInsecureAuth: true` + `dangerouslyDisableDeviceAuth: true` instead of a shared secret. On 2026.5.17+, that combination is exactly what now fails closed.
+**Original assessment (superseded by the block above — kept for provenance):** this was believed to be the single biggest upgrade blocker between JamBot's pinned `2026.5.7` and anything ≥ `2026.5.17`. Every JamBot openclaw container binds non-loopback by design (the OpenVoiceUI container reaches it at `ws://openclaw:18789` across the per-tenant bridge network). The claim that our template leans on `allowInsecureAuth: true` + `dangerouslyDisableDeviceAuth: true` instead of a shared secret **was incorrect** — see the resolution block.
 
 ## Why JamBot is directly in the blast radius
 

@@ -25,14 +25,44 @@ Also relevant: `2026.5.12` removed the bundled BlueBubbles channel (breaking) �
 
 ---
 
-## Phase 0 — Decide the auth mode (blocking; do this first)
+## Phase 0 — Decide the auth mode — ✅ **DONE 2026-07-25. Decision: (B), already implemented.**
 
-Anchor #22 makes this the gate. Our containers bind non-loopback by design (OVU reaches openclaw across the per-tenant bridge). Pick one:
+**Outcome: (B) per-tenant shared secret. It was already in place fleet-wide before this decision was made — Phase 0 was a discovery exercise, not a build.** Nothing needs to be constructed here, and no OVU-side code change is required.
+
+### Evidence
+
+Fleet audit, all **26/26** openclaw tenants:
+
+| Field | Value | Notes |
+|---|---|---|
+| `gateway.bind` | `"lan"` | the #22 trigger condition — yes, we bind non-loopback |
+| `gateway.auth.mode` | `"token"` | **explicit shared-secret mode, already set** |
+| `gateway.auth.token` | `"${OPENCLAW_GATEWAY_TOKEN}"` | expanded from env at load (proven — see below) |
+| token value | unique 64-char per tenant | verified no two tenants share one |
+| `gateway.trustedProxies` | `["172.16.0.0/12","10.0.0.0/8"]` | present too — *both* accepted modes configured |
+
+`allowInsecureAuth` and `dangerouslyDisableDeviceAuth` live under **`gateway.controlUi.*`** and are Control-UI scoped. They were never substituting for gateway auth; anchor #22's original text got this wrong.
+
+Verified against a **real `openclaw@2026.7.1` binary** in a throwaway `node:22-slim` container, with a copy of test-dev's config mounted read-only (originals untouched, md5 re-checked after):
+
+- **our config as-is** → `openclaw gateway run` started, **exit 0, no fail-closed**
+- **`doctor --lint --all`** → 51 checks; the `lan` bind is a **warning**, not an error
+- **control (auth + trustedProxies removed)** → `Refusing to bind gateway to lan without auth.`
+
+The control is the important half: it proves 7.1 really does fail closed, and that our token config is what satisfies it. Upstream's error text names the exact env var we already use (`OPENCLAW_GATEWAY_TOKEN`).
+
+Env expansion was confirmed incidentally — 7.1 reported *"missing env var ZAI_API_KEY"* while raising nothing about the gateway token, which was supplied. So `${...}` in `openclaw.json` is resolved, and the token is a real secret rather than a literal string.
+
+### Carried forward into later phases
+
+- **Phase 2 gate (revised):** the canary no longer needs to prove the gateway starts — that is settled. It must still prove **#23** (pairing/trusted-proxy hardening), **#26B** (WS protocol v4 against the OVU client), **#26A** (cron), **#24** (SQLite), **#27** (breaker). Those are untouched by this test.
+- **New Phase 5 item:** 7.1's `core/doctor/security` flags `gateway.auth.token` as a plaintext secret-bearing field and wants a SecretRef (`openclaw secrets configure`, verify `openclaw secrets audit --check`). Not a blocker; aligns with the per-role-secret direction in SUDO-QUEUE.
+- **Do not "simplify" by deleting `trustedProxies`.** Carrying both modes is why #22 was a non-event for us, and #23 hardened the trusted-proxy path specifically.
+
+### Original decision text (superseded, kept for provenance)
 
 - **(A) Explicit trusted-proxy.** Closest to today. Keep `trustedProxies` covering the Docker bridge ranges and make the mode explicit. Note #23: explicit `trusted-proxy` mode fails closed if the identity check fails (5.12), partially relaxed for same-host callers in 5.19 (#82953).
-- **(B) Per-tenant shared secret.** More durable, aligns with the per-role-secret direction already in the SUDO-QUEUE. Requires an OVU-side change to present the secret — this is code, not config.
-
-**Nothing else in this playbook should start before (A) or (B) is chosen.** Everything downstream depends on it.
+- **(B) Per-tenant shared secret.** More durable, aligns with the per-role-secret direction already in the SUDO-QUEUE. ~~Requires an OVU-side change to present the secret — this is code, not config.~~ **Wrong — OVU already carries the token in its env.**
 
 ---
 
