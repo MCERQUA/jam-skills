@@ -66,6 +66,34 @@ Env expansion was confirmed incidentally — 7.1 reported *"missing env var ZAI_
 
 ---
 
+## Phase 0.5 — #23 and #26B reconnaissance — done 2026-07-26
+
+Both audited against reality (and against the real 7.1 package), not against the changelog.
+
+**#23 trusted-proxy — ONE tenant was outside the allowlist.** Resolved every live tenant's
+actual OVU container IP and tested it against the configured CIDRs: 24 checked, 23 covered,
+**`bun` on `192.168.160.3` NOT covered**. Cause is structural, not a one-off — Docker's
+default pool spills into `192.168.x` now that the `172.x` pools are exhausted (32/32), and
+5 networks already live there. Latent on 5.7; on ≥5.12 hardened source validation it fails
+closed for that tenant only. **Template fixed** (`192.168.0.0/16` added). **Live configs
+deliberately not rewritten** — do it during the roll when gateways restart anyway, per the
+command in anchor #23, and **re-run the coverage audit first** because the answer moves as
+networks are recreated.
+
+**#26B protocol v4 — version fine, frame shape broken.** OVU already negotiates
+`PROTOCOL_MIN=3 / PROTOCOL_MAX=5`, so v4 is in range. But 7.1 sends **`deltaText`** (not
+`delta`) plus a **`replace: true`** flag, confirmed by reading the shipped 7.1 accumulator
+(`npm pack openclaw@2026.7.1`; `deltaText` ×42, `"replace"` ×28). OVU reads `d.get('delta')`
+and otherwise diffs locally by length — so on 7.1 **a `replace` frame shorter than the
+accumulated text is silently dropped**, presenting as "the agent connects then goes quiet."
+Full reference semantics + the **TTS double-speak trap** (the delta consumer appends into
+`_tts_buf`, so a replacement emitted as a delta gets spoken twice) are recorded in anchor #26.
+**Not implemented** — it needs a reset signal across three consumers in the live voice path,
+with its own test and canary. Treat it as a scoped work item, not a ride-along.
+
+**Revised Phase 2 gate:** the canary must exercise a real streaming turn and confirm text
+renders once (not doubled, not truncated) — a completed turn alone does not prove #26B.
+
 ## Phase 1 — Read-only reconnaissance (no changes)
 
 ```bash

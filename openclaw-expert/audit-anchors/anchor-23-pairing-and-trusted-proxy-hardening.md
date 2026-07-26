@@ -63,3 +63,50 @@ Read this together with **anchor #22** (non-loopback fail-closed, 5.17). They ar
 sg docker -c "docker exec openclaw-<tenant> openclaw gateway status"
 sg docker -c "docker logs --tail 200 openclaw-<tenant>" | grep -iE "pair|trusted|proxy|auth|fail"
 ```
+
+---
+
+## JamBot pre-upgrade audit — 2026-07-26 (host)
+
+### Finding: one tenant sits OUTSIDE `trustedProxies` — latent until upgrade
+
+This anchor's rule #2 says *"does `trustedProxies` actually cover the source address the
+gateway SEES (not the address you expect)?"* Audited it properly instead of assuming.
+
+Method: for all 24 live tenants, resolve the **OVU container's actual IP** on the per-tenant
+bridge and test it against the configured CIDRs.
+
+| Result | |
+|---|---|
+| 24 tenants checked | 23 covered |
+| **`bun` — `192.168.160.3`** | **NOT covered** by `["172.16.0.0/12","10.0.0.0/8"]` |
+
+**Why it happened, and why it will recur:** Docker's default address pool spills into
+`192.168.x` once the `172.x` pools are exhausted — and they are (32/32 consumed; see
+memory `docker-address-pool-exhausted`). Five networks already live there:
+`jambot-bun`, `jambot-openvoiceui-admin`, `jambot-ubuntu-os-src`, `twenty-crm_default`,
+`airadio_airadio-net`. Any newly provisioned tenant can land in that range.
+
+**Impact:** harmless on our `2026.5.7` pin. On ≥5.12 the trusted-proxy source validation is
+hardened (#81290) and explicit trusted-proxy mode fails closed rather than falling back
+(#78684) — so bun's OVU→gateway connection would be **rejected on upgrade**, presenting as a
+single tenant that pairs nowhere while the rest of the fleet is fine.
+
+**Fixed in the canonical template 2026-07-26:** `trustedProxies` is now
+`["172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16"]`. All three are RFC1918 and the gateway
+port is never host-published (`docker port` returns nothing), so this does not widen real
+exposure. New tenants provisioned from the template are correct from birth.
+
+**STILL OWED — live tenant configs were deliberately NOT rewritten.** Per
+`overrides/config-edit-policy.md`, live `openclaw.json` must be changed via
+`openclaw config set` *inside* the container followed by a restart. Doing that fleet-wide
+tonight would restart 24 gateways for a defect that cannot bite until the version moves.
+**Do it as part of the upgrade roll, when the containers restart anyway:**
+
+```bash
+sg docker -c "docker exec openclaw-<tenant> openclaw config set gateway.trustedProxies \
+  '[\"172.16.0.0/12\",\"10.0.0.0/8\",\"192.168.0.0/16\"]' --json"
+sg docker -c "docker restart openclaw-<tenant>"
+```
+
+Re-run the coverage audit before the roll — the answer changes as networks are recreated.

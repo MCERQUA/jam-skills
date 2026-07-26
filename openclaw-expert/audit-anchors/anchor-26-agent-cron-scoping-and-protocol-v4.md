@@ -45,3 +45,64 @@ sg docker -c "docker logs --tail 100 openclaw-<tenant>" | grep -i "protocol"
 ```
 
 A protocol-mismatch on this path presents as the voice UI connecting and then producing nothing — which historically gets misdiagnosed as an empty-final / provider problem (see `playbooks/debug-empty-final.md`). Rule out the protocol version first on any post-upgrade "the agent went quiet" report.
+
+---
+
+## JamBot pre-upgrade audit — 2026-07-26 (host)
+
+### B. Protocol v4 — OVU status: **version OK, frame shape NOT OK**
+
+**Version negotiation is already fine.** `services/gateways/compat.py` declares
+`PROTOCOL_MIN = 3` / `PROTOCOL_MAX = 5` and sends `minProtocol`/`maxProtocol`, so v4 is
+inside the negotiated range. The "OVU hardcodes an old version" worry does not apply.
+
+**The frame shape is the real gap.** Verified against the actual `openclaw@2026.7.1`
+package (`npm pack`, unpacked, read its own accumulator) rather than the changelog wording.
+7.1's reference implementation, de-minified:
+
+```js
+function accumulate(acc, frame) {              // acc = text so far (or null)
+  const msg = frame.message == null ? null : normalize(frame.message);
+  if (typeof frame.deltaText === 'string') {
+    if (frame.replace === true) return frame.deltaText;   // (1) REPLACES everything
+    if (acc === null) return typeof msg === 'string' ? msg : frame.deltaText;
+    if (typeof msg === 'string') {                        // (2) consistency self-heal
+      const r = msg.length - frame.deltaText.length;
+      if (r !== acc.length || msg.slice(0, r) !== acc) return msg;   // mismatch -> trust msg
+    }
+    return acc + frame.deltaText;                         // (3) normal append
+  }
+  return typeof msg === 'string' ? msg : null;            // (4) no delta -> full message
+}
+```
+
+The field is **`deltaText`**, not `delta`, and there is a **`replace: true`** flag.
+Confirmed present in the 7.1 bundle: `deltaText` ×42, `"replace"` ×28.
+
+OVU today (`services/gateways/openclaw.py`, the `canonical_stream == 'assistant'` block)
+reads `d.get('delta')` and otherwise **locally diffs by length**:
+
+```python
+elif full_text and len(full_text) > prev_text_len:
+    delta_text = full_text[prev_text_len:]
+```
+
+Two consequences on 7.1:
+
+1. `d.get('delta')` is always empty (wrong field name) → every frame falls to the local-diff branch.
+2. **A `replace` frame whose text is SHORTER than what we've accumulated fails the
+   `len(full_text) > prev_text_len` guard and is silently dropped.** That presents as the
+   voice UI connecting and then going quiet — the exact misdiagnosis this anchor warns about
+   (it reads as an empty-final/provider fault; see `playbooks/debug-empty-final.md`).
+
+### ⚠️ Trap for whoever implements this — do NOT emit `replace` as a delta
+
+`routes/conversation.py` consumes `{'type':'delta'}` by **appending**: `_tts_buf += evt['text']`,
+then fires TTS per completed sentence. Emitting a replacement as a delta would append the whole
+replacement to the buffer and **speak the text twice to the client**. A correct fix needs a reset
+signal handled in all three consumers (`routes/conversation.py` ×2, `routes/elevenlabs_hybrid.py`),
+not just a new branch in the gateway client.
+
+**Deliberately NOT implemented 2026-07-26.** The upgrade is not imminent (still gated by #23,
+#24, #26A, #27) and this is the live fleet-wide voice path; a partially-correct replace handler
+that double-speaks is worse than a documented gap. Scope it with its own test and canary.
