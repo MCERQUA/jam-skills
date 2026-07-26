@@ -2,7 +2,7 @@
 name: brand-course-agent
 description: "Work the Brand Launch Course queue for your client — pull your agent agenda from the course API, execute items one at a time (content, schema, citations, review-engine setup, GBP prep), post completion evidence so the client's checklist lights up. TRIGGER: idle work capacity, a course item names you in ACCOUNT-STATE.md, or the client asks about their Brand Launch Course, brand score, progress, or what's next."
 metadata:
-  version: 1.2.0
+  version: 1.3.0
   openclaw:
     emoji: "🧭"
 ---
@@ -145,6 +145,69 @@ The API schema-validates hard (400 with the exact errors; duplicate sprint id = 
 7. **All HARD RULES and NEVER-DO prohibitions apply inside sprints** — no GBP-touching plays, no review bounties, no parasite posting. A sprint is never an excuse to reach for a gray-hat lever.
 
 When the client asks about a sprint, frame it forward (the course page does the same): never "your numbers are declining" — always "here's this month's game plan, N plays already in motion", with the real numbers shown plainly.
+
+## Interviewing the client — the questions ONLY they can answer
+
+Half this course cannot move without an answer from the owner. "Is the domain in
+your name?" "Is this your Facebook?" "What hours do you actually answer the
+phone?" No API can settle those. **Asking them is your job**, and it is the part
+that makes this a course instead of a checklist.
+
+Those questions arrive as items in status **`awaiting_client`**. Pull them:
+
+```bash
+curl -s "$BASE/api/course/next?tenant=$TENANT"        # client_actions[] — the top 1-2, with micro_lesson
+curl -s "$BASE/api/course/state?tenant=$TENANT"       # the FULL awaiting_client set
+```
+
+`client_actions` is deliberately capped at ~2 so the client is never handed a
+wall of homework. Use it to decide what to raise NEXT in conversation. Use
+`/state` when you need the whole picture (e.g. the client says "what else do you
+need from me?").
+
+### The loop
+
+1. **Raise ONE naturally, in context.** Not "I have 21 open items." Try: *"Quick
+   one while I have you — is the domain registered in your name, or did someone
+   set it up for you?"* Lead with the `micro_lesson` reasoning if they ask why.
+2. **Listen for the answer.** A plain yes/no in conversation IS the answer. Do
+   not send them to a form or a page to click a button — that is the whole point
+   of a voice agent.
+3. **Record it immediately**, with what they actually said as evidence:
+
+```bash
+curl -s -X POST "$BASE/api/course/confirm?tenant=$TENANT" \
+  -H "X-Agent-Key: $SOCIAL_DASHBOARD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"item_id":"m2.domain.ownership"}'
+```
+
+   Items whose verify is `client_confirm`/`client_confirm` flip straight to
+   **done**. Anything else lands in `awaiting_verify` for a follow-up check —
+   that is correct, not an error.
+4. **Tell them what just happened.** *"Perfect — that's checked off, and it's one
+   of the ones that blocks the Google work later."* The client should feel the
+   course move.
+5. **If the answer is "no" or "I don't know"** — do NOT confirm. Say what you'll
+   do about it, and leave the item open. A false confirm is worse than an open item.
+
+### Do not ask what the report already answered
+
+Before raising an item, read its `evidence`. The host pre-fills proof for assets
+we already found. Asking a BBB-accredited Torch-Award finalist whether they'd
+like to "create a free BBB profile" destroys trust in one sentence. When evidence
+is present, the question is **"we found this — confirm it's yours,"** never
+"do you have one."
+
+### Connectivity — you CAN reach the course API
+
+If you ever conclude *"the social-api is on a different host, I can't reach it"* —
+you are wrong, and this exact misread stalled a live client agent on 2026-07-25.
+The API runs on the Docker host at port 6350. Derive the gateway with the
+snippet at the top of this skill (`/proc/net/route`), or fall back to
+`https://<tenant>.jam-bot.com/social-api`. Verified reachable from inside a
+tenant container: gateway `/health` → 200, `/api/course/state` → 200.
+**Never** tell the client to tap a button on the page because you think you
+cannot reach the API. Run the gateway snippet first.
 
 ## When the client asks "where are we at"
 
