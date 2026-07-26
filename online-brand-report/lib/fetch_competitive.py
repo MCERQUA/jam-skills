@@ -1,5 +1,6 @@
 """fetch_competitive.py — Competitor domains, traffic estimates, keyword overlap."""
 
+import os
 import sys
 from .config import dfs_post, dfs_get_items, dfs_get_result0
 from .fetch_ahrefs import enrich_domains_with_dr, fetch_domain_rating
@@ -47,17 +48,52 @@ def fetch_competitive(domain: str, competitors=None, location_code: int = 2840) 
             "houzz.com", "nextdoor.com", "mapquest.com", "yellowpages.com", "manta.com",
             "homedepot.com", "lowes.com", "amazon.com", "wikipedia.org", "indeed.com",
             "glassdoor.com", "google.com", "apple.com", "bing.com", "porch.com", "buildzoom.com",
+            # 2026-07-26: Q&A / forum / UGC platforms rank for every long-tail question in
+            # every trade. quora.com reached a real customer report as a "competitor" to a
+            # spray-foam contractor in Mt. Vernon IL at 362,982,615 est. traffic.
+            "quora.com", "stackexchange.com", "answers.com", "medium.com", "substack.com",
+            "wikihow.com", "ehow.com", "hunker.com", "thespruce.com", "bobvila.com",
+            "familyhandyman.com", "thisoldhouse.com", "finehomebuilding.com",
+            "greenbuildingadvisor.com", "energy.gov", "epa.gov", "consumerreports.org",
+            "forbes.com", "nytimes.com", "usatoday.com", "yahoo.com", "msn.com",
+            "walmart.com", "ebay.com", "etsy.com", "menards.com", "acehardware.com",
+            "tractorsupply.com", "grainger.com", "alibaba.com",
         )
+        # ── SCALE SANITY (2026-07-26, Mike: "if we're pulling stuff like that then we're
+        # not actually finding competitors") ────────────────────────────────────────────
+        # A static blocklist is whack-a-mole and will always be one domain behind. The
+        # structural signal is SCALE: a genuine competitor for a local service business is
+        # another local service business. National publishers, manufacturers and UGC
+        # platforms rank for the same long-tail queries but are not competing for the same
+        # customer, and presenting them as competitors is both useless strategically and
+        # damaging to our credibility with the prospect.
+        #
+        # These domains come from Labs `competitors_domain`, which means "ranks for
+        # keywords you rank for" — SERP CO-OCCURRENCE, not competition. This is where that
+        # distinction gets enforced.
+        #
+        # Two filters, applied after traffic is known (see _apply_scale_filter below):
+        #   1. absolute ceiling  — above COMPETITOR_TRAFFIC_CEILING est. monthly organic,
+        #      it is a publisher/national brand, not a local rival.
+        #   2. outlier rejection — drop anything >COMPETITOR_OUTLIER_FACTOR x the median of
+        #      the surviving candidates, which catches new giants the ceiling misses.
+        # Everything dropped is LOGGED with its reason — a filter that silently shrinks the
+        # list would read as "only 2 competitors found" when we actually found 5.
         for item in items:
             dom = (item.get("domain") or "").lower().lstrip("www.")
             if not dom or dom == _self or dom in _BLOCK:
+                if dom and dom != _self:
+                    print(f"[competitors] DROP {dom}: blocklisted (platform/publisher/retailer)",
+                          file=sys.stderr)
                 continue
             competitors_raw.append({
                 "domain": item.get("domain") or "",
                 "keyword_count": int(item.get("avg_position") or 0),  # overwritten with traffic
                 "intersections": int(item.get("intersections") or 0),
             })
-            if len(competitors_raw) >= 5:
+            # Take MORE than we need — the scale filter below removes some, and stopping at
+            # 5 here used to mean a blocked giant cost us a real competitor slot.
+            if len(competitors_raw) >= 15:
                 break
     except Exception as e:
         print(f"[WARN] Competitors fetch failed: {e}", file=sys.stderr)
@@ -97,16 +133,58 @@ def fetch_competitive(domain: str, competitors=None, location_code: int = 2840) 
             print(f"[WARN] Competitor DR enrichment failed: {e}", file=sys.stderr)
 
     # Build competitors output list
+    _cand = []
     for c in competitors_raw:
         dom = c["domain"]
         traffic = traffic_map.get(dom, 0)
-        out["competitors"].append({
+        _cand.append({
             "domain": dom,
             "traffic_estimate": traffic,
             "keyword_count": c.get("intersections", 0),
             "overlap_pct": 0,
             "dr": dr_map.get(dom, {}).get("dr", 0),
         })
+
+    # ── SCALE FILTER (2026-07-26) ────────────────────────────────────────────────────
+    # See the note at the blocklist. Enforced HERE because it needs traffic, which is only
+    # known after bulk_traffic_estimation. Tunable via env for verticals where a bigger
+    # competitor really is a competitor (set COMPETITOR_TRAFFIC_CEILING=0 to disable).
+    CEILING = int(os.environ.get("COMPETITOR_TRAFFIC_CEILING", "500000"))
+    FACTOR  = float(os.environ.get("COMPETITOR_OUTLIER_FACTOR", "20"))
+
+    kept = _cand
+    if CEILING > 0:
+        over = [c for c in kept if c["traffic_estimate"] > CEILING]
+        for c in over:
+            print(f"[competitors] DROP {c['domain']}: est. traffic {c['traffic_estimate']:,} "
+                  f"> ceiling {CEILING:,} — national publisher/brand, not a local rival",
+                  file=sys.stderr)
+        kept = [c for c in kept if c["traffic_estimate"] <= CEILING]
+
+    # Outlier pass: catches giants under the ceiling that still dwarf the real field.
+    known = sorted(c["traffic_estimate"] for c in kept if c["traffic_estimate"] > 0)
+    if len(known) >= 3 and FACTOR > 0:
+        median = known[len(known) // 2]
+        if median > 0:
+            out_lim = median * FACTOR
+            for c in [c for c in kept if c["traffic_estimate"] > out_lim]:
+                print(f"[competitors] DROP {c['domain']}: {c['traffic_estimate']:,} is "
+                      f">{FACTOR:g}x the median of the field ({median:,}) — scale outlier",
+                      file=sys.stderr)
+            kept = [c for c in kept if c["traffic_estimate"] <= out_lim]
+
+    if len(kept) < len(_cand):
+        print(f"[competitors] scale filter: kept {len(kept)} of {len(_cand)} candidates",
+              file=sys.stderr)
+    # Be honest rather than padding: too few real rivals is a FINDING (the client may have
+    # no meaningful local competition online), not something to backfill with publishers.
+    if not kept:
+        print("[competitors] WARNING: every candidate was a platform/publisher/out-of-scale "
+              "domain. Reporting NO competitors rather than inventing them — this usually "
+              "means the local field has little organic presence, which is itself the story.",
+              file=sys.stderr)
+
+    out["competitors"] = kept[:5]
 
     if out["competitors"]:
         out["top_competitor"] = out["competitors"][0]["domain"]
