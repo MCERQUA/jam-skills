@@ -32,6 +32,7 @@ Run EVERY check before presenting the site to the client. Fix all failures.
 - [ ] CTA buttons have clear action text ("Get a Free Quote" not "Submit")
 - [ ] No broken images (all `src` paths resolve)
 - [ ] AEO capture: every lead form has hidden `traffic_source` + `landing_url` fields with the set-on-load script (and, for Netlify Forms, declared in `__forms.html`) — see forms-backend.md
+- [ ] **Form DELIVERY verified, not registration** — every Netlify form POSTs to `/__forms.html` (never the page path; the Next.js cache swallows page-path POSTs and returns 200), AND `scripts/netlify-form-delivery-probe.sh <site>.netlify.app` returns HEALTHY, AND a real test submission appears in the Netlify API. A registration count is NOT delivery — 131 live sites read green this way with zero leads. See forms-backend.md.
 
 ---
 

@@ -344,3 +344,62 @@ Declare both fields in `public/__forms.html` inside EACH form block so Netlify F
 `traffic_source + landing_url present in BOTH lead forms AND public/__forms.html`.
 
 Reference: `docs/jambot/aeo-traffic-capture-snippet.md` + `scripts/aeo-attribution-report.py` (the daily AEO leaderboard).
+
+---
+
+## ⛔ NETLIFY FORMS + NEXT.JS — THE SUBMIT TARGET IS NOT OPTIONAL
+
+**A form that POSTs to the page path loses every submission on a Next.js site, silently, with
+HTTP 200.** This standard previously specified where to DECLARE forms (`public/__forms.html`)
+but never where to SUBMIT them, and that omission shipped 131 of 381 live client sites with
+undeliverable lead forms.
+
+### The rule
+
+```tsx
+// REQUIRED — /__forms.html is a static asset, so Next.js never intercepts it
+<form action="/__forms.html" method="POST" name="contact" data-netlify="true">
+
+// JS-handled forms submit to the same place:
+await fetch("/__forms.html", {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({ "form-name": "contact", ...data }),
+});
+```
+
+**Never** POST a Netlify form to `/`, to the page it lives on, or to a Next.js route handler.
+
+### Why — measured, not theorised (2026-07-27, surroninsurance)
+
+Same site, same payload, only the target differs:
+
+| POST target | response | result |
+|---|---|---|
+| `/` (page path) | `200` · `cache-status: "Next.js"; hit` | **DISCARDED** |
+| `/__forms.html` | `200` · `cache-status: "Netlify Edge"; fwd=miss` | **LANDED** |
+
+The Next.js route cache answers the POST before Netlify's Forms handler is consulted. The
+browser sees 200. The person who filled the form sees a success state. The Netlify dashboard
+shows the form REGISTERED with `submission_count: 0` — forever. Every layer reads green.
+surroninsurance ran this way from 2026-06-21 with zero leads delivered.
+
+**Registration is not delivery.** `registered_forms 0 -> 2` proves the build detected the form.
+It says nothing about whether a submission can reach the handler, and the two are wired to
+different mechanisms. Never close a forms task on a registration count.
+
+### Definition of done — a real POST, verified receiver-side
+
+Do not mark a form task complete on markup review or a registration count. Run:
+
+```bash
+bash /home/mike/MIKE-AI/scripts/netlify-form-delivery-probe.sh <site>.netlify.app
+```
+
+It POSTs a form-name that cannot exist, so it records nothing:
+- **404** — healthy. The handler ran and rejected an unknown form.
+- **200 + `"Next.js"` cache** — BROKEN. Page-path POSTs are being swallowed.
+
+Then confirm a real submission actually appears via the Netlify API (`/sites/<id>/submissions`),
+not via the form's own success screen — the success screen is rendered by the same 200 that
+loses the data.
