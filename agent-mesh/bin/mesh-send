@@ -65,7 +65,10 @@ _BUILTIN_FILTER_PATTERNS: list[tuple[str, str]] = [
     (r"\bxox[baprs]-\d{8,}-[A-Za-z0-9-]{10,}\b",    "Slack token (xox..-<digits>-...)"),
     (r"eyJ[A-Za-z0-9+/=]{30,}",             "JWT token (eyJ...)"),
     (r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b",      "AWS access key (AKIA/ASIA...)"),
-    (r"\bgh[opsu]_[A-Za-z0-9]{36}\b",       "GitHub token (ghp_/gho_/ghs_/ghu_...)"),
+    # {30,} floor, NOT {36} exact: trailing \b makes an exact-length pattern silently
+    # PASS any longer token (bun/src proved it live). ghr_ included — refresh tokens
+    # have the longest leak tail: they mint new access tokens until revoked.
+    (r"\bgh[opsur]_[A-Za-z0-9]{30,}\b",      "GitHub token (ghp/gho/ghs/ghu/ghr_...)"),
     (r"\bgithub_pat_[A-Za-z0-9_]{59,}\b",   "GitHub fine-grained token"),
     (r"\baia_sk_[A-Za-z0-9]{20,}\b",        "AIA secret key (aia_sk_...)"),
     (r"-----BEGIN [A-Z ]+-----",            "PEM / private key block"),
