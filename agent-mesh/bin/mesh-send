@@ -53,6 +53,7 @@ from write_atomic import write_atomic as _write_atomic  # noqa: E402
 # ---------------------------------------------------------------------------
 _BUILTIN_FILTER_PATTERNS: list[tuple[str, str]] = [
     (r"\bhf_[A-Za-z0-9]{20,}\b",            "HuggingFace token (hf_...)"),
+    (r"\bAIza[A-Za-z0-9_-]{30,}\b",         "Google API key (AIza...)"),
     # sk- SHAPED, not broad (host decision 2026-07-28, src/bun cost data): a real key
     # always ends in an unbroken 20+ alnum run; prose/branch slugs are hyphen-separated
     # short words and pass. Catches sk-proj-* / sk-ant-* (the old pattern MISSED both —
@@ -63,8 +64,8 @@ _BUILTIN_FILTER_PATTERNS: list[tuple[str, str]] = [
     (r"\bsk_(?:live|test)_[A-Za-z0-9]{16,}\b",      "Stripe secret key (sk_live_/sk_test_)"),
     (r"\bxox[baprs]-\d{8,}-[A-Za-z0-9-]{10,}\b",    "Slack token (xox..-<digits>-...)"),
     (r"eyJ[A-Za-z0-9+/=]{30,}",             "JWT token (eyJ...)"),
-    (r"\bAKIA[A-Z0-9]{16}\b",               "AWS access key (AKIA...)"),
-    (r"\bghp_[A-Za-z0-9]{36}\b",            "GitHub PAT (ghp_...)"),
+    (r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b",      "AWS access key (AKIA/ASIA...)"),
+    (r"\bgh[opsu]_[A-Za-z0-9]{36}\b",       "GitHub token (ghp_/gho_/ghs_/ghu_...)"),
     (r"\bgithub_pat_[A-Za-z0-9_]{59,}\b",   "GitHub fine-grained token"),
     (r"\baia_sk_[A-Za-z0-9]{20,}\b",        "AIA secret key (aia_sk_...)"),
     (r"-----BEGIN [A-Z ]+-----",            "PEM / private key block"),
