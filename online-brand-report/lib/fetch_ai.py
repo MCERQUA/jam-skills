@@ -95,11 +95,20 @@ def fetch_ai(domain: str, brand_name: str, location_code: int = 2840) -> dict:
     }
 
     # --- llms.txt check ---
+    # A real llms.txt is a PLAIN-TEXT markdown file. Many sites are soft-404s that return HTTP 200
+    # + their homepage HTML for ANY path (egan-jones.com 2026-07-30: /llms.txt AND a random path
+    # both returned the identical 369KB homepage), so a bare status==200 check false-positives. Only
+    # accept it if the response is NOT html: content-type isn't text/html AND the body doesn't start
+    # with an HTML doctype/tag.
     try:
         r = requests.get(f"https://{domain}/llms.txt", headers={"User-Agent": _UA}, timeout=10)
         if r.status_code == 200 and len(r.text) > 10:
-            out["llms_txt_present"] = True
-            out["llms_txt_preview"] = r.text[:300].strip()
+            ct = (r.headers.get("content-type") or "").lower()
+            head = r.text.lstrip()[:400].lower()
+            looks_html = head.startswith(("<!doctype", "<html", "<?xml")) or "<html" in head
+            if "text/html" not in ct and not looks_html:
+                out["llms_txt_present"] = True
+                out["llms_txt_preview"] = r.text[:300].strip()
     except Exception as e:
         print(f"[INFO] llms.txt check: {e}", file=sys.stderr)
 
