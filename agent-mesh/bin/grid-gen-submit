@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""grid-gen-submit — a tenant voice agent drops a Grid Creator order into the mesh queue for the
+Mac creative node (macmini-office@mesh) to drain.
+
+FILE-DROP, NOT a mesh `task`, on purpose (2026-07-30): a `task` to macmini-office@mesh is
+auto-executed by the Mac's permissionless `mac-listener` (TRUSTED_SENDERS includes the tenant
+*-voice agents) → `claude --print --dangerously-skip-permissions`, with NO brand kit, NO CDP
+ChatGPT browser rig, and a possible paid-API image call — the June-2026 incident class. The Mac
+does NOT watch grid-gen-queue/, so it drains this file one-at-a-time with the full brand rig.
+
+The brief is read from STDIN so quotes/newlines in it can never corrupt the JSON.
+
+Usage (run by the tenant voice agent per its TOOLS.md [GRID-GEN] instruction):
+  grid-gen-submit --client <tenant> --request-id <id> --type post|logo|character|mascot \
+      --count 9 --aspect 1:1 --layout composite|separate <<'BRIEF'
+  <the brief text, verbatim>
+  BRIEF
+"""
+import argparse
+import json
+import os
+import sys
+import tempfile
+import time
+
+MESH_ROOT = os.environ.get("MESH_ROOT", "/mnt/agent-mesh")
+QUEUE = os.path.join(MESH_ROOT, "mesh", "grid-gen-queue")
+VALID_TYPES = {"post", "logo", "character", "mascot"}
+VALID_LAYOUT = {"composite", "separate"}
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(prog="grid-gen-submit")
+    p.add_argument("--client", required=True, help="tenant id — selects the brand kit on the Mac")
+    p.add_argument("--request-id", required=True)
+    p.add_argument("--type", required=True)
+    p.add_argument("--count", type=int, default=9)
+    p.add_argument("--aspect", default="1:1")
+    p.add_argument("--layout", default="composite")
+    a = p.parse_args()
+
+    rid = a.request_id.strip()
+    if not rid or "/" in rid or ".." in rid:
+        sys.exit("grid-gen-submit: invalid --request-id")
+    if a.type not in VALID_TYPES:
+        sys.exit(f"grid-gen-submit: --type must be one of {sorted(VALID_TYPES)}")
+    layout = a.layout if a.layout in VALID_LAYOUT else "composite"
+    brief = sys.stdin.read().strip()
+    if not brief:
+        sys.exit("grid-gen-submit: brief (stdin) is empty — nothing to generate")
+
+    order = {
+        "client_id": a.client,
+        "request_id": rid,
+        "grid_type": a.type,
+        "count": max(1, min(24, a.count)),
+        "aspect": a.aspect,
+        "layout": layout,
+        "brief": brief[:2000],
+        "reply_to": f"{a.client}-voice@mesh",
+        "submitted_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+
+    os.makedirs(QUEUE, exist_ok=True)
+    dst = os.path.join(QUEUE, f"{rid}.json")
+    # Atomic write: temp file in the same dir + rename, so the Mac's drainer never reads a
+    # half-written order.
+    fd, tmp = tempfile.mkstemp(dir=QUEUE, prefix=f".{rid}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(order, f)
+        os.rename(tmp, dst)
+    except OSError as e:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        sys.exit(f"grid-gen-submit: could not write queue file: {e}")
+
+    print(f"grid-gen queued: {dst}")
+    print(f"  client={a.client} type={a.type} count={order['count']} "
+          f"aspect={a.aspect} layout={layout}")
+
+
+if __name__ == "__main__":
+    main()
