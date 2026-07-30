@@ -31,6 +31,24 @@ _SERPER_URL = _SERPER_PLACES  # back-comat for the places call below
 _OPENCLAW_KEYS = "/mnt/system/base/.openclaw-keys.env"
 
 
+def _meter_serper(data, endpoint: str = "") -> None:
+    """Log this call's credit cost (data['credits']) so the balance-poller can estimate remaining.
+    Serper has no balance API — this usage log is the 'getting low' half. NEVER raises: metering
+    must not break a paid report mid-run (2026-07-30: a silent 0-credit report is the reason)."""
+    try:
+        from lib import serper_meter  # canonical shared meter
+    except Exception:
+        try:
+            import serper_meter  # when lib/ is on sys.path directly
+        except Exception:
+            serper_meter = None
+    try:
+        if serper_meter is not None:
+            serper_meter.record((data or {}).get("credits", 0), endpoint)
+    except Exception:
+        pass
+
+
 def _serper_key() -> str:
     key = os.environ.get("SERPER_API_KEY", "").strip()
     if key:
@@ -108,6 +126,7 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
         )
         with urllib.request.urlopen(req, timeout=25) as r:
             data = json.loads(r.read().decode())
+        _meter_serper(data, "places")   # best-effort credit metering; never raises
     except Exception as e:
         print(f"[WARN] Serper places fetch failed: {e}", file=sys.stderr)
         return out
@@ -198,6 +217,7 @@ def _serper_search(key: str, query: str, num: int = 30) -> list:
         )
         with urllib.request.urlopen(req, timeout=25) as r:
             data = json.loads(r.read().decode())
+        _meter_serper(data, "search")   # best-effort credit metering; never raises
         return data.get("organic") or []
     except Exception as e:
         print(f"[WARN] Serper search '{query}': {e}", file=sys.stderr)
