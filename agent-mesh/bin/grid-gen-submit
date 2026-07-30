@@ -69,6 +69,9 @@ def main() -> None:
     try:
         with os.fdopen(fd, "w") as f:
             json.dump(order, f)
+        # mkstemp is 0600; the Mac reads the mesh share possibly as a different uid, so make the
+        # order world-readable or it can silently fail to pick up the drop.
+        os.chmod(tmp, 0o664)
         os.rename(tmp, dst)
     except OSError as e:
         try:
