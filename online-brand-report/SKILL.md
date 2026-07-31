@@ -29,6 +29,35 @@ A self-contained HTML file saved to the client's canvas-pages directory with:
 
 ## Usage
 
+### ⭐ Tenant agents: DISPATCH to the background queue — do NOT run generate.py inline
+
+**If you are a tenant's OpenClaw agent talking to a user, NEVER run `generate.py` yourself.**
+It is a multi-minute DataForSEO/Serper enrichment loop; running it in your chat session
+evicts the conversation (context pruning drops the earlier turns) and queues the user's
+messages behind it. Instead, drop ONE request file into the shared queue and return
+immediately — a host worker runs the report off-session and it lands in your canvas-pages:
+
+```bash
+cat > /mnt/agent-mesh/mesh/brand-report-queue/${JAMBOT_TENANT:-$(whoami)}-$(date +%s).json <<JSON
+{"tenant":"<your-tenant>","domain":"<domain-or-empty>","name":"<Business Name>",
+ "owner":"<Owner>","city":"<City>","state":"<ST>","phone":"<phone>","email":"<email>",
+ "service":"<primary service>","competitors":"comp1.com,comp2.com","id":"<short-id>"}
+JSON
+```
+
+Then tell the user their report is being generated and you'll surface it when ready.
+The host drain (cron */1) runs it and writes:
+- the report → `/mnt/clients/<tenant>/openvoiceui/canvas-pages/brand-report-<slug>.html`
+  (share the `/pages/brand-report-<slug>.html` URL)
+- a result marker → `/mnt/agent-mesh/mesh/brand-report-queue/.done/<id>.result.json`
+  (`{status: done|error, output, canvas_url, score}`) — check it on a later turn to confirm.
+
+Required in the JSON: `tenant`, `name`. `domain` may be empty (a no-website business still
+renders GMB + local SERP). Everything else is optional. **Do not poll in a tight loop** —
+check the `.done/` marker on the user's next turn, not by blocking.
+
+### Host / onboarding: run the engine directly (you have the creds + it's off any chat)
+
 ```
 python /mnt/system/base/skills/online-brand-report/generate.py \
   --domain <domain> \
