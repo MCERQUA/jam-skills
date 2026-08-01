@@ -59,6 +59,13 @@ def log_drop(message: str) -> None:
             return
         except OSError:
             continue
+    # 2026-08-01 (bun-desktop): fail LOUD when EVERY candidate fails. A silent-everywhere
+    # logger is indistinguishable from a quiet night — josh-desktop's audit file was
+    # root:root and swallowed 13,275 acks while every ack still printed success. The ack
+    # itself still succeeds (the file move is what matters); we only surface the audit gap.
+    print(f"mesh-ack: WARNING audit log_drop failed on all candidates "
+          f"(check perms on /config/workspace/mesh-events.log) — ack recorded, audit line lost",
+          file=sys.stderr)
 
 
 def ack_file(inbox: Path, filename: str) -> bool:
