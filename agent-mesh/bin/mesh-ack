@@ -62,6 +62,13 @@ def log_drop(message: str) -> None:
 
 
 def ack_file(inbox: Path, filename: str) -> bool:
+    # 2026-08-01: reduce to a bare basename FIRST. If callers pass an absolute path
+    # (e.g. `mesh-ack /mnt/agent-mesh/agents/host/inbox/foo.md`), pathlib's `base / abs`
+    # DISCARDS the base and returns `abs` — so `read_dir / filename` pointed back at the
+    # ORIGINAL file, `dest.exists()` was true, and the file got renamed in-place to
+    # `foo.md.dup-<ts>` in the inbox instead of moving to .read/. That is the dup-file
+    # mechanism bun/josh/src reproduced across three desks. Normalizing to .name fixes it.
+    filename = Path(filename).name
     src = inbox / filename
     if not src.is_file():
         print(f"mesh-ack: file not found: {filename}", file=sys.stderr)
