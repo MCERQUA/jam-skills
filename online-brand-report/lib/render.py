@@ -440,8 +440,36 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
     web_partial      = not (lh_perf_measured and lh_a11y_measured and lh_cwv_measured)
 
     # Local
-    rev_avg    = data.get("review_avg", 0.0)
-    rev_count  = data.get("review_count", 0)
+    # ── REVIEW DATA: two sources, one truth (2026-08-02) ──────────────────────
+    # review_avg/review_count come from fetch_local.py (DataForSEO). gmb_rating/
+    # gmb_review_count come from fetch_serper.py (Serper Places). Nothing ever
+    # reconciled them, so when the DataForSEO reviews task returned nothing the
+    # renderer used its 0.0/0 DEFAULTS even though Serper had successfully
+    # fetched real numbers into the same payload under different keys.
+    #
+    # 2026-08-02, Northern Foamworks (nfwfoam.com): Serper returned 5.0★ / 24
+    # reviews. The report told the customer "GMB Verified: Not found — Fix" and
+    # "Reviews: 0 at 0.0★ — Low", made "Build GMB review base — currently 0
+    # reviews" a Do-Now priority, and scored them down for it. Their 24 five-star
+    # reviews are the strongest asset the business has. That report was SENT.
+    #
+    # A missing fetch is NOT a zero. Prefer whichever source actually has data;
+    # only fall back to 0 when BOTH are empty, and let gmb_found reflect that a
+    # verified listing was seen by EITHER source.
+    _rev_avg_dfs   = data.get("review_avg") or 0.0
+    _rev_count_dfs = data.get("review_count") or 0
+    _rev_avg_gmb   = data.get("gmb_rating") or 0.0
+    _rev_count_gmb = data.get("gmb_review_count") or 0
+    rev_avg    = float(_rev_avg_dfs or _rev_avg_gmb or 0.0)
+    rev_count  = int(_rev_count_dfs or _rev_count_gmb or 0)
+    # gmb_found must reflect what EITHER source saw. Serper setting gmb_name /
+    # gmb_review_count IS proof of a verified listing; without this the table
+    # rendered "Not found — Fix" for a business whose trade name, category and
+    # phone were already printed in the card header directly above it.
+    _gmb_seen = bool(data.get("gmb_found") or data.get("gmb_name")
+                     or _rev_count_gmb or data.get("gmb_place_id"))
+    if _gmb_seen and not data.get("gmb_found"):
+        data = dict(data); data["gmb_found"] = True
     rev_dist   = data.get("review_distribution", {"5":0,"4":0,"3":0,"2":0,"1":0})
     rev_pcts   = data.get("review_dist_pcts", {"5":0,"4":0,"3":0,"2":0,"1":0})
     map_pos    = data.get("map_pack_positions", {})

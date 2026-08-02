@@ -21,8 +21,11 @@ def generate_roadmap(data: dict, score_result: dict) -> dict:
     lh_seo      = data.get("lh_seo", 0)
     schema      = data.get("schema_present", False)
     llms_txt    = data.get("llms_txt_present", False)
-    review_count= data.get("review_count", 0)
-    review_avg  = data.get("review_avg", 0.0)
+    # Same two-source reconciliation as render.py (2026-08-02). A DataForSEO miss
+    # must not present as "0 reviews" when Serper Places fetched real numbers —
+    # that turned a 24-review 5.0★ profile into a Do-Now "build review base" item.
+    review_count= int((data.get("review_count") or 0) or (data.get("gmb_review_count") or 0))
+    review_avg  = float((data.get("review_avg") or 0.0) or (data.get("gmb_rating") or 0.0))
     map_positions = data.get("map_pack_positions", {})
     domain_rank = data.get("domain_rank", 0)
     ahrefs_dr   = data.get("ahrefs_dr", 0)
