@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """mesh-send — write a file to a peer agent's inbox over the JamBot agent mesh.
 
-Implements PROTOCOL.md v2.0.0 §§3-7, 9. Atomic mkdir-claim slot allocation
+Implements PROTOCOL.md v2.1.2 §§3-7, 9. Atomic mkdir-claim slot allocation
 (§5), auto-computed SIZE (§4), cc fanout via /mesh/cc/ rw overlay (§7),
 urgent rate limit (§9), sent/ mirror + cc writes.
 
@@ -27,6 +27,7 @@ Exit codes:
     1  generic failure
     2  rate-limit hit (urgent 1/hr)
     3  validation failure (unknown kind, missing AGENT_URI, etc.)
+    4  intel filter blocked — body matched a secret/PII pattern; use --force-leak to override
 """
 from __future__ import annotations
 
@@ -40,10 +41,132 @@ import sys
 import time
 from pathlib import Path
 
+# Shared write_atomic helper from lib/ (same package root)
+_lib = Path(__file__).resolve().parent.parent / "lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
+from write_atomic import write_atomic as _write_atomic  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Intel leak filter (PROTOCOL §19 — pre-send PII / secret check)
+# Keep in sync with the equivalent block in bin/mesh-event.
+# ---------------------------------------------------------------------------
+_BUILTIN_FILTER_PATTERNS: list[tuple[str, str]] = [
+    (r"\bhf_[A-Za-z0-9]{20,}\b",            "HuggingFace token (hf_...)"),
+    (r"\bAIza[A-Za-z0-9_-]{30,}\b",         "Google API key (AIza...)"),
+    # Google OAuth REFRESH token (1//...). Lookbehind excludes base64-only chars
+    # [A-Za-z0-9+/] before — kills embedded-base64 FPs (bun's 1.7MB img blob) — but NOT
+    # '=', because refresh_token=1//... is the #1 real context and must still block.
+    # {50,} floor: real tokens are 100+ chars; short 1// (URL /v1//, paths) passes.
+    (r"(?<![A-Za-z0-9+/])1//[A-Za-z0-9_-]{50,}", "Google OAuth refresh token (1//...)"),
+    # sk- SHAPED, not broad (host decision 2026-07-28, src/bun cost data): a real key
+    # always ends in an unbroken 20+ alnum run; prose/branch slugs are hyphen-separated
+    # short words and pass. Catches sk-proj-* / sk-ant-* (the old pattern MISSED both —
+    # the hyphen after proj/ant broke the run, so real modern keys sailed through while
+    # src's broad per-desk rule was blocking branch names). Broad-class rejected: a
+    # filter that cries wolf gets --force-leak'd into decay.
+    (r"\bsk-(?:[A-Za-z0-9]+-)*[A-Za-z0-9_]{20,}\b", "API key (sk-...)"),
+    (r"\bsk_(?:live|test)_[A-Za-z0-9]{16,}\b",      "Stripe secret key (sk_live_/sk_test_)"),
+    (r"\bxox[baprs]-\d{8,}-[A-Za-z0-9-]{10,}\b",    "Slack token (xox..-<digits>-...)"),
+    (r"eyJ[A-Za-z0-9+/=]{30,}",             "JWT token (eyJ...)"),
+    (r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b",      "AWS access key (AKIA/ASIA...)"),
+    # {30,} floor, NOT {36} exact: trailing \b makes an exact-length pattern silently
+    # PASS any longer token (bun/src proved it live). ghr_ included — refresh tokens
+    # have the longest leak tail: they mint new access tokens until revoked.
+    (r"\bgh[opsur]_[A-Za-z0-9]{30,}\b",      "GitHub token (ghp/gho/ghs/ghu/ghr_...)"),
+    (r"\bgithub_pat_[A-Za-z0-9_]{59,}\b",   "GitHub fine-grained token"),
+    (r"\baia_sk_[A-Za-z0-9]{20,}\b",        "AIA secret key (aia_sk_...)"),
+    (r"-----BEGIN [A-Z ]+-----",            "PEM / private key block"),
+    (r"(?i)\bpassword\s*=\s*\S{4,}",        "password= assignment"),
+    (r"(?i)\bauthorization\s*:\s*\S+",      "Authorization header value"),
+]
+
+
+def _load_private_context(agent_dir: Path) -> list[tuple[str, str]]:
+    """Load per-agent filter patterns from /agent-desk/private_context.md.
+
+    Format — one entry per line, prefix determines category:
+        client: <regex>   client name / PII (company, employees, contacts)
+        domain: <regex>   domain / hostname patterns
+        secret: <regex>   custom secret formats (API keys, internal tokens)
+    Blank lines and lines starting with # are ignored.
+    """
+    ctx = agent_dir / "private_context.md"
+    if not ctx.is_file():
+        return []
+    patterns: list[tuple[str, str]] = []
+    labels = {"client": "client pattern", "domain": "domain pattern", "secret": "custom secret"}
+    try:
+        with ctx.open("r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                for prefix, label in labels.items():
+                    key = f"{prefix}: "
+                    if line.startswith(key):
+                        pat = line[len(key):]
+                        patterns.append((pat, f"{label}: {pat[:50]}"))
+                        break
+    except OSError:
+        pass
+    return patterns
+
+
+def _run_intel_filter(body: str, agent_dir: Path) -> list[tuple[int, str, str]]:
+    """Scan body lines for secrets / PII. Returns [(line_no, snippet, description)]."""
+    per_agent = _load_private_context(agent_dir)
+    all_patterns = _BUILTIN_FILTER_PATTERNS + per_agent
+    hits: list[tuple[int, str, str]] = []
+    for lineno, line in enumerate(body.splitlines(), 1):
+        for pat, desc in all_patterns:
+            try:
+                m = re.search(pat, line)
+            except re.error:
+                continue
+            if m:
+                start = max(0, m.start() - 15)
+                snippet = line[start:m.end() + 15].strip()
+                hits.append((lineno, snippet, desc))
+                break  # one hit per line is enough
+    return hits
+
+
+def _write_force_leak_audit(mesh_dir: Path, sender: str, recipient: str,
+                            hits: list[tuple[int, str, str]]) -> None:
+    """Append a force-leak audit entry to mesh/DECISIONS/ (best-effort)."""
+    decisions_dir = mesh_dir / "DECISIONS"
+    try:
+        decisions_dir.mkdir(parents=True, exist_ok=True)
+        ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
+        path = decisions_dir / f"{ts}-{sender}-force-leak-audit.md"
+        lines = [
+            "---",
+            "KIND: decision",
+            f"AUTHOR: {sender}@mesh",
+            f"FORCE_LEAK: true",
+            f"RECIPIENT: {recipient}",
+            f"TIMESTAMP: {ts}",
+            "---",
+            "",
+            "# Force-leak override — audit record",
+            "",
+            f"**Agent:** {sender}@mesh  **Recipient:** {recipient}",
+            "",
+            "**Matched patterns (would have been blocked):**",
+        ]
+        for lineno, snippet, desc in hits:
+            lines.append(f"- Line {lineno}: [{desc}] near: {snippet!r}")
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError:
+        pass  # audit is best-effort; don't block the send
+
+
 # ---------------------------------------------------------------------------
 # KIND enum + size caps (PROTOCOL §9)
 # ---------------------------------------------------------------------------
 KIND_CAPS_BYTES = {
+    # v2.0.0 KINDs
     "ping": 200,
     "message": None,
     "rfc": None,
@@ -55,6 +178,23 @@ KIND_CAPS_BYTES = {
     "attachment": None,
     "quarantine": None,
     "thread-stub": 200,
+    # v2.1.0 KINDs — Layer 3 work coordination
+    "task": None,
+    "task-result": None,
+    "bg-job": None,
+    "pipeline-step": None,
+    "heartbeat": 500,
+    "dead-letter": None,
+    "delegate": None,
+    "delegate-result": None,
+    # v2.1.1 KINDs — HITL
+    "hitl": None,
+    "hitl-result": None,
+    # v2.1.2 KINDs — blockers
+    "blocker": None,
+    "blocker-resolve": None,
+    # v2.1.2 KINDs — patch delivery
+    "patch": None,
 }
 
 SIZE_TIERS = [
@@ -151,7 +291,7 @@ def claim_slot(inbox: Path, sender: str, topic: str) -> tuple[str, Path]:
     release_claim() to remove the .claim sentinel.
     """
     sweep_stale_claims(inbox)
-    date = _dt.datetime.utcnow().strftime("%Y-%m-%d")
+    date = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
     start = find_start_seq(inbox, date)
 
     def _try_range(rng):
@@ -250,12 +390,24 @@ def log_drop(message: str) -> None:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+class _ArgumentParser(argparse.ArgumentParser):
+    """Remap argparse's default exit-2 to exit-3 so exit 2 stays exclusively
+    for rate-limit (PROTOCOL §9). Without this, `mesh-send --bad-flag` and
+    `mesh-send` hitting the urgent rate-limit both exit 2, making them
+    indistinguishable for callers using exit codes to drive retry logic."""
+    def error(self, message: str) -> None:
+        self.print_usage(sys.stderr)
+        print(f"{self.prog}: error: {message}", file=sys.stderr)
+        sys.exit(3)
+
+
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Write a file to a peer agent's inbox over the JamBot agent mesh.")
+    p = _ArgumentParser(description="Write a file to a peer agent's inbox over the JamBot agent mesh.")
     p.add_argument("--to", required=True, help="recipient URI, e.g. host@mesh")
     p.add_argument("--kind", required=True, choices=sorted(KIND_CAPS_BYTES.keys()))
     p.add_argument("--subject", required=True, help="kebab-case topic (becomes filename <topic> segment)")
-    p.add_argument("--replies-to", default=None, help="prior filename this replies to")
+    p.add_argument("--replies-to", "--reply-to", default=None, dest="replies_to",
+                   help="prior filename this replies to")
     p.add_argument("--cc", action="append", default=[], help="cc recipient URI, repeatable")
     p.add_argument("--urgent", action="store_true", help="add URGENT: true frontmatter (required for KIND urgent; carve-out for KIND ack)")
     p.add_argument("--state-check", default=None, help="STATE_CHECK frontmatter (forensic snapshot text)")
@@ -264,19 +416,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--promoted-to", default=None, help="PROMOTED_TO frontmatter (for thread-stub)")
     p.add_argument("--end-of-turn", default=None, help="END-OF-TURN frontmatter; defaults to '<to> — reply expected'")
     p.add_argument("--dry-run", action="store_true", help="show what would be written without writing")
+    p.add_argument("--force-leak", action="store_true",
+                   help="bypass intel filter and send anyway; creates an audit entry in mesh/DECISIONS/")
     return p.parse_args()
 
 
 def main() -> None:
-    # Voice-tenant admin gate (added 2026-05-13). See mesh-gate-check.
-    import subprocess
-    gate_check = Path(__file__).parent / "mesh-gate-check"
-    if gate_check.exists():
-        try:
-            subprocess.run([str(gate_check)], check=True, capture_output=False)
-        except subprocess.CalledProcessError:
-            sys.exit(4)
-
     args = parse_args()
     sender = agent_name()
     mesh_dir, agents_dir, my_dir = discover_mesh_root()
@@ -301,6 +446,19 @@ def main() -> None:
 
     # ---- body + size ----
     body = sys.stdin.read()
+
+    # ---- intel leak filter ----
+    hits = _run_intel_filter(body, my_dir)
+    if hits:
+        if args.force_leak:
+            _write_force_leak_audit(mesh_dir, sender, args.to, hits)
+        else:
+            print("mesh-send: BLOCKED — potential secret / business intel detected:", file=sys.stderr)
+            for lineno, snippet, desc in hits:
+                print(f"  line {lineno}: [{desc}]  near: {snippet!r}", file=sys.stderr)
+            print("mesh-send: use --force-leak to override (creates audit entry in mesh/DECISIONS/)", file=sys.stderr)
+            sys.exit(4)
+
     body_bytes = body.encode("utf-8")
     size_tier = compute_size_tier(len(body_bytes))
     cap = KIND_CAPS_BYTES.get(args.kind)
@@ -393,12 +551,12 @@ def main() -> None:
 
     # ---- write primary ----
     try:
-        md_path.write_text(content, encoding="utf-8")
+        _write_atomic(md_path, content)
         # sent/ mirror (keeps audit record + powers AUTHOR validation + RECENT.md)
         if sent_dir.is_dir():
             sent_path = sent_dir / f"{slot}.md"
             try:
-                sent_path.write_text(content, encoding="utf-8")
+                _write_atomic(sent_path, content)
             except OSError as e:
                 print(f"mesh-send: warning: could not mirror to sent/: {e}", file=sys.stderr)
         # cc fanout — via the rw /mesh/cc/ overlay
@@ -406,14 +564,14 @@ def main() -> None:
             cc_dir = mesh_dir / "cc" / cc
             try:
                 cc_dir.mkdir(parents=True, exist_ok=True)
-                (cc_dir / f"{slot}.md").write_text(content, encoding="utf-8")
+                _write_atomic(cc_dir / f"{slot}.md", content)
             except OSError as e:
                 print(f"mesh-send: warning: could not cc to {cc}: {e}", file=sys.stderr)
     finally:
         release_claim(claim)
 
     # ---- log drop ----
-    ts = _dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     log_drop(f"# MESH-SEND {ts} sender={sender} to={recipient} kind={args.kind} file={slot}.md")
 
     print(str(md_path))
