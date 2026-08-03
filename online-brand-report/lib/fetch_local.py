@@ -389,9 +389,32 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
     cities = [city] + (extra_cities or [])[:2]
 
     # --- GMB Reviews ---
-    # Note: business_data/google/reviews/live may not be available on all accounts.
-    # Fall back to my_business_info/live which returns rating summary.
+    # `business_data/google/reviews/live` DOES NOT EXIST (2026-08-03). It is not "may
+    # not be available on all accounts" — DataForSEO has no live variant for Google
+    # reviews at all; the catalog lists only task_post / tasks_ready / task_get
+    # (docs/jambot/dataforseo-api-endpoint-catalog.md, "Google Reviews"). So this call
+    # 404'd on EVERY report ever run, burned 1 + 2 retries of HTTP per report, logged
+    # an [ERROR] every time, and silently fell through to the my_business_info path —
+    # which is what has actually produced every rating we have ever published:
+    #     [RETRY 1/2] dfs_post business_data/google/reviews/live: 404 Client Error
+    #     [RETRY 2/2] dfs_post business_data/google/reviews/live: 404 Client Error
+    #     [ERROR]     dfs_post business_data/google/reviews/live: 404 Client Error
+    #     [INFO] GMB reviews/live unavailable, trying my_business_info fallback
+    # Skipping it straight to the fallback removes the waste and the noise, and loses
+    # NOTHING: my_business_info/live returns the rating value + votes_count this block
+    # reads, and the individual review TEXT this block hoped for never once arrived.
+    #
+    # The correct implementation ALREADY EXISTS in this file and already runs:
+    # _fetch_reviews_async() (above) does task_post -> task_get and returns real review
+    # text, authors, ratings and the true star distribution. Its docstring has said
+    # "The /live variant returns 404 (does not exist)" all along. So this block was
+    # pure legacy that nobody removed after that was written — it could only ever 404,
+    # and everything it claims to produce is produced properly elsewhere.
+    # Nothing below is deleted; it stays behind the flag as the historical record.
+    USE_REVIEWS_LIVE = False   # the endpoint does not exist; see above
     try:
+        if not USE_REVIEWS_LIVE:
+            raise ValueError("reviews/live does not exist in DataForSEO v3 — using my_business_info")
         result = dfs_post("business_data/google/reviews/live", [
             {
                 "keyword": f"{brand_name} {city} {state}",
