@@ -114,28 +114,32 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
         print("[INFO] Serper enrichment skipped — no SERPER_API_KEY", file=sys.stderr)
         return out
 
+    def _places(query):
+        """Run one Serper places query. Returns [] on any failure."""
+        try:
+            body = json.dumps({"q": query, "gl": "us"}).encode()
+            req = urllib.request.Request(
+                _SERPER_URL, data=body, method="POST",
+                headers={"X-API-KEY": key, "Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=25) as r:
+                data = json.loads(r.read().decode())
+            _meter_serper(data, "places")   # best-effort credit metering; never raises
+            return data.get("places") or []
+        except Exception as e:
+            print(f"[WARN] Serper places fetch failed ({query}): {e}", file=sys.stderr)
+            return None   # None = request failed, [] = ran but no results
+
     q = " ".join(p for p in (brand_name, city, state) if p).strip()
     if not q:
         return out
 
-    try:
-        body = json.dumps({"q": q, "gl": "us"}).encode()
-        req = urllib.request.Request(
-            _SERPER_URL, data=body, method="POST",
-            headers={"X-API-KEY": key, "Content-Type": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=25) as r:
-            data = json.loads(r.read().decode())
-        _meter_serper(data, "places")   # best-effort credit metering; never raises
-    except Exception as e:
-        print(f"[WARN] Serper places fetch failed: {e}", file=sys.stderr)
+    places = _places(q)
+    if places is None:
         return out
-
     out["available"] = True
-    places = data.get("places") or []
     if not places:
         print(f"[INFO] Serper places: no listing for '{q}'", file=sys.stderr)
-        return out
 
     # Prefer the place whose website matches the client domain (strong match); else ONLY accept
     # a place we can CONFIRM is in the requested city/state AND whose name plausibly matches
@@ -166,9 +170,39 @@ def fetch_serper_gmb(domain: str, brand_name: str, city: str = "", state: str = 
                       f"doesn't match brand '{brand_name}' — treating as no confirmed local GMB "
                       f"(low-confidence match withheld, not auto-picked)", file=sys.stderr)
                 break
+    # ── DOMAIN-QUERY FALLBACK (2026-08-03, Mike: "your reports keep reporting no
+    # GMB but a simple search finds it in one second") ─────────────────────────
+    # Everything above only ever looked at ONE query: brand_name + city + state.
+    # If EITHER of those is wrong for the business that actually owns the domain,
+    # the real listing is never even returned, so the strong tier-1 check
+    # (`dom in site` — a GMB whose website IS the client domain, which is proof of
+    # identity and needs no geo confirmation) never gets a chance to fire.
+    #
+    # prospect-14706298843: the report analysed storehousesolutionsne.com but was
+    # given name "Storehouse Industries" / Albany GA (the owner's OTHER, newer
+    # venture). Serper returned 10 Albany-GA businesses, none of them his, and the
+    # report declared "no local GMB" — while the real listing (Storehouse
+    # Solutions, Gretna NE, 5.0 from 11 reviews) is the first hit on a plain search.
+    #
+    # So: ask again using the DOMAIN, and accept a result ONLY on the exact-domain
+    # match. This can add a gmb_found that is certain; it can never invent a wrong
+    # one, because a weak/low-confidence match is still withheld exactly as before.
+    if pick is None and dom:
+        alt_places = _places(dom)
+        if alt_places:
+            for p in alt_places:
+                if dom in (p.get("website") or "").lower():
+                    pick = p
+                    print(f"[INFO] Serper places: no match for '{q}', but a domain query "
+                          f"confirmed '{p.get('title')}' via exact website match on {dom} "
+                          f"— the intake city/name did not describe this domain's business",
+                          file=sys.stderr)
+                    break
+
     if pick is None:
         print(f"[INFO] Serper places: {len(places)} same-named listing(s) but none confirmed in "
-              f"{city} {state} — treating as no local GMB", file=sys.stderr)
+              f"{city} {state}, and no domain match for '{dom or 'n/a'}' — treating as no local GMB",
+              file=sys.stderr)
         return out   # available=True, gmb_found=False
 
     out["gmb_found"]        = True
