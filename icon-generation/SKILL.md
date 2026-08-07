@@ -3,6 +3,19 @@ name: icon-generation
 description: "Generate custom icons for canvas pages, tools, and categories. Use when the user needs icons, favicons, or visual assets. Has 1700+ pre-built Lucide icons and AI generation via Gemini."
 ---
 
+> **Host note (2026-08-06):** these examples run **inside the openclaw agent container**, where
+> `localhost:5001` is the AGENT's own loopback and has no Flask app — connections are refused.
+> OpenVoiceUI is a *separate container* reachable over the compose network as **`openvoiceui:5001`**.
+>
+> This cost a real client outage. hrsf's agent followed a `localhost:5001` example, got connection
+> refused, and concluded "the Suno proxy isn't running on any local port" — then reported Suno as
+> broken to Mike repeatedly and **never once attempted a generation** (completed queue 0, failed
+> queue 0, no audio files). The key was valid the whole time with 8295 credits upstream. Nothing
+> was down; the documentation pointed at the wrong host.
+> Verified from inside openclaw-hrsf: `localhost:5001` and `127.0.0.1:5001` both CONN_FAIL,
+> `openvoiceui:5001` returns 200.
+
+
 # Icon Generation Skill
 
 Generate custom icons for canvas pages, tools, categories, and anything the user needs. You have access to 1,700+ pre-built icons AND AI-powered custom icon generation via Gemini.
@@ -16,7 +29,7 @@ Generate custom icons for canvas pages, tools, categories, and anything the user
 curl -s http://openvoiceui:5001/api/icons/library/search?q=heart
 
 # WRONG (will fail — openvoiceui is NOT on localhost inside openclaw):
-curl -s http://localhost:5001/api/icons/library/search?q=heart
+curl -s http://openvoiceui:5001/api/icons/library/search?q=heart
 ```
 
 ## When to Use

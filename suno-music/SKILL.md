@@ -4,6 +4,19 @@ description: Generate AI music using Suno API — full songs, 10-15s vocal logo 
 metadata: {"openclaw": {"emoji": "🎵"}}
 ---
 
+> **Host note (2026-08-06):** these examples run **inside the openclaw agent container**, where
+> `localhost:5001` is the AGENT's own loopback and has no Flask app — connections are refused.
+> OpenVoiceUI is a *separate container* reachable over the compose network as **`openvoiceui:5001`**.
+>
+> This cost a real client outage. hrsf's agent followed a `localhost:5001` example, got connection
+> refused, and concluded "the Suno proxy isn't running on any local port" — then reported Suno as
+> broken to Mike repeatedly and **never once attempted a generation** (completed queue 0, failed
+> queue 0, no audio files). The key was valid the whole time with 8295 credits upstream. Nothing
+> was down; the documentation pointed at the wrong host.
+> Verified from inside openclaw-hrsf: `localhost:5001` and `127.0.0.1:5001` both CONN_FAIL,
+> `openvoiceui:5001` returns 200.
+
+
 # Suno Music & Jingle Generation Skill
 
 Generate AI songs and short branded jingles. **All generation is async.** Songs take 45–90s, jingles take 30–60s, and auto-appear in the player. **Default model: `V5_5`.**
@@ -50,7 +63,7 @@ https://DOMAIN/generated_music/FILENAME?download=1
 
 **"Play / link the LAST song you made":** there is one authoritative source — do not guess.
 ```bash
-curl -s "http://localhost:5001/api/music?action=latest"
+curl -s "http://openvoiceui:5001/api/music?action=latest"
 # → {"track":{"filename":"...","title":"...","download_url":"/generated_music/...?download=1"}}
 ```
 The voice agent also receives this every turn as `[Latest generated song: '<title>' (file: <file>) — download link: ...]` in context. Use that filename; never alphabetically guess.
@@ -61,7 +74,7 @@ it wasn't the newest track, and the agent kept guessing wrong `/music/` URLs. **
 filename from the title.** Resolve it against the real list:
 ```bash
 # list every generated track with its EXACT filename + title
-curl -s "http://localhost:5001/api/music?action=list&playlist=generated" \
+curl -s "http://openvoiceui:5001/api/music?action=list&playlist=generated" \
   | python3 -c "import sys,json; [print(t['filename'],'::',t.get('name','')) for t in json.load(sys.stdin).get('files',[])]"
 # → shop-bay-wisdom.mp3 :: Shop Bay Wisdom
 #   by-the-shop-light.mp3 :: By The Shop Light   ...

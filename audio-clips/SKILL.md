@@ -4,6 +4,19 @@ description: "Generate, save, list, and email TTS audio clips as MP3 files. Use 
 metadata: {"openclaw": {"emoji": "🎙", "requires": {"env": []}}}
 ---
 
+> **Host note (2026-08-06):** these examples run **inside the openclaw agent container**, where
+> `localhost:5001` is the AGENT's own loopback and has no Flask app — connections are refused.
+> OpenVoiceUI is a *separate container* reachable over the compose network as **`openvoiceui:5001`**.
+>
+> This cost a real client outage. hrsf's agent followed a `localhost:5001` example, got connection
+> refused, and concluded "the Suno proxy isn't running on any local port" — then reported Suno as
+> broken to Mike repeatedly and **never once attempted a generation** (completed queue 0, failed
+> queue 0, no audio files). The key was valid the whole time with 8295 credits upstream. Nothing
+> was down; the documentation pointed at the wrong host.
+> Verified from inside openclaw-hrsf: `localhost:5001` and `127.0.0.1:5001` both CONN_FAIL,
+> `openvoiceui:5001` returns 200.
+
+
 # Audio Clips Skill
 
 Persist a TTS-generated MP3 to the server. The clip is saved on disk, indexed in a manifest, and can be downloaded, played, or emailed via AgentMail.
@@ -37,7 +50,7 @@ The page lets the user paste text, pick from all available voices (Orpheus / Sup
 ### Generate a clip
 
 ```bash
-curl -sS -X POST http://localhost:5001/api/audio-clips/generate \
+curl -sS -X POST http://openvoiceui:5001/api/audio-clips/generate \
   -H 'Content-Type: application/json' \
   -d '{
     "text": "Text to narrate (max 8000 chars).",
@@ -60,13 +73,13 @@ curl -sS -X POST http://localhost:5001/api/audio-clips/generate \
 ### List saved clips
 
 ```bash
-curl -sS http://localhost:5001/api/audio-clips/list
+curl -sS http://openvoiceui:5001/api/audio-clips/list
 ```
 
 ### Email a saved clip
 
 ```bash
-curl -sS -X POST http://localhost:5001/api/audio-clips/email \
+curl -sS -X POST http://openvoiceui:5001/api/audio-clips/email \
   -H 'Content-Type: application/json' \
   -d '{
     "clip_id": "20260507-160729-...",
@@ -84,7 +97,7 @@ Uses the tenant's AgentMail key (from `AGENTMAIL_API_KEY` env). Auto-discovers t
 ### Soft-delete a clip
 
 ```bash
-curl -sS -X DELETE http://localhost:5001/api/audio-clips/<clip_id>
+curl -sS -X DELETE http://openvoiceui:5001/api/audio-clips/<clip_id>
 ```
 
 This sets `soft_deleted: true` in the manifest. **The MP3 file is never deleted from disk** — per CLAUDE.md, AI-generated paid content is permanent.
