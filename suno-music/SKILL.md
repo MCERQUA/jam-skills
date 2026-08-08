@@ -36,6 +36,16 @@ Generate AI songs and short branded jingles. **All generation is async.** Songs 
 
 **NEVER call `https://api.sunoapi.org` directly.** Use the local `/api/suno` endpoint inside the container. That endpoint forwards to Suno, downloads the audio, saves it to `generated_music/`, and writes metadata.
 
+**NEVER use openclaw's own built-in music-generation tool either.** It writes to openclaw's
+internal media dir (`~/.openclaw/media/tool-music-generation/`), and **nothing mounts that path
+into the openvoiceui container** — so the track is paid for, saved, and invisible to the user: it
+never appears in the music player, has no metadata, and has no shareable `/generated_music/` URL.
+Measured 2026-08-08: gcu had **7 tracks and zero** from `/api/suno`, which is exactly what "suno
+isn't working" looked like from the outside; hrsf and test-dev had 3 and 5 more stranded the same
+way. A host cron (`scripts/jambot-tool-media-sweep.py`, hourly) now copies such files into
+`generated_music/` as a safety net, but it is a net, **not** the path — files it rescues still
+carry no title, genre, lyrics or word-sync, because only `/api/suno` writes metadata.
+
 There are **three correct methods**:
 
 1. **`[JINGLE_GENERATE:]` voice tag** — for 10-15s branded vocal/instrumental logo jingles. **Use this for any "make a jingle / audio logo / phone intro / sting" request.**
