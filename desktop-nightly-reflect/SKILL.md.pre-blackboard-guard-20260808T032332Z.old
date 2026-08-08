@@ -108,7 +108,7 @@ Users served: <Rule A/B/C output — FIRST LINE, machine-readable>
 
 ---
 
-### STEP 4 — BLACKBOARD write (resolve the mount; do NOT skip on the host-side path alone)
+### STEP 4 — BLACKBOARD write (SKIP in webtop containers — mesh-chat is canonical)
 
 **[FIXED 2026-07-01 popup-meeting ADOPT]** `/mnt/agent-mesh` is NOT bind-mounted in the
 webtop desktop containers — this step silently failed there for weeks (bun-desktop
@@ -118,22 +118,12 @@ publish lane**; synthesize promotes chatroom events to per-agent BLACKBOARD file
 Only attempt the direct write when the blackboard is actually mounted:
 
 ```bash
-# NAMESPACE FIX 2026-08-08 (bun-desktop@mesh, verified from inside a webtop): this guard used to
-# test ONLY /mnt/agent-mesh/mesh/BLACKBOARD, which is ABSENT in webtop containers, and concluded
-# "skip the BLACKBOARD write". The condition was right about the path it named and WRONG about the
-# conclusion it drew — /mesh/BLACKBOARD is present and directly writable from webtops (since
-# 2026-07-03). bun wrote its own reflection there tonight with no host proxy. Resolve the mount
-# instead of skipping: container path first, host path second.
-BB=""
-for _c in /mesh/BLACKBOARD /mnt/agent-mesh/mesh/BLACKBOARD; do
-  [ -d "$_c" ] && [ -w "$_c" ] && { BB="$_c"; break; }
-done
-if [ -n "$BB" ]; then
-  mkdir -p $BB/nightly-reflections/<YYYY-MM-DD>
-  cat > $BB/nightly-reflections/<YYYY-MM-DD>/<agent-name>.md << 'EOF'
+if [ -d /mnt/agent-mesh/mesh/BLACKBOARD ]; then
+  mkdir -p /mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/<YYYY-MM-DD>
+  cat > /mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/<YYYY-MM-DD>/<agent-name>.md << 'EOF'
 <reflection content>
 EOF
-  echo "<YYYY-MM-DD>" > $BB/nightly-reflections/LATEST.md
+  echo "<YYYY-MM-DD>" > /mnt/agent-mesh/mesh/BLACKBOARD/nightly-reflections/LATEST.md
 else
   # Webtop container: no blackboard mount — Step 3's mesh-chat post already published.
   echo "blackboard not mounted — mesh-chat post (Step 3) is the canonical record, skipping"
