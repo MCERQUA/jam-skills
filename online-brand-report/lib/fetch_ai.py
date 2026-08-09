@@ -5,7 +5,16 @@ import requests
 from urllib.parse import urlparse
 from .config import dfs_post, dfs_get_items
 
-_UA = "Mozilla/5.0 (compatible; JamBot-BrandAudit/1.0)"
+# Realistic browser UA, not a self-identifying one. Verified 2026-08-09 against
+# koolfoamllc.com: this exact self-identifying string ("JamBot-BrandAudit/1.0") got
+# 403'd by the site's WAF on BOTH the llms.txt and schema checks, silently producing
+# "Missing" for both P1 roadmap items on a site that actually HAS a real Yoast-generated
+# llms.txt and valid HomeAndConstructionBusiness+WebSite JSON-LD schema. A realistic
+# Chrome UA passes clean via requests (confirmed same session). Matches the identical
+# precedent already fixed in generate.py's _probe_homepage_meta() for azrimrepair.com —
+# this file just never got the same fix applied.
+_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+       "(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
 
 def _domain_clean(domain: str) -> str:
     return domain.lower().replace("www.", "")
