@@ -60,11 +60,18 @@ def fetch_competitive(domain: str, competitors=None, location_code: int = 2840) 
             "tractorsupply.com", "grainger.com", "alibaba.com",
             # 2026-08-09: same failure class as the quora.com incident above, one trade
             # over. sprayfoaminsider.com reached a real spray-foam-insulation contractor's
-            # (koolfoamllc.com, Enid OK) report as "top competitor" — it's an equipment
-            # MARKETPLACE ("Find Spray Foam Rigs and Equipment For Sale", verified via Serper),
-            # not a competing local installer, and its traffic wasn't extreme enough to trip
-            # the scale filter against a field of small local sites. Category mismatch, not
-            # a scale mismatch — the scale filter structurally cannot catch this class.
+            # (koolfoamllc.com, Enid OK) report as "top competitor" — it's an INDUSTRY
+            # AUTHORITY/MEDIA site (run by a 60-year SPF-industry veteran, equipment listings
+            # + articles + a state-by-state "Find a Contractor" directory), not a competing
+            # local installer, and its traffic wasn't extreme enough to trip the scale filter
+            # against a field of small local sites. Category mismatch, not a scale mismatch —
+            # the scale filter structurally cannot catch this class. Mike, 2026-08-09: sites
+            # like this are a BACKLINK/CITATION OPPORTUNITY, not noise to discard — verified
+            # koolfoamllc.com is NOT yet on its Oklahoma contractor directory (3 other OK
+            # contractors are: absolutehomecomfort, preferred roofing foam & coating, silva
+            # spray foam) — a free, real listing opportunity worth surfacing, distinct from
+            # "competitor". This blocklist only keeps it out of the competitor-comparison
+            # table; it does not mean the domain is irrelevant.
             "sprayfoaminsider.com",
         )
         # ── SCALE SANITY (2026-07-26, Mike: "if we're pulling stuff like that then we're
