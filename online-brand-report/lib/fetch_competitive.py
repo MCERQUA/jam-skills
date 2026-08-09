@@ -58,6 +58,14 @@ def fetch_competitive(domain: str, competitors=None, location_code: int = 2840) 
             "forbes.com", "nytimes.com", "usatoday.com", "yahoo.com", "msn.com",
             "walmart.com", "ebay.com", "etsy.com", "menards.com", "acehardware.com",
             "tractorsupply.com", "grainger.com", "alibaba.com",
+            # 2026-08-09: same failure class as the quora.com incident above, one trade
+            # over. sprayfoaminsider.com reached a real spray-foam-insulation contractor's
+            # (koolfoamllc.com, Enid OK) report as "top competitor" — it's an equipment
+            # MARKETPLACE ("Find Spray Foam Rigs and Equipment For Sale", verified via Serper),
+            # not a competing local installer, and its traffic wasn't extreme enough to trip
+            # the scale filter against a field of small local sites. Category mismatch, not
+            # a scale mismatch — the scale filter structurally cannot catch this class.
+            "sprayfoaminsider.com",
         )
         # ── SCALE SANITY (2026-07-26, Mike: "if we're pulling stuff like that then we're
         # not actually finding competitors") ────────────────────────────────────────────
