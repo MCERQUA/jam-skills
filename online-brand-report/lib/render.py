@@ -703,7 +703,15 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
         rows = ""
         for m in sorted(fp_mentions, key=lambda x: (not x.get("shares_phone"), x.get("domain", ""))):
             phone_tag = ' <span class="pill pill-ok">📞 shares your phone</span>' if m.get("shares_phone") else ""
-            rows += f"""<tr><td>{_escape(m.get('domain',''))}{phone_tag}</td><td><a href="{_escape(m.get('url',''))}" target="_blank" rel="noopener">{_escape(m.get('title','') or m.get('url',''))}</a></td></tr>\n"""
+            # BOTH columns link out (Mike, 2026-08-12: "lets make these clickable links").
+            # The source domain was plain text, so the only clickable target was the title —
+            # easy to miss, and a mention you cannot open is a claim you cannot verify.
+            _u = _escape(m.get('url', ''))
+            _dom = _escape(m.get('domain', ''))
+            _ttl = _escape(m.get('title', '') or m.get('url', ''))
+            _dom_cell = (f'<a href="{_u}" target="_blank" rel="noopener">{_dom}</a>' if _u else _dom)
+            _ttl_cell = (f'<a href="{_u}" target="_blank" rel="noopener">{_ttl}</a>' if _u else _ttl)
+            rows += f"""<tr><td>{_dom_cell}{phone_tag}</td><td>{_ttl_cell}</td></tr>\n"""
         n_phone = sum(1 for m in fp_mentions if m.get("shares_phone"))
         phone_note = f" {n_phone} share your exact phone number (a strong signal of a connected/owned listing or site &mdash; worth verifying)." if n_phone else ""
         footprint_html += f"""

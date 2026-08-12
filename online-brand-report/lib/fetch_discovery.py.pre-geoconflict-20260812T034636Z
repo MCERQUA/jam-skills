@@ -262,71 +262,7 @@ def _harvest_gmb(items: list) -> dict:
     return gmb
 
 
-_US_STATES = {
-    "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR", "california": "CA",
-    "colorado": "CO", "connecticut": "CT", "delaware": "DE", "florida": "FL", "georgia": "GA",
-    "hawaii": "HI", "idaho": "ID", "illinois": "IL", "indiana": "IN", "iowa": "IA",
-    "kansas": "KS", "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
-    "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS",
-    "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
-    "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
-    "north carolina": "NC", "north dakota": "ND", "ohio": "OH", "oklahoma": "OK",
-    "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
-    "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT", "vermont": "VT",
-    "virginia": "VA", "washington": "WA", "west virginia": "WV", "wisconsin": "WI",
-    "wyoming": "WY",
-}
-
-
-def _geo_conflict(text: str, city: str, state: str) -> str:
-    """Return a conflicting US state code if `text` explicitly names a DIFFERENT state
-    than the client's; else "".
-
-    WHY (2026-08-12, mrglassworks.com): _other_mentions matched on brand SLUG only. Its
-    docstring claims the slug match "keeps competitors out", but that only guards against
-    businesses sharing an INDUSTRY TERM — it does nothing about a DIFFERENT COMPANY WITH
-    THE SAME NAME. So "Auto Glass in Rochester, NY | Mr. Glassworks, LLC" was published to
-    a Tempe AZ client as one of his own brand mentions. Attributing another company's
-    footprint to a client is worse than missing it: it inflates his apparent authority and
-    it is checkable, so it costs credibility the moment he clicks.
-
-    DELIBERATELY CONSERVATIVE — flags only on an EXPLICIT conflicting state, never on the
-    absence of a location. A press mention that never names a city must still count; the
-    failure mode we refuse is dropping real mentions to look tidy. Absence of evidence is
-    not evidence of conflict.
-    """
-    if not state:
-        return ""
-    raw = text or ""
-    t = " " + raw.lower() + " "
-    mine = state.strip().upper()
-    city_l = (city or "").strip().lower()
-    if city_l and city_l in t:
-        return ""          # names the client's own city → ours, regardless of anything else
-
-    # Matching is deliberately narrow, because a BARE two-letter token is not a state:
-    # "IN", "OR", "ME", "OK", "HI", "LA", "PA", "DE", "MA", "ID", "CO", "AL", "AR" are all
-    # ordinary English words. The first cut of this function matched a bare lowercase code
-    # and reported "Auto Glass IN Rochester, NY" as a conflict with **Indiana** — it dropped
-    # the right row for the wrong reason, which is the same confident-wrong-word defect this
-    # guard exists to prevent. Caught only because the unit test asserted WHICH state came
-    # back, not merely that something was dropped.
-    #   - full state NAMES match case-insensitively (unambiguous)
-    #   - two-letter CODES match only in the canonical "City, ST" shape: a comma, optional
-    #     space, the code in UPPERCASE, then a non-letter. Uses the original-case string.
-    import re as _re
-    for name, code in _US_STATES.items():
-        if code == mine:
-            continue
-        if f" {name} " in t:
-            return code
-        if _re.search(rf",\s*{code}(?![A-Za-z])", raw):
-            return code
-    return ""
-
-
-def _other_mentions(items: list, client_domain: str, slugs: list[str],
-                    city: str = "", state: str = "") -> list:
+def _other_mentions(items: list, client_domain: str, slugs: list[str]) -> list:
     """Notable non-social, non-directory, non-client organic results that are clearly about
     THIS business — press, blog features, partner pages, state registration: the 'grab
     everything' long tail. Brand-slug match keeps competitors (who merely share the industry
@@ -349,13 +285,6 @@ def _other_mentions(items: list, client_domain: str, slugs: list[str],
         if not _matches_brand(url, title, slugs):
             continue
         if host in seen:
-            continue
-        # Same-NAME-different-BUSINESS guard (see _geo_conflict). Only fires on an
-        # explicitly conflicting state, so mentions with no location survive.
-        _conflict = _geo_conflict(f"{title} {url}", city, state)
-        if _conflict:
-            print(f"[INFO] mention '{title[:50]}' @ {host} names {_conflict}, client is "
-                  f"{state} — dropping same-name-different-business", file=sys.stderr)
             continue
         seen.add(host)
         out.append({"url": url, "title": title[:90], "domain": host})
@@ -416,7 +345,7 @@ def fetch_discovery(domain: str, brand_name: str, city: str = "", state: str = "
     slugs = _brand_slugs(brand_name, domain)
     out["social_profiles"] = _harvest_social(all_items, slugs)
     out["directories"]     = _harvest_directories(all_items, slugs)
-    out["other_mentions"]  = _other_mentions(all_items, domain, slugs, city, state)
+    out["other_mentions"]  = _other_mentions(all_items, domain, slugs)
     out["gmb"]             = _harvest_gmb(all_items)
     out["_discovery_available"] = True
 
