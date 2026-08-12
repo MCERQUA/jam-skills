@@ -991,7 +991,7 @@ def main():
             # website scrape, so a business whose GBP lookup returned nothing still reported
             # gbp_found=True with rating 0.0 / reviews 0 — a confident FALSE claim that its
             # profile exists and has no reviews. That is strictly worse than "unknown": it
-            # scored the local pillar 25/100 for mrglassworks.com, whose 5 real listings hold
+            # scored the local pillar 25/100 for a real multi-location client whose 5 listings hold
             # 736 reviews at 4.9-5.0 (2026-08-12). Existence is now only asserted by a lookup
             # that saw a listing (maps enumeration or my_business_info).
             "gbp_found":           bool(data.get("gmb_found")),

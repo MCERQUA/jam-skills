@@ -282,10 +282,10 @@ def _geo_conflict(text: str, city: str, state: str) -> str:
     """Return a conflicting US state code if `text` explicitly names a DIFFERENT state
     than the client's; else "".
 
-    WHY (2026-08-12, mrglassworks.com): _other_mentions matched on brand SLUG only. Its
+    WHY (2026-08-12, live client report): _other_mentions matched on brand SLUG only. Its
     docstring claims the slug match "keeps competitors out", but that only guards against
     businesses sharing an INDUSTRY TERM — it does nothing about a DIFFERENT COMPANY WITH
-    THE SAME NAME. So "Auto Glass in Rochester, NY | Mr. Glassworks, LLC" was published to
+    THE SAME NAME. So a same-named company's out-of-state listing was published to
     a Tempe AZ client as one of his own brand mentions. Attributing another company's
     footprint to a client is worse than missing it: it inflates his apparent authority and
     it is checkable, so it costs credibility the moment he clicks.

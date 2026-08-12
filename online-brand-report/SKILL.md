@@ -202,3 +202,22 @@ python /mnt/system/base/skills/online-brand-report/generate.py \
 - Report CSS and structure matches the JamBot dark-theme design system
 - Template source: `/mnt/clients/test-dev/openvoiceui/canvas-pages/online-brand-report-template.html`
 - Generation takes 60-120 seconds depending on DataForSEO API response times
+
+## ⚠️ NEVER name a real client or prospect in this repo
+
+`MCERQUA/jam-skills` is a **PUBLIC** GitHub repo. Anything committed here — code comments
+AND commit messages — is world-readable and shows up in GitHub code search.
+
+On 2026-08-12 a prospect's domain was written into 4 commit messages and 5 source files
+while fixing report bugs, along with their review counts, address, and an analysis of their
+SEO weaknesses. It was found by searching that domain on GitHub and seeing this repo come
+back. No credentials were exposed and every underlying fact was publicly observable, but a
+named prospect's diagnosis sitting in a public repo before they had even signed is not
+something to hand them.
+
+**Rule:** when documenting WHY a fix exists, describe the SHAPE of the case, never the
+identity. "a 5-location AZ client", "a Canadian business", "a same-named company in another
+state" all carry the full engineering lesson. The client's name adds nothing technical.
+
+Note that `git push` sends every reachable commit and history rewrites do not retract what
+has already been fetched — so this is prevented at write time or not at all.

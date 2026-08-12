@@ -284,7 +284,7 @@ def _fetch_gbp_locations(brand_name: str, city: str, state: str, domain: str,
                          location_code: int = 2840) -> list:
     """EVERY Google Business Profile this brand owns, not just the first one.
 
-    WHY THIS EXISTS (2026-08-12, mrglassworks.com):
+    WHY THIS EXISTS (2026-08-12, live client report):
     Two independent defects made the local section of every multi-location report wrong,
     and BOTH produced confident, well-formed, FALSE output rather than an error:
 
@@ -308,7 +308,7 @@ def _fetch_gbp_locations(brand_name: str, city: str, state: str, domain: str,
     _seen_place_ids = set()
     _country = "Canada" if location_code == 2124 else "United States"
     # Query the REGION first, then the city, and merge on place_id.
-    # Measured 2026-08-12 (mrglassworks.com): a Tempe-centred maps query returns 4 of the
+    # Measured 2026-08-12 (live client, 5-location AZ business): a city-centred maps query returns 4 of the
     # brand's 5 listings — the missing one is the zero-review Gilbert profile, i.e. exactly
     # the listing the audit most needs to surface. The state-centred query returns all 5.
     # Centring is a coverage variable, not a formality, so we do NOT trust a single centre:
@@ -490,7 +490,7 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
         # Audit flags a single-listing lookup structurally CANNOT produce:
         #   - listings whose website URL is not the canonical https://<domain> (link equity
         #     burned on a redirect hop, or pointed at the homepage instead of a location page)
-        #   - name variants across listings ("Mr Glassworks" vs "Mr. Glassworks") = split citations
+        #   - name variants across listings ("Acme Glass" vs "Acme Glass, LLC") = split citations
         #   - zero-review live listings, which surface in the map pack looking abandoned
         out["gbp_zero_review_locations"] = [l["address"] for l in _locs if l["reviews"] == 0]
         out["gbp_name_variants"]         = sorted({l["title"] for l in _locs if l["title"]})

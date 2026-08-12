@@ -311,7 +311,7 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
         # i.e. by construction, keywords the site does NOT rank for. So "✓ Covered: 0"
         # was a tautology, not a measurement, and it sat in the same report as
         # "257 ranked keywords". A client reads that as "you rank for nothing", which
-        # is false: mrglassworks.com has 256 ranked keywords, 2 of them on page one.
+        # is false: the client in question has 256 ranked keywords, 2 of them on page one.
         #
         # These buckets come from fetch_organic (DataForSEO Labs ranked_keywords) and
         # were already computed and already in scope here — nothing new is fetched.
