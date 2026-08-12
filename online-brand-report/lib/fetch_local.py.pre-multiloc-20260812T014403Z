@@ -280,80 +280,6 @@ def _fetch_gbp_posts(brand_name: str, city: str, state: str, location_code: int 
 
     return out
 
-def _fetch_gbp_locations(brand_name: str, city: str, state: str, domain: str,
-                         location_code: int = 2840) -> list:
-    """EVERY Google Business Profile this brand owns, not just the first one.
-
-    WHY THIS EXISTS (2026-08-12, mrglassworks.com):
-    Two independent defects made the local section of every multi-location report wrong,
-    and BOTH produced confident, well-formed, FALSE output rather than an error:
-
-      1. `business_data/google/my_business_info/live` returns **0 items** for this brand
-         under every query shape tried (bare name, name+city+state, location_name). So the
-         single-listing path that was supposed to supply rating/review_count silently
-         supplied NOTHING — the report published `gbp_review_count: 0` / `gbp_rating: 0.0`
-         for a business with 736 real reviews at 4.9-5.0 stars, and scored local 25/100 on
-         those false zeros. The client's STRONGEST channel was reported as their weakest.
-      2. Even when my_business_info did return items, the loop `break`s on the first match,
-         so a 5-location business was only ever described by one listing.
-
-    `serp/google/maps/live/advanced` returns all five WITH rating, votes_count, address,
-    place_id and — critically — the website URL each listing points at, which is what makes
-    the "are my GBPs linking to the right page" audit possible at all.
-
-    Returns [] on any failure. Callers MUST treat [] as "unknown", never as "no locations":
-    an empty list here is exactly the shape that caused defect #1.
-    """
-    out = []
-    _seen_place_ids = set()
-    _country = "Canada" if location_code == 2124 else "United States"
-    # Query the REGION first, then the city, and merge on place_id.
-    # Measured 2026-08-12 (mrglassworks.com): a Tempe-centred maps query returns 4 of the
-    # brand's 5 listings — the missing one is the zero-review Gilbert profile, i.e. exactly
-    # the listing the audit most needs to surface. The state-centred query returns all 5.
-    # Centring is a coverage variable, not a formality, so we do NOT trust a single centre:
-    # region catches out-of-city satellites, city catches anything the region view crowds out.
-    _centres = [
-        f"{_full_region(state)},{_country}" if state else "",
-        _map_location_name(city, state, _country),
-    ]
-    for _centre in [c for c in _centres if c]:
-      try:
-        result = dfs_post("serp/google/maps/live/advanced", [
-            {
-                "keyword":       brand_name,
-                "location_name": _centre,
-                "language_code": "en",
-                "device":        "desktop",
-            }
-        ])
-        r0 = dfs_get_result0(result)
-        for item in (r0.get("items") or []):
-            _pid = item.get("place_id") or f"{item.get('title','')}|{item.get('address','')}"
-            if _pid in _seen_place_ids:
-                continue
-            # Same name-collision guard the single-listing path uses: accept on domain match
-            # OR in-area match, so a same-named business in another metro can't inflate counts.
-            if not (_domain_matches(item, domain) or _loc_ok(item, city, state)):
-                print(f"[INFO] maps listing '{item.get('title','?')}' @ {item.get('address','?')} "
-                      f"— no domain/area match, skipping name-collision", file=sys.stderr)
-                continue
-            _seen_place_ids.add(_pid)
-            rating_info = item.get("rating") or {}
-            out.append({
-                "title":     item.get("title", ""),
-                "address":   item.get("address", ""),
-                "rating":    float(rating_info.get("value") or 0),
-                "reviews":   int(rating_info.get("votes_count") or 0),
-                "url":       item.get("url", ""),
-                "place_id":  item.get("place_id", ""),
-                "category":  item.get("category", ""),
-            })
-      except Exception as e:  # noqa: BLE001 — never raise; [] means unknown, not zero
-        print(f"[WARN] GBP enumeration failed for centre '{_centre}': {e}", file=sys.stderr)
-    return out
-
-
 def _fetch_reviews_async(brand_name: str, city: str, state: str, domain: str,
                          location_code: int = 2840, place_id: str = "") -> dict:
     """Recent review TEXT + the real star distribution via the ASYNC reviews task
@@ -461,47 +387,6 @@ def fetch_local(brand_name: str, service: str, city: str, state: str, domain: st
     }
 
     cities = [city] + (extra_cities or [])[:2]
-
-    # --- ALL GBP locations (multi-location businesses) -----------------------------
-    # Runs FIRST so it can seed review totals even when my_business_info returns nothing
-    # (which is the norm — see _fetch_gbp_locations docstring). Aggregate review_count is
-    # the SUM across locations and review_avg is the review-WEIGHTED mean, so a 4-review
-    # satellite can't drag down a 478-review flagship.
-    _locs = _fetch_gbp_locations(brand_name, city, state, domain, location_code)
-    if _locs:
-        out["_local_available"] = True
-        out["gmb_found"]           = True
-        out["gbp_locations"]       = _locs
-        out["gbp_location_count"]  = len(_locs)
-        _total_reviews = sum(l["reviews"] for l in _locs)
-        _rated         = [l for l in _locs if l["rating"] > 0 and l["reviews"] > 0]
-        out["review_count"] = _total_reviews
-        if _rated and _total_reviews:
-            out["review_avg"] = round(
-                sum(l["rating"] * l["reviews"] for l in _rated) / sum(l["reviews"] for l in _rated), 2)
-        # Primary = most-reviewed listing; its NAP represents the brand in the report header.
-        _primary = max(_locs, key=lambda l: l["reviews"])
-        out["gmb_rating"]       = _primary["rating"]
-        out["gmb_review_count"] = _primary["reviews"]
-        if _primary.get("address"):
-            out["gmb_address"] = out["address"] = _primary["address"]
-        if _primary.get("place_id"):
-            out["gmb_place_id"] = _primary["place_id"]
-        # Audit flags a single-listing lookup structurally CANNOT produce:
-        #   - listings whose website URL is not the canonical https://<domain> (link equity
-        #     burned on a redirect hop, or pointed at the homepage instead of a location page)
-        #   - name variants across listings ("Mr Glassworks" vs "Mr. Glassworks") = split citations
-        #   - zero-review live listings, which surface in the map pack looking abandoned
-        out["gbp_zero_review_locations"] = [l["address"] for l in _locs if l["reviews"] == 0]
-        out["gbp_name_variants"]         = sorted({l["title"] for l in _locs if l["title"]})
-        out["gbp_nap_name_consistent"]   = len(out["gbp_name_variants"]) <= 1
-        out["gbp_listing_urls"]          = sorted({l["url"] for l in _locs if l["url"]})
-        out["gbp_all_urls_canonical"]    = all(
-            u.startswith(f"https://{domain}") or u.startswith(f"https://www.{domain}")
-            for u in out["gbp_listing_urls"]) if out["gbp_listing_urls"] else False
-        print(f"[OK] GBP locations: {len(_locs)} · {_total_reviews} reviews total · "
-              f"avg {out['review_avg']} · name-variants={len(out['gbp_name_variants'])} · "
-              f"zero-review={len(out['gbp_zero_review_locations'])}", file=sys.stderr)
 
     # --- GMB Reviews ---
     # `business_data/google/reviews/live` DOES NOT EXIST (2026-08-03). It is not "may

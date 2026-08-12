@@ -977,28 +977,10 @@ def main():
             # logo
             "logo_found":  bool(data.get("logo_url")),
             "logo_url":    data.get("logo_url", ""),
-            # GBP / GMB — gbp_found requires a GBP lookup to have actually SEEN a listing.
-            # It used to also accept `gmb_address or gmb_phone` on the reasoning that either
-            # "proves existence". It does not: those two fields are ALSO populated from the
-            # website scrape, so a business whose GBP lookup returned nothing still reported
-            # gbp_found=True with rating 0.0 / reviews 0 — a confident FALSE claim that its
-            # profile exists and has no reviews. That is strictly worse than "unknown": it
-            # scored the local pillar 25/100 for mrglassworks.com, whose 5 real listings hold
-            # 736 reviews at 4.9-5.0 (2026-08-12). Existence is now only asserted by a lookup
-            # that saw a listing (maps enumeration or my_business_info).
-            "gbp_found":           bool(data.get("gmb_found")),
+            # GBP / GMB (gbp_found=True if DataForSEO confirmed OR if address/phone returned — both prove existence)
+            "gbp_found":           bool(data.get("gmb_found")) or bool(data.get("gmb_address") or data.get("gmb_phone")),
             "gbp_rating":          float(data.get("gmb_rating", 0) or 0),
             "gbp_review_count":    int(data.get("gmb_review_count", 0) or 0),
-            # Multi-location: every listing the brand owns + the audit flags that only a
-            # full enumeration can produce (see lib/fetch_local._fetch_gbp_locations).
-            "gbp_locations":            data.get("gbp_locations", []),
-            "gbp_location_count":       int(data.get("gbp_location_count", 0) or 0),
-            "gbp_is_multi_location":    int(data.get("gbp_location_count", 0) or 0) > 1,
-            "gbp_zero_review_locations": data.get("gbp_zero_review_locations", []),
-            "gbp_name_variants":        data.get("gbp_name_variants", []),
-            "gbp_nap_name_consistent":  bool(data.get("gbp_nap_name_consistent", True)),
-            "gbp_listing_urls":         data.get("gbp_listing_urls", []),
-            "gbp_all_urls_canonical":   bool(data.get("gbp_all_urls_canonical", False)),
             "gbp_categories":      data.get("gmb_categories", []),
             "gbp_has_categories":  bool(data.get("gmb_categories")),
             "gbp_phone":           data.get("gmb_phone", ""),
