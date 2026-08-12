@@ -381,11 +381,63 @@ def render(data: dict, score_result: dict, roadmap: dict, output_path: str, plan
         il = p.get("interlink_map", [])
         from collections import Counter
         ilc = Counter(l.get("type") for l in il)
+        # ── Internal-link BASELINE vs PLAN ────────────────────────────────────────
+        # Mike, 2026-08-12: "whats the conclusion to this? is it good is it bad? ... i dont
+        # fully understand if this is good or not." He was right — "263 planned links" is
+        # arithmetic (money pages x linking rules) with no reference frame, so it could not
+        # be judged. It now sits next to what the site ALREADY has, which is the number that
+        # makes the plan figure mean something. UNKNOWN is stated as UNKNOWN: when the
+        # baseline crawl did not run we say so rather than implying zero.
+        _il_ok    = bool(data.get("il_available"))
+        _il_total = int(data.get("il_links_total", 0) or 0)
+        _il_avg   = data.get("il_avg_per_page", 0) or 0
+        _il_pages = int(data.get("il_pages_crawled", 0) or 0)
+        _il_orph  = int(data.get("il_orphan_count", 0) or 0)
+        _il_depth = int(data.get("il_max_depth", 0) or 0)
+        baseline_html = ""
+        if _il_ok:
+            # Density verdict — an explicit threshold, not an adjective.
+            if _il_avg > 100:
+                _dens = ('bad', 'Too dense — over 100 links/page dilutes the authority each one passes.')
+            elif _il_avg < 5:
+                _dens = ('warn', 'Sparse — few internal links means authority is not flowing between pages.')
+            else:
+                _dens = ('ok', 'Healthy density — well inside the normal 5–30+ range, nowhere near spam territory.')
+            _orph_cls = 'ok' if _il_orph == 0 else 'bad'
+            _depth_cls = 'ok' if _il_depth <= 3 else 'warn'
+            baseline_html = (
+                f'<div style="display:flex;gap:12px;flex-wrap:wrap;margin:0 0 10px">'
+                f'<div class="bl-kpi" style="flex:1;min-width:110px"><div class="bl-kpi-label">Internal links today</div><div class="bl-kpi-value">{_il_total:,}</div></div>'
+                f'<div class="bl-kpi {_dens[0]}" style="flex:1;min-width:110px"><div class="bl-kpi-label">Avg per page</div><div class="bl-kpi-value">{_il_avg}</div></div>'
+                f'<div class="bl-kpi {_orph_cls}" style="flex:1;min-width:110px"><div class="bl-kpi-label">Orphan pages</div><div class="bl-kpi-value">{_il_orph}</div></div>'
+                f'<div class="bl-kpi {_depth_cls}" style="flex:1;min-width:110px"><div class="bl-kpi-label">Max click depth</div><div class="bl-kpi-value">{_il_depth}</div></div>'
+                f'<div class="bl-kpi" style="flex:1;min-width:110px"><div class="bl-kpi-label">Pages measured</div><div class="bl-kpi-value">{_il_pages}</div></div></div>'
+                f'<p class="section-desc" style="margin-top:0"><strong>Your site today:</strong> {_dens[1]} '
+                + (f'No orphan pages — every page measured is linked from somewhere, so none are cut off from authority. '
+                   if _il_orph == 0 else
+                   f'<strong>{_il_orph} orphan page(s)</strong> have no internal links pointing at them, so they receive no authority — link them from a relevant page. ')
+                + (f'Nothing sits deeper than {_il_depth} click(s) from the homepage. '
+                   if _il_depth <= 3 else
+                   f'Some pages are {_il_depth} clicks from the homepage — anything 4+ deep is effectively invisible to both crawlers and customers. ')
+                + '</p>'
+            )
+        else:
+            baseline_html = (
+                '<p class="section-desc" style="margin-top:0"><em>Current internal-link baseline: not measured on this run.</em> '
+                'The figures below are the PLAN only — they are not a comparison against your existing site.</p>'
+            )
+
         silo_html = (
-            f'<p class="section-desc" style="margin-top:0">{len(il)} internal links planned to concentrate authority on the money pages: '
+            baseline_html +
+            f'<p class="section-desc" style="margin-top:0"><strong>What the plan adds:</strong> {len(il)} further internal links '
+            f'{"on top of the " + format(_il_total, ",") + " you already have" if _il_ok else ""}, wiring the new money pages in: '
             + ", ".join(f"{n} {t.replace('-',' ')}" for t, n in ilc.most_common()) + ". "
             "Home → service pillars → area pages; supporting blogs link <em>up</em> to their money page; "
             "money pages cross-link to the same service in nearby cities and other services in the same city.</p>"
+            + ('<p class="section-desc" style="margin-top:0"><em>Note:</em> most of these are lateral links between '
+               'city/service variants. That only helps if each page is genuinely different — real local detail, not a '
+               'template with the city swapped. Near-duplicate pages cross-linked heavily read as doorway pages.</p>'
+               if len(il) > 100 else "")
         ) if il else ""
 
         return f'''

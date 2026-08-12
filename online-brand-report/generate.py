@@ -955,6 +955,14 @@ def main():
                     except Exception:
                         pass
                 print(f"    onpage quick-check: {_onpage}  (sitemap pages discovered: {len(_pages)})", file=sys.stderr)
+                # Internal-link BASELINE (Mike 2026-08-12: "263 planned links" was
+                # unjudgeable without knowing what the site has today). Plain GETs over the
+                # sitemap URLs already discovered above — no DataForSEO cost, no re-discovery.
+                try:
+                    from lib.fetch_interlinks import fetch_interlinks as _fetch_il
+                    data.update(_fetch_il(domain, _pages) or {})
+                except Exception as _il_e:
+                    print(f"    interlink baseline skipped ({_il_e})", file=sys.stderr)
             except Exception as _op_e:
                 print(f"    onpage quick-check skipped ({_op_e})", file=sys.stderr)
 
