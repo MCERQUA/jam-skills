@@ -28,6 +28,9 @@ Exit codes:
     2  rate-limit hit (urgent 1/hr)
     3  validation failure (unknown kind, missing AGENT_URI, etc.)
     4  intel filter blocked — body matched a secret/PII pattern; use --force-leak to override
+    5  force-leak REFUSED — the override's audit record could not be written. Distinct
+       from 4 on purpose: 4 means "you may override this", 5 means "your override was
+       denied". Sharing a code would make them indistinguishable to retry logic.
 """
 from __future__ import annotations
 
@@ -50,26 +53,29 @@ from write_atomic import write_atomic as _write_atomic  # noqa: E402
 # ---------------------------------------------------------------------------
 # Intel leak filter (PROTOCOL §19 — pre-send PII / secret check)
 #
-# SEC-032: the patterns live in lib/intel_filter.py — ONE implementation shared by
-# every mesh CLI. Do not inline them here again. The 2026-04-25 inline copy that
-# used to live in this file drifted for 3 months and passed 9 of 12 secret classes
-# (incl. sk-ant-* / sk-proj-*) that the current set blocks.
+# SEC-032: patterns live in lib/intel_filter.py — ONE implementation shared by every
+# mesh CLI. Do NOT inline them here. Per-tool copies rot: the 2026-04-25 inline copy
+# that used to live in this file drifted for three months and passed 9 of 12 secret
+# classes (incl. sk-ant-* / sk-proj-*) that the current set blocks.
 # ---------------------------------------------------------------------------
 def _load_intel_filter():
     """Import the shared PROTOCOL §19 filter. Fail CLOSED if unavailable."""
     import importlib.util
+    import os as _os
+    import sys as _sys
+    from pathlib import Path as _Path
     cands = []
-    env = os.environ.get("MESH_INTEL_FILTER")
+    env = _os.environ.get("MESH_INTEL_FILTER")
     if env:
-        cands.append(Path(env))
-    here = Path(__file__).resolve().parent
+        cands.append(_Path(env))
+    here = _Path(__file__).resolve().parent
     cands.append(here.parent / "lib" / "intel_filter.py")
     for _p in ("/mnt/system/base/skills/agent-mesh/lib",
                "/mnt/shared-skills/agent-mesh/lib",
                "/skills/agent-mesh/lib",
                "/home/mike/filament/lib",
-               str(Path.home() / ".local/lib/agent-mesh")):
-        cands.append(Path(_p) / "intel_filter.py")
+               str(_Path.home() / ".local/lib/agent-mesh")):
+        cands.append(_Path(_p) / "intel_filter.py")
     for c in cands:
         try:
             if c.is_file():
@@ -79,32 +85,48 @@ def _load_intel_filter():
                 return mod
         except Exception:
             continue
-    sys.stderr.write(
+    _sys.stderr.write(
         "\n  FATAL: PROTOCOL \u00a719 intel filter lib (intel_filter.py) not found.\n"
         "  Refusing to write to shared mesh space without a secret filter "
         "(SEC-032, fail-closed).\n"
         "  Searched: " + ", ".join(str(c) for c in cands) + "\n\n")
-    sys.exit(4)
+    _sys.exit(4)
 
 
 _INTEL = _load_intel_filter()
 FILTER_VERSION = _INTEL.FILTER_VERSION
 
 
-def _run_intel_filter(body: str, agent_dir: Path) -> list[tuple[int, str, str]]:
+def _run_intel_filter(body, agent_dir=None):
     """Scan body for secrets / PII via the shared lib. Fails closed on error."""
+    import sys as _sys
     try:
         return _INTEL.run(body, agent_dir)
     except Exception as exc:  # noqa: BLE001 — never pass a body through on filter error
-        sys.stderr.write(
-            f"\n  FATAL: PROTOCOL \u00a719 intel filter errored: {exc!r}\n"
-            "  Refusing to write to shared mesh space (fail-closed).\n\n")
-        sys.exit(4)
+        _sys.stderr.write(
+            "\n  FATAL: PROTOCOL \u00a719 intel filter errored: %r\n"
+            "  Refusing to write to shared mesh space (fail-closed).\n\n" % (exc,))
+        _sys.exit(4)
+
+
+
+
 
 
 def _write_force_leak_audit(mesh_dir: Path, sender: str, recipient: str,
-                            hits: list[tuple[int, str, str]]) -> None:
-    """Append a force-leak audit entry to mesh/DECISIONS/ (best-effort)."""
+                            hits: list[tuple[int, str, str]]) -> "Path | None":
+    """Append a force-leak audit entry to mesh/DECISIONS/. Returns the path, or None.
+
+    NOT best-effort as of 2026-08-13. It was `except OSError: pass` inside a branch that
+    had already decided to send, with no return value and no check at the call site — so
+    an unwritable DECISIONS silently removed the audit and the override proceeded. The
+    tool even advertised the guarantee it was not keeping ("creates audit entry in
+    mesh/DECISIONS/"). An audit the audited party can skip by failing is not a control.
+
+    Found by bun-desktop@mesh while checking whether desk `src` — whose compose declares
+    no DECISIONS bind at all — would refuse or silently proceed. It was silently proceed,
+    on EVERY desk, since all four symlink this one binary.
+    """
     decisions_dir = mesh_dir / "DECISIONS"
     try:
         decisions_dir.mkdir(parents=True, exist_ok=True)
@@ -128,8 +150,11 @@ def _write_force_leak_audit(mesh_dir: Path, sender: str, recipient: str,
         for lineno, snippet, desc in hits:
             lines.append(f"- Line {lineno}: [{desc}] near: {snippet!r}")
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    except OSError:
-        pass  # audit is best-effort; don't block the send
+        return path
+    except OSError as e:
+        print(f"mesh-send: force-leak audit could not be written to {decisions_dir}: {e}",
+              file=sys.stderr)
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +446,13 @@ def main() -> None:
     hits = _run_intel_filter(body, my_dir)
     if hits:
         if args.force_leak:
-            _write_force_leak_audit(mesh_dir, sender, args.to, hits)
+            # Fail CLOSED: no audit record, no override. See _write_force_leak_audit.
+            if _write_force_leak_audit(mesh_dir, sender, args.to, hits) is None:
+                print("mesh-send: REFUSED — --force-leak requires an audit record in "
+                      "mesh/DECISIONS/ and it could not be written.", file=sys.stderr)
+                print("mesh-send: the override is DENIED, not downgraded. Nothing was sent.",
+                      file=sys.stderr)
+                sys.exit(5)
         else:
             print("mesh-send: BLOCKED — potential secret / business intel detected:", file=sys.stderr)
             for lineno, snippet, desc in hits:
