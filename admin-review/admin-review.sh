@@ -60,7 +60,18 @@ mesh_send_safe() {  # mesh_send_safe <to> <subject> <body> [--end-of-turn ...]
         echo "WARN: mesh-send unavailable — would have sent to $to: $subject" >&2
         return 1
     fi
+    # Delivery-lane rule (PATTERN-delivery-lane-verification.md): one greppable outcome line
+    # per send. All 3 callers discard our return, so this log line is the ONLY record — with
+    # the old >/dev/null 2>&1, a review filed into a reviewer's inbox that never arrived was
+    # indistinguishable from one that did (rc2-caller-sweep 2026-08-16).
     printf '%s\n' "$body" | mesh-send --to "$to" --kind message --subject "$subject" "$@" >/dev/null 2>&1
+    local _rc=$?
+    if [ "$_rc" -eq 0 ]; then
+        echo "mesh_send_safe: SENT to=$to subject=$subject" >&2
+    else
+        echo "mesh_send_safe: FAILED rc=$_rc to=$to subject=$subject" >&2
+    fi
+    return "$_rc"
 }
 
 email_mike() {  # email_mike <subject> <body> [ar-file]

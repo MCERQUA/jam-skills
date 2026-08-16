@@ -23,7 +23,7 @@ import re
 import sys
 from pathlib import Path
 
-FILTER_VERSION = "2026-08-03.1"
+FILTER_VERSION = "2026-08-16.1"
 
 # ---------------------------------------------------------------------------
 # Built-in secret / PII patterns.
@@ -60,6 +60,33 @@ BUILTIN_FILTER_PATTERNS: list[tuple[str, str]] = [
     (r"-----BEGIN [A-Z ]+-----",            "PEM / private key block"),
     (r"(?i)\bpassword\s*=\s*\S{4,}",        "password= assignment"),
     (r"(?i)\bauthorization\s*:\s*\S+",      "Authorization header value"),
+    # ── SEC-038 criterion 3: vendor prefixes observed live on this fleet ──────
+    # SHAPED, never bare: bare `mesh_` alone matched 206 legitimate passages in a
+    # 6,205-file corpus — including this filter's own documentation. Shaped: 0 FPs.
+    # Every rule is (?<![A-Za-z0-9_]) PREFIX CHARSET{LEN-4,} (?![A-Za-z0-9]).
+    #   - LEN is the observed key length; the {LEN-4,} FLOOR (not {LEN} exact) because
+    #     8 of 10 lengths rest on a single observed sample, and an exact quantifier
+    #     silently under-blocks on any vendor length drift. Measured: floor == exact,
+    #     same 4 hits at the same coordinates, 0 FPs over 6,208 files. The longest
+    #     non-credential tail behind ANY of these prefixes in the corpus is 12 chars,
+    #     so the tightest floor still has 20 chars of headroom.
+    #   - BOTH lookarounds are load-bearing. The lookbehind kills prefix-mid-token
+    #     (a hash that happens to contain `gsk_`); the trailing lookahead keeps the
+    #     narrow-charset rules (hex, b64) from matching a hex-looking head of a
+    #     wider alnum token.
+    #   - npm_ is deliberately ABSENT (ASSIGN-only, no value-keyed counterexample) and
+    #     pk_live_ is deliberately ABSENT (Clerk PUBLISHABLE key — ships in client
+    #     bundles by design, so a rule for it is an FP generator by construction).
+    (r"(?<![A-Za-z0-9_])am_us_[0-9a-f]{60,}(?![A-Za-z0-9])",        "AgentMail API key (am_us_...)"),
+    (r"(?<![A-Za-z0-9_])ApiKey_[A-Za-z0-9._-]{76,}(?![A-Za-z0-9])", "InkBox API key (ApiKey_...)"),
+    (r"(?<![A-Za-z0-9_])cfut_[A-Za-z0-9]{44,}(?![A-Za-z0-9])",      "Cloudflare API token (cfut_...)"),
+    (r"(?<![A-Za-z0-9_])comfyui-[0-9a-f]{60,}(?![A-Za-z0-9])",      "ComfyUI Cloud API key (comfyui-...)"),
+    (r"(?<![A-Za-z0-9_])fbk_sk_[A-Za-z0-9]{39,}(?![A-Za-z0-9])",    "FoamBook secret key (fbk_sk_...)"),
+    (r"(?<![A-Za-z0-9_])gsk_[A-Za-z0-9]{48,}(?![A-Za-z0-9])",       "Groq API key (gsk_...)"),
+    (r"(?<![A-Za-z0-9_])mesh_[0-9a-f]{44,}(?![A-Za-z0-9])",         "Mesh API key (mesh_...)"),
+    (r"(?<![A-Za-z0-9_])msy_[A-Za-z0-9]{32,}(?![A-Za-z0-9])",       "Meshy API key (msy_...)"),
+    (r"(?<![A-Za-z0-9_])nfp_[A-Za-z0-9]{32,}(?![A-Za-z0-9])",       "Netlify token (nfp_...)"),
+    (r"(?<![A-Za-z0-9_])whsec_[A-Za-z0-9+/]{28,}(?![A-Za-z0-9])",   "webhook signing secret (whsec_...)"),
 ]
 
 
@@ -277,6 +304,11 @@ if __name__ == "__main__":
         # A secret detector must not ship source that looks like a secret. Never
         # SECRETS_ALLOW=1 past that; reshape the fixture.
         _b = "b-12345678901-"
+        # Vendor-prefix fillers (SEC-038 c3). Motif slices, never real key material.
+        _hex = "7f3a9c1e0b6d84f2" * 5      # 80 hex   [0-9a-f]
+        _aln = "aB7xK2qR9zT4mW6" * 6       # 90 alnum [A-Za-z0-9]
+        _b64 = "aB7+xK2/qR9z" * 4          # 48 std-b64 [A-Za-z0-9+/]
+        _dot = "aB7.xK2-qR9_zT4" * 6       # 90 b64-ish [A-Za-z0-9._-]
         cases = {
             "sk-" + "ant-api03-" + "A" * 40: True,
             "sk-" + "proj-" + "B" * 45: True,
@@ -292,6 +324,108 @@ if __name__ == "__main__":
             "the sk- prefix is used by openai": False,
             "branch feat/sk-rewrite-cache": False,
             "see https://example.com/v1//path": False,
+            # ── ASSIGN + URLCRED coverage (SEC-038, 2026-08-15) ──────────────
+            # The ASSIGN/URLCRED rules were LIVE but the self-test never exercised
+            # them. bun-desktop's canonical fixture set (BLACKBOARD/sec-038/
+            # intel-filter-selftest-negative-controls.md): "positives-green with
+            # negatives-unrun is not a pass; it is an unmeasured rule." The
+            # negatives are the only fixtures that separate a correct ASSIGN from
+            # a blanket refuser. Values assembled from repeated chars so no literal
+            # secret ships in source (same reason as the value-keyed cases above).
+            # ASSIGN positives (NAME=<literal> must BLOCK; one in `export` form):
+            "BRIDGE_TOKEN=" + "A" * 32: True,
+            "export TWILIO_AUTH_TOKEN=" + "B" * 32: True,
+            "CLIENT_SECRET=" + "C" * 32: True,
+            "DB_PASSWORD=" + "D" * 32: True,
+            "API_KEY=" + "E" * 32: True,
+            # ASSIGN negatives (LOAD-BEARING — each tests a distinct pass path):
+            "OVUI_GROUND_TAG_W=1024": False,                     # no keyword / value too short
+            "the bridge token is rotated nightly": False,        # prose, no assignment
+            "BRIDGE_TOKEN = os.environ.get('BRIDGE_TOKEN')": False,  # value is a reference (os.)
+            "API_KEY=<your_api_key_placeholder_here>": False,    # placeholder (< + 'placeholder')
+            # URLCRED positive (real-looking user:pass@host must BLOCK):
+            "redis://appuser:" + "R" * 12 + "@10.0.0.5:6379": True,
+            # URLCRED negatives (BOTH halves placeholder → exempt, must PASS):
+            "postgresql://user:password@host.example.com": False,
+            "redis://your_user:your_password@localhost": False,
+            # ── SEC-038 criterion 3: vendor-prefix coverage (2026-08-15) ──────
+            # Four cases per shipping prefix, and each one is load-bearing:
+            #   OBSERVED  key at the length actually measured in env  -> must BLOCK
+            #   FLOOR     key at exactly LEN-4, the quantifier floor  -> must BLOCK
+            #   UNDER     key at LEN-5, one char below the floor      -> must PASS
+            #   PROSE     a sentence naming the BARE prefix           -> must PASS
+            # The UNDER cases are what prove the floor is a real boundary rather than
+            # the rule matching everything; the PROSE cases are the entire reason these
+            # rules are shaped, since bare `mesh_` matched 206 legitimate passages —
+            # this filter's own docs among them. Keep BOTH halves or the pair measures
+            # nothing. Fillers are motif slices, and the prefix is a SEPARATE literal
+            # concatenated on, so no line of this source is itself key-shaped (same
+            # constraint as the value-keyed cases above — the repo's secret gate reads
+            # this file too, and it will read it with these very patterns loaded).
+            # am_us_ — AgentMail, LEN 64 hex (N=3, fixed across samples)
+            "am_" + "us_" + _hex[:64]: True,
+            "am_" + "us_" + _hex[:60]: True,
+            "am_" + "us_" + _hex[:59]: False,
+            "the am_us_ prefix is AgentMail's, US region": False,
+            # ApiKey_ — InkBox, LEN 80 (N=2, fixed across samples)
+            "ApiKey" + "_" + _dot[:80]: True,
+            "ApiKey" + "_" + _dot[:76]: True,
+            "ApiKey" + "_" + _dot[:75]: False,
+            "InkBox keys are shown with an ApiKey_ prefix in the dashboard": False,
+            # cfut_ — Cloudflare, LEN 48 (N=1)
+            "cfut" + "_" + _aln[:48]: True,
+            "cfut" + "_" + _aln[:44]: True,
+            "cfut" + "_" + _aln[:43]: False,
+            "rotate the cfut_ token from the Cloudflare dashboard": False,
+            # comfyui- — ComfyUI Cloud, LEN 64 hex (N=1)
+            "comfyui" + "-" + _hex[:64]: True,
+            "comfyui" + "-" + _hex[:60]: True,
+            "comfyui" + "-" + _hex[:59]: False,
+            "keys for that node are issued with a comfyui- prefix": False,
+            # fbk_sk_ — FoamBook, LEN 43 (N=1)
+            "fbk_sk" + "_" + _aln[:43]: True,
+            "fbk_sk" + "_" + _aln[:39]: True,
+            "fbk_sk" + "_" + _aln[:38]: False,
+            "FoamBook mutations need the fbk_sk_ bearer, reads are open": False,
+            # gsk_ — Groq, LEN 52 (N=1)
+            "gsk" + "_" + _aln[:52]: True,
+            "gsk" + "_" + _aln[:48]: True,
+            "gsk" + "_" + _aln[:47]: False,
+            "Groq keys start with gsk_ per their docs": False,
+            # mesh_ — Mesh API, LEN 48 hex (N=1). 206 bare corpus hits, the worst offender.
+            "mesh" + "_" + _hex[:48]: True,
+            "mesh" + "_" + _hex[:44]: True,
+            "mesh" + "_" + _hex[:43]: False,
+            "the bare mesh_ prefix hit 206 legitimate lines, so the rule is shaped": False,
+            # msy_ — Meshy, LEN 36 (N=1)
+            "msy" + "_" + _aln[:36]: True,
+            "msy" + "_" + _aln[:32]: True,
+            "msy" + "_" + _aln[:31]: False,
+            "Meshy 3D jobs authenticate with an msy_ key": False,
+            # nfp_ — Netlify, LEN 36 (N=2, fixed across samples)
+            "nfp" + "_" + _aln[:36]: True,
+            "nfp" + "_" + _aln[:32]: True,
+            "nfp" + "_" + _aln[:31]: False,
+            "the nfp_ personal access token is set per deploy site": False,
+            # whsec_ — webhook signing secret, LEN 32 std-b64 (N=1)
+            "whsec" + "_" + _b64[:32]: True,
+            "whsec" + "_" + _b64[:28]: True,
+            "whsec" + "_" + _b64[:27]: False,
+            "verify the callback against the whsec_ signing secret": False,
+            # ── structural negatives (not per-prefix) ─────────────────────────
+            # (a) prefix MID-TOKEN inside a longer run -> the LOOKBEHIND's whole job.
+            #     Without (?<![A-Za-z0-9_]) this is a false positive on every hash that
+            #     happens to contain a vendor prefix.
+            "9f2ab7" + "gsk" + "_" + _aln[:52]: False,
+            # (b) hash-like long token, no vendor prefix at all -> nothing should fire.
+            #     The corpus holds 3,173 alnum runs >=20 chars and 206 hex runs; this
+            #     stands in for all of them.
+            "commit 9c1e0b6d84f27f3a9c1e0b6d84f27f3a9c1e0b6d": False,
+            # (c) narrow-charset prefix whose tail is alnum but NOT hex -> the trailing
+            #     LOOKAHEAD's whole job. With {LEN-4,} open-ended the lookahead is inert
+            #     for the alnum rules (greedy eats the run), so hex/b64 is the ONLY place
+            #     it still does work — which makes this the only case that measures it.
+            "mesh" + "_" + _hex[:44] + "zq": False,
         }
         bad = 0
         for text, should_block in cases.items():

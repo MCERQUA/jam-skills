@@ -666,7 +666,7 @@ Side effects (all best-effort, all logged in the JSON output):
         /mnt/clients/<client>/tickets/deploy-requests/<ts>-<project>.json
   3. One-line summary appended to:
         /mnt/system/base/queue/deploy-requests.jsonl
-  4. Mesh message to mike-host@mesh + admin@mesh (best-effort).
+  4. Mesh message to host@mesh (best-effort).
   5. Stamps the project's .build-status.json with deployRequest metadata.
 
 Usage:
@@ -675,7 +675,7 @@ Usage:
   python3 tools/site-tools/request-deploy.py --type first-deploy
   python3 tools/site-tools/request-deploy.py --type pr-request
 """
-import argparse, json, os, shutil, subprocess, sys
+import argparse, json, os, re, shutil, subprocess, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -780,7 +780,7 @@ except Exception as e:
     queue_written = False
     queue_path_str = f"(queue write failed: {e})"
 
-# ── Step 4: mesh notify (mike-host + admin) ──
+# ── Step 4: mesh notify (host@mesh) ──
 mesh_results = []
 if shutil.which("mesh-send"):
     if request_type == "first-deploy":
@@ -798,11 +798,17 @@ if shutil.which("mesh-send"):
         f"Action: {ticket['actionRequired']}\\n"
         f"Ticket: {ticket_file}"
     )
-    for recipient in ["mike-host@mesh", "admin@mesh"]:
+    # 2026-08-16 (rc2-caller-sweep): old call used positionals + a nonexistent --body flag
+    # (mesh-send takes --to/--kind/--subject; body is STDIN) aimed at recipients that do not
+    # exist on the mesh — every generated site's deploy request no-oped with rc=3, forever.
+    for recipient in ["host@mesh"]:
         try:
+            slug = re.sub(r"[^a-z0-9-]+", "-", subj.lower()).strip("-")[:80] or "deploy-request"
             r = subprocess.run(
-                ["mesh-send", recipient, subj, "--body", body],
-                capture_output=True, text=True, timeout=15,
+                ["mesh-send", "--to", recipient, "--kind", "task",
+                 "--subject", slug,
+                 "--end-of-turn", f"{recipient} — deploy ticket filed, action per body"],
+                input=body, capture_output=True, text=True, timeout=15,
             )
             mesh_results.append({
                 "recipient": recipient,
