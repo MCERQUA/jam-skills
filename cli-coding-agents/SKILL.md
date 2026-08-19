@@ -10,8 +10,10 @@ You have access to REAL coding agents — full agentic harnesses that are much b
 ## The one launcher
 
 ```bash
-exec("bash /mnt/shared-skills/cli-coding-agents/run.sh <agent-name> 'Build X at /app/runtime/canvas-pages/my-page.html. Dark theme, inline CSS/JS. Include the FULL absolute output path.'")
+exec("bash /mnt/shared-skills/cli-coding-agents/run.sh <agent-name> 'Build X at /app/runtime/canvas-pages/my-page.html. Dark theme, inline CSS/JS. Include the FULL absolute output path.'", timeout=900)
 ```
+
+**⚠️ ALWAYS pass `timeout=900` (seconds) on the exec call.** The exec tool's default is 120s; run.sh allows z-code up to 840s. Without the explicit timeout, exec kills the coding agent at 2 minutes and you get a bare "timed out" with no output — the recurring "agent went silent" failure (AR-20260818-46747619).
 
 | Agent | What it is | When |
 |-------|-----------|------|
@@ -27,7 +29,7 @@ exec("bash /mnt/shared-skills/cli-coding-agents/run.sh <agent-name> 'Build X at 
 
 ```
 sessions_spawn({
-  task: "Run: bash /mnt/shared-skills/cli-coding-agents/run.sh z-code '<detailed brief with full output path>' — then verify the output file exists and summarize what was built in .agents/<label>.md",
+  task: "Run (with exec timeout=900 — NOT the 120s default): bash /mnt/shared-skills/cli-coding-agents/run.sh z-code '<detailed brief with full output path>' — then verify the output file exists and summarize what was built in .agents/<label>.md. If the run times out or fails, you MUST still report that status and any partial output to the user — never go silent.",
   label: "cli-<short-name>"
 })
 ```
