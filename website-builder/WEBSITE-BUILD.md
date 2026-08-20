@@ -64,9 +64,37 @@ Phase 1.5 BRAND-EXTRACT may still write `.brand/colors.json` for reference + fav
 | `pnpm add`, `pnpm dlx` | openclaw workspace | ✅ Yes — package management only |
 | `pnpm tsc --noEmit` | openclaw workspace | ✅ Yes — type-check only, lightweight |
 | `pnpm build` | **webdev container** | ❌ NEVER in openclaw — it OOMs |
-| `pnpm dev` | **webdev container** | ❌ Never in openclaw |
+| `pnpm dev` | **webdev container** | ❌ Never in openclaw — and see the orphan rule below |
 
 The webdev container handles compilation automatically when the active project is switched in Phase 6.
+
+### ⛔ If you run a dev server locally anyway, BOUND IT — never launch a bare background one
+
+The rule above is "never", but the rule gets broken during Phase 6/7 visual checks: someone
+reaches for a quick local `pnpm dev` / `npm run dev` to eyeball a page instead of going through
+the webdev container. A bare background launch then **survives the session that started it** —
+it reparents to the container's init and runs forever, holding ~700MB-1GB of memory each.
+
+Measured 2026-08-20: six orphaned `next-server` processes across four sites accumulated inside a
+single webtop in under four hours, holding **4.7GB of swap**. The host VPS reached 98.6% swap
+with active paging — one allocation burst from a random OOM-kill of an unrelated client service.
+The host-side reaper does NOT cover this: it enumerates `webdev-*` containers and is structurally
+blind to processes running inside a webtop. Nothing will clean up after you.
+
+So, in order of preference:
+
+1. **Use the webdev container** (`docker exec $WEBDEV_CONTAINER ...`) — the documented flow.
+2. If you run one locally anyway, **bound it so it cannot outlive its usefulness**:
+   ```bash
+   timeout 1200 pnpm dev      # self-terminates after 20 min, orphan or not
+   ```
+3. **Kill it explicitly before you report done or move to another site:**
+   ```bash
+   pkill -f 'next dev' ; pkill -f 'next-server' ; pkill -f 'pnpm.*dev'
+   ps aux | grep -E 'next dev|next-server|pnpm.*dev' | grep -v grep   # must print nothing
+   ```
+   Closing the terminal is NOT stopping it. Backgrounding it is NOT stopping it. Verify with
+   `ps`, and only then report the build done.
 
 ---
 

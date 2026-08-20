@@ -37,6 +37,24 @@ You can ONLY preview the HOT website in canvas. If the user asks to see a parked
 
 You own this. Do NOT ping host@mesh, do NOT search for a host script, do NOT use sudo. Switching is a one-line file write that you execute yourself, every time.
 
+### Step 0 — Kill any dev server you started BY HAND (not the container's)
+
+The webdev container's own dev server is managed by the watcher — leave it alone. But if you
+(or a build worker) ever started a dev server *directly in this container* to eyeball a page,
+kill it before parking the site. A hand-started server does not stop when you switch, does not
+stop when the terminal closes, and does not stop when your session ends — it reparents to init
+and holds ~700MB-1GB of memory until someone on the host reaps it by hand.
+
+```bash
+pkill -f 'next dev' ; pkill -f 'next-server' ; pkill -f 'pnpm.*dev'
+ps aux | grep -E 'next dev|next-server|pnpm.*dev' | grep -v grep   # must print nothing
+```
+
+Skip only if `ps` already shows nothing. (Added 2026-08-20 — six such orphans across four sites
+accumulated in one webtop in under four hours and took the host VPS to 98.6% swap. The host-side
+reaper enumerates `webdev-*` containers and cannot see processes inside a webtop, so this step is
+the only thing that cleans them up.)
+
 ### Step 1 — Confirm with the user BEFORE switching
 
 Say something like:
