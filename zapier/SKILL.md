@@ -3,6 +3,14 @@ name: zapier
 description: "Trigger Zapier automations — send emails, create calendar events, update spreadsheets, post to social media, and more through the client's own Zapier account. Use when the user mentions Zapier, automations, sending emails, scheduling events, or integrating with third-party apps via Zapier."
 ---
 
+> ⚠️ **Docker-gateway one-liner (fixed 2026-08-20).** The previous form used
+> `"0x"substr(...)` inside `printf "%d"`, which relies on awk auto-converting a hex
+> STRING to a number. gawk does; **mawk does not** — and tenant containers ship mawk.
+> It therefore printed `0.0.0.0` inside a container, silently, with no error, so every
+> API call from this skill failed to connect. The form below decodes the hex by hand
+> and works under both. Verified under mawk 1.3.4 in a live webtop.
+
+
 > ⚠️ **Host API address:** `172.17.0.1` is the DEFAULT docker bridge and NO tenant
 > container is on it — that address hangs or refuses. The awk snippet below reads your
 > real default gateway from `/proc/net/route` (no `ip` binary needed, it is not installed).
@@ -22,7 +30,7 @@ You can trigger Zapier automations on behalf of your client through pre-configur
 
 ## API Reference
 
-**Base URL:** `http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350`
+**Base URL:** `http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350`
 **Auth:** `X-Tenant` header (your tenant ID)
 
 All examples use `exec()` with `curl -sf`.
@@ -32,7 +40,7 @@ All examples use `exec()` with `curl -sf`.
 ### Check Zapier Status
 
 ```bash
-exec("curl -sf http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/zapier/status -H 'X-Tenant: $TENANT'")
+exec("curl -sf http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350/api/zapier/status -H 'X-Tenant: $TENANT'")
 ```
 
 Response:
@@ -53,7 +61,7 @@ If `configured: false` → tell user "Zapier isn't set up yet. Your admin can co
 ### List Available Actions
 
 ```bash
-exec("curl -sf http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/zapier/actions -H 'X-Tenant: $TENANT'")
+exec("curl -sf http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350/api/zapier/actions -H 'X-Tenant: $TENANT'")
 ```
 
 Response:
@@ -72,7 +80,7 @@ Response:
 ### Fire a Webhook
 
 ```bash
-exec("curl -sf -X POST http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/zapier/webhook \
+exec("curl -sf -X POST http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350/api/zapier/webhook \
   -H 'X-Tenant: $TENANT' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -95,7 +103,7 @@ Response:
 ### View Execution Log
 
 ```bash
-exec("curl -sf 'http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/zapier/log?limit=10' -H 'X-Tenant: $TENANT'")
+exec("curl -sf 'http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350/api/zapier/log?limit=10' -H 'X-Tenant: $TENANT'")
 ```
 
 ---
@@ -121,7 +129,7 @@ exec("curl -sf 'http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,
 ### Send an email
 User: "Send John an email about his estimate being ready"
 ```bash
-exec("curl -sf -X POST http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/zapier/webhook \
+exec("curl -sf -X POST http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350/api/zapier/webhook \
   -H 'X-Tenant: $TENANT' -H 'Content-Type: application/json' \
   -d '{\"action\":\"send_email\",\"data\":{\"to\":\"john@example.com\",\"subject\":\"Your Estimate is Ready\",\"body\":\"Hi John, your estimate for the roof repair is ready. The total comes to $4,500. Please review and let us know if you have any questions.\"}}'")
 ```
@@ -129,7 +137,7 @@ exec("curl -sf -X POST http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"sub
 ### Schedule a calendar event
 User: "Add a roof inspection to my calendar for Friday at 10am"
 ```bash
-exec("curl -sf -X POST http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/zapier/webhook \
+exec("curl -sf -X POST http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350/api/zapier/webhook \
   -H 'X-Tenant: $TENANT' -H 'Content-Type: application/json' \
   -d '{\"action\":\"create_event\",\"data\":{\"title\":\"Roof Inspection - Smith Residence\",\"start_time\":\"2026-04-10T10:00:00-07:00\",\"end_time\":\"2026-04-10T12:00:00-07:00\",\"location\":\"123 Main St, Phoenix AZ\",\"description\":\"Annual roof inspection\"}}'")
 ```
@@ -137,7 +145,7 @@ exec("curl -sf -X POST http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"sub
 ### Log to a spreadsheet
 User: "Add today's lead count to the tracking sheet"
 ```bash
-exec("curl -sf -X POST http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/zapier/webhook \
+exec("curl -sf -X POST http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350/api/zapier/webhook \
   -H 'X-Tenant: $TENANT' -H 'Content-Type: application/json' \
   -d '{\"action\":\"update_sheet\",\"data\":{\"date\":\"2026-04-08\",\"new_leads\":5,\"calls_made\":12,\"appointments_set\":3}}'")
 ```

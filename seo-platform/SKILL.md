@@ -4,6 +4,14 @@ description: "Full-featured SEO analytics dashboard with 12 views — rank track
 version: 1.0.0
 ---
 
+> ⚠️ **Docker-gateway one-liner (fixed 2026-08-20).** The previous form used
+> `"0x"substr(...)` inside `printf "%d"`, which relies on awk auto-converting a hex
+> STRING to a number. gawk does; **mawk does not** — and tenant containers ship mawk.
+> It therefore printed `0.0.0.0` inside a container, silently, with no error, so every
+> API call from this skill failed to connect. The form below decodes the hex by hand
+> and works under both. Verified under mawk 1.3.4 in a live webtop.
+
+
 # SEO Platform Dashboard
 
 You have a full SEO analytics dashboard available as a canvas page. Use it to help clients understand their search engine performance, find keyword opportunities, audit technical issues, and track competitors.
@@ -102,7 +110,7 @@ You can add, list, and batch-import projects for your client. This is how domain
 ```sh
 # The SEO API runs on the HOST, not in a container, so you reach it through your
 # container's default gateway. Derive it at runtime:
-SEO=http://$(awk '$2=="00000000"{printf "%d.%d.%d.%d","0x"substr($3,7,2),"0x"substr($3,5,2),"0x"substr($3,3,2),"0x"substr($3,1,2);exit}' /proc/net/route):6350/api/seo
+SEO=http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350/api/seo
 curl -s "$SEO/../health"     # sanity check -> {"status":"ok",...}
 ```
 
