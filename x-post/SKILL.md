@@ -1,6 +1,6 @@
 ---
 name: x-post
-description: How a JamBot character agent posts to and reads X/Twitter SAFELY through the per-tenant x-guard.py wrapper (hard $1/day spend cap). Covers text, images (1–4), uploaded video, GIF, alt-text, replies/quotes/retweets/likes, delete, own-account reads, and the cost of every action. TRIGGER when the agent is asked to post/tweet/reply on X, attach an image or video, check its own X account, or reason about X API spend. Requires the tenant to have X creds in ~/.openclaw/.env + bin/x-guard.py (currently: @kyle_bhb). This is the OPERATIONAL how-to; the generic API reference is the `x-api` skill.
+description: How a JamBot character agent posts to and reads X/Twitter SAFELY through the per-tenant x-guard.py wrapper (hard $1/day spend cap) — text, images, video, GIF, alt-text, replies/quotes/retweets/likes, delete, own-account reads, and each action's cost. TRIGGER when asked to post/tweet/reply on X, attach an image or video, check its own X account, or reason about X API spend. Needs tenant X creds + bin/x-guard.py (currently: @kyle_bhb). OPERATIONAL how-to; generic API reference is the `x-api` skill.
 ---
 
 # x-post — posting to X/Twitter via x-guard.py

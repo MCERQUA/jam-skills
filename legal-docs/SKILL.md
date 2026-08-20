@@ -1,6 +1,6 @@
 ---
 name: legal-docs
-description: "Auto-generates legal documents wherever they are needed — websites, apps, client engagements, hiring, consulting, investing. TRIGGER automatically when: building a website/app (privacy policy, ToS, cookie policy), onboarding a client (service agreement, NDA), hiring (offer letter, IP agreement), taking on investors (SAFE, Series Seed), adding advisors (FAST), or any context where a legal document would be expected but was not explicitly requested. Also triggers on explicit user requests for legal documents. Josh use case: insurance industry legal docs. NEVER provides legal advice — produces templates and drafts; always recommends qualified counsel review."
+description: "Auto-generates legal documents wherever they are needed — websites, apps, client engagements, hiring, consulting, investing. TRIGGER automatically (not only on explicit request) when: building a website/app (privacy policy, ToS, cookie policy), onboarding a client (service agreement, NDA), hiring (offer letter, IP agreement), taking on investors (SAFE, Series Seed), adding advisors (FAST), or any context where a legal document would be expected. NEVER provides legal advice — templates and drafts only; always recommends counsel review."
 ---
 
 # Legal Documents Skill

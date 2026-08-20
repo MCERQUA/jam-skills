@@ -1,6 +1,6 @@
 ---
 name: hermes-expert
-description: "Hermes Agent (Nous Research) expert — indexed mirror of hermes-agent.nousresearch.com/docs plus the JamBot operational overlay (Z.AI subscription routing, production version state, mid-flight pipeline, container layout) and r/hermesagent community patterns. For health/optimization work START at overlay §0 — the Hermes × OpenVoiceUI optimization playbook (8-touchpoint integration map, ordered audit pass incl. scripts/session-health.sh + audit-anchors.sh, unshipped-upgrade backlog). Load docs by-need via index.json + sections/<id>.json — never read everything at once. TRIGGER when working on hermes-* containers, Hermes config/upgrades, optimizing/debugging the OVU hermes voice path, or Hermes docs questions."
+description: "Hermes Agent (Nous Research) expert — indexed mirror of the upstream docs plus the JamBot operational overlay (Z.AI subscription routing, production version state, mid-flight pipeline, container layout) and r/hermesagent community patterns. Health/optimization work starts at overlay §0. TRIGGER when working on hermes-* containers, Hermes config/upgrades, optimizing/debugging the OVU hermes voice path, or Hermes docs questions."
 ---
 
 # Hermes Expert

@@ -1,6 +1,6 @@
 ---
 name: comms-control
-description: "Change the client's proactive-messaging rules of engagement — kickoff time, quiet hours/cutoff, texting frequency, scheduled recurring updates (weather, stocks, custom). TRIGGER whenever the client asks to change when/how often/what you text them: 'move my kickoff to 7am', 'don't text me past 8pm', 'add the weather to my morning', 'stop the morning rundown'. Changes are ENFORCED from machine JSON files — editing human notes alone does NOT take effect; this skill makes the change stick."
+description: "Change the client's proactive-messaging rules of engagement — kickoff time, quiet hours/cutoff, texting frequency, scheduled recurring updates (weather, stocks, custom). TRIGGER whenever the client asks to change when/how often/what you text them ('move my kickoff to 7am', 'don't text me past 8pm', 'stop the morning rundown'). Rules are ENFORCED from machine JSON — editing human notes alone does NOT take effect."
 ---
 
 # comms-control — make the client's messaging preferences actually take effect

@@ -1,6 +1,6 @@
 ---
 name: website-live-edit
-description: How to edit the client's website(s) — the DEFAULT path (edit source in workspace, push to GitHub) vs the RARE live-edit session (load the site into the client's webdev dev container so they watch single-aspect changes hot-reload on screen in the voice app, then push the finished version). TRIGGER when the user asks to change/update/fix their website, or says "live edit," "show me the change live," "let me watch," or names a site to edit. DO NOT TRIGGER for building brand-new websites (website-setup flow) or deploy-only questions.
+description: How to edit the client's website(s) — the DEFAULT path (edit source in workspace, push to GitHub) vs the RARE live-edit session (site loaded into the client's webdev container so they watch changes hot-reload in the voice app, then push). TRIGGER when the user asks to change/update/fix their website, or says "live edit," "show me the change live," "let me watch," or names a site to edit. NOT for brand-new websites (website-setup) or deploy-only questions.
 ---
 
 # Website Editing — default path vs live-edit session

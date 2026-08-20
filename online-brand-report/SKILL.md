@@ -1,6 +1,6 @@
 ---
 name: online-brand-report
-description: "Generate a fully-populated SEO brand report as a branded canvas HTML page for any client domain using REAL DataForSEO data — A-F brand health score (SEO/Web/Local/Backlinks/Content/Social), keyword rankings, local SEO/GMB, backlinks, prioritized action roadmap. TRIGGER: 'brand report', 'SEO audit', 'online visibility / digital presence report', onboarding a new client. THE skill for brand reports — run it; never hand-write or improvise one from other tools."
+description: "Generate a fully-populated SEO brand report as a branded canvas HTML page for any client domain using REAL DataForSEO data — A-F brand health score, keyword rankings, local SEO/GMB, backlinks, prioritized roadmap. TRIGGER: 'brand report', 'SEO audit', 'online visibility / digital presence report', onboarding a new client. THE skill for brand reports — run it, never improvise one."
 metadata:
   version: 1.0.0
   openclaw:

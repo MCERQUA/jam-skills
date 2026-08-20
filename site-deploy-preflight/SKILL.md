@@ -1,6 +1,6 @@
 ---
 name: site-deploy-preflight
-description: "Prove a website actually builds BEFORE pushing it to an auto-deploying branch. Runs the real production build in a throwaway sandbox so the tenant's live dev server is never disturbed, and with NODE_ENV=production so the build doesn't fail for phantom reasons. TRIGGER: before any 'git push' of a website repo that auto-deploys (Netlify/Vercel), when a deploy has failed, or when asked to 'ship'/'deploy'/'publish' site changes. DO NOT TRIGGER for non-deploying repos or docs-only changes."
+description: "Prove a website actually builds BEFORE pushing it to an auto-deploying branch — the real production build, in a throwaway sandbox (live dev server undisturbed) with NODE_ENV=production. TRIGGER: before any 'git push' of an auto-deploying website repo (Netlify/Vercel), when a deploy has failed, or on 'ship'/'deploy'/'publish'. NOT for non-deploying repos or docs-only changes."
 ---
 
 # site-deploy-preflight

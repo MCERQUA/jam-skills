@@ -1,6 +1,6 @@
 ---
 name: social-media-designer
-description: "Generate branded social-media ad images (Facebook/Instagram) — logo-referenced, percentage-based layout prompts, brand colors; adapt logo/brand paths per client. METHOD BY NODE: agents WITH a desktop browser (mac-claude on macdaddy) drive the ON-SCREEN ChatGPT browser (see that node memory branded-social-images-drive-chatgpt-browser) — Gemini generation below is ONLY for agents WITHOUT browser/desktop access. TRIGGER: create a social media post image, FB/IG ad graphic, branded promo image. DO NOT TRIGGER for posting/scheduling to platforms or writing captions — image generation only."
+description: "Generate branded social-media ad images (Facebook/Instagram) — logo-referenced, percentage-based layout prompts, brand colors. METHOD BY NODE: agents WITH a desktop browser (mac-claude) drive the ON-SCREEN ChatGPT browser (node memory branded-social-images-drive-chatgpt-browser); the Gemini path is ONLY for agents without a desktop. TRIGGER: social post image, FB/IG ad graphic, branded promo image. NOT for posting/scheduling or captions — image generation only."
 ---
 
 # Social Media Designer Skill
