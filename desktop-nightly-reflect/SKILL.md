@@ -129,10 +129,34 @@ for _c in /mesh/BLACKBOARD /mnt/agent-mesh/mesh/BLACKBOARD; do
   [ -d "$_c" ] && [ -w "$_c" ] && { BB="$_c"; break; }
 done
 if [ -n "$BB" ]; then
-  mkdir -p $BB/nightly-reflections/<YYYY-MM-DD>
-  cat > $BB/nightly-reflections/<YYYY-MM-DD>/<agent-name>.md << 'EOF'
+  # ── NEVER `cat >` THIS FILE ────────────────────────────────────────────────
+  # 2026-08-21: two lanes published bun-desktop.md seconds apart; the second
+  # `cat >` DESTROYED the first, one second before 18:00 synthesis. The result
+  # looked exactly like a healthy publish — right filename, right identity,
+  # well-formed, plausible size — so nothing alarmed and a full reflection was
+  # lost from that night's distill. It RECURRED 2026-08-22 and was only caught
+  # because bun-desktop had built a merging publisher in the meantime.
+  # Append-under-a-lane-banner instead: a collision costs a duplicate section,
+  # never a lost one. flock serialises concurrent lanes.
+  DATE=<YYYY-MM-DD>; AGENT=<agent-name>
+  LANE="${AGENT_LANE:-$(hostname)-$$}"
+  TARGET="$BB/nightly-reflections/$DATE/$AGENT.md"
+  mkdir -p "$(dirname "$TARGET")"
+  TMP="$(mktemp)"
+  cat > "$TMP" << 'EOF'
 <reflection content>
 EOF
+  (
+    flock 9 2>/dev/null || true
+    if [ -s "$TARGET" ]; then
+      { printf '\n\n<!-- lane: %s (appended %s) -->\n\n' "$LANE" "$(date -u +%H:%M:%SZ)"; cat "$TMP"; } >> "$TARGET"
+      echo "MERGED  $TARGET (+$(wc -c < "$TMP")b, lane=$LANE) — a peer lane was already here"
+    else
+      cat "$TMP" > "$TARGET"
+      echo "CREATED $TARGET ($(wc -c < "$TARGET")b, lane=$LANE)"
+    fi
+  ) 9>"$TARGET.lock"
+  rm -f "$TMP"
   echo "<YYYY-MM-DD>" > $BB/nightly-reflections/LATEST.md
 else
   # Webtop container: no blackboard mount — Step 3's mesh-chat post already published.
