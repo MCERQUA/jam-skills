@@ -57,6 +57,13 @@ BUILTIN_FILTER_PATTERNS: list[tuple[str, str]] = [
     (r"\bgh[opsur]_[A-Za-z0-9]{30,}\b",      "GitHub token (ghp/gho/ghs/ghu/ghr_...)"),
     (r"\bgithub_pat_[A-Za-z0-9_]{59,}\b",   "GitHub fine-grained token"),
     (r"\baia_sk_[A-Za-z0-9]{20,}\b",        "AIA secret key (aia_sk_...)"),
+    # Z.AI / GLM key (SEC-048, 2026-08-25): <32 hex>.<16 alnum>, 49 chars. Added after a
+    # LIVE ZAI_API_KEY was pasted plaintext into a mesh message and this filter PASSED it
+    # (bun-desktop, third missed shape). No zai rule existed in ANY copy of this lib —
+    # the shape was simply never covered, so the miss was structural, not a tuning error.
+    # Anchored on the literal dot + exact segment lengths: a bare 32-hex md5 does not match,
+    # and a filename like <md5>.tar.gz does not reach 16 alnum in one unbroken run.
+    (r"\b[0-9a-f]{32}\.[0-9A-Za-z]{16}\b", "Z.AI / GLM API key (<32hex>.<16alnum>)"),
     (r"-----BEGIN [A-Z ]+-----",            "PEM / private key block"),
     (r"(?i)\bpassword\s*=\s*\S{4,}",        "password= assignment"),
     (r"(?i)\bauthorization\s*:\s*\S+",      "Authorization header value"),
