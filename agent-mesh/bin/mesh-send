@@ -82,6 +82,8 @@ def _load_intel_filter():
                 spec = importlib.util.spec_from_file_location("mesh_intel_filter", c)
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)
+                # FILTER PROVENANCE (2026-08-25): record WHICH copy screened this send.
+                globals()["_INTEL_SRC"] = str(c)
                 return mod
         except Exception:
             continue
@@ -598,7 +600,18 @@ def main() -> None:
 
     # ---- log drop ----
     ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    log_drop(f"# MESH-SEND {ts} sender={sender} to={recipient} kind={args.kind} file={slot}.md")
+    # FILTER PROVENANCE (2026-08-25). MESH_INTEL_FILTER is the FIRST candidate in
+    # _load_intel_filter(), so an env var silently replaces the outbound secret filter with
+    # anything -- including a stub whose run() returns [] -- taking precedence over every real
+    # lib. Nothing recorded which copy actually screened a send, so the append-only log could
+    # not distinguish "completed because the filter is broken" from "completed because someone
+    # swapped the filter". That ambiguity cost two agents an hour chasing a phantom gap, and it
+    # also routes around --force-leak, whose entire purpose is an audit entry in mesh/DECISIONS/.
+    import os as _os2
+    _fsrc = globals().get("_INTEL_SRC") or "unresolved"
+    _fenv = " FILTER-OVERRIDE=env" if _os2.environ.get("MESH_INTEL_FILTER") else ""
+    log_drop(f"# MESH-SEND {ts} sender={sender} to={recipient} kind={args.kind} file={slot}.md"
+             f" filter={_fsrc}{_fenv}")
 
     print(str(md_path))
 
