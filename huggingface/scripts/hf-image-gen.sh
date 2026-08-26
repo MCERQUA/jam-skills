@@ -16,6 +16,17 @@ set -uo pipefail
 
 PROMPT="${1:?prompt required}"
 OUT="${2:?output path required}"
+# SIZE — "WxH". nscale SILENTLY IGNORES width/height keys (the shape the old hf-inference
+# path used); it honours only `size`. A script ported by translating the URL but keeping
+# width/height gets a 1024x1024 SQUARE with no error and no warning — a real, valid image
+# of the wrong shape, which passes `file`, passes the magic-byte gate, and passes the size
+# gate. Measured by josh-desktop 2026-08-26, same minute, same token:
+#     {"width":1280,"height":853}  -> 1024x1024   (keys ignored entirely)
+#     {"size":"1280x853"}          -> 1280x848    (honoured, snapped to a multiple of 16)
+#     {"size":"1280x832"}          -> 1280x832    (exact)
+# So prefer dimensions that are already multiples of 16, or expect a silent snap.
+# The 1024x1024 DEFAULT here is deliberate but is a SQUARE — callers wanting a hero/banner
+# MUST pass size explicitly. Defaulting is how every hero silently became 1:1.
 SIZE="${3:-1024x1024}"
 MODEL="${4:-black-forest-labs/FLUX.1-schnell}"
 MIN_BYTES=10240
