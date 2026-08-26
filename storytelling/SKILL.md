@@ -11,7 +11,7 @@ metadata: {"openclaw": {"emoji": "📖"}}
 A **generation and creation capability** — not a fixed product. The agent assembles scene assets on demand and produces a canvas page tailored to what was asked for. The canvas page is created at request time and opened directly; it is never pinned to the desktop.
 
 **The building blocks:**
-- **Scene image** — FLUX.1-schnell via HuggingFace (~2.75s)
+- **Scene image** — FLUX.1-schnell via HuggingFace **`nscale` provider** (JSON+base64 response — see Asset Generation)
 - **Ambient audio loop** — Suno sounds V5_5 (~20-26s, loops seamlessly)
 - **SFX** — Suno sounds V5_5, triggered at precise script moments with play_count + volume control
 - **Narration + character voices** — Resemble Chatterbox per character (~2-3s/line)
@@ -170,19 +170,51 @@ Too many overlapping streams causes distortion/static. Hard cap: **3 SFX max sim
 
 All assets are pre-generated before the canvas page is served. Fire image and all Suno sounds in parallel first (Suno is the bottleneck at 20-30s), then TTS lines in parallel.
 
-### Image — FLUX.1-schnell
+### Image — FLUX.1-schnell (via `nscale` — endpoint CHANGED 2026-08-26)
+
+> ⚠️ **The old `hf-inference/models/black-forest-labs/FLUX.1-schnell` endpoint is DEAD** —
+> HTTP **410**, *"The requested model is deprecated and no longer supported by provider
+> hf-inference"*. The replacement is not a URL swap: **`nscale` is OpenAI-images-compatible
+> and returns JSON**, so `r.content` is no longer image bytes. The old code below the fold
+> saved `r.content` straight to disk; ported naively it saves a **JSON error body as a `.jpg`
+> at HTTP 200** and every "does the file exist" check downstream passes. That exact failure
+> served 94-byte deprecation blobs as images on a live tenant subdomain for 18 days.
+
 ```python
+import base64, json, httpx
+
 r = httpx.post(
-    "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
-    content=json.dumps({"inputs": scene["image_prompt"]}).encode(),
+    "https://router.huggingface.co/nscale/v1/images/generations",
+    json={"model": "black-forest-labs/FLUX.1-schnell",
+          "prompt": scene["image_prompt"],
+          "n": 1, "size": "1024x1024"},
     headers={"Authorization": f"Bearer {HF_TOKEN}", "Content-Type": "application/json"},
-    timeout=60.0
+    timeout=180.0,
 )
-# r.content is JPEG bytes — save directly
+
+# GATE 1 — status. A dead HF path returns a well-formed HTTP error, never a timeout.
+if r.status_code != 200:
+    raise RuntimeError(f"FLUX image failed http={r.status_code}: {r.text[:400]}")
+
+# GATE 2 — shape. The body is JSON: {"created":..., "data":[{"b64_json": "..."}]}
+b64 = (r.json().get("data") or [{}])[0].get("b64_json")
+if not b64:
+    raise RuntimeError(f"200 but no data[0].b64_json: {r.text[:400]}")
+img = base64.b64decode(b64)
+
+# GATE 3 — magic bytes + size. Write NOTHING if it is not really an image.
+if not (img.startswith(b"\x89PNG\r\n\x1a\n") or img.startswith(b"\xff\xd8\xff") or img[:4] == b"RIFF"):
+    raise RuntimeError(f"decoded bytes are not PNG/JPEG/WEBP: {img[:16]!r}")
+if len(img) < 10240:
+    raise RuntimeError(f"decoded only {len(img)} bytes — treating as FAILURE, wrote nothing")
+
+open(out_path, "wb").write(img)   # only reached on success → absence of the file = failure
 ```
-- Time: ~2.75s
 - Key: `HF_TOKEN` from `.platform-keys.env`
-- Output: JPEG, any prompt accepted
+- Output: **PNG** at 1024x1024, ~1.7 MB measured. Anything under 10 KB is an error body.
+- Provider/model verified 2026-08-26: `black-forest-labs/FLUX.1-schnell` on `nscale` only.
+  We do NOT know which other models nscale hosts — do not assume `FLUX.1-dev` works there.
+- Do **not** fall back to `hf-inference` (410) or `fal-ai` (403 exhausted balance). Both are dead.
 
 ### Sounds — Suno
 ```python
@@ -353,7 +385,7 @@ async function playScene(sceneId) {
 
 | Asset | Time |
 |-------|------|
-| FLUX.1-schnell image | ~2.75s |
+| FLUX.1-schnell image (was hf-inference; now `nscale` — re-time it) | ~2.75s (measured on the RETIRED hf-inference path; not re-measured on `nscale`) |
 | Suno ambient (V5_5) | ~20-26s |
 | Suno SFX (V5_5) | ~20s |
 | Resemble TTS line | ~2-3s (run all in parallel) |
@@ -367,7 +399,7 @@ Suno is always the bottleneck. For multi-scene stories: pre-generate scene N+1 s
 
 | Provider | Key Env Var | Notes |
 |----------|------------|-------|
-| HF FLUX.1-schnell | `HF_TOKEN` | `router.huggingface.co` resolves; `api-inference.huggingface.co` does NOT |
+| HF FLUX.1-schnell | `HF_TOKEN` | Host must be `router.huggingface.co` (`api-inference.huggingface.co` does NOT resolve) — **but the host alone is not enough**: the path is now `/nscale/v1/images/generations` (JSON + base64), NOT `/hf-inference/models/...` (dead, 410). See the Image section. |
 | Suno sounds | `SUNO_API_KEY` | V5_5 confirmed working on sounds endpoint |
 | Resemble Chatterbox | `RESEMBLE_API_KEY` | Synthesis: `f.cluster.resemble.ai/stream`; API: `app.resemble.ai/api/v2` |
 
@@ -376,7 +408,7 @@ Suno is always the bottleneck. For multi-scene stories: pre-generate scene N+1 s
 ## Build Status
 
 **Proven working on mm-test (2026-05-28):**
-- [x] FLUX image generation
+- [x] FLUX image generation _(proven 2026-05-28 on the hf-inference path, which is now DEAD; the `nscale` replacement was verified by host@mesh 2026-08-26 but has not been re-run end-to-end through this story pipeline)_
 - [x] Suno ambient loop + SFX
 - [x] Resemble per-character TTS with SSML emotion
 - [x] Canvas player: image fade-in, ambient loop, sequential narration, SFX trigger, subtitles, choice buttons

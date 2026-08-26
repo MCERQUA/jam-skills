@@ -11,8 +11,9 @@ Access the Hugging Face Inference Providers API to run open-source AI models on 
 > ## 🎨 THIS IS THE IMAGE-GENERATION PATH FOR VOICE/OPENCLAW AGENTS
 > The built-in `image_generate` tool is **DISABLED** (it was hardwired to fal.ai, whose
 > account is dead/empty — it would 403 and wedge the whole session). **To generate an
-> image, use this skill's Text-to-Image recipe below** (HF FLUX on the subscription quota
-> we already pay for — not pay-per-call). For **image→video**, use the **`wan-video`** skill.
+> image, use this skill's Text-to-Image recipe below** — FLUX.1-schnell via the **`nscale`**
+> provider (verified 2026-08-26). The old `hf-inference` FLUX endpoint is **DEAD (HTTP 410)**
+> and its response shape was different (binary, not JSON) — read §1 before porting any script. For **image→video**, use the **`wan-video`** skill.
 > **Always save the result to the tenant's uploads so it becomes a real server URL** (see §1).
 
 ## Authentication
@@ -31,67 +32,149 @@ All requests go through the HF Router with a **provider prefix**:
 https://router.huggingface.co/<provider>/models/<model>
 ```
 
-Default provider for free serverless inference: `hf-inference`
+Default provider for the legacy free serverless tier: `hf-inference` — **but see the
+image-generation warning below; it no longer serves FLUX.**
+
+**Image generation uses a different, OpenAI-compatible base URL** (note `/v1/images/generations`,
+NOT `/models/<model>`):
+
+```
+https://router.huggingface.co/nscale/v1/images/generations
+```
 
 ## Provider Selection
 
 Append a provider name to use a specific backend:
 
-- `hf-inference` — free serverless tier (default, best for image generation)
-- ~~`fal-ai`~~ — **DO NOT USE — our fal account is empty/dead (403 "Exhausted balance"). Use `hf-inference`.**
-- `together` — LLM chat
+- `nscale` — **the image-generation provider. VERIFIED WORKING 2026-08-26** (FLUX.1-schnell,
+  HTTP 200, OpenAI-images-compatible JSON response). This is where the fallback chain ends.
+- `hf-inference` — legacy free serverless tier. **DEAD FOR FLUX IMAGE GENERATION** — as of
+  2026-08-26 `hf-inference/models/black-forest-labs/FLUX.1-schnell` returns **HTTP 410**:
+  *"The requested model is deprecated and no longer supported by provider hf-inference"*.
+  The non-image task recipes below (§2–§13) still point at `hf-inference`; they were **NOT
+  re-verified** in the 2026-08-26 sweep — treat each as unproven until you see a 200 with a
+  sane body, and check the status code before using the output.
+- ~~`fal-ai`~~ — **DO NOT USE — our fal account is empty/dead (403 "Exhausted balance").**
+  (This line used to say "use `hf-inference` instead" — that redirect was itself dead. For
+  images, go to `nscale`.)
+- ~~`together` for images~~ — `https://router.huggingface.co/together/v1/images/generations`
+  returns **HTTP 400 "Unable to access non-serverless model"**. Not an image path for us.
+  `together` for LLM chat is untested here.
 - `replicate` — general purpose
-- `fireworks-ai`, `sambanova`, `cerebras`, `hyperbolic`, `novita`, `nebius`, `nscale`, `wavespeed`
+- `fireworks-ai`, `sambanova`, `cerebras`, `hyperbolic`, `novita`, `nebius`, `wavespeed`
 
-Not all providers host all models. Use `hf-inference` for the broadest free access.
+Not all providers host all models, and **provider×model availability changes without notice —
+that is exactly how the FLUX path died.** We have verified ONE model on ONE provider
+(`black-forest-labs/FLUX.1-schnell` on `nscale`). We do **not** know which other models nscale
+hosts; do not assert it hosts one you have not seen return 200. This list is not exhaustive and
+is not a capability claim.
+
+### Fallback chain for images (2026-08-26) — it terminates, on purpose
+
+1. `nscale` `/v1/images/generations` — **use this.**
+2. If it fails: **STOP and report the HTTP code and response body.** There is no third
+   documented image provider that has been verified. Do NOT silently fall through to
+   `hf-inference` or `fal-ai` — both return well-formed HTTP errors that will be written to
+   disk as a fake "image" if you are not checking the status code.
 
 ## Tasks & Examples
 
 ### 1. Text to Image (MOST COMMON) — the voice-agent image recipe
 
-Generate images from text prompts. Returns binary image data (PNG). **Save it to the
-tenant's uploads** so you get a real server URL to show the user — never leave a generated
-image only in a temp path (paid output must persist to the server immediately).
+Generate images from text prompts via `nscale`. **Save it to the tenant's uploads** so you get
+a real server URL to show the user — never leave a generated image only in a temp path (paid
+output must persist to the server immediately).
+
+> ## ⚠️ THE RESPONSE IS **JSON**, NOT BINARY — READ THIS BEFORE PORTING ANY OLD SCRIPT
+> The old `hf-inference/models/...` path returned a **binary body** you could write straight to
+> disk with `curl -o hero.png`. **`nscale` is OpenAI-images-compatible and returns JSON**:
+> top-level keys `created` and `data`, with the image at **`data[0].b64_json` (base64)**.
+> A script ported by swapping ONLY the URL will write a JSON blob into `hero.png`, exit 0, and
+> every downstream "does the file exist" check will pass. **You must decode the base64.**
+>
+> ## ⚠️ DEAD HF PATHS RETURN WELL-FORMED HTTP ERRORS, NOT TIMEOUTS
+> A generator that does not check the status code writes the **error text** to disk as an
+> "image". Measured cost of exactly this: 6 files on a live tenant subdomain served **94 bytes
+> of deprecation JSON as `.jpg` at HTTP 200** for **18 days**. Nothing alerted, because the
+> files existed. **Check the status code, decode, then verify the magic bytes — and on failure
+> write NOTHING to the output path** so the absence of the file is the failure signal.
+
+**Preferred: use the ready-made gated script** (it does all of the above; exits non-zero and
+leaves the output path absent on any failure):
 
 ```bash
-# Save DIRECTLY into the tenant's OVU uploads → served at https://<tenant>.jam-bot.com/uploads/<file>
-TENANT=src                                  # your tenant slug
+/skills/huggingface/scripts/hf-image-gen.sh \
+  "A cyberpunk cityscape at sunset, neon lights on wet streets" \
+  "/mnt/clients/$TENANT/openvoiceui/uploads/ai-gen-$(date +%s).png" \
+  1024x1024
+# exit 0 = a real image ≥10KB with valid PNG/JPEG/WEBP magic bytes is at that path.
+# exit 1 = non-200 · 2 = 200 but no b64_json · 3 = decoded bytes are not an image / too small.
+```
+
+**Inline equivalent**, if you cannot reach the script:
+
+```bash
+TENANT=src                                   # your tenant slug
 TS=$(date +%s)
-TMP="/tmp/ai-gen-$TS.bin"
-# Capture the Content-Type header so we save with the RIGHT extension.
-# NOTE: hf-inference FLUX returns JPEG (not PNG) — always derive the extension, never assume .png.
-CT=$(curl -s -D /tmp/ai-gen-$TS.hdr -o "$TMP" \
-  https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell \
+OUT="/mnt/clients/$TENANT/openvoiceui/uploads/ai-gen-$TS.png"
+RESP="/tmp/hf-image-$TS.json"
+TMPIMG="/tmp/hf-image-$TS.bin"
+
+# 1. CALL — capture the status code, never assume 200.
+CODE=$(curl -sS -o "$RESP" -w '%{http_code}' --max-time 180 \
+  https://router.huggingface.co/nscale/v1/images/generations \
   -H "Authorization: Bearer $HF_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"inputs": "A cyberpunk cityscape at sunset, neon lights reflecting on wet streets"}' \
-  -w '%{content_type}')
-case "$CT" in
-  *jpeg*|*jpg*) EXT=jpg ;; *png*) EXT=png ;; *webp*) EXT=webp ;;
-  *) EXT=jpg ;;                             # HF image default is JPEG
-esac
-OUT="/mnt/clients/$TENANT/openvoiceui/uploads/ai-gen-$TS.$EXT"
-mv "$TMP" "$OUT"
+  -d '{"model":"black-forest-labs/FLUX.1-schnell","prompt":"A cyberpunk cityscape at sunset, neon lights on wet streets","n":1,"size":"1024x1024"}')
 
-# ALWAYS verify it's a real image, not a JSON error body (check magic bytes):
-head -c 3 "$OUT" | od -An -tx1        # JPEG=ff d8 ff · PNG=89 50 4e — if you see "7b" ({), it's a JSON error: cat "$OUT"
-# Then show the user the SERVER URL (not the filesystem path):
-echo "https://$TENANT.jam-bot.com/uploads/ai-gen-$TS.$EXT"
+# 2. GATE ON STATUS — an actual conditional, not a comment for a human to read.
+[ "$CODE" = "200" ] || { echo "HF image FAILED http=$CODE"; head -c 400 "$RESP"; exit 1; }
+
+# 3. DECODE the base64 — the body is JSON, the image is at .data[0].b64_json
+jq -er '.data[0].b64_json' "$RESP" >/dev/null || { echo "no b64_json in 200 body"; head -c 400 "$RESP"; exit 2; }
+jq -r  '.data[0].b64_json' "$RESP" | base64 -d > "$TMPIMG"
+
+# 4. GATE ON MAGIC BYTES + SIZE — a JSON error decodes to a tiny non-image blob.
+BYTES=$(stat -c %s "$TMPIMG")
+MAGIC=$(head -c 8 "$TMPIMG" | od -An -tx1 | tr -d ' \n')
+case "$MAGIC" in 89504e470d0a1a0a*|ffd8ff*|52494646*) ;; *) echo "not an image (magic=$MAGIC)"; exit 3 ;; esac
+[ "$BYTES" -ge 10240 ] || { echo "decode only $BYTES bytes — treating as FAILURE, wrote nothing"; exit 3; }
+
+# 5. Only now does it land at the real path. Failure leaves the path ABSENT.
+mv "$TMPIMG" "$OUT"
+echo "https://$TENANT.jam-bot.com/uploads/ai-gen-$TS.png"    # show the user the SERVER URL
 ```
+
+A 1024x1024 FLUX.1-schnell PNG from this path measured **~1.7 MB**. Anything under 10 KB is an
+error body wearing a `.png`, not a picture.
 
 > **Inside an openclaw voice container** your CWD maps to the tenant workspace and the uploads
 > folder is reachable as `/app/runtime/uploads/` or via the tenant path above. If unsure of
 > the exact mount, write to `uploads/ai-gen-<ts>.png` under the tenant's openvoiceui dir — the
 > file MUST land somewhere served at `/uploads/...`. Confirm the URL loads before telling the user it's ready.
 
-**Models:** `black-forest-labs/FLUX.1-schnell` (fast, RECOMMENDED — verified live), `black-forest-labs/FLUX.1-dev` (best quality, slower), `stabilityai/stable-diffusion-xl-base-1.0`.
+**Model:** `black-forest-labs/FLUX.1-schnell` on `nscale` — **the only model+provider pair
+verified working (2026-08-26).** `FLUX.1-dev` and `stable-diffusion-xl-base-1.0` were NOT
+tested on nscale; we do not know whether nscale hosts them. If you try one, gate it with the
+same status+magic-byte checks and record the result here.
 
-**If HF returns HTTP 503 "model loading":** wait ~15s and retry once (cold ZeroGPU start). Don't fall back to fal — it's dead.
+**If HF returns HTTP 503 "model loading":** wait ~15s and retry once (cold start).
+**If it returns 410:** the model was deprecated by that provider — do NOT retry, and do NOT
+fall back to `hf-inference` or `fal-ai`; both are dead. Report it.
 
-**Popular models:**
-- `black-forest-labs/FLUX.1-schnell` — fast, good quality (RECOMMENDED)
-- `black-forest-labs/FLUX.1-dev` — best quality, slower
-- `stabilityai/stable-diffusion-xl-base-1.0` — SDXL classic
+---
+
+> ## ⚠️ §2–§13 BELOW ARE UNVERIFIED (`hf-inference`) — 2026-08-26
+> The 2026-08-26 sweep verified exactly one thing: **FLUX.1-schnell images on `nscale`**.
+> Every recipe from here down still targets `hf-inference/models/<model>`, the same provider
+> that returned **HTTP 410 "deprecated and no longer supported"** for FLUX. Deprecation there
+> is **per-model**, so these may still work — but none of them were re-tested, so treat each
+> as **UNPROVEN, not as known-good and not as known-dead**.
+>
+> Before you trust any output from them: **capture the HTTP status code** (`-w '%{http_code}'`)
+> and refuse anything that is not 200. A 410/403/400 body written to disk with `-o` looks
+> exactly like success to any check that only asks whether the file exists. If you confirm one
+> works — or find it dead — record it here so the next agent does not re-derive it.
 
 ### 2. Text to Video
 
@@ -248,12 +331,20 @@ curl -s "https://huggingface.co/api/models/black-forest-labs/FLUX.1-schnell" \
 
 ## Tips
 
-- **Rate limits:** Free `hf-inference` tier has rate limits per model. Authenticated requests (HF_TOKEN) get higher limits.
-- **Binary responses:** Image/video/audio generation returns raw binary — always use `-o filename`.
+- **Rate limits:** the legacy free `hf-inference` tier has per-model rate limits. Authenticated
+  requests (HF_TOKEN) get higher limits. `nscale` image calls bill against the subscription quota.
+- **Image responses are JSON now:** `nscale` `/v1/images/generations` returns JSON with the
+  image base64 at `.data[0].b64_json` — `curl -o` alone saves a JSON blob, not a picture.
+  Video/audio endpoints on `hf-inference` still return raw binary (unverified as of 2026-08-26).
 - **JSON responses:** Text tasks return JSON. Parse with `jq` for clean output.
 - **Model discovery:** Browse https://huggingface.co/models?inference_provider=all to find models with active inference.
-- **Error handling:** 503 = model loading (retry in 20s), 429 = rate limited (back off), 422 = bad input, 404 = wrong provider/model combo.
-- **Always verify images:** After generating, run `file <path>` to confirm it's actually image data, not an error message.
+- **Error handling:** 503 = model loading (retry in 20s), 429 = rate limited (back off), 422 = bad input,
+  404 = wrong provider/model combo, **410 = the provider deprecated that model (permanent — do not retry,
+  switch providers)**, 403 = dead/empty account (that is `fal-ai`).
+- **Always verify images with a CONDITIONAL, not an eyeball:** check the HTTP status, then the
+  decoded magic bytes (`89 50 4e 47` PNG / `ff d8 ff` JPEG / `52 49 46 46` WEBP), then reject
+  anything under 10 KB. A dead HF path returns a well-formed HTTP error whose body lands on
+  disk as a fake image and passes every existence check. Prefer `scripts/hf-image-gen.sh`.
 
 ## Canvas Page Integration
 
@@ -265,20 +356,24 @@ When the user asks you to generate an image:
 
 Example workflow:
 ```bash
-# Generate image
-curl -s https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell \
-  -H "Authorization: Bearer $HF_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"inputs": "A professional contractor at work, photorealistic"}' \
-  -o /app/runtime/canvas-pages/contractor-photo.png
-
-# Verify it's a real image
-file /app/runtime/canvas-pages/contractor-photo.png
-# Expected: PNG image data, ...
+# Generate image — the script gates status code, base64 decode, magic bytes and size.
+# On ANY failure it exits non-zero and leaves the output path ABSENT (no stub to mistake
+# for success). Note the `||` — the gate has to be a real conditional in YOUR script too.
+/skills/huggingface/scripts/hf-image-gen.sh \
+  "A professional contractor at work, photorealistic" \
+  /app/runtime/canvas-pages/contractor-photo.png \
+  || { echo "image generation failed — do NOT build the page around a missing asset"; exit 1; }
 
 # Then create an HTML page that displays it, or tell the user about it
 ```
 
+⚠️ `file <path>` alone is NOT a gate — it is a string a human has to read. If you write the
+check by hand, make it a conditional that exits non-zero:
+`head -c8 "$P" | od -An -tx1 | tr -d ' \n' | grep -qE '^(89504e470d0a1a0a|ffd8ff|52494646)' || exit 1`
+
 ## Cost
 
-Most inference calls are free on HF's serverless `hf-inference` tier. Heavy usage of large models may consume credits. The token has Inference Providers write permission.
+Inference runs against the HF Inference Providers quota on our subscription (the token has
+Inference Providers write permission). Image generation now bills through the **`nscale`**
+provider rather than the legacy free `hf-inference` serverless tier. Heavy usage of large
+models may consume credits.

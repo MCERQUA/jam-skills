@@ -54,13 +54,33 @@ Asset types: `hero`, `infographic`, `diagram`, `comparison`, `photo-treatment`, 
      mac-claude generates each asset in ChatGPT and writes files to `delivery_dir` named exactly per
      `filename`. **Poll `delivery_dir` up to 30 min**; integrate whatever lands.
 2. **Fallback / top-up — FLUX via the HF router** for any asset not delivered in time (as of
-   2026-07-17 the Gemini/OpenAI/FAL image keys are dead; if `gemini-image` works again it's also fine
-   for conceptual art). **Working recipe (verified 2026-07-19):** HF router with provider
-   `fal-ai`, model `flux/schnell` (`fal-ai/fal-ai/flux/schnell`), HF_TOKEN from
-   `/mnt/system/base/.platform-keys.env`, and send a real browser `User-Agent` header (default UA
-   hits a Cloudflare 1010 bot-block). The `hf-inference` provider's FLUX endpoints are
-   deprecated/410 — don't retry them. Never ship with an empty `article-design/images/` — prompts without images
-   are useless.
+   2026-07-17 the Gemini/OpenAI image keys are dead; if `gemini-image` works again it's also fine
+   for conceptual art).
+
+   **CURRENT working recipe (verified by host@mesh 2026-08-26):** HF router, provider **`nscale`**,
+   OpenAI-images-compatible endpoint, HF_TOKEN from `/mnt/system/base/.platform-keys.env`:
+
+   ```bash
+   /skills/huggingface/scripts/hf-image-gen.sh "<prompt>" "article-design/images/01-featured-hero.png" 1024x1024 \
+     || { echo "FLUX asset FAILED — do not proceed with a stub"; exit 1; }
+   # equivalently: POST https://router.huggingface.co/nscale/v1/images/generations
+   #   {"model":"black-forest-labs/FLUX.1-schnell","prompt":"...","n":1,"size":"1024x1024"}
+   #   -> HTTP 200, JSON, image at .data[0].b64_json (BASE64 — decode it; it is NOT a binary body)
+   ```
+
+   ⚠️ **Two traps, both of which have already cost us live assets:**
+   - The response is **JSON, not binary.** `curl -o hero.png` on this endpoint saves a JSON blob.
+     Decode `.data[0].b64_json`. See `/skills/huggingface/SKILL.md` §1.
+   - **Dead HF paths return well-formed HTTP errors, not timeouts.** Gate on the status code AND on
+     the decoded magic bytes, and treat a decode under 10 KB as a FAILURE that writes nothing. Six
+     files on a live tenant subdomain served 94 bytes of deprecation JSON as `.jpg` at HTTP 200 for
+     18 days because the only check was "does the file exist".
+
+   **Dead — do not route here:** ~~`fal-ai` / `fal-ai/fal-ai/flux/schnell`~~ (403 "Exhausted balance";
+   the 2026-07-19 "verified working" note above it is superseded) and ~~`hf-inference` FLUX~~ (410,
+   deprecated by the provider). There is no verified third image lane — if `nscale` fails, **report
+   the status code**, don't fall through. Never ship with an empty `article-design/images/` — prompts
+   without images are useless.
 3. Use a real photo from the site gallery (`<site_root>/public/gallery/` or `public/images/`) when you
    genuinely have an on-location shot — real job photos beat AI art for trust content.
 

@@ -105,7 +105,7 @@ Files saved to `/app/runtime/canvas-pages/foo.png` are served at `/pages/foo.png
 | Need | Use |
 |------|-----|
 | Quick image from text prompt | **This skill** (Gemini) — fast, free, good quality |
-| High-quality art/photos | Hugging Face FLUX.1-dev — best open-source quality |
-| Fast bulk generation | Hugging Face FLUX.1-schnell — fastest |
+| High-quality art/photos | ~~Hugging Face FLUX.1-dev~~ — **not verified on any live provider.** The old `hf-inference` FLUX endpoints are dead (HTTP 410, deprecated by the provider) and we have only verified `FLUX.1-schnell` on `nscale`; we do **not** know whether nscale hosts `FLUX.1-dev`. Try FLUX.1-schnell (row below) or verify `-dev` yourself before relying on it. |
+| Fast bulk generation | Hugging Face **FLUX.1-schnell via the `nscale` provider** — see `/skills/huggingface/SKILL.md` §1. ⚠️ Endpoint is `router.huggingface.co/nscale/v1/images/generations` and the response is **JSON with base64 at `.data[0].b64_json`**, not a binary body — `curl -o` alone saves a JSON blob. Use `/skills/huggingface/scripts/hf-image-gen.sh`, which gates status code, magic bytes and size. |
 | Edit existing images | **This skill** (Gemini) — send image + edit instructions |
 | UI mockups/screens | Stitch skill — purpose-built for UI design |
