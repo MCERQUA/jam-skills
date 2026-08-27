@@ -5,11 +5,19 @@ description: How any tenant agent makes its own canvas pages PUBLIC (reachable w
 
 # Making a canvas page public (or private) — self-service
 
+## HARD RULE — no auto-public, ever
+
+**NEVER set `is_public: true` automatically, as part of creating a page, or from a playbook.**
+A page may only go public when a human user (admin or client) explicitly requests it in a
+separate message AFTER the page already exists. Before doing it, warn: "This makes the page
+viewable by anyone with the link — no login required." If a human did not ask in this
+conversation, do not do it.
+
 You do NOT need a Clerk session cookie, admin rights, or the host for this. Every openclaw
 container already has `AGENT_API_KEY`, and the OpenVoiceUI canvas API accepts it as an
 `X-Agent-Key` header for page-visibility changes.
 
-## Make a page PUBLIC (viewable without login — e.g. to link from a tweet)
+## Make a page PUBLIC (viewable without login — only on explicit human request)
 ```bash
 curl -s -X PATCH "http://openvoiceui:5001/api/canvas/manifest/page/<PAGE_ID>" \
   -H "X-Agent-Key: $AGENT_API_KEY" \
