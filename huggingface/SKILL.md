@@ -164,17 +164,42 @@ fall back to `hf-inference` or `fal-ai`; both are dead. Report it.
 
 ---
 
-> ## ⚠️ §2–§13 BELOW ARE UNVERIFIED (`hf-inference`) — 2026-08-26
-> The 2026-08-26 sweep verified exactly one thing: **FLUX.1-schnell images on `nscale`**.
-> Every recipe from here down still targets `hf-inference/models/<model>`, the same provider
-> that returned **HTTP 410 "deprecated and no longer supported"** for FLUX. Deprecation there
-> is **per-model**, so these may still work — but none of them were re-tested, so treat each
-> as **UNPROVEN, not as known-good and not as known-dead**.
+> ## ✅ §2–§13 MEASURED — 2026-08-27 (supersedes the 2026-08-26 UNVERIFIED banner)
+> All 12 recipes below were actually POSTed with the payloads exactly as written here, by
+> **two independent desks** (bun-desktop 14:52Z, host 14:5xZ) against `hf-inference`. Results:
 >
-> Before you trust any output from them: **capture the HTTP status code** (`-w '%{http_code}'`)
-> and refuse anything that is not 200. A 410/403/400 body written to disk with `-o` looks
-> exactly like success to any check that only asks whether the file exists. If you confirm one
-> works — or find it dead — record it here so the next agent does not re-derive it.
+> | recipe | verdict |
+> |---|---|
+> | §4 sentiment `distilbert/distilbert-base-uncased-finetuned-sst-2-english` | **ALIVE** 200 |
+> | §5 zero-shot `facebook/bart-large-mnli` | **ALIVE** 200 |
+> | §6 summarize `facebook/bart-large-cnn` | **ALIVE** 200 |
+> | §7 translate `Helsinki-NLP/opus-mt-en-fr` | **ALIVE** 200 |
+> | §8 Q&A `deepset/roberta-base-squad2` | **ALIVE** 200 |
+> | §9 NER `dslim/bert-base-NER` | **ALIVE** 200 |
+> | §2 text→video `Wan-AI/Wan2.1-T2V-14B` | 🔴 **DEAD** 400 "Model not supported by provider hf-inference" |
+> | §3 image→image `timbrooks/instruct-pix2pix` | 🔴 **DEAD** 400, same class |
+> | §10 similarity `sentence-transformers/all-MiniLM-L6-v2` | ⚠️ **SERVED, BUT THE DOCUMENTED PAYLOAD WAS WRONG** — fixed below |
+> | §11–§13 `vit-base-patch16-224`, `detr-resnet-50`, `whisper-large-v3` | **UNDECIDED** — our probes fed a literal `"x"` where a real image/audio is required, so the 400 is our input's fault, not a verdict. The provider accepted the model and reached input validation, so each is SERVED; the recipe itself is untested. |
+>
+> **Do not read UNDECIDED as either alive or dead.** 3 of 12 is too large a share to launder
+> into whichever column is convenient.
+>
+> **The §10 case is the one to learn from.** The model is served and the provider is healthy —
+> only the documented request body was wrong. The old banner's frame ("unproven because the
+> provider may be dead") *cannot express that failure*: a reader who checks the provider is
+> alive concludes the recipe is good and still gets a 400. Verified in BOTH directions
+> (documented body → 400, corrected body → 200), which is what makes it a doc defect rather
+> than a dead endpoint.
+>
+> Still capture `-w '%{http_code}'` and refuse anything that is not 200. A 400 body written to
+> disk with `-o` looks exactly like success to any check that only asks whether the file exists.
+
+### 2. Text to Video — 🔴 DEAD ENDPOINT, DO NOT USE
+
+> `Wan-AI/Wan2.1-T2V-14B` on `hf-inference` returns **HTTP 400 "Model not supported by
+> provider hf-inference"** (measured 2026-08-27 by two desks). Same class as the FLUX 410.
+> There is no verified text→video replacement on this box yet — do not silently substitute one.
+> The `-o` in the recipe below would write the 400 JSON body to `generated-video.mp4`.
 
 ### 2. Text to Video
 
@@ -186,7 +211,11 @@ curl -s https://router.huggingface.co/hf-inference/models/Wan-AI/Wan2.1-T2V-14B 
   -o /app/runtime/canvas-pages/generated-video.mp4
 ```
 
-### 3. Image to Image
+### 3. Image to Image — 🔴 DEAD ENDPOINT, DO NOT USE
+
+> `timbrooks/instruct-pix2pix` returns **HTTP 400 "Model not supported by provider
+> hf-inference"** (measured 2026-08-27, two desks). The `-o output.png` below would
+> write the JSON error body to a .png.
 
 Transform images using a model. Send image as base64.
 
@@ -203,8 +232,30 @@ curl -s https://router.huggingface.co/hf-inference/models/timbrooks/instruct-pix
 
 Convert text to vector embeddings. Useful for semantic search and RAG.
 
+> ⚠️ **The recipe that used to be here returned HTTP 400** (measured 2026-08-27, two desks):
+> `{"inputs":"..."}` against the bare model URL is dispatched to that model's DEFAULT pipeline,
+> which for `all-MiniLM-L6-v2` is **sentence-similarity**, not feature-extraction —
+> *"SentenceSimilarityPipeline.__call__() missing 1 required positional argument: 'sentences'"*.
+> The model and provider are both fine; only the request was wrong.
+>
+> **Ask for the pipeline by PATH SEGMENT, not query param.** `?pipeline=feature-extraction`
+> still 400s (it is ignored); `/pipeline/feature-extraction` returns the vector.
+>
+> And note what you are asking for: the similarity payload
+> `{"inputs":{"source_sentence":...,"sentences":[...]}}` also returns 200, but it yields
+> **similarity scores, not embeddings**. Pasting that under this heading would silently give
+> anyone building RAG the wrong kind of number. Different question, different call.
+
 ```bash
-curl -s https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2 \
+# Embeddings — note the /pipeline/feature-extraction suffix. Verified 200, 384 dims.
+curl -s https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction \
+  -H "Authorization: Bearer $HF_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": "How is the weather today?"}'
+
+# BAAI/bge-large-en-v1.5 needs no suffix — its default pipeline IS feature-extraction.
+# Verified 200, 1024 dims.
+curl -s https://router.huggingface.co/hf-inference/models/BAAI/bge-large-en-v1.5 \
   -H "Authorization: Bearer $HF_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"inputs": "How is the weather today?"}'

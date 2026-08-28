@@ -15,6 +15,44 @@ via shared filesystem at `/mnt/agent-mesh/` (host) or `/mesh/` + `/agent-desk/`
 protocol file is the source of truth. On first use each session, also run
 `/mesh-on` (or `mesh-on` CLI) to arm the watchdog tail and bootstrap.
 
+
+## ⛔ NEVER NAME A DOMAIN YOU CANNOT CONFIRM IS THIS CLIENT'S
+
+**Before any message to a client — SMS, email, voice — every domain you name must be CONFIRMED
+theirs. If you cannot confirm it, do not name it. Escalate to `host@mesh` instead.**
+
+**Unknown is a BLOCK, not a maybe.** "It was in their feed" / "it was in their account" / "it
+looked like theirs" are all inferences, and inference is exactly what fails here.
+
+### The incident this comes from (2026-08-27)
+An SMS asked a client whether `memawsflower.com` was in his portfolio. **It is a DIFFERENT
+client's site.** It appeared in his data because his domain feed is built from his GoDaddy
+account — and a registrar account can hold domains that belong to other people. The feed has no
+owner field, so an agent needing a contact asked the only client it associated with the data.
+
+The client who received it is not the only one harmed: the client whose domain was named had
+their project disclosed to an unrelated party. **One of our clients audits this exact failure
+class professionally.**
+
+### Why you cannot solve this by looking it up
+A naive ownership lookup answers with whichever tenant's directory the file sits in — which
+returns the WRONG owner for this case and would have sent the same message with more
+confidence. Registrar ≠ operator ≠ owner, and nothing on the box reliably distinguishes them.
+
+### What to do instead
+- Domain confirmed theirs (on `/mnt/system/monitoring/client-domain-allow/<tenant>.txt`) → fine.
+- Anything else → **do not name it.** Ask host, or describe the work without the domain.
+- Checkable before sending:
+  `echo "<msg>" | python3 /home/mike/MIKE-AI/scripts/client-message-boundary-guard.py --to <tenant>`
+  exit 0 = safe, exit 3 = blocked.
+
+### The wider rule this belongs to
+**Client lanes carry OUTCOMES. Internal detail stays internal.** That same SMS also told the
+client a lead had "a broken update route flagged for the dev team" and that a domain was "old
+test data" — our plumbing, our mess, none of it his business, and it consumed one of a small
+number of SMS sends he actually needs. Say what was delivered. Not what is broken behind it.
+
+
 ## When to use
 
 - **Send a task to host or mac-host → `mesh-task host "<what you want done>"`** — the one-liner wrapper for dispatching work. Auto-fills your identity, kind, and reply-expected so you don't fumble `mesh-send` flags. Recipients: `host`, `mac-host`, `host-clone`, `sms-host`, or any `<name>@mesh`. Examples: `mesh-task host "rebuild devilinsurance.com around the mascot"` · `mesh-task mac-host "run the wilson radar pull"`. Prefer this over raw `mesh-send` for tasks.
