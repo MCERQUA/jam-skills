@@ -22,22 +22,79 @@ kickoffs across phatty/gksprayfoam/azrim, each with a carrier id in the drain lo
 
 ## One-off promise — "remind me at 1pm", "text me Thursday"
 
+### If you are a TENANT agent (inside an openclaw container) — use the request lane
+
+**You cannot run `promise.py`. It is not in your container and neither is `crontab`.**
+Until 2026-08-28 this skill told you to run it anyway, which is why a real appointment
+(foamology lead #2023, inspection booked for Mon Aug 31) had to be escalated over the mesh
+and only got armed because a host session happened to be awake to do it by hand.
+
+Drop a JSON file into a directory you already have rw on. A host cron picks it up within
+2 minutes, arms the real one-shot cron, and writes you back a result.
+
+```bash
+cat > /mnt/agent-mesh/mesh/PROMISES/requests/$(date -u +%Y%m%dT%H%M%SZ)-lead2023.json <<'JSON'
+{
+  "request_id": "foamology-lead2023-followup",
+  "tenant": "foamology",
+  "to": "+19073103000",
+  "at_local": "2026-09-01T09:00",
+  "body": "Morning — how did the Driskell inspection go yesterday?",
+  "promised_by": "foamology@mesh",
+  "source": "ledger/sms/2026-08-28/..."
+}
+JSON
+```
+
+**`at_local` is the CLIENT'S WALL CLOCK — do not convert it yourself.** The zone comes from
+your own `USER.md` Timezone field, and the conversion (including both DST edge cases) is done
+by the tool. If that field is empty the request is REFUSED rather than guessed at — fill it,
+or ask the host to. Use `"at"` with an explicit `...Z` only when you genuinely mean UTC.
+
+**Then READ YOUR RESULT.** Every request gets one, accepted or not:
+
+```bash
+cat /mnt/agent-mesh/mesh/PROMISES/results/foamology-lead2023-followup.json
+```
+
+`"outcome": "ACCEPTED"` carries the `promise_id` — that is your proof it will fire.
+`"outcome": "REJECTED"` carries the exact reason; fix it and submit again with a NEW
+`request_id`. **Submitting and not reading the result is the same as not scheduling
+anything** — that is the entire defect this system exists to end.
+
+The lane refuses, by design: a recipient not registered to YOUR tenant, another tenant's
+owner, the admin line, a time in the past, a body over 900 chars, and a repeated
+`request_id` (so a retry can never double-text your client).
+
+### If you are the HOST (or anything with a shell on the box)
+
 ```bash
 python3 /home/mike/MIKE-AI/scripts/promises/promise.py add \
   --tenant hrsf --to +19797165542 \
-  --at 2026-08-20T18:00:00Z \
+  --at-local 2026-08-20T13:00 \
   --body "Hi Edith — 1pm as you asked. Ready to pick the quoting back up?" \
   --promised-by hrsf-voice@mesh \
   --source ledger/sms/2026-08-20/00-31-15-in-local-1787185875.md
 ```
 
-`--at` is **UTC**. Convert from the client's local time and check their timezone rather than
-assuming: on 2026-08-20 an agent scheduled "10am her time" for a client who had just asked
-for 1pm, and `USER.md`'s Timezone field was empty.
+`--at-local` resolves the zone from the tenant's `USER.md` and REFUSES on an empty field,
+on a non-IANA value, on a DST spring-forward gap (the time does not exist) and on a
+fall-back overlap (it happens twice). `--at` still accepts explicit UTC. `--tz` overrides.
 
 This installs a **real one-shot crontab line**, visible in `crontab -l | grep JAMBOT-PROMISE-ONESHOT`,
 which removes itself after firing. At fire time the message goes into the same outbound SMS
 spool every agent send uses, and a receipt is written.
+
+### When the plan changes
+
+| what happened | what to run |
+|---|---|
+| moved to a different time | `promise.py add` the new one, then `promise.py supersede --id <old> --by <new> --reason "..."` |
+| client cancelled outright | `promise.py cancel --id <id> --reason "..."` (reason is mandatory) |
+| audit says NOT ARMED | `promise.py rearm --id <id>` — the sweeper also does this automatically every 10 min |
+
+**Never hand-edit the crontab, and never `promise.py add` a replacement without superseding
+the original** — the old line is still armed and your client gets the same text twice.
 
 ## Recurring report — ONLY when the client asks for one
 
