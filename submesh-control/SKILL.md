@@ -11,9 +11,56 @@ description: "How to properly spawn, control, and communicate with worker agents
 - `submesh:grid.2` — Worker B  
 - `submesh:grid.3` — Worker C (often Research-Dept)
 
+`submesh:grid` is window 0, so `submesh:grid.N` and `submesh:0.N` are the same pane.
+Slot label maps to pane index minus one: `ubuntu-desk-N` -> `submesh:grid.<N-1>`.
+
+> ## ⚠️ IDENTITY — do NOT export `AGENT_URI` in a worker pane
+>
+> **Corrected 2026-08-28 against host ruling 2026-07-25-001.** This skill previously told you to
+> launch each worker with `export AGENT_URI=worker-a@mesh` (and `worker-b`/`worker-d`). That is
+> wrong and it is the specific thing the ruling was made to stop.
+>
+> - `AGENT_URI=bun-desktop@mesh` is the **desk** identity and the ONLY mesh identity any pane on
+>   this desk has. Do not override it per pane.
+> - ⚠️ **`/config/.profile` is NOT what supplies it, despite saying it is authoritative.**
+>   Measured 2026-08-28 (pledge 9bd2c7c0): `~/.bash_profile` EXISTS on this desk, and bash reads
+>   only the FIRST of `.bash_profile`/`.bash_login`/`.profile` — so `/config/.profile` never
+>   executes in any mode. The URI is inherited from the process env /
+>   `/run/s6/container_environment` (root:root). Anything that "verifies" identity by reading or
+>   editing `/config/.profile` is inspecting a file with no effect **via the login path**.
+> - ⚠️ **Explicitly `source /config/.profile` IS dangerous** — measured 2026-08-29 (bun-desktop
+>   full-sweep): `source` executes the file directly, bypassing bash's first-file rule. It SETS
+>   `AGENT_URI` (overriding the process env) AND **clears `MESH_INBOX`**. The login path does
+>   neither. Do NOT `source /config/.profile` in any worker pane or script.
+> - `ubuntu-desk-N` is an attribution **LABEL**, carried in `AGENT_SLOT`, never a peer.
+> - `worker-a@mesh` / `worker-b@mesh` / `worker-c@mesh` **do exist in the REGISTRY**, which is
+>   exactly why this is dangerous: the bad export does not error, it silently gives a pane a
+>   second real identity. That produced measured ack-stamp drift (875 `bun-desktop` vs 40
+>   `ubuntu-desk-1`, one session emitting both 12 seconds apart) before the ruling landed.
+> - Never set `MESH_INBOX`. `mesh-recv`/`mesh-ack` hardcode `/agent-desk/inbox` and ignore it.
+>
+> Launch panes with `export AGENT_SLOT=ubuntu-desk-N` only, and let the inherited env supply the
+> URI. Evidence: `/mesh/BLACKBOARD/identity-split-bun-desktop/REPORT.md`.
+>
+> **Dispatch surface:** drop task files in `/config/submesh/dispatch/<slot>/inbox/` (abc-owned).
+> NOT `/config/agents/<slot>/inbox` — that is root:root 755 and unwritable from in here, so a
+> watcher armed there arms cleanly and can never fire.
+> **A drop does NOT reach a COLD pane.** `submesh-agents` showing `● running` means a claude
+> process exists, not that a watcher is armed. Measured 2026-08-28: 3 drops sat `pending` for ten
+> minutes while all three panes held the virgin splash. Verify with `tmux capture-pane`, then kick.
+
 ---
 
 ## Step 0 — REVIEW BEFORE YOU DISPATCH (the #1 rule)
+
+**Verify grid ownership before you dispatch.**
+
+Before sending anything to `grid.1`, `grid.2`, or `grid.3`, confirm no other manager is already mid-pipeline on this grid:
+Look for signs of an active manager claim: another agent's in-flight task dispatch, a recent `tmux send-keys`/`paste-buffer` to a worker pane, or a claim note in `/agent-desk/desk/` or `/mesh/STATE_CHECK/`. A worker pane showing `❯` idle does NOT by itself mean the grid is free — it may be idle between steps of someone else's active pipeline. If you find a live claim, do not dispatch; coordinate via mesh first (message the claiming agent, wait for ack, or pick a different resource).
+
+**Why this matters:** dispatching against a stale idle/busy read can corrupt a live pipeline or double-spend quota — this happened 2026-07-04 when two workers were commanded mid-active pipeline off a stale read.
+
+_(merged from josh-desktop's desk copy 2026-08-29, verbatim — its desk carried this and the fleet copy did not.)_
 
 **Most wasted worker effort comes from skipping this.** Before you write a single task, spend real time understanding the project — or your workers will produce duplicate, off-system, or wrong-target work that you then throw away.
 
@@ -74,7 +121,7 @@ tmux capture-pane -t submesh:grid.3 -p | tail -5
 ## Step 2 — Starting Claude in a Bash Pane
 
 ```bash
-tmux send-keys -t submesh:grid.1 "export AGENT_URI=worker-a@mesh && cd /workspace/Websites/sandblasting-nextjs && claude --dangerously-skip-permissions" Enter
+tmux send-keys -t submesh:grid.1 "export AGENT_SLOT=ubuntu-desk-2 && cd /workspace/Websites/sandblasting-nextjs && claude --dangerously-skip-permissions" Enter
 ```
 
 **Then wait for it to fully start:**
@@ -120,6 +167,14 @@ You can use $DATAFORSEO_LOGIN and other vars freely — they will NOT be interpo
 AUTH=$(echo -n "$DATAFORSEO_LOGIN:$DATAFORSEO_PASSWORD" | base64)
 TASKEOF
 
+# Safety check: a single line > 4095 bytes silently truncates in a canonical (bash) pane.
+# Claude Code panes run -icanon (raw mode) and are immune — but the pane is bash for ~3s
+# on every claude crash/restart. Abort if any line is over-long.
+if awk 'length($0)>4095{exit 1}' /tmp/task-worker-a.txt; then : ; else
+  echo "ABORT: task file has a line >4095 bytes — split it or reformat before dispatching"
+  exit 1
+fi
+
 # Load file into tmux clipboard buffer
 tmux load-buffer /tmp/task-worker-a.txt
 
@@ -128,6 +183,16 @@ tmux paste-buffer -t submesh:grid.1
 
 # Then submit
 tmux send-keys -t submesh:grid.1 "" Enter
+
+# A LARGE paste COLLAPSES and needs extra Enter(s). Measured 2026-08-28 across three dispatches:
+# 0, 1 and 2 extra were needed. Do not hardcode a count — POLL the footer. `paste again to expand`
+# is a THIRD pane state: not idle, not working, holding a collapsed paste.
+for i in 1 2 3 4 5; do
+  tmux capture-pane -t submesh:grid.1 -p | tail -3 | grep -q 'paste again to expand' || break
+  tmux send-keys -t submesh:grid.1 Enter; sleep 2
+done
+tmux capture-pane -t submesh:grid.1 -p | grep -qE 'esc to interrupt' \
+  && echo SUBMITTED || echo "STILL PARKED — investigate, do not assume it took"
 ```
 
 ---
@@ -153,7 +218,38 @@ If you see:
 
 **Paste-submit gotcha:** after `paste-buffer`, a large paste can collapse (`paste again to expand`) and the trailing `send-keys "" Enter` may NOT submit it. If the pane is still idle, send a real Enter: `tmux send-keys -t submesh:grid.1 Enter` and re-verify you see `esc to interrupt`.
 
-**Clear stray input first:** panes often hold leftover unsent text in the input box (a half-typed note, a previous suggestion). Send `tmux send-keys -t submesh:grid.1 C-u` to kill the line before pasting, so it can't accidentally fire or concatenate with your task.
+**Clear stray input first — `C-c` THEN `C-u`, and across ALL panes, not just your target:**
+panes often hold leftover unsent text in the input box (a half-typed note, a previous
+suggestion). `C-u` alone only kills the line; `C-c` first dismisses any in-progress render
+that would re-populate it.
+
+```bash
+for pane in 1 2 3; do                       # NEVER 0 — grid.0 is the MANAGER (you).
+  tmux send-keys -t submesh:grid.$pane C-c    # dismiss any mid-render suggestion
+  sleep 0.3                                   # REQUIRED: let C-c land before C-u
+  tmux send-keys -t submesh:grid.$pane C-u    # kill the input line
+done
+```
+
+**Two traps in this block, both introduced by a host restoration on 2026-08-29 and caught by
+bun-desktop before first use:**
+- **Never include pane 0.** `grid.0` is the dispatching agent's own pane; `C-c` there interrupts
+  the turn running the loop, so it dies on iteration 1 having cleared no worker panes — failing
+  partially and silently. Worse than the single-pane clear it replaced.
+- **The `sleep 0.3` is not decoration.** Without it `C-c` and `C-u` land in the same input-handling
+  frame; the TUI can coalesce or reorder them, `C-u` clears a line `C-c` has not released, and the
+  dismissed render repopulates it. Intermittent — works in testing, drops a clear under load.
+
+
+**Why ALL panes and not just the one you are pasting into:** stray text lands in whichever
+pane finished LAST, which is generally NOT your next dispatch target. A per-target clear
+misses it by construction — the pane you are about to use is usually the one that was
+already idle.
+
+*(Restored 2026-08-29. The 2026-08-28 merge dropped both the `C-c` half of the pair and the
+all-panes scope. Found by bun-desktop re-probing the SERVING file after the host had verified
+the restore with six probes that were all recognition-half words — an instrument that could
+not have detected these two by construction.)*
 
 ---
 
@@ -181,6 +277,23 @@ If it's still processing (no prompt visible), wait until it finishes.
 
 ## Step 7 — Clearing a Worker for Next Phase (and rescuing a stuck one)
 
+**MANDATORY CHECKPOINT BEFORE `/clear`:** `/clear` is irreversible — the worker's context is gone. BEFORE clearing, confirm the worker's output is durably saved (its last report / commit hash / BUILD-STATUS / a `memory/` note) and note any in-flight or blocked item. NEVER `/clear` a worker mid-task or before its output is recorded — you lose the work-in-progress with no recovery.
+
+# 0. CHECKPOINT FIRST — verify output saved (commit hash / report / memory note). If mid-task/unsaved, capture it before clearing.
+
+
+**What it looks like:** Worker pane shows `❯ Some action the worker suggested...` at the
+prompt after finishing a task. Claude's suggestions sometimes render INTO the input field
+rather than as a message.
+
+**Why it happens:** If a worker's response includes imperative text ("do X next") and the
+pane is captured mid-render, the text can land in the active input.
+
+*(Recognition half restored 2026-08-29. The 2026-08-28 merge folded the stray-prompt PROCEDURE
+into this step but dropped the recognition text — and a procedure without recognition only fires
+once you already know you have the problem. Found by bun-desktop with six concept probes on the
+serving file, after the host had asserted "nothing is lost".)*
+
 One deliverable per worker session. Between tasks, reset context — and **verify the reset actually happened**:
 
 ```bash
@@ -189,6 +302,25 @@ tmux send-keys -t submesh:grid.1 "/clear" Enter
 sleep 3
 tmux capture-pane -t submesh:grid.1 -p | tail -4   # confirm: no "100% context used", clean ❯ prompt
 ```
+
+### Stray input: scrollback is ground truth
+
+**Ground truth is scrollback, not the input box.** Before touching anything:
+
+If a pane's input box shows text you didn't put there (a leftover draft, a stray command, anything you didn't just type), do **not** trust `Ctrl-U`, `Escape`, or `Backspace` as proof it's gone — in this TUI they can appear to no-op on a pending/queued draft while doing nothing observable, and it is easy to mistake "still visible after I cleared it" for "never cleared" or vice versa.
+
+Confirm whether the suspicious text was ever actually *submitted* — a real submission leaves a transcript entry (the assistant's reply) after it. If the transcript ends cleanly with the assistant's own prior turn and nothing follows the suspicious text, it was never sent — it's still just a draft, however stubborn the display looks.
+
+The one verified-working way to overwrite a draft in this TUI is to type new characters directly (`tmux send-keys -t submesh:grid.1 "..."` or `paste-buffer`) — typing reliably replaces what's shown, even when clear-keys don't visibly change anything. Type your real message, confirm it displays correctly, then submit with `Enter`.
+
+```bash
+tmux capture-pane -t submesh:grid.1 -p -S -200 | tail -120
+```
+
+**Never double-tap `Escape`** while troubleshooting an input box — two Escapes in a row opens the Rewind menu (checkpoint/revert), which is a destructive action if you accidentally select something. Back out with a single `Escape` if you land there.
+
+_(merged verbatim from josh-desktop 2026-08-29. This CORRECTS the rescue path below: a four-line
+`tail -4` cannot see a pending draft.)_
 
 **Rescuing a stuck / full-context worker** (pinned at `100% context used`, or a hung command, or `/clear` didn't take):
 ```bash
@@ -219,7 +351,9 @@ If it still won't reset, restart claude in the pane (Step 2). A worker at 100% c
 | **Multiple workers editing one shared file** | Concurrent edits to `articles.ts` would clobber each other | **Stage-and-merge**: workers write separate files; manager merges |
 | **Trusting estimated metrics** | Worker "keyword volumes" were 20–200× wrong (no API creds in its shell) | Pull REAL data; confirm creds are `source`d first |
 | **`/clear` assumed to work** | Pane stayed at 100% context; new task queued behind a degraded session | Verify the reset (Step 7); hard-reset if needed |
+| Trusting Ctrl-U/Escape as proof a draft was cleared | Cleared status can't be verified from the input box alone in this TUI | Check full scrollback (`-S -200`) for a real submission; type-over to overwrite |
 | **Paste didn't submit** | Collapsed paste; `"" Enter` no-op; task never started | Send real `Enter`; confirm `esc to interrupt` |
+| **Single long line truncated silently** | A line >4095 bytes in a canonical (bash) pane truncates at 4096; the newline survives so it executes with bad data. Multi-line payloads of the same total size are fine. Claude Code panes run -icanon (raw) and are immune — but there is a ~3s bash window on every claude crash/restart. | Run `awk 'length($0)>4095{exit 1}'` on the task file before `tmux load-buffer`. Split or reformat any over-long line (base64 blobs, minified JSON, single-paragraph walls). The per-payload byte total is the WRONG unit — check per-line. |
 | **Trusting `submesh-agents` status** | Showed workers "stopped" while they were actively processing | Verify real state via `tmux capture-pane`, not the status table |
 
 ---
@@ -274,7 +408,7 @@ This workflow was tested end-to-end (2026-05-31) against a sandbox catalog proje
 
 ```bash
 tmux new-window -t submesh -n "worker-d"
-tmux send-keys -t submesh:worker-d "export AGENT_URI=worker-d@mesh && cd /workspace/Websites/sandblasting-nextjs && claude --dangerously-skip-permissions" Enter
+tmux send-keys -t submesh:worker-d "export AGENT_SLOT=ubuntu-desk-5 && cd /workspace/Websites/sandblasting-nextjs && claude --dangerously-skip-permissions" Enter
 ```
 
 Access it: `join-submesh worker-d`
@@ -289,7 +423,7 @@ tmux capture-pane -t submesh:grid.2 -p | tail -3
 tmux capture-pane -t submesh:grid.3 -p | tail -3
 
 # 2. Start claude in grid.2 (if showing bash)
-tmux send-keys -t submesh:grid.2 "export AGENT_URI=worker-b@mesh && cd /workspace/Websites/sandblasting-nextjs && claude --dangerously-skip-permissions" Enter
+tmux send-keys -t submesh:grid.2 "export AGENT_SLOT=ubuntu-desk-3 && cd /workspace/Websites/sandblasting-nextjs && claude --dangerously-skip-permissions" Enter
 
 # 3. Wait for startup
 sleep 10

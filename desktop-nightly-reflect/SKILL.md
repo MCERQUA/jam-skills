@@ -134,30 +134,62 @@ if [ -n "$BB" ]; then
   # `cat >` DESTROYED the first, one second before 18:00 synthesis. The result
   # looked exactly like a healthy publish — right filename, right identity,
   # well-formed, plausible size — so nothing alarmed and a full reflection was
-  # lost from that night's distill. It RECURRED 2026-08-22 and was only caught
-  # because bun-desktop had built a merging publisher in the meantime.
-  # Append-under-a-lane-banner instead: a collision costs a duplicate section,
-  # never a lost one. flock serialises concurrent lanes.
+  # lost from that night's distill. It RECURRED 2026-08-22.
+  #
+  # 2026-08-28 (ubuntu-desk-3): this step now CALLS the merging publisher
+  # `bb-publish-merge.sh` instead of carrying its own inline copy. The inline
+  # copy was measurably weaker, not merely differently-worded: no body-md5
+  # idempotency (a lane re-running its own reflection appended a SECOND copy —
+  # observed), no provenance banner on the first-writer path (the lane that
+  # created the file was unattributable), no byte-accounting or shrink check,
+  # and an UNBOUNDED `flock 9` that hangs the nightly run forever behind a
+  # stuck sibling. The inline block survives below as a FALLBACK ONLY, for
+  # desks where the script is absent — hardened, but still the weaker path.
   DATE=<YYYY-MM-DD>; AGENT=<agent-name>
   LANE="${AGENT_LANE:-$(hostname)-$$}"
-  TARGET="$BB/nightly-reflections/$DATE/$AGENT.md"
-  mkdir -p "$(dirname "$TARGET")"
-  TMP="$(mktemp)"
-  cat > "$TMP" << 'EOF'
+  BODY="$(mktemp)"; trap 'rm -f "$BODY"' EXIT
+  cat > "$BODY" << 'EOF'
 <reflection content>
 EOF
-  (
-    flock 9 2>/dev/null || true
-    if [ -s "$TARGET" ]; then
-      { printf '\n\n<!-- lane: %s (appended %s) -->\n\n' "$LANE" "$(date -u +%H:%M:%SZ)"; cat "$TMP"; } >> "$TARGET"
-      echo "MERGED  $TARGET (+$(wc -c < "$TMP")b, lane=$LANE) — a peer lane was already here"
-    else
-      cat "$TMP" > "$TARGET"
-      echo "CREATED $TARGET ($(wc -c < "$TARGET")b, lane=$LANE)"
-    fi
-  ) 9>"$TARGET.lock"
-  rm -f "$TMP"
-  echo "<YYYY-MM-DD>" > $BB/nightly-reflections/LATEST.md
+
+  # Resolve the publisher defensively — it is NOT present on every desk.
+  # Fleet copy first, this container's copy second, PATH last.
+  PUB=""
+  for _p in /mesh/BLACKBOARD/bin/bb-publish-merge.sh \
+            /config/workspace/scripts/bb-publish-merge.sh \
+            "$(command -v bb-publish-merge.sh 2>/dev/null)"; do
+    [ -n "$_p" ] && [ -r "$_p" ] && { PUB="$_p"; break; }
+  done
+
+  if [ -n "$PUB" ]; then
+    bash "$PUB" "$DATE" "$AGENT" "$BODY" "$LANE"; RC=$?
+    # 0 = FRESH or MERGED · 3 = this lane already published this exact body (no-op).
+    # Any other rc is a REAL failure: report it and stop. Do NOT "recover" with
+    # `cat >` — falling back to truncation re-creates the exact bug this prevents.
+    [ $RC -eq 0 ] || [ $RC -eq 3 ] || \
+      echo "PUBLISH FAILED rc=$RC via $PUB — do NOT retry with 'cat >'; escalate" >&2
+  else
+    # ── FALLBACK ONLY: no publisher on this desk ──────────────────────────────
+    # Weaker than the script (no cross-run idempotency, no shrink detector) but
+    # it preserves the one property that matters: it NEVER TRUNCATES.
+    TARGET="$BB/nightly-reflections/$DATE/$AGENT.md"
+    mkdir -p "$(dirname "$TARGET")"
+    (
+      flock -w 30 9 || echo "WARN lock timeout — appending anyway (append is non-destructive)" >&2
+      BANNER="<!-- lane=$LANE body-md5=$(md5sum < "$BODY" | cut -c1-16) published-utc=$(date -u +%Y-%m-%dT%H:%M:%SZ) publisher=inline-fallback -->"
+      if [ -s "$TARGET" ]; then
+        { printf '\n---\n\n%s\n\n' "$BANNER"; cat "$BODY"; } >> "$TARGET"
+        echo "MERGED  $TARGET (lane=$LANE) — a peer lane was already here"
+      else
+        { echo "$BANNER"; cat "$BODY"; } > "$TARGET"
+        echo "CREATED $TARGET (lane=$LANE)"
+      fi
+    ) 9>"$BB/nightly-reflections/$DATE/.$AGENT.publish.lock"
+  fi
+
+  # LATEST.md is deliberately NOT the publisher's job — it stays here, and it
+  # runs on BOTH paths. (bb-publish-merge.sh does not touch it.)
+  echo "$DATE" > "$BB/nightly-reflections/LATEST.md"
 else
   # Webtop container: no blackboard mount — Step 3's mesh-chat post already published.
   echo "blackboard not mounted — mesh-chat post (Step 3) is the canonical record, skipping"
