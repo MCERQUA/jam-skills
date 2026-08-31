@@ -29,7 +29,7 @@ The script automatically:
 **Example** — texting Mike that today's reflection is done:
 
 ```bash
-bash /mnt/shared-skills/sms-router/sms-send.sh test-dev +14374559131 \
+bash /mnt/shared-skills/sms-router/sms-send.sh test-dev +15550100003 \
   "Nightly synthesize complete. 23 actions logged today, 3 open commitments rolled to tomorrow."
 ```
 
@@ -37,7 +37,7 @@ bash /mnt/shared-skills/sms-router/sms-send.sh test-dev +14374559131 \
 
 ```bash
 # (inside the spawned task, after it completes)
-bash /mnt/shared-skills/sms-router/sms-send.sh nick +16476856286 \
+bash /mnt/shared-skills/sms-router/sms-send.sh nick +15550100004 \
   "Website rebuild done. New version live at nick.jam-bot.com. 4 pages updated, no broken links."
 ```
 

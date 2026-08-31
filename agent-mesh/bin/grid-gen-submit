@@ -22,6 +22,9 @@ import os
 import sys
 import tempfile
 import time
+import pathlib as _pl
+sys.path.insert(0, str(_pl.Path(__file__).resolve().parent.parent / "lib"))
+from intel_filter import enforce as _intel_enforce  # noqa: E402  SEC-032 fail-closed gate
 
 MESH_ROOT = os.environ.get("MESH_ROOT", "/mnt/agent-mesh")
 QUEUE = os.path.join(MESH_ROOT, "mesh", "grid-gen-queue")
@@ -69,6 +72,7 @@ def main() -> None:
     brief = sys.stdin.read().strip()
     if not brief:
         sys.exit("grid-gen-submit: brief (stdin) is empty — nothing to generate")
+    _intel_enforce(brief[:2000], tool="grid-gen-submit")  # SEC-032 — fail-closed on leak
 
     order = {
         "client_id": a.client,

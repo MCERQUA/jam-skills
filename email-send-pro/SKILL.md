@@ -58,7 +58,7 @@ Each tenant's `branding.json` declares which provider sends its mail:
 {
   "email_provider": "inkbox",
   "inkbox_inbox": "seattleroofing@inkboxmail.com",
-  "inkbox_phone": "+15092861499",
+  "inkbox_phone": "+15550100005",
   "inkbox_phone_id": "73a4c863-b3be-4ebd-b2e0-3d47c3b0ba4b",
   "inkbox_api_key_env_var": "INKBOX_API_KEY_SEATTLEROOFING"
 }

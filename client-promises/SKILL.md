@@ -26,20 +26,20 @@ kickoffs across phatty/gksprayfoam/azrim, each with a carrier id in the drain lo
 
 **You cannot run `promise.py`. It is not in your container and neither is `crontab`.**
 Until 2026-08-28 this skill told you to run it anyway, which is why a real appointment
-(foamology lead #2023, inspection booked for Mon Aug 31) had to be escalated over the mesh
+(foamology lead #1001, inspection booked for Mon Aug 31) had to be escalated over the mesh
 and only got armed because a host session happened to be awake to do it by hand.
 
 Drop a JSON file into a directory you already have rw on. A host cron picks it up within
 2 minutes, arms the real one-shot cron, and writes you back a result.
 
 ```bash
-cat > /mnt/agent-mesh/mesh/PROMISES/requests/$(date -u +%Y%m%dT%H%M%SZ)-lead2023.json <<'JSON'
+cat > /mnt/agent-mesh/mesh/PROMISES/requests/$(date -u +%Y%m%dT%H%M%SZ)-lead1001.json <<'JSON'
 {
-  "request_id": "foamology-lead2023-followup",
+  "request_id": "foamology-lead1001-followup",
   "tenant": "foamology",
-  "to": "+19073103000",
+  "to": "+15550100001",
   "at_local": "2026-09-01T09:00",
-  "body": "Morning — how did the Driskell inspection go yesterday?",
+  "body": "Morning — how did the Example inspection go yesterday?",
   "promised_by": "foamology@mesh",
   "source": "ledger/sms/2026-08-28/..."
 }
@@ -54,7 +54,7 @@ or ask the host to. Use `"at"` with an explicit `...Z` only when you genuinely m
 **Then READ YOUR RESULT.** Every request gets one, accepted or not:
 
 ```bash
-cat /mnt/agent-mesh/mesh/PROMISES/results/foamology-lead2023-followup.json
+cat /mnt/agent-mesh/mesh/PROMISES/results/foamology-lead1001-followup.json
 ```
 
 `"outcome": "ACCEPTED"` carries the `promise_id` — that is your proof it will fire.
@@ -70,9 +70,9 @@ owner, the admin line, a time in the past, a body over 900 chars, and a repeated
 
 ```bash
 python3 /home/mike/MIKE-AI/scripts/promises/promise.py add \
-  --tenant hrsf --to +19797165542 \
+  --tenant hrsf --to +15550100002 \
   --at-local 2026-08-20T13:00 \
-  --body "Hi Edith — 1pm as you asked. Ready to pick the quoting back up?" \
+  --body "Hi Dana — 1pm as you asked. Ready to pick the quoting back up?" \
   --promised-by hrsf-voice@mesh \
   --source ledger/sms/2026-08-20/00-31-15-in-local-1787185875.md
 ```
@@ -104,7 +104,7 @@ there was anything worth saying.
 
 ```bash
 python3 /home/mike/MIKE-AI/scripts/promises/report.py subscribe \
-  --tenant hrsf --to +19797165542 --at 13:00 \
+  --tenant hrsf --to +15550100002 --at 13:00 \
   --sections leads,owed \
   --quote "text me my leads from the day before every morning"
 ```
@@ -176,7 +176,7 @@ States you will see: `ARMED · QUEUED · KEPT · SILENT-KEPT · DEGRADED · UNVE
 different facts and are never merged.
 
 A registered promise with no crontab line reports **BREACH — NOT ARMED** immediately, which
-is exactly the failure that left Edith's reminder as a file nobody ran. The sweep also alerts
+is exactly the failure that left Dana's reminder as a file nobody ran. The sweep also alerts
 when the auditor itself cannot run, so a crashed auditor never reads as "no findings".
 
 ## Checking your own work
