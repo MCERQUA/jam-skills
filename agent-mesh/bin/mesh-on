@@ -24,11 +24,16 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import json
 import os
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
+
+CAPABILITIES_DIR = Path("/mesh/REGISTRY/capabilities")
+STALE_CAPABILITY_HOURS = 48
 
 
 def die(msg: str, code: int = 1) -> None:
@@ -143,6 +148,24 @@ def list_inbox_summary(inbox: Path, quiet: bool) -> dict:
     return stats
 
 
+def refresh_capability_json(name: str) -> None:
+    """Update the agent's own JSON in CAPABILITIES_DIR so §8 sees a fresh mtime."""
+    cap_json = CAPABILITIES_DIR / f"{name}.json"
+    ts_now = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        if cap_json.is_file():
+            data = json.loads(cap_json.read_text())
+            data["updated"] = ts_now
+            cap_json.write_text(json.dumps(data, indent=2) + "\n")
+        else:
+            CAPABILITIES_DIR.mkdir(parents=True, exist_ok=True)
+            cap_json.write_text(
+                json.dumps({"agent": f"{name}@mesh", "updated": ts_now, "skills": []}, indent=2) + "\n"
+            )
+    except OSError:
+        pass  # REGISTRY may be ro on this desk; §8 will continue to alarm until host writes it
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--quiet", action="store_true")
@@ -222,6 +245,54 @@ def main() -> None:
         print(f"mesh-on: last ack-marker: {last_ack}")
     else:
         print("mesh-on: no prior ack-marker found for this agent — full replay recommended")
+
+    # ---- 8. Stale capability check ----
+    stale: list[str] = []
+    cutoff_ts = time.time() - STALE_CAPABILITY_HOURS * 3600
+    if CAPABILITIES_DIR.is_dir():
+        for cap_file in CAPABILITIES_DIR.glob("*.json"):
+            try:
+                if cap_file.stat().st_mtime < cutoff_ts:
+                    stale.append(cap_file.stem)
+            except OSError:
+                pass
+    if stale:
+        for s in stale:
+            stale_line = f"STALE_CAPABILITY: {s}@mesh"
+            print(f"mesh-on: {stale_line}")
+            try:
+                with log_path.open("a") as lf:
+                    ts_now = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    lf.write(f"{ts_now}\t{stale_line}\n")
+            except OSError:
+                pass
+
+    # ---- 9. Refresh own capability declaration ----
+    # Calls mesh-capabilities-publish (writes CAPABILITIES.md) AND updates the agent's
+    # JSON in CAPABILITIES_DIR so §8 sees a fresh mtime. Success line is conditional on
+    # the subprocess returning 0 — the prior version printed "refreshed" unconditionally
+    # even when the write was a no-op (bun-desktop measured: mtime unchanged across call).
+    cap_publish = None
+    for candidate in (Path("/config/.local/bin/mesh-capabilities-publish"),
+                      Path("/usr/local/bin/mesh-capabilities-publish")):
+        if candidate.is_file():
+            cap_publish = str(candidate)
+            break
+    if cap_publish:
+        try:
+            result = subprocess.run([cap_publish], timeout=30, capture_output=True)
+            if result.returncode == 0:
+                refresh_capability_json(agent_name())
+                print("mesh-on: capability declaration refreshed")
+            else:
+                stderr = result.stderr.decode(errors="replace").strip()
+                print(
+                    f"mesh-on: WARNING — capability publish failed (rc={result.returncode})"
+                    + (f": {stderr[:200]}" if stderr else ""),
+                    file=sys.stderr,
+                )
+        except Exception as e:
+            print(f"mesh-on: WARNING — capability publish failed: {e}", file=sys.stderr)
 
     print(f"mesh comms armed — watching {log_path} — peers: {peers}")
 
