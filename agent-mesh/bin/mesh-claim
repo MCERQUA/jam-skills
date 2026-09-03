@@ -92,6 +92,32 @@ reap_if_stale() {
 case "$cmd" in
   take)
     ttl="${3:-$DEFAULT_TTL}"
+    # TTL NORMALISATION (2026-09-03, host). `take <key> 8h` was accepted and written
+    # VERBATIM. reap_if_stale then reads a non-digit and correctly declines to reap --
+    # "a claim you cannot read is CANNOT-TELL, not expired" -- so the claim becomes
+    # IMMORTAL, freed only by a manual release. That breaks CLAUDE.md requirement #4:
+    # a claim MUST carry an expiry, "because an open-ended claim wedges the task forever
+    # when its holder dies".
+    #
+    # Measured: 7 of 25 live claims immortal (ttl=8h), every one on a LIVE CLIENT SITE,
+    # all one owner. Fixed on the host copy first -- and 3 MORE appeared within the hour
+    # (ttl=12h) because THIS is the copy mounted into every container, and it had not
+    # been patched. A fix that lands on one copy of a duplicated tool has not shipped.
+    #
+    # Fail at WRITE time where the caller can see it, never at read time as permanence.
+    case "$ttl" in
+      *[!0-9]*)
+        _n=${ttl%[smhdSMHD]}; _u=${ttl#$_n}
+        case "$_n" in (''|*[!0-9]*) echo "mesh-claim: BAD TTL '$ttl' -- want seconds or <n>[smhd]" >&2; exit 64 ;; esac
+        case "$_u" in
+          s|S) ttl=$_n ;;
+          m|M) ttl=$(( _n * 60 )) ;;
+          h|H) ttl=$(( _n * 3600 )) ;;
+          d|D) ttl=$(( _n * 86400 )) ;;
+          *)   echo "mesh-claim: BAD TTL unit in '$ttl' -- want s, m, h or d" >&2; exit 64 ;;
+        esac ;;
+    esac
+    [ "$ttl" -gt 0 ] 2>/dev/null || { echo "mesh-claim: BAD TTL '$ttl' -- must be > 0" >&2; exit 64; }
     # PREVIOUSLY-COMPLETED WARNING (2026-08-30). A released claim is indistinguishable from one
     # nobody ever took, so a FINISHED task looks exactly like an untouched one. Measured near-miss:
     # host claimed an inbox item, resolved it, released — and sms-host@mesh (which shares the host

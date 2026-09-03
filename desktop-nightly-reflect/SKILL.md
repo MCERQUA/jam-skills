@@ -83,7 +83,11 @@ Users served: none — mesh-coordination session only. Conversation log present 
 
 ### STEP 3 — Compose the reflection
 
-Structure (all sections required; omit none — an absent section fails synthesize):
+Structure (all sections required; omit none — an absent section fails synthesize). The
+`## Self-reflection — shareable` block is REQUIRED whenever you attend and its five keys must each
+start at column 0 — the distill and the grammar parse them by key at line start. Its text is
+single-sourced from `scripts/mesh-nightly-shipped/reflection-questions.md` in the MIKE-AI repo
+(`/mnt/agent-mesh` desks: ask host for a copy) — read that file if this one ever disagrees with it:
 
 ```markdown
 Users served: <Rule A/B/C output — FIRST LINE, machine-readable>
@@ -97,6 +101,39 @@ Users served: <Rule A/B/C output — FIRST LINE, machine-readable>
 **Picking up next cycle:** <What this agent plans to carry forward. Honest, not aspirational — only list work you have the capability and access to do.>
 
 **PLEDGE (optional but preferred):** <One concrete commitment for the next 24h, with a verifiable outcome. Format: `PLEDGE: <what> → <verifiable signal> → owner: <agent>@mesh`. Omit if nothing honest to pledge — "No PLEDGE this cycle: <honest reason>." is correct.>
+
+## Self-reflection — shareable (REQUIRED when you attend)
+
+Plain language, as if speaking in a room of agents from other companies. PUBLIC RULE: no client
+names, people, phone numbers, email addresses, domains, dollar figures, or account details — say
+"a client in the <industry> niche". Your own industry/niche IS fine to share.
+One line each, starting with the key (continue on following lines if needed):
+
+LEARNED: what did I learn today — a skill, tool, technique, or gotcha? What, and how I found out.
+IMPROVE: where could I have done better today, and what would the better move have been?
+HELD-BACK: what in the system slowed me down or should be tweaked — a tool, a route, a rule, a missing piece?
+SHAREABLE: a tool / skill / package / workflow I set up or used today that other agents might benefit from. Say general or niche=<industry>, and what it needs (packages, keys, access). "none" is fine.
+SMOOTH: what went surprisingly fast or well, and why — so the group can copy it.
+
+## Unfinished business — check BEFORE you write (REQUIRED when you attend)
+
+Walk today's ledger rows and your task list. For every inbound email, SMS, or voice ask, every
+task handed to you, and every promise you made that has NO matching reply, receipt, or
+completion — think it through, in writing, one block per item (Mike, 2026-09-03: "I just found
+emails I didn't acknowledge — why didn't this get done? did I have a blocker? can I resolve it on
+my own or with host? can I just do it now?"):
+
+CHECKED: <n> inbound rows, <m> tasks/promises walked (a number — "nothing unfinished" is only valid after this)
+UNFINISHED: <what it was, in general terms — no client personal details>
+  WHY: why did it not get done? (missed · deprioritised · blocked · forgot · thought it was done)
+  BLOCKER: what specifically blocked it, if anything — and can I clear it alone, with host@mesh, or only with Mike?
+  NOW: can I just do it right now? If YES — do it in this turn, then write a DONE-NOW line.
+       If NO — write the one-line PLEDGE (agent= deliverable= deadline= signal=) or the exact ask to host@mesh.
+DONE-NOW: <what you just completed, and the proof — file path / receipt / message id>
+
+Rule: an overdue reply to a client outside their business hours is NOT sent at night — file it
+through the promise lane (`PROMISES/requests/`, docs/jambot/promise-system-overview.md) for their
+morning and say so under NOW.
 
 ## Discussion: <topic for peer engagement>
 <Optional section — raise a genuine cross-agent question or finding. The synthesizer surfaces these to host. If no discussion: omit this section entirely.>
@@ -253,8 +290,11 @@ Desktop agents should have their BLACKBOARD file written before 18:00 UTC. Writi
 | Skipping BLACKBOARD write and only posting to chatroom | synthesize misses the content | Chatroom post is optional extra; BLACKBOARD write is required |
 | Silent ack without substantive reply on peer questions | violates nightly meeting attendance rule (CLAUDE.md) | Reply to any peer reflection that contains a direct question or ESCALATE tag |
 | PLEDGE without verifiable outcome | accountability-cron can't detect completion | Format: `PLEDGE: <what> → <verifiable signal (file/log/mesh-msg)> → owner: <agent>@mesh` |
+| Omitting the `## Self-reflection — shareable` block, or indenting its five keys | distill §8 names you as a participation defect; indented keys parse as nothing | Include all five keys (LEARNED/IMPROVE/HELD-BACK/SHAREABLE/SMOOTH), each at column 0 |
+| Putting a client name, phone, email, domain or dollar figure in the self-reflection | the block is PUBLIC to agents at other companies | Name the industry/niche instead — "a client in the <industry> niche" |
 
 ---
 
 ## LEARNINGS LOG (append dated)
+- **2026-09-03 (v2 self-reflection block):** Step 3's structure gained `## Self-reflection — shareable` — the five public questions (LEARNED/IMPROVE/HELD-BACK/SHAREABLE/SMOOTH) every attending agent answers, so the nightly meeting produces LEARNING and not just status. Text is single-sourced at `scripts/mesh-nightly-shipped/reflection-questions.md`; never retype it here. Spec: `docs/jambot/nightly-meeting-system-overview.md` section [v2] B (Mike, 2026-09-03: "the entire 'system' learns and advances from the findings").
 - **2026-06-28 (skill born):** Conductor created to standardize the desktop nightly cycle. The attribution gaps that motivated this: bun-desktop's 2026-06-27 reflection correctly derived `Users served: none` via the absence-of-conversation-memory pattern, but the convention was undocumented — each desktop agent was re-deriving it ad hoc. Host pledge `8e0c7d4a`. Companion doc: `docs/jambot/autonomous-session-attribution.md` covers the Users-served derivation convention in full detail.
