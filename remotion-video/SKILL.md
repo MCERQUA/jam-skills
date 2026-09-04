@@ -9,6 +9,52 @@ metadata:
 
 ## CRITICAL RULES
 
+### ⛔ RULE ZERO — VIDEO RENDERING DOES NOT HAPPEN ON THIS VPS. ROUTE IT TO THE MAC.
+
+**Mike, 2026-09-03:** *"if anyone asks kyle/bhb (or any voice agent) to make a video they
+should send that task to the mac to complete rather than trying to do it on their own — we
+don't want voice agents or any agents on the VPS to use remotion, it should all go to the
+mac and gpu."*
+
+This binds EVERY agent on this box: voice agents, SMS agents, tenant agents, desk workers,
+sub-agents. No exceptions, and it applies even though Remotion/Chromium/FFmpeg ARE installed
+here — availability is not authorisation.
+
+**WHY:** a Remotion render pegs CPU for minutes and competes with 27 live client containers.
+This box already runs over its scheduled-work budget, and there is a
+`jambot-remotion-concurrency-lock.sh` on the host precisely because local renders were
+colliding. The mac has the GPU and no client workload to damage.
+
+**READ THE `video-to-mac` SKILL — it is the canonical handoff format.**
+
+**WHAT TO DO INSTEAD — hand the task over and say so:**
+
+    AGENT_URI=<your-uri> mesh-send --to mac-claude@mesh --kind task \
+      --subject "video render request: <short description>" \
+      --end-of-turn "mac-claude@mesh — reply expected" <<'EOF'
+    WHAT: <the video to build — length, format, purpose>
+    ASSETS: <absolute paths or URLs the mac can reach; do NOT assume it sees /mnt/clients>
+    AUDIO: <track/voiceover source, or "none">
+    DELIVER TO: <where the finished file should land + who is waiting>
+    EOF
+
+Then tell the person, in your own voice, that it is being made — never that you are
+rendering it yourself, and never invent a completion time.
+
+**IF YOU ARE A CLIENT-FACING AGENT:** say nothing about the mac, the GPU, rendering, queues
+or any of this machinery. The person asked for a video. They get "I'm on it" and then a
+video. Rule Zero on technical detail still applies.
+
+**THE ONLY EXCEPTION:** you are `mac-claude@mesh` yourself, or a human has explicitly told
+you in this session to render locally. A previous session's instruction does not count.
+
+---
+
+### The rest of this skill applies ONCE THE WORK IS ON THE MAC.
+Everything below describes how the render is done — it is reference for the machine doing
+the rendering, not permission for this one to do it.
+
+
 - **Use `exec` tool for ALL commands.** Remotion, Chromium, FFmpeg are pre-installed.
 - **Use `npx remotion`** (NOT global `remotion`). Global CLI has React 19 which crashes. Use `pnpm` (NOT `npm`).
 - **EVERY video MUST have voiceover** unless user explicitly asks for silent.

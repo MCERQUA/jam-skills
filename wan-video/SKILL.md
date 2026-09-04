@@ -1,70 +1,41 @@
 ---
 name: wan-video
-description: Image-to-video generation — animate a still image into a short cinematic video clip using Wan 2.2 (14B) on our own HuggingFace ZeroGPU Space. Runs on the HF subscription quota (not pay-per-call). Voice/openclaw agents request it via a queue; the video lands in the tenant's uploads.
-metadata: {"openclaw": {"requires": {"anyBins": ["bash"]}}}
+description: "SUPERSEDED — do not render video on this VPS. All video jobs go to the Mac. See the video-to-mac skill."
+metadata:
+  version: 2.0.0
+  superseded_by: video-to-mac
 ---
 
-# Wan Video Skill — animate a still image into a short video
+# wan-video — RETIRED AS A LOCAL RENDERER
 
-Turn a still image (a product photo, shop front, logo, scene) into a short animated/cinematic
-**video clip**. Powered by **Wan 2.2 14B** on **our own HuggingFace Space** (`mikecerqua/wan22-video`,
-ZeroGPU) — so it runs on the **HF subscription quota we already pay for**, not fal/per-call billing.
+**Mike, 2026-09-03:** *"any video tasks should always be sent to the mac — no VPS local video
+tasks. You can take off wan or whatever skills for video and change them into instructions how
+to send jobs to the mac properly with all info, assets and instructions."*
 
-This is **image-to-video** (it animates an existing image). You MUST supply an image. It is NOT
-text-to-video.
+This skill used to tell you how to produce video **here**. It no longer does, because doing so
+pegs CPU against 27 live client containers on a box already over its scheduled-work budget —
+and in wan-video's case because the output quality was not worth it ("wan video sucks").
 
-## How you (a voice/tenant agent) invoke it — the request queue
+## Do this instead
 
-You can't run the GPU call yourself; you **request** it and the host generates it. Drop a JSON
-request into the shared queue, then poll for the result. The finished `.mp4` is saved into YOUR
-tenant's uploads (so it's a real server URL you can show in the canvas/UI).
+**Read the `video-to-mac` skill and follow it.** It carries the full handoff format: what the
+video is, look/feel, assets (with the path rules — the Mac reads /mnt/agent-mesh, NOT reliably
+/mnt/clients), audio, deliver-to-and-who-is-waiting, and deadline.
 
-### 1. Drop the request
-```bash
-TENANT=<your-tenant>          # e.g. azrim
-RID="wan-$(date +%s)-$RANDOM"
-cat > /mnt/agent-mesh/mesh/wan-video-queue/${RID}.json <<JSON
-{"tenant":"${TENANT}","image":"<path-or-url-to-the-image>","prompt":"<what should move — e.g. 'the rim slowly rotates, studio lighting'>","duration":3.5,"id":"${RID}"}
-JSON
-```
-- `image` (REQUIRED) — a local path the host can read (e.g. an existing upload
-  `/mnt/clients/<tenant>/openvoiceui/uploads/<file>`) OR a public URL.
-- `prompt` — describe the motion (camera move, what comes alive). Keep it short + concrete.
-- `duration` — seconds (default 3.5; longer uses more ZeroGPU quota).
+Short form:
 
-### 2. Poll for the result (host drain runs every ~minute; generation takes ~30-60s)
-```bash
-for i in $(seq 1 12); do
-  R="/mnt/agent-mesh/mesh/wan-video-queue/.done/${RID}.result.json"
-  [ -f "$R" ] && { cat "$R"; break; }
-  sleep 10
-done
-```
-Result JSON:
-```json
-{"id":"...","status":"ok","video_url":"/uploads/ai-gen-wan-<ts>.mp4","video_path":"/mnt/clients/<tenant>/openvoiceui/uploads/ai-gen-wan-<ts>.mp4","tenant":"..."}
-```
-- On `status:"ok"` → show the video from `video_url` (it's already saved on your server — a real
-  file, never an in-memory blob). On `status:"error"` → read `reason` (cold space / quota / bad image).
+    AGENT_URI=<your-uri> mesh-send --to mac-claude@mesh --kind task \
+      --subject "video: <what it is>" \
+      --end-of-turn "mac-claude@mesh — reply expected" <<'REQ'
+    WHAT / LOOK-FEEL / ASSETS / AUDIO / DELIVER TO / DEADLINE
+    REQ
 
-## Examples (request bodies)
-```json
-// animate a client's product photo already in their uploads
-{"tenant":"azrim","image":"/mnt/clients/azrim/openvoiceui/uploads/wheel.jpg","prompt":"the rim slowly rotates, studio lighting","duration":3.5,"id":"wan-123"}
+Client-facing agents: say nothing about the Mac, GPU, rendering or queues. "I'm on it", then a
+video.
 
-// animate from a public URL
-{"tenant":"josh","image":"https://site.com/storefront.png","prompt":"camera pushes in, gentle motion","duration":5,"id":"wan-456"}
-```
+## The original instructions are not deleted
 
-## Notes / limits
-- **Quota:** runs on our HF PRO ZeroGPU daily quota — heavy/long clips use more; space them out.
-- **Cold start:** if the Space was idle it wakes in ~30-60s; the first request after a wake may
-  queue. The poll loop above handles it; if it errors "cold/queued," just request again.
-- **Always saved to the server** (per the AI-output rule) — you get a `/uploads/...` URL to display.
-- **Tracked:** every generation lights `prov:huggingface` on the JamFlow live map.
-- Our Space is a version-pinned duplicate of `r3gm/wan2-2-fp8da-aoti-preview-2` (stable; won't
-  break when the upstream preview changes).
-
-## (host/admin only) direct CLI
-On the host, `bash /home/mike/MIKE-AI/scripts/wan-video.sh --image <x> --prompt <y> --tenant <t>`
-runs it directly (gradio_client + HF_TOKEN live on the host). Tenant agents use the queue above.
+The previous version of this file is preserved beside it as
+`SKILL.md.SUPERSEDED-by-video-to-mac-20260903T194234Z` — it remains accurate as a description of **how the
+Mac does the work**, and is reference for whoever is doing the rendering. It is not permission
+for this machine.

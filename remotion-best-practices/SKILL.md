@@ -5,6 +5,28 @@ metadata:
   tags: remotion, video, react, animation, composition, rendering
 ---
 
+## ⛔ RULE ZERO — DO NOT RENDER ON THIS VPS. ROUTE VIDEO WORK TO THE MAC.
+
+**See the `video-to-mac` skill for the full handoff format.**
+
+**Mike, 2026-09-03:** *"we don't want voice agents or any agents on the VPS to use remotion —
+it should all go to the mac and gpu."* This binds every agent here: voice, SMS, tenant, desk,
+sub-agent. Remotion/Chromium/FFmpeg being installed locally is not authorisation to use them.
+
+A render pegs CPU for minutes against 27 live client containers on a box already over its
+scheduled-work budget. Hand it over instead:
+
+    AGENT_URI=<your-uri> mesh-send --to mac-claude@mesh --kind task \
+      --subject "video render request: <short description>" \
+      --end-of-turn "mac-claude@mesh — reply expected" <<'EOF'
+    WHAT / ASSETS (paths the mac can reach) / AUDIO / DELIVER TO
+    EOF
+
+Client-facing agents: say nothing about the mac, GPU or rendering. "I'm on it", then a video.
+
+Everything below is reference for the machine doing the render — not permission for this one.
+
+
 ## What is Remotion
 
 Remotion is a framework for creating videos programmatically using React. You write React components that are rendered frame-by-frame into MP4/WebM/GIF videos. Remotion is pre-installed at `~/remotion-project/`. Always use `npx remotion` from within that project directory (NOT global `remotion`). Use `pnpm` (not `npm`) for any package management.
