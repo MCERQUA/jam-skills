@@ -141,17 +141,48 @@ def detect_gpu() -> bool:
     return bool(run(["nvidia-smi"]))
 
 
+def _find_uv() -> str | None:
+    """Resolve uv WITHOUT consulting the ambient PATH.
+
+    shutil.which("uv") made this desk's reported capabilities depend on WHO invoked
+    the publisher. Measured on josh-desktop 2026-09-06: uv is at /config/.local/bin/uv,
+    which is on the LOGIN PATH but absent from the docker-exec/s6 environment. So the
+    keeper found it and reported the venv's packages, while any other entry point missed
+    it and fell through to the ambient python3.13 — 1 package. The payload oscillated
+    between three hashes depending on the caller, which no single-value change-marker
+    can ever converge against: each context sees the other's hash as a change and
+    re-publishes forever.
+    """
+    for cand in ("/config/.local/bin/uv", "/usr/local/bin/uv", "/usr/bin/uv",
+                 str(Path.home() / ".local/bin/uv")):
+        if os.access(cand, os.X_OK):
+            return cand
+    return shutil.which("uv")
+
+
 def detect_pip_packages() -> list[str]:
     venv = Path("/config/agent-venv")
-    if venv.exists() and shutil.which("uv"):
-        raw = run(["uv", "pip", "list", "--python", str(venv / "bin/python3.13")])
+    venv_py = venv / "bin/python3.13"
+    # If the desk HAS a venv, the venv is the answer — regardless of what the caller's
+    # PATH happens to contain. uv is an optimisation, never the thing that decides.
+    if venv_py.is_file():
+        uv = _find_uv()
+        if uv:
+            raw = run([uv, "pip", "list", "--python", str(venv_py)])
+            if raw:
+                pkgs = []
+                for line in raw.splitlines()[2:]:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        pkgs.append(f"{parts[0]}=={parts[1]}")
+                return pkgs
+        # No uv: ask the venv's OWN interpreter. Still the venv, still deterministic.
+        raw = run([str(venv_py), "-m", "pip", "list", "--format=json"])
         if raw:
-            pkgs = []
-            for line in raw.splitlines()[2:]:
-                parts = line.split()
-                if len(parts) >= 2:
-                    pkgs.append(f"{parts[0]}=={parts[1]}")
-            return pkgs
+            try:
+                return [f"{q['name']}=={q['version']}" for q in json.loads(raw)]
+            except Exception:
+                pass
     raw = run(["python3.13", "-m", "pip", "list", "--format=json"])
     if not raw:
         return []
