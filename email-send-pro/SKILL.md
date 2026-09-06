@@ -96,7 +96,7 @@ If no key resolves, the wrapper refuses with a clear error naming the env vars i
 ```json
 {
   "tenant": "josh",
-  "to": "josh@contractorschoiceagency.com",
+  "to": "client@example.com",
   "cc": ["mike@example.com"],
   "bcc": [],
   "from_inbox": "jam-bot@agentmail.to",
@@ -203,7 +203,7 @@ or non-string `in_reply_to` is rejected.
 email-send-pro --send --input - <<'EOF'
 {
   "tenant": "josh",
-  "to": "josh@contractorschoiceagency.com",
+  "to": "client@example.com",
   "subject": "Re: your BTIS question",
   "intro": "Following up on your thread.",
   "sections": [{"heading": "Quick answer", "body": "Yes — no rate change needed."}],
@@ -249,7 +249,7 @@ To onboard a new tenant's brand, drop a JSON file at the tenant path with any su
 email-send-pro --send --input - <<'EOF'
 {
   "tenant": "josh",
-  "to": "josh@contractorschoiceagency.com",
+  "to": "client@example.com",
   "subject": "BTIS Research Debrief — what we found + next options",
   "intro": "Quick update on the BTIS research we ran this afternoon. Three things stood out and we want your call on next move.",
   "sections": [

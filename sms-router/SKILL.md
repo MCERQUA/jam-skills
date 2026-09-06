@@ -5,7 +5,7 @@ description: Send SMS to your operator. Use when you need to text status updates
 
 # SMS Router — agent-side tool
 
-Sends an SMS to your operator (Mike, or a tenant operator) via the JamBot SMS router on port 6450 (host IP auto-detected from the container's default route — different per tenant bridge). The router routes through Twilio Canadian number `+16476991930`.
+Sends an SMS to your operator (Mike, or a tenant operator) via the JamBot SMS router on port 6450 (host IP auto-detected from the container's default route — different per tenant bridge). The router routes through Twilio Canadian number `+15550100003`.
 
 ## When to use
 

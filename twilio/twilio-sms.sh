@@ -5,10 +5,10 @@
 # Env:
 #   TWILIO_ACCOUNT_SID   (required)
 #   TWILIO_AUTH_TOKEN    (required)
-#   TWILIO_SMS_FROM      (preferred — Canadian +16476991930 JamBot SMS number)
+#   TWILIO_SMS_FROM      (preferred — Canadian +15550100003 JamBot SMS number)
 #   TWILIO_FROM_NUMBER   (fallback — Arizona +16029327909, used for VOICE; only SMS-fallback if SMS_FROM unset)
 #
-# IMPORTANT: All JamBot agent-to-operator SMS MUST send from +16476991930 (Canadian/JamBot).
+# IMPORTANT: All JamBot agent-to-operator SMS MUST send from +15550100003 (Canadian/JamBot).
 # The Arizona +16029327909 is reserved for US-client voice (Seattle Roofing etc.) and is OFF-LIMITS
 # as an SMS sender for the agent mesh.
 
@@ -28,7 +28,7 @@ fi
 # Hard-block the Arizona number as an SMS sender — it's reserved for US-client voice only
 if [ "$FROM" = "+16029327909" ]; then
   echo "ERROR: SMS from +16029327909 (Arizona) is BLOCKED. That number is reserved for US-client voice." >&2
-  echo "       Set TWILIO_SMS_FROM=+16476991930 in env (it's in /mnt/system/base/.openclaw-keys.env)." >&2
+  echo "       Set TWILIO_SMS_FROM=+15550100003 in env (it's in /mnt/system/base/.openclaw-keys.env)." >&2
   echo "       If the container has stale env, restart it: docker compose -f /mnt/clients/<u>/compose/docker-compose.yml restart openclaw" >&2
   exit 2
 fi

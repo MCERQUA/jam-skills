@@ -92,7 +92,7 @@
     },
     "inkbox_phone": {
       "type": "string",
-      "description": "InkBox-provisioned phone number in E.164 format (e.g. '+15092861499'). Used by SMS pathways, not email-send-pro itself. Default empty.",
+      "description": "InkBox-provisioned phone number in E.164 format (e.g. '+15550100005'). Used by SMS pathways, not email-send-pro itself. Default empty.",
       "default": ""
     },
     "inkbox_phone_id": {
