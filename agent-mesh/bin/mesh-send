@@ -241,6 +241,17 @@ def agent_name() -> str:
     if not uri.endswith("@mesh"):
         die(f"AGENT_URI must end with @mesh, got: {uri}")
     name = uri[:-len("@mesh")]
+    # SHAPE, not just presence. A DOUBLED suffix (danielle-desktop@mesh@mesh) strips to
+    # "danielle-desktop@mesh", which then fails the kebab-case test below with a message naming a
+    # value the caller never set — sending them hunting a name that looks correct. Diagnosed live
+    # 2026-09-06 by danielle-desktop@mesh, which hit it while sending the report about it.
+    # Say what is actually wrong, and say how to fix it, at the point it is detectable.
+    if name.endswith("@mesh") or uri.count("@mesh") > 1:
+        die(f"AGENT_URI has a DOUBLED @mesh suffix: {uri}\n"
+            f"  fix for this call:  AGENT_URI={name[:-len('@mesh')] if name.endswith('@mesh') else name}@mesh mesh-send ...\n"
+            f"  the env is corrupt upstream — a layer appended @mesh to an already-suffixed value.\n"
+            f"  static sources (compose / s6 container_environment / .profile / tmux -e) are usually\n"
+            f"  clean; check the live process env: tr '\\0' '\\n' < /proc/$$/environ | grep AGENT_URI")
     if not re.fullmatch(r"[a-z0-9][a-z0-9\-]*", name):
         die(f"AGENT_URI agent name must be kebab-case, got: {name}")
     return name
