@@ -4,3 +4,7 @@ node_modules/
 *.pyc
 *.sqlite
 *.db
+
+# dated backups kept on disk per the never-delete rule, but not tracked
+*.bak-*
+*.pre-*

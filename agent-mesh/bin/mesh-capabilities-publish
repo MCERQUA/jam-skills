@@ -32,8 +32,20 @@ if str(_lib) not in sys.path:
 from intel_filter import enforce as _intel_enforce  # noqa: E402  SEC-032 fail-closed gate
 
 
-AGENT_URI = os.environ.get("AGENT_URI", "danielle-desktop@mesh")
+# NO DEFAULT IDENTITY. This file was canonicalised from danielle-desktop's fork on
+# 2026-09-06 and carried its personal fallback with it; as a shared binary that made
+# EVERY desk publish as danielle-desktop whenever AGENT_URI was unset — writing another
+# agent's REGISTRY entry and relaying mail under their name. Flagged by josh-desktop
+# within minutes of the graft. An unset identity is undecidable, never guessable.
+AGENT_URI = os.environ.get("AGENT_URI") or ""
+if not AGENT_URI:
+    sys.exit("mesh-capabilities-publish: AGENT_URI env var required — refusing to guess an identity")
+if not AGENT_URI.endswith("@mesh"):
+    sys.exit(f"mesh-capabilities-publish: AGENT_URI must end with @mesh, got: {AGENT_URI}")
+# str.replace is GLOBAL, so this also normalises a doubled @mesh@mesh suffix.
 AGENT_NAME = AGENT_URI.replace("@mesh", "")
+if not AGENT_NAME:
+    sys.exit(f"mesh-capabilities-publish: AGENT_URI has no agent name: {AGENT_URI}")
 REGISTRY_DIR = Path("/mesh/REGISTRY")
 UPGRADES_DIR = Path("/mesh/UPGRADES")
 
