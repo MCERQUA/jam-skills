@@ -61,22 +61,37 @@ def detect_languages() -> list[dict]:
     langs = []
     seen_paths: set[str] = set()
     for interp in ("python3.13", "python3", "node", "ruby", "go"):
-        path = shutil.which(interp)
-        if not path or path in seen_paths:
+        path = _which(interp)
+        if not path:
+            continue
+        # Record the REAL path, not the PATH entry that happened to win. On these
+        # desks /usr/bin/python3 and /lsiopy/bin/python3 are the same binary
+        # (both realpath to /usr/bin/python3.14, md5 29ac8794) reached by two PATH
+        # entries, and which one shutil.which returns depends on the CALLER's PATH.
+        # That single cosmetic line was the entire remaining relay flood: every
+        # invocation from a different entry point looked like a capability change
+        # and re-published. Same binary is the same capability; say so identically.
+        path = os.path.realpath(path)
+        if path in seen_paths:
             continue
         seen_paths.add(path)
-        ver = run([interp, "--version"])
+        # Invoke the RESOLVED path, not the bare name: run(["python3.13", ...])
+        # goes back through the ambient PATH, so a desk that HAS the interpreter
+        # reported an empty version from any shell that could not see it — the
+        # last caller-dependent field after the lookup itself was fixed.
+        ver = run([path, "--version"])
         langs.append({"name": interp, "version": ver, "path": path})
     # bun may live outside PATH at a known location
-    for bun_path in (shutil.which("bun"), "/config/mesh-tools/bin/bun/bun"):
+    for bun_path in (_which("bun"), "/config/mesh-tools/bin/bun/bun"):
         if bun_path and Path(bun_path).is_file() and bun_path not in seen_paths:
             seen_paths.add(bun_path)
             ver = run([bun_path, "--version"])
             langs.append({"name": "bun", "version": ver, "path": bun_path})
             break
-    if shutil.which("bash"):
-        langs.append({"name": "bash", "version": run(["bash", "--version"]).splitlines()[0],
-                      "path": shutil.which("bash")})
+    _bash = _which("bash")
+    if _bash:
+        langs.append({"name": "bash", "version": run([_bash, "--version"]).splitlines()[0],
+                      "path": os.path.realpath(_bash)})
     return langs
 
 
@@ -84,7 +99,7 @@ def detect_tools() -> list[str]:
     tools = []
     for tool in ("ffmpeg", "chromium", "chromium-browser", "google-chrome",
                  "xdotool", "convert", "curl", "jq", "git", "gh", "docker", "npx"):
-        if shutil.which(tool):
+        if _which(tool):
             tools.append(tool)
     # ovui-bridge present if the config dir exists
     if Path("/config/ovui-bridge").is_dir():
@@ -103,7 +118,7 @@ def detect_tools() -> list[str]:
     # remotion
     if Path("/config/motion-videos/node_modules/remotion").is_dir():
         tools.append("remotion")
-    if shutil.which("mesh-send"):
+    if _which("mesh-send"):
         tools.append("mesh-messaging")
     tools.append("file-editing")
     return sorted(set(tools))
@@ -141,10 +156,37 @@ def detect_gpu() -> bool:
     return bool(run(["nvidia-smi"]))
 
 
+# A DESK'S CAPABILITIES ARE A PROPERTY OF THE DESK, NOT OF THE CALLER'S PATH.
+# _which() consults the ambient PATH, so the same command answered differently
+# from every entry point: a login shell saw python3.13 and gh (they live in
+# /config/.local/bin), a docker-exec shell did not, and an interactive shell also saw
+# bun (/config/mesh-tools/bin, added by .bashrc). Three entry points, three different
+# capability documents for one unchanged machine — which is what kept the desks
+# re-publishing: each context read the others' output as a real change.
+# Search a fixed, desk-defined path instead. Deterministic by construction.
+DESK_PATH = os.pathsep.join((
+    "/config/.local/bin",
+    "/config/mesh-tools/bin",
+    "/config/bin",
+    "/config/.bun/bin",
+    "/usr/local/sbin", "/usr/local/bin",
+    "/usr/sbin", "/usr/bin",
+    "/sbin", "/bin",
+    "/lsiopy/bin",
+))
+
+
+def _which(cmd: str) -> str | None:
+    """PATH-independent lookup. Deliberately does NOT fall back to the ambient PATH:
+    a fallback would reintroduce exactly the caller-dependence this exists to remove."""
+    hit = shutil.which(cmd, path=DESK_PATH)
+    return os.path.realpath(hit) if hit else None
+
+
 def _find_uv() -> str | None:
     """Resolve uv WITHOUT consulting the ambient PATH.
 
-    shutil.which("uv") made this desk's reported capabilities depend on WHO invoked
+    _which("uv") made this desk's reported capabilities depend on WHO invoked
     the publisher. Measured on josh-desktop 2026-09-06: uv is at /config/.local/bin/uv,
     which is on the LOGIN PATH but absent from the docker-exec/s6 environment. So the
     keeper found it and reported the venv's packages, while any other entry point missed
@@ -162,7 +204,7 @@ def _find_uv() -> str | None:
                  str(Path.home() / ".local/bin/uv")):
         if os.access(cand, os.X_OK):
             return cand
-    return shutil.which("uv")
+    return _which("uv")
 
 
 def detect_pip_packages() -> list[str]:
@@ -255,7 +297,7 @@ def _relay_to_host(content: str, out_path: Path) -> None:
     AUTHOR has no matching sent/ record, and mesh-send reports success either
     way, so a direct write is a silent-loss path (see 2026-09-06 dead-letter).
     """
-    if not shutil.which("mesh-send"):
+    if not _which("mesh-send"):
         sys.exit(f"REGISTRY ro and mesh-send not found — cannot write or relay {out_path}")
     body = (
         f"Please write the following to {out_path} on the host filesystem:\n\n"
