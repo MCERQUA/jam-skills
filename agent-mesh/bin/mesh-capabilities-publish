@@ -145,7 +145,12 @@ def detect_upgrades() -> list[str]:
 
 
 def detect_gpu() -> bool:
-    return bool(run(["nvidia-smi"]))
+    # Absolute lookup: a bare "nvidia-smi" through the ambient PATH makes a GPU
+    # claim depend on the caller's shell. This feeds special_access ("gpu"), so a
+    # miss silently declares a GPU desk to be GPU-less — a capability LIE that is
+    # stable per-caller and therefore never looks like a bug.
+    smi = _which("nvidia-smi") or "/usr/bin/nvidia-smi"
+    return bool(run([smi]))
 
 
 # A DESK'S CAPABILITIES ARE A PROPERTY OF THE DESK, NOT OF THE CALLER'S PATH.
@@ -236,7 +241,16 @@ def detect_pip_packages() -> list[str]:
                 return [f"{q['name']}=={q['version']}" for q in json.loads(raw)]
             except Exception:
                 pass
-    raw = run(["python3.13", "-m", "pip", "list", "--format=json"])
+    # Last resort, only reached on a desk with no /config/agent-venv. Bare
+    # "python3.13" here went through the ambient PATH: found on one entry point,
+    # absent on another, so pip_packages oscillated between a full list and []
+    # — the never-converging payload this whole thread is about, surviving one
+    # function below the fix. Flagged by bun-desktop 2026-09-06; bun itself never
+    # reaches it because its venv exists, which is exactly why it went unnoticed.
+    _py313 = _which("python3.13")
+    if not _py313:
+        return []
+    raw = run([_py313, "-m", "pip", "list", "--format=json"])
     if not raw:
         return []
     try:
