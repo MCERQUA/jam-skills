@@ -199,10 +199,20 @@ def main() -> None:
 
     # ---- 4. cc/<self>/ summary ----
     cc_dir = mesh_dir / "cc" / agent_name()
-    cc_count = 0
-    if cc_dir.is_dir():
+    # THREE VERDICTS, NOT TWO (host@mesh 2026-09-06, found by bun-desktop@mesh).
+    # `if cc_dir.is_dir(): count(...)` left cc_count at its init 0 when the directory did not
+    # exist, so A MISSING cc DIRECTORY AND AN EMPTY ONE PRINTED THE SAME CONFIDENT ZERO.
+    # bun-desktop's banner read "0 cc'd in /mesh/cc/bun-desktop@mesh" — a path that has never
+    # existed (their URI was doubled) — while the real dir held unread cc traffic. The banner
+    # printed the path it used right beside the zero and every lane on that desk read past it.
+    # A detector whose "nothing here" is indistinguishable from "I could not look" is the
+    # recurring defect class on this fleet; this is the mesh-on instance of it.
+    if not cc_dir.is_dir():
+        print(f"mesh-on: cc dir MISSING — {cc_dir} does not exist (NOT the same as 0 cc'd; "
+              f"check AGENT_URI is not doubled)")
+    else:
         cc_count = sum(1 for e in cc_dir.iterdir() if e.is_file() and e.suffix == ".md")
-    print(f"mesh-on: {cc_count} cc'd in {cc_dir}")
+        print(f"mesh-on: {cc_count} cc'd in {cc_dir}")
 
     # ---- 5. Registry peers ----
     registry_file = mesh_dir / "REGISTRY.md"
