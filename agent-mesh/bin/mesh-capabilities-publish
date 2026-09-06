@@ -308,11 +308,20 @@ def main() -> None:
         print(f"mesh-capabilities-publish: wrote {out_path}")
     except OSError:
         _relay_to_host(doc, out_path)
-    if _state is not None:
+    if _state is None:
+        print("mesh-capabilities-publish: WARNING - no writable location for the unchanged-marker; "
+              "every run will re-publish. Checked /agent-desk, ~/.cache, /tmp.", file=sys.stderr)
+    else:
         try:
             _state.write_text(_sig + "\n")
-        except OSError:
-            pass  # a lost marker only costs one redundant relay next run
+        except OSError as e:
+            # Do NOT fail silently. Without the marker this de-dupe is inert and the
+            # desk relays on every run — which is indistinguishable, from host's side,
+            # from a desk whose capabilities genuinely keep changing. Say so.
+            print(f"mesh-capabilities-publish: WARNING - could not write {_state} ({e}); "
+                  f"unchanged-detection is INERT and this desk will re-publish every run. "
+                  f"Check ownership — a marker left root-owned by a `docker exec` from the host "
+                  f"cannot be overwritten by the agent user.", file=sys.stderr)
 
 
 if __name__ == "__main__":
