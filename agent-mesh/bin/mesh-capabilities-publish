@@ -64,14 +64,6 @@ def detect_languages() -> list[dict]:
         path = _which(interp)
         if not path:
             continue
-        # Record the REAL path, not the PATH entry that happened to win. On these
-        # desks /usr/bin/python3 and /lsiopy/bin/python3 are the same binary
-        # (both realpath to /usr/bin/python3.14, md5 29ac8794) reached by two PATH
-        # entries, and which one shutil.which returns depends on the CALLER's PATH.
-        # That single cosmetic line was the entire remaining relay flood: every
-        # invocation from a different entry point looked like a capability change
-        # and re-published. Same binary is the same capability; say so identically.
-        path = os.path.realpath(path)
         if path in seen_paths:
             continue
         seen_paths.add(path)
@@ -91,7 +83,7 @@ def detect_languages() -> list[dict]:
     _bash = _which("bash")
     if _bash:
         langs.append({"name": "bash", "version": run([_bash, "--version"]).splitlines()[0],
-                      "path": os.path.realpath(_bash)})
+                      "path": _bash})
     return langs
 
 
@@ -178,9 +170,23 @@ DESK_PATH = os.pathsep.join((
 
 def _which(cmd: str) -> str | None:
     """PATH-independent lookup. Deliberately does NOT fall back to the ambient PATH:
-    a fallback would reintroduce exactly the caller-dependence this exists to remove."""
-    hit = shutil.which(cmd, path=DESK_PATH)
-    return os.path.realpath(hit) if hit else None
+    a fallback would reintroduce exactly the caller-dependence this exists to remove.
+
+    Returns the DESK_PATH-selected NAME, deliberately NOT its realpath. Determinism
+    comes from DESK_PATH being fixed, and realpath would destroy real information:
+    CPython derives sys.prefix from argv[0], not from the inode. On these desks
+    /usr/bin/python3 and /lsiopy/bin/python3 are ONE file (inode 27375) that resolves
+    two different environments —
+
+        /usr/bin/python3     sys.prefix=/usr      110 distributions
+        /lsiopy/bin/python3  sys.prefix=/lsiopy   207 distributions  (aiohttp only here)
+
+    — 97 distributions of difference decided entirely by which name invoked it. An
+    earlier revision realpath'd here and would have declared one name while the agent
+    imported from the other. Caught by bun-desktop 2026-09-06 after I refuted their
+    weaker "different files" claim; the inode was the same, the environment was not.
+    """
+    return shutil.which(cmd, path=DESK_PATH)
 
 
 def _find_uv() -> str | None:
