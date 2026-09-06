@@ -264,12 +264,55 @@ def main() -> None:
         return
 
     out_path = REGISTRY_DIR / f"{AGENT_NAME}-CAPABILITIES.md"
+
+    # Skip entirely when nothing about this desk has CHANGED. Every mesh-on run
+    # published unconditionally, and on a read-only /mesh that means a relay message
+    # into host's inbox every single run. Measured 2026-09-06: 10 relays that day
+    # carried 3 distinct payloads — josh-desktop sent 5 relays of ONE payload, so 7
+    # of 10 were pure noise that a human then had to read past. REGISTRY is readable
+    # from the desks (only writes are blocked), so the comparison costs nothing.
+    # last_updated is excluded because it changes on every run by construction and
+    # would defeat the whole check.
+    def _sans_ts(text: str) -> str:
+        return "\n".join(l for l in text.splitlines() if not l.startswith("last_updated:"))
+
+    # Compare against what THIS DESK LAST PUBLISHED OR RELAYED, held locally — not
+    # against the registry copy. Comparing to the registry cannot converge on a
+    # read-only /mesh: the relay does not update out_path, the host drain does, up
+    # to 15 minutes later, so every run in between re-reads the same stale file,
+    # sees a difference and relays again. First attempt at this did exactly that and
+    # three consecutive runs all relayed. A local marker is true regardless of how
+    # far behind the registry is.
+    import hashlib as _hl
+    _sig = _hl.sha256(_sans_ts(doc).encode()).hexdigest()
+    _state = None
+    for _cand in (Path("/agent-desk"), Path.home() / ".cache", Path("/tmp")):
+        try:
+            _cand.mkdir(parents=True, exist_ok=True)
+            if os.access(_cand, os.W_OK):
+                _state = _cand / ".mesh-capabilities-last.sha"
+                break
+        except OSError:
+            continue
+    if _state is not None and _state.is_file():
+        try:
+            if _state.read_text().strip() == _sig:
+                print("mesh-capabilities-publish: unchanged since last publish — nothing to send")
+                return
+        except OSError:
+            pass  # unreadable marker is not a reason to skip
+
     _intel_enforce(doc, tool="mesh-capabilities-publish")
     try:
         out_path.write_text(doc)
         print(f"mesh-capabilities-publish: wrote {out_path}")
     except OSError:
         _relay_to_host(doc, out_path)
+    if _state is not None:
+        try:
+            _state.write_text(_sig + "\n")
+        except OSError:
+            pass  # a lost marker only costs one redundant relay next run
 
 
 if __name__ == "__main__":
