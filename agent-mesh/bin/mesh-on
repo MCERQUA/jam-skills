@@ -47,7 +47,28 @@ def agent_name() -> str:
         die("AGENT_URI env var required (e.g. AGENT_URI=host@mesh)")
     if not uri.endswith("@mesh"):
         die(f"AGENT_URI must end with @mesh, got: {uri}")
-    return uri[: -len("@mesh")]
+    # Strip EVERY @mesh, not just the last one. This used to be uri[:-len("@mesh")],
+    # a single-suffix strip, while the publisher called from the same §9 run used
+    # str.replace (global). On a doubled URI the two normalisers in ONE mesh-on run
+    # disagreed -- publisher said "bun-desktop", this said "bun-desktop@mesh" -- and
+    # refresh_capability_json() wrote that through verbatim into BOTH the filename and
+    # the agent field, producing /mesh/REGISTRY/capabilities/bun-desktop@mesh.json
+    # containing {"agent": "bun-desktop@mesh@mesh"}. Found by josh-desktop 2026-09-06.
+    # Why it stayed invisible: a filename-vs-field consistency check PASSES on that
+    # file. Stem and field agree with each other; they are simply both wrong. The same
+    # check also passed on the publisher's danielle-default bug, for the opposite
+    # reason -- consistency between two derived values is satisfied by both failure
+    # modes, so it can never be the check that catches either.
+    name = uri.replace("@mesh", "")
+    if not name:
+        die(f"AGENT_URI has no agent name: {uri}")
+    if uri.count("@mesh") > 1:
+        print(f"mesh-on: WARNING - AGENT_URI has a doubled @mesh suffix ({uri}); "
+              f"normalised to {name}@mesh for this run. The env is corrupt upstream and "
+              f"mesh-send will FAIL CLOSED on it, so this lane's alarms cannot be heard. "
+              f"Fix the invoker; see deploy-desktop-mesh-keeper.sh's URI guard.",
+              file=sys.stderr)
+    return name
 
 
 def discover_roots() -> tuple[Path, Path, Path]:
