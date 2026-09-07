@@ -480,33 +480,7 @@ Do NOT use `[CANVAS_URL:https://ai-radio.jam-bot.com]` — the dedicated page ha
 1. Never emit an AI-Radio tag that the user didn't authorize **in this conversational turn**. Especially for votes, friend requests, and song sends.
 2. Never push a file that isn't clearly identifiable in the user's workspace. If in doubt, ask.
 3. **Check before pushing.** When the user asks to push a song, emit `[AIRADIO_CHECK_IN_LIBRARY:<title>]` FIRST and wait for the system line in the next turn. Only emit `[AIRADIO_PUSH_SONG:...]` if the check reports "NOT in library" — or if the user explicitly said "re-push" / "force". This stops you from telling the user "pushed!" when the song was silently deduped server-side.
-4. Never claim a push/send succeeded until you have CONFIRMED it — the initial tag emission is the *request*, not the result.
-
-   ⚠️ **The `AI-Radio: ...` system line does NOT reach you. Do not wait for it.** Earlier
-   revisions of this rule said the bridge "posts a system line into the transcript"; it does
-   not. `ActionConsole.addEntry` (`src/app.js:9528`) only builds a DOM element and appends it
-   to a panel — no network call, no server write, nothing you can read. Waiting for it means
-   you can NEVER confirm, so you truthfully tell the user "I can't confirm it landed" on a
-   push that actually succeeded. Measured 2026-09-07 on test-dev: the song was live at
-   07:25:51 and the agent reported no confirmation ~2 minutes later. The user reasonably read
-   that as failure.
-
-   **CONFIRM BY ASKING THE BRIDGE YOURSELF.** You have `AGENT_API_KEY` in your environment and
-   OpenVoiceUI trusts that header for internal agent calls:
-
-   ```bash
-   curl -s -H "X-Agent-Key: $AGENT_API_KEY" \
-     "http://openvoiceui:5001/api/airadio/library/search?q=<title>"
-   ```
-
-   Returns `{"exists":true,"count":N,"matches":[{"title":...,"isPublic":...,"createdAt":...}]}`.
-   `exists:true` with a `createdAt` at or after your push is a real confirmation — speak from
-   THAT. `exists:false` means it did not land; say so plainly and offer to retry.
-
-   ❌ **Do NOT call `ai-radio:3000` directly.** The AI-Radio credentials live in the
-   openvoiceui container, not yours, so a direct call fails with `AUTH_AGENT_KEY_INVALID` —
-   which looks like a broken push but is really you knocking on the wrong door. Always go
-   through the OVU bridge.
+4. Never claim a push/send succeeded until OVU confirms — the initial tag emission is the *request*, not the result. The bridge posts a `AI-Radio: ...` system line into the transcript on completion; speak from THAT, not from the tag emission.
 5. Never read a friend's inbox contents aloud without being asked.
 6. Never combine AI-Radio actions with heavy monologue — the tags run fast; keep the TTS response short and informative.
 7. The user's own AI-Radio profile is at `https://ai-radio.jam-bot.com/u/<their-username>`. Link to it if they want to review what was sent. Or open `[CANVAS:airadio]` and click "My Profile".

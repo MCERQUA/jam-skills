@@ -82,8 +82,6 @@ def _load_intel_filter():
                 spec = importlib.util.spec_from_file_location("mesh_intel_filter", c)
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)
-                # FILTER PROVENANCE (2026-08-25): record WHICH copy screened this send.
-                globals()["_INTEL_SRC"] = str(c)
                 return mod
         except Exception:
             continue
@@ -241,17 +239,6 @@ def agent_name() -> str:
     if not uri.endswith("@mesh"):
         die(f"AGENT_URI must end with @mesh, got: {uri}")
     name = uri[:-len("@mesh")]
-    # SHAPE, not just presence. A DOUBLED suffix (danielle-desktop@mesh@mesh) strips to
-    # "danielle-desktop@mesh", which then fails the kebab-case test below with a message naming a
-    # value the caller never set — sending them hunting a name that looks correct. Diagnosed live
-    # 2026-09-06 by danielle-desktop@mesh, which hit it while sending the report about it.
-    # Say what is actually wrong, and say how to fix it, at the point it is detectable.
-    if name.endswith("@mesh") or uri.count("@mesh") > 1:
-        die(f"AGENT_URI has a DOUBLED @mesh suffix: {uri}\n"
-            f"  fix for this call:  AGENT_URI={name[:-len('@mesh')] if name.endswith('@mesh') else name}@mesh mesh-send ...\n"
-            f"  the env is corrupt upstream — a layer appended @mesh to an already-suffixed value.\n"
-            f"  static sources (compose / s6 container_environment / .profile / tmux -e) are usually\n"
-            f"  clean; check the live process env: tr '\\0' '\\n' < /proc/$$/environ | grep AGENT_URI")
     if not re.fullmatch(r"[a-z0-9][a-z0-9\-]*", name):
         die(f"AGENT_URI agent name must be kebab-case, got: {name}")
     return name
@@ -280,38 +267,15 @@ def sweep_stale_claims(inbox: Path) -> None:
 
 
 def find_start_seq(inbox: Path, date: str) -> int:
-    """Return first seq num to try (max existing + 1, or 1).
-
-    2026-08-27: this scanned ONLY the visible inbox, so acking a message — which
-    moves it to .read/ — retired its sequence number from the allocator's view and
-    the number was handed out again. The defect scales with how fast the RECIPIENT
-    drains, so it is worst in the desk->host direction (host acks fastest).
-    Measured on host@mesh for one day: 90 messages, 49 distinct numbers, 17 reused,
-    64% not uniquely nameable by (date, seq). Found by bun-desktop@mesh.
-
-    Fix: also scan .read/ (and .archive/.acked), so a number is retired for the day
-    once used. claim_slot still allocates atomically via mkdir — this only stops the
-    START point walking back over used numbers. An unreadable archive is skipped
-    rather than silently lowering the start.
-    """
+    """Return first seq num to try (max existing + 1, or 1)."""
     if not inbox.is_dir():
         return 1
     prefix_re = re.compile(rf"^{re.escape(date)}-(\d{{3}})-")
     maxn = 0
-    scan_dirs = [inbox]
-    for sub in (".read", ".archive", ".acked"):
-        d = inbox / sub
-        if d.is_dir():
-            scan_dirs.append(d)
-    for d in scan_dirs:
-        try:
-            entries = list(d.iterdir())
-        except OSError:
-            continue
-        for entry in entries:
-            m = prefix_re.match(entry.name)
-            if m:
-                maxn = max(maxn, int(m.group(1)))
+    for entry in inbox.iterdir():
+        m = prefix_re.match(entry.name)
+        if m:
+            maxn = max(maxn, int(m.group(1)))
     return maxn + 1 if maxn else 1
 
 
@@ -446,14 +410,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--thread", default=None, help="THREAD frontmatter (threads/<slug>)")
     p.add_argument("--promoted-to", default=None, help="PROMOTED_TO frontmatter (for thread-stub)")
     p.add_argument("--end-of-turn", default=None, help="END-OF-TURN frontmatter; defaults to '<to> — reply expected'")
-    # RETRACTION (PROTOCOL §20, v2.1.5). Withdraws a message already delivered. Frontmatter
-    # ONLY -- a RETRACTS: line in a body is text, not a retraction, so there was no way to
-    # emit a real one before this flag existed.
-    p.add_argument("--retracts", default=None,
-                   help="RETRACTS frontmatter: the exact filename as it landed in the "
-                        "recipient's inbox (PROTOCOL §20). ONE per message.")
-    p.add_argument("--retract-reason", default=None,
-                   help="RETRACT-REASON frontmatter: one line, echoed back in the disposition")
     p.add_argument("--dry-run", action="store_true", help="show what would be written without writing")
     p.add_argument("--force-leak", action="store_true",
                    help="bypass intel filter and send anyway; creates an audit entry in mesh/DECISIONS/")
@@ -599,10 +555,6 @@ def main() -> None:
         fm_lines.append(f"THREAD: {args.thread}")
     if args.promoted_to:
         fm_lines.append(f"PROMOTED_TO: {args.promoted_to}")
-    if getattr(args, "retracts", None):
-        fm_lines.append(f"RETRACTS: {args.retracts}")
-    if getattr(args, "retract_reason", None):
-        fm_lines.append(f"RETRACT-REASON: {args.retract_reason}")
     if args.urgent:
         fm_lines.append("URGENT: true")
     fm_lines.append("---")
@@ -646,18 +598,7 @@ def main() -> None:
 
     # ---- log drop ----
     ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    # FILTER PROVENANCE (2026-08-25). MESH_INTEL_FILTER is the FIRST candidate in
-    # _load_intel_filter(), so an env var silently replaces the outbound secret filter with
-    # anything -- including a stub whose run() returns [] -- taking precedence over every real
-    # lib. Nothing recorded which copy actually screened a send, so the append-only log could
-    # not distinguish "completed because the filter is broken" from "completed because someone
-    # swapped the filter". That ambiguity cost two agents an hour chasing a phantom gap, and it
-    # also routes around --force-leak, whose entire purpose is an audit entry in mesh/DECISIONS/.
-    import os as _os2
-    _fsrc = globals().get("_INTEL_SRC") or "unresolved"
-    _fenv = " FILTER-OVERRIDE=env" if _os2.environ.get("MESH_INTEL_FILTER") else ""
-    log_drop(f"# MESH-SEND {ts} sender={sender} to={recipient} kind={args.kind} file={slot}.md"
-             f" filter={_fsrc}{_fenv}")
+    log_drop(f"# MESH-SEND {ts} sender={sender} to={recipient} kind={args.kind} file={slot}.md")
 
     print(str(md_path))
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """mesh-send — write a file to a peer agent's inbox over the JamBot agent mesh.
 
-Implements PROTOCOL.md v2.1.2 §§3-7, 9. Atomic mkdir-claim slot allocation
+Implements PROTOCOL.md v2.0.0 §§3-7, 9. Atomic mkdir-claim slot allocation
 (§5), auto-computed SIZE (§4), cc fanout via /mesh/cc/ rw overlay (§7),
 urgent rate limit (§9), sent/ mirror + cc writes.
 
@@ -27,10 +27,6 @@ Exit codes:
     1  generic failure
     2  rate-limit hit (urgent 1/hr)
     3  validation failure (unknown kind, missing AGENT_URI, etc.)
-    4  intel filter blocked — body matched a secret/PII pattern; use --force-leak to override
-    5  force-leak REFUSED — the override's audit record could not be written. Distinct
-       from 4 on purpose: 4 means "you may override this", 5 means "your override was
-       denied". Sharing a code would make them indistinguishable to retry logic.
 """
 from __future__ import annotations
 
@@ -44,126 +40,10 @@ import sys
 import time
 from pathlib import Path
 
-# Shared write_atomic helper from lib/ (same package root)
-_lib = Path(__file__).resolve().parent.parent / "lib"
-if str(_lib) not in sys.path:
-    sys.path.insert(0, str(_lib))
-from write_atomic import write_atomic as _write_atomic  # noqa: E402
-
-# ---------------------------------------------------------------------------
-# Intel leak filter (PROTOCOL §19 — pre-send PII / secret check)
-#
-# SEC-032: patterns live in lib/intel_filter.py — ONE implementation shared by every
-# mesh CLI. Do NOT inline them here. Per-tool copies rot: the 2026-04-25 inline copy
-# that used to live in this file drifted for three months and passed 9 of 12 secret
-# classes (incl. sk-ant-* / sk-proj-*) that the current set blocks.
-# ---------------------------------------------------------------------------
-def _load_intel_filter():
-    """Import the shared PROTOCOL §19 filter. Fail CLOSED if unavailable."""
-    import importlib.util
-    import os as _os
-    import sys as _sys
-    from pathlib import Path as _Path
-    cands = []
-    env = _os.environ.get("MESH_INTEL_FILTER")
-    if env:
-        cands.append(_Path(env))
-    here = _Path(__file__).resolve().parent
-    cands.append(here.parent / "lib" / "intel_filter.py")
-    for _p in ("/mnt/system/base/skills/agent-mesh/lib",
-               "/mnt/shared-skills/agent-mesh/lib",
-               "/skills/agent-mesh/lib",
-               "/home/mike/filament/lib",
-               str(_Path.home() / ".local/lib/agent-mesh")):
-        cands.append(_Path(_p) / "intel_filter.py")
-    for c in cands:
-        try:
-            if c.is_file():
-                spec = importlib.util.spec_from_file_location("mesh_intel_filter", c)
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
-                # FILTER PROVENANCE (2026-08-25): record WHICH copy screened this send.
-                globals()["_INTEL_SRC"] = str(c)
-                return mod
-        except Exception:
-            continue
-    _sys.stderr.write(
-        "\n  FATAL: PROTOCOL \u00a719 intel filter lib (intel_filter.py) not found.\n"
-        "  Refusing to write to shared mesh space without a secret filter "
-        "(SEC-032, fail-closed).\n"
-        "  Searched: " + ", ".join(str(c) for c in cands) + "\n\n")
-    _sys.exit(4)
-
-
-_INTEL = _load_intel_filter()
-FILTER_VERSION = _INTEL.FILTER_VERSION
-
-
-def _run_intel_filter(body, agent_dir=None):
-    """Scan body for secrets / PII via the shared lib. Fails closed on error."""
-    import sys as _sys
-    try:
-        return _INTEL.run(body, agent_dir)
-    except Exception as exc:  # noqa: BLE001 — never pass a body through on filter error
-        _sys.stderr.write(
-            "\n  FATAL: PROTOCOL \u00a719 intel filter errored: %r\n"
-            "  Refusing to write to shared mesh space (fail-closed).\n\n" % (exc,))
-        _sys.exit(4)
-
-
-
-
-
-
-def _write_force_leak_audit(mesh_dir: Path, sender: str, recipient: str,
-                            hits: list[tuple[int, str, str]]) -> "Path | None":
-    """Append a force-leak audit entry to mesh/DECISIONS/. Returns the path, or None.
-
-    NOT best-effort as of 2026-08-13. It was `except OSError: pass` inside a branch that
-    had already decided to send, with no return value and no check at the call site — so
-    an unwritable DECISIONS silently removed the audit and the override proceeded. The
-    tool even advertised the guarantee it was not keeping ("creates audit entry in
-    mesh/DECISIONS/"). An audit the audited party can skip by failing is not a control.
-
-    Found by bun-desktop@mesh while checking whether desk `src` — whose compose declares
-    no DECISIONS bind at all — would refuse or silently proceed. It was silently proceed,
-    on EVERY desk, since all four symlink this one binary.
-    """
-    decisions_dir = mesh_dir / "DECISIONS"
-    try:
-        decisions_dir.mkdir(parents=True, exist_ok=True)
-        ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
-        path = decisions_dir / f"{ts}-{sender}-force-leak-audit.md"
-        lines = [
-            "---",
-            "KIND: decision",
-            f"AUTHOR: {sender}@mesh",
-            f"FORCE_LEAK: true",
-            f"RECIPIENT: {recipient}",
-            f"TIMESTAMP: {ts}",
-            "---",
-            "",
-            "# Force-leak override — audit record",
-            "",
-            f"**Agent:** {sender}@mesh  **Recipient:** {recipient}",
-            "",
-            "**Matched patterns (would have been blocked):**",
-        ]
-        for lineno, snippet, desc in hits:
-            lines.append(f"- Line {lineno}: [{desc}] near: {snippet!r}")
-        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        return path
-    except OSError as e:
-        print(f"mesh-send: force-leak audit could not be written to {decisions_dir}: {e}",
-              file=sys.stderr)
-        return None
-
-
 # ---------------------------------------------------------------------------
 # KIND enum + size caps (PROTOCOL §9)
 # ---------------------------------------------------------------------------
 KIND_CAPS_BYTES = {
-    # v2.0.0 KINDs
     "ping": 200,
     "message": None,
     "rfc": None,
@@ -175,23 +55,6 @@ KIND_CAPS_BYTES = {
     "attachment": None,
     "quarantine": None,
     "thread-stub": 200,
-    # v2.1.0 KINDs — Layer 3 work coordination
-    "task": None,
-    "task-result": None,
-    "bg-job": None,
-    "pipeline-step": None,
-    "heartbeat": 500,
-    "dead-letter": None,
-    "delegate": None,
-    "delegate-result": None,
-    # v2.1.1 KINDs — HITL
-    "hitl": None,
-    "hitl-result": None,
-    # v2.1.2 KINDs — blockers
-    "blocker": None,
-    "blocker-resolve": None,
-    # v2.1.2 KINDs — patch delivery
-    "patch": None,
 }
 
 SIZE_TIERS = [
@@ -241,17 +104,6 @@ def agent_name() -> str:
     if not uri.endswith("@mesh"):
         die(f"AGENT_URI must end with @mesh, got: {uri}")
     name = uri[:-len("@mesh")]
-    # SHAPE, not just presence. A DOUBLED suffix (danielle-desktop@mesh@mesh) strips to
-    # "danielle-desktop@mesh", which then fails the kebab-case test below with a message naming a
-    # value the caller never set — sending them hunting a name that looks correct. Diagnosed live
-    # 2026-09-06 by danielle-desktop@mesh, which hit it while sending the report about it.
-    # Say what is actually wrong, and say how to fix it, at the point it is detectable.
-    if name.endswith("@mesh") or uri.count("@mesh") > 1:
-        die(f"AGENT_URI has a DOUBLED @mesh suffix: {uri}\n"
-            f"  fix for this call:  AGENT_URI={name[:-len('@mesh')] if name.endswith('@mesh') else name}@mesh mesh-send ...\n"
-            f"  the env is corrupt upstream — a layer appended @mesh to an already-suffixed value.\n"
-            f"  static sources (compose / s6 container_environment / .profile / tmux -e) are usually\n"
-            f"  clean; check the live process env: tr '\\0' '\\n' < /proc/$$/environ | grep AGENT_URI")
     if not re.fullmatch(r"[a-z0-9][a-z0-9\-]*", name):
         die(f"AGENT_URI agent name must be kebab-case, got: {name}")
     return name
@@ -280,38 +132,15 @@ def sweep_stale_claims(inbox: Path) -> None:
 
 
 def find_start_seq(inbox: Path, date: str) -> int:
-    """Return first seq num to try (max existing + 1, or 1).
-
-    2026-08-27: this scanned ONLY the visible inbox, so acking a message — which
-    moves it to .read/ — retired its sequence number from the allocator's view and
-    the number was handed out again. The defect scales with how fast the RECIPIENT
-    drains, so it is worst in the desk->host direction (host acks fastest).
-    Measured on host@mesh for one day: 90 messages, 49 distinct numbers, 17 reused,
-    64% not uniquely nameable by (date, seq). Found by bun-desktop@mesh.
-
-    Fix: also scan .read/ (and .archive/.acked), so a number is retired for the day
-    once used. claim_slot still allocates atomically via mkdir — this only stops the
-    START point walking back over used numbers. An unreadable archive is skipped
-    rather than silently lowering the start.
-    """
+    """Return first seq num to try (max existing + 1, or 1)."""
     if not inbox.is_dir():
         return 1
     prefix_re = re.compile(rf"^{re.escape(date)}-(\d{{3}})-")
     maxn = 0
-    scan_dirs = [inbox]
-    for sub in (".read", ".archive", ".acked"):
-        d = inbox / sub
-        if d.is_dir():
-            scan_dirs.append(d)
-    for d in scan_dirs:
-        try:
-            entries = list(d.iterdir())
-        except OSError:
-            continue
-        for entry in entries:
-            m = prefix_re.match(entry.name)
-            if m:
-                maxn = max(maxn, int(m.group(1)))
+    for entry in inbox.iterdir():
+        m = prefix_re.match(entry.name)
+        if m:
+            maxn = max(maxn, int(m.group(1)))
     return maxn + 1 if maxn else 1
 
 
@@ -322,7 +151,7 @@ def claim_slot(inbox: Path, sender: str, topic: str) -> tuple[str, Path]:
     release_claim() to remove the .claim sentinel.
     """
     sweep_stale_claims(inbox)
-    date = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
+    date = _dt.datetime.utcnow().strftime("%Y-%m-%d")
     start = find_start_seq(inbox, date)
 
     def _try_range(rng):
@@ -421,24 +250,12 @@ def log_drop(message: str) -> None:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-class _ArgumentParser(argparse.ArgumentParser):
-    """Remap argparse's default exit-2 to exit-3 so exit 2 stays exclusively
-    for rate-limit (PROTOCOL §9). Without this, `mesh-send --bad-flag` and
-    `mesh-send` hitting the urgent rate-limit both exit 2, making them
-    indistinguishable for callers using exit codes to drive retry logic."""
-    def error(self, message: str) -> None:
-        self.print_usage(sys.stderr)
-        print(f"{self.prog}: error: {message}", file=sys.stderr)
-        sys.exit(3)
-
-
 def parse_args() -> argparse.Namespace:
-    p = _ArgumentParser(description="Write a file to a peer agent's inbox over the JamBot agent mesh.")
+    p = argparse.ArgumentParser(description="Write a file to a peer agent's inbox over the JamBot agent mesh.")
     p.add_argument("--to", required=True, help="recipient URI, e.g. host@mesh")
     p.add_argument("--kind", required=True, choices=sorted(KIND_CAPS_BYTES.keys()))
     p.add_argument("--subject", required=True, help="kebab-case topic (becomes filename <topic> segment)")
-    p.add_argument("--replies-to", "--reply-to", default=None, dest="replies_to",
-                   help="prior filename this replies to")
+    p.add_argument("--replies-to", default=None, help="prior filename this replies to")
     p.add_argument("--cc", action="append", default=[], help="cc recipient URI, repeatable")
     p.add_argument("--urgent", action="store_true", help="add URGENT: true frontmatter (required for KIND urgent; carve-out for KIND ack)")
     p.add_argument("--state-check", default=None, help="STATE_CHECK frontmatter (forensic snapshot text)")
@@ -446,46 +263,20 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--thread", default=None, help="THREAD frontmatter (threads/<slug>)")
     p.add_argument("--promoted-to", default=None, help="PROMOTED_TO frontmatter (for thread-stub)")
     p.add_argument("--end-of-turn", default=None, help="END-OF-TURN frontmatter; defaults to '<to> — reply expected'")
-    # RETRACTION (PROTOCOL §20, v2.1.5). Withdraws a message already delivered. Frontmatter
-    # ONLY -- a RETRACTS: line in a body is text, not a retraction, so there was no way to
-    # emit a real one before this flag existed.
-    p.add_argument("--retracts", default=None,
-                   help="RETRACTS frontmatter: the exact filename as it landed in the "
-                        "recipient's inbox (PROTOCOL §20). ONE per message.")
-    p.add_argument("--retract-reason", default=None,
-                   help="RETRACT-REASON frontmatter: one line, echoed back in the disposition")
     p.add_argument("--dry-run", action="store_true", help="show what would be written without writing")
-    p.add_argument("--force-leak", action="store_true",
-                   help="bypass intel filter and send anyway; creates an audit entry in mesh/DECISIONS/")
-
-    # NEVER echo the VALUES of unrecognised arguments (2026-08-15).
-    # argparse's built-in message is "unrecognized arguments: --body <the entire
-    # payload>". For a tool whose payload IS a message body, that quotes the whole
-    # message back to the terminal — and a caller piping through head/tail then sees
-    # their own text as the last thing on screen, which is indistinguishable from a
-    # successful send. Combined with a pipe eating $?, the failure is invisible twice
-    # over. host@mesh and mac-claude@mesh each burned on this independently; in the
-    # host's case a composed reply was reported sent and delivered nowhere.
-    # Fixing the CLASS, not just --body: any unknown flag carrying content has the
-    # same shape, and for a tool with an intel filter, echoing an unparsed value to
-    # stderr is also the one path that bypasses the filter entirely.
-    args, _extras = p.parse_known_args()
-    if _extras:
-        _flags = sorted({e.split("=", 1)[0] for e in _extras if e.startswith("-")})
-        _n_vals = len(_extras) - len(_flags)
-        _msg = ("unrecognized arguments: " + ", ".join(_flags)) if _flags \
-               else f"unrecognized arguments: {len(_extras)} positional value(s)"
-        if _n_vals > 0:
-            _msg += f"  (+{_n_vals} value(s) withheld — NOT echoed by design)"
-        if "--body" in _flags:
-            _msg += ("\n\n  --body is NOT a flag. The message body is read from STDIN:\n"
-                     "      mesh-send --to X@mesh --kind message --subject 'topic' < body.md\n"
-                     "  Verify DELIVERY (file present in <to>/inbox/ AND <self>/sent/), never stdout.")
-        p.error(_msg)   # exits 3 via _ArgumentParser.error
-    return args
+    return p.parse_args()
 
 
 def main() -> None:
+    # Voice-tenant admin gate (added 2026-05-13). See mesh-gate-check.
+    import subprocess
+    gate_check = Path(__file__).parent / "mesh-gate-check"
+    if gate_check.exists():
+        try:
+            subprocess.run([str(gate_check)], check=True, capture_output=False)
+        except subprocess.CalledProcessError:
+            sys.exit(4)
+
     args = parse_args()
     sender = agent_name()
     mesh_dir, agents_dir, my_dir = discover_mesh_root()
@@ -510,25 +301,6 @@ def main() -> None:
 
     # ---- body + size ----
     body = sys.stdin.read()
-
-    # ---- intel leak filter ----
-    hits = _run_intel_filter(body, my_dir)
-    if hits:
-        if args.force_leak:
-            # Fail CLOSED: no audit record, no override. See _write_force_leak_audit.
-            if _write_force_leak_audit(mesh_dir, sender, args.to, hits) is None:
-                print("mesh-send: REFUSED — --force-leak requires an audit record in "
-                      "mesh/DECISIONS/ and it could not be written.", file=sys.stderr)
-                print("mesh-send: the override is DENIED, not downgraded. Nothing was sent.",
-                      file=sys.stderr)
-                sys.exit(5)
-        else:
-            print("mesh-send: BLOCKED — potential secret / business intel detected:", file=sys.stderr)
-            for lineno, snippet, desc in hits:
-                print(f"  line {lineno}: [{desc}]  near: {snippet!r}", file=sys.stderr)
-            print("mesh-send: use --force-leak to override (creates audit entry in mesh/DECISIONS/)", file=sys.stderr)
-            sys.exit(4)
-
     body_bytes = body.encode("utf-8")
     size_tier = compute_size_tier(len(body_bytes))
     cap = KIND_CAPS_BYTES.get(args.kind)
@@ -599,10 +371,6 @@ def main() -> None:
         fm_lines.append(f"THREAD: {args.thread}")
     if args.promoted_to:
         fm_lines.append(f"PROMOTED_TO: {args.promoted_to}")
-    if getattr(args, "retracts", None):
-        fm_lines.append(f"RETRACTS: {args.retracts}")
-    if getattr(args, "retract_reason", None):
-        fm_lines.append(f"RETRACT-REASON: {args.retract_reason}")
     if args.urgent:
         fm_lines.append("URGENT: true")
     fm_lines.append("---")
@@ -625,12 +393,12 @@ def main() -> None:
 
     # ---- write primary ----
     try:
-        _write_atomic(md_path, content)
+        md_path.write_text(content, encoding="utf-8")
         # sent/ mirror (keeps audit record + powers AUTHOR validation + RECENT.md)
         if sent_dir.is_dir():
             sent_path = sent_dir / f"{slot}.md"
             try:
-                _write_atomic(sent_path, content)
+                sent_path.write_text(content, encoding="utf-8")
             except OSError as e:
                 print(f"mesh-send: warning: could not mirror to sent/: {e}", file=sys.stderr)
         # cc fanout — via the rw /mesh/cc/ overlay
@@ -638,26 +406,15 @@ def main() -> None:
             cc_dir = mesh_dir / "cc" / cc
             try:
                 cc_dir.mkdir(parents=True, exist_ok=True)
-                _write_atomic(cc_dir / f"{slot}.md", content)
+                (cc_dir / f"{slot}.md").write_text(content, encoding="utf-8")
             except OSError as e:
                 print(f"mesh-send: warning: could not cc to {cc}: {e}", file=sys.stderr)
     finally:
         release_claim(claim)
 
     # ---- log drop ----
-    ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    # FILTER PROVENANCE (2026-08-25). MESH_INTEL_FILTER is the FIRST candidate in
-    # _load_intel_filter(), so an env var silently replaces the outbound secret filter with
-    # anything -- including a stub whose run() returns [] -- taking precedence over every real
-    # lib. Nothing recorded which copy actually screened a send, so the append-only log could
-    # not distinguish "completed because the filter is broken" from "completed because someone
-    # swapped the filter". That ambiguity cost two agents an hour chasing a phantom gap, and it
-    # also routes around --force-leak, whose entire purpose is an audit entry in mesh/DECISIONS/.
-    import os as _os2
-    _fsrc = globals().get("_INTEL_SRC") or "unresolved"
-    _fenv = " FILTER-OVERRIDE=env" if _os2.environ.get("MESH_INTEL_FILTER") else ""
-    log_drop(f"# MESH-SEND {ts} sender={sender} to={recipient} kind={args.kind} file={slot}.md"
-             f" filter={_fsrc}{_fenv}")
+    ts = _dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    log_drop(f"# MESH-SEND {ts} sender={sender} to={recipient} kind={args.kind} file={slot}.md")
 
     print(str(md_path))
 

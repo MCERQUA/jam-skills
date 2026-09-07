@@ -446,14 +446,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--thread", default=None, help="THREAD frontmatter (threads/<slug>)")
     p.add_argument("--promoted-to", default=None, help="PROMOTED_TO frontmatter (for thread-stub)")
     p.add_argument("--end-of-turn", default=None, help="END-OF-TURN frontmatter; defaults to '<to> — reply expected'")
-    # RETRACTION (PROTOCOL §20, v2.1.5). Withdraws a message already delivered. Frontmatter
-    # ONLY -- a RETRACTS: line in a body is text, not a retraction, so there was no way to
-    # emit a real one before this flag existed.
-    p.add_argument("--retracts", default=None,
-                   help="RETRACTS frontmatter: the exact filename as it landed in the "
-                        "recipient's inbox (PROTOCOL §20). ONE per message.")
-    p.add_argument("--retract-reason", default=None,
-                   help="RETRACT-REASON frontmatter: one line, echoed back in the disposition")
     p.add_argument("--dry-run", action="store_true", help="show what would be written without writing")
     p.add_argument("--force-leak", action="store_true",
                    help="bypass intel filter and send anyway; creates an audit entry in mesh/DECISIONS/")
@@ -599,10 +591,6 @@ def main() -> None:
         fm_lines.append(f"THREAD: {args.thread}")
     if args.promoted_to:
         fm_lines.append(f"PROMOTED_TO: {args.promoted_to}")
-    if getattr(args, "retracts", None):
-        fm_lines.append(f"RETRACTS: {args.retracts}")
-    if getattr(args, "retract_reason", None):
-        fm_lines.append(f"RETRACT-REASON: {args.retract_reason}")
     if args.urgent:
         fm_lines.append("URGENT: true")
     fm_lines.append("---")

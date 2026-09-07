@@ -4,11 +4,3 @@ node_modules/
 *.pyc
 *.sqlite
 *.db
-
-# dated backups kept on disk per the never-delete rule, but not tracked
-*.bak-*
-*.pre-*
-
-# 316MB vendored CLI binary — swept in by the daily snapshot cron 2026-08-19,
-# blocked every push to this PUBLIC repo for 24 days (GH001 large file).
-.claude-cli/
