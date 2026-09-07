@@ -15,6 +15,42 @@ TENANT="${1:?tenant required (nick / danielle / test-dev / mike)}"
 TO="${2:?to phone E.164 required (+1XXXXXXXXXX)}"
 BODY="${3:?body required}"
 
+# ── CROSS-TENANT RECIPIENT GUARD (2026-09-07) ───────────────────────────────────────
+# This script took <tenant> and <to> as independent arguments and never checked that the
+# destination belonged to the tenant. Measured 2026-09-07 23:07:08Z: danielle's "Daily
+# Money Brief from Danielle" was DELIVERED (HTTP 201, not blocked) to +19132063301 —
+# phatty's owner. danielle's own USER.md documents her number as +12894048807, on the very
+# line that shows how to call this script. One wrong argument put one client's business
+# content on another client's phone, and nothing in the path could see it.
+#
+# The check is deliberately NARROW, because a tenant legitimately texts numbers we have
+# never seen (leads, customers, suppliers):
+#   · destination NOT in the registry        -> ALLOW  (unknown != wrong; do not break outreach)
+#   · destination registered to THIS tenant  -> ALLOW
+#   · destination registered to ANOTHER one  -> REFUSE (this is the only unambiguous case)
+# So it blocks exactly tonight's failure and nothing else. Override for a deliberate
+# cross-tenant send (a human relaying, an operator test) with SMS_ALLOW_CROSS_TENANT=1,
+# which is logged by the router either way.
+REG520="${REG520_FILE:-/mnt/system/setup-host/config/registered-520.json}"
+if [ "${SMS_ALLOW_CROSS_TENANT:-0}" != "1" ] && [ -r "$REG520" ]; then
+  OWNER=$(TO="$TO" REG="$REG520" python3 -c "
+import json, os, sys
+try:
+    d = json.load(open(os.environ['REG']))
+except Exception:
+    sys.exit(0)                      # registry unreadable -> do not block a real send
+e = d.get(os.environ['TO'])
+if isinstance(e, dict) and e.get('tenant'):
+    print(e['tenant'])
+" 2>/dev/null || true)
+  if [ -n "$OWNER" ] && [ "$OWNER" != "$TENANT" ]; then
+    echo "REFUSED: $TO is registered to tenant '$OWNER', not '$TENANT'." >&2
+    echo "  Sending '$TENANT' content to another tenant's owner is a cross-tenant leak." >&2
+    echo "  If this is deliberate, re-run with SMS_ALLOW_CROSS_TENANT=1." >&2
+    exit 3
+  fi
+fi
+
 # Auto-detect host IP from container's default route.
 # /proc/net/route format: column 2 = destination (00000000 = default), column 3 = gateway in hex little-endian.
 detect_host_ip() {
