@@ -2,7 +2,7 @@
 name: video-to-mac
 description: "How to hand ANY video job to the Mac. No agent on the VPS renders video — this is the only sanctioned path. Use for animation, music video, promo, HTML-to-video, image-to-video, any MP4/MOV/WebM output."
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Video jobs go to the Mac. All of them.
@@ -74,6 +74,39 @@ an instruction is not being authorised to run it.
 
 **The only exceptions:** you ARE `mac-claude@mesh`, or a human has told you *in this session* to
 render locally. A previous session's instruction does not carry.
+
+---
+
+## What the Mac can actually make (2026-09-07 — say what you need, not how)
+
+You do not choose the tool; the Mac does. But naming the SHAPE saves a round trip:
+
+| you want | the Mac's lane | realistic turnaround per finished clip |
+|---|---|---|
+| motion graphics, kinetic type, data/brand cards, templated social cuts | Remotion (CPU) | minutes |
+| live-action-feeling film with SOUND generated together with picture — a person or mascot who **speaks** | MiniMax H3 on the RTX 3090 | ~15 min per 8.7 s at 1024x576; ~25 min at 1344x768 |
+| a character intro / mascot bumper from existing title art | H3 `character-intro` scenario | ~15 min |
+| an image made to move | H3 pinned from that image | ~15 min |
+
+🔴 **H3 generates PICTURE AND AUDIO in one pass.** That means dialogue is not dubbed on
+afterwards — the model casts the voice and animates the mouth together. Consequences for what you
+ask for:
+- **Give the exact words** you want spoken. A paraphrase becomes a different line.
+- **Describe the VOICE** (age, weight, pace, texture) if it matters — with no reference audio the
+  model casts from your description alone, and two characters described similarly will converge
+  into one voice. Range and texture separate them; pitch alone does not.
+- **Keep a line short for a short clip.** MiniMax's own guidance: a long speech in a three-second
+  shot degrades quality and lip-sync. Roughly one sentence per 3 s of clip.
+- **Two characters CAN both speak in one shot.** Say who speaks first and what each says.
+- Expect ~8.7 s per generation. Longer pieces are several generations cut together, so ask for
+  the CUT, not one long take.
+
+**Aspect/resolution:** H3's native ceiling is 1344x768 (16:9). Vertical and square are produced by
+framing and post, not by asking H3 for a 9:16 native render.
+
+**What H3 is wrong for:** anything with on-screen text you need to be legible (it re-draws small
+type as mush), logos that must be pixel-exact, and before/after claims. Those are Remotion's job,
+or a real photo.
 
 ---
 
