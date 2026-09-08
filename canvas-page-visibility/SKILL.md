@@ -45,3 +45,10 @@ no login. That's the link to put in a tweet / send to a client.
   its visibility; ask the host to unlock it.
 - The host `openvoiceui:5001` resolves on your tenant's internal network (also `openvoiceui-<tenant>:5001`).
 - This is READ-nothing/WRITE-visibility-only; it does not expose secrets. Only YOUR tenant's pages.
+
+## Need to hand the owner ONE FILE, not a page?
+
+You do not have to make the page public. Files in `/app/runtime/uploads/` are served at
+`/uploads/<file>` **without login** (measured 2026-09-08). See canvas-pages skill → Uploads →
+"Public-URL delivery fallback" for the four rules (no PII ever · only what the owner asked for ·
+queue-ack is not delivery · readable filename). The page itself stays private under the HARD RULE above.
