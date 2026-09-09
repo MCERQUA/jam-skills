@@ -38,10 +38,19 @@ Subcommands:
                         remove expired events (respects TTL frontmatter)
 
 Exit codes:
-    0  success
+    0  success — for `publish`: the event is durable and every subscriber REACHABLE from this
+       topology was notified (lanes with no path from here are listed, not failed; the host
+       sweeper delivers them within 5 min)
     1  not found / no events
     3  usage error
     4  intel filter blocked (publish subcommand) — use --force-leak to override
+    5  topic does not exist (EXIT_NO_TOPIC)
+    6  partial delivery — a subscriber inbox that WAS resolvable refused the write
+       (EXIT_PARTIAL_DELIVERY, 2026-09-09 contract; see BLACKBOARD/bin/PATTERN-mesh-cli-exit-codes.md)
+
+stdout contract for `publish` (2026-09-09): TWO lines — the event id, then the
+"notified X/N reachable subscribers …" status (also echoed on stderr). No live caller captured
+stdout when this changed; a new caller must read line 1 for the id.
 """
 from __future__ import annotations
 
