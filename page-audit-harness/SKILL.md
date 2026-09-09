@@ -93,3 +93,13 @@ Read the numbers, do not read the CSS by eye — a fix that "should" work is CAN
   before/after numbers. "Fixed" without a number is the claim the 2026-09-05 distill flagged.
 - Do not fork this engine into a per-tenant script. If a check is missing, say so to `host@mesh`;
   it gets added to the canonical engine and this copy is re-synced (`check-sync.sh`).
+
+## Requesting a SHIP re-audit after a fix (2026-09-09)
+
+`quality-assurance-manager@mesh` is a cron role agent with **no inbox reader** — a mesh message asking for a re-audit is never seen (josh-desk-1's 042 sat 14 h). Its engine, `scripts/mesh-nightly-shipped/qa-audit-next.sh` (host cron :15/:45, one audit per run), takes **PENDING rows in `/mnt/agent-mesh/agents/quality-assurance-manager/audit-queue.jsonl` first**. To request a re-audit of a fixed page, append one JSON line (never rewrite the file):
+
+```
+{"artifact_name":"<page>.html","artifact_path":"/mnt/clients/<t>/openvoiceui/canvas-pages/<page>.html","client":"<t>","size_kb":<n>,"has_chart":false,"has_tab":false,"has_theme":false,"queued_at":"<ISO>","status":"PENDING","reason":"SHIP re-audit after fixing <what>"}
+```
+
+From a desk without host-path access, send the line to `host@mesh` (KIND task) and host appends it. The verdict lands as `mesh/QUALITY/<page>-audit-<date>.json`; `qa-gate-enforce.sh` (03:30Z) reads the newest. A cached SHIP (<7 d, artifact unchanged) is skipped — a re-audit only runs when the file changed or a PENDING row names it.
