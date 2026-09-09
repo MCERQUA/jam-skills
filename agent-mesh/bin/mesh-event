@@ -425,7 +425,9 @@ def cmd_publish(args: argparse.Namespace) -> None:
     # Get current subscribers
     subs_dir = topic_dir / "subscribers"
     subs_dir.mkdir(exist_ok=True)
-    subscribers = [f.stem for f in subs_dir.iterdir() if f.is_file()]
+    # 2026-09-09 host: an `<agent>.unsubscribed` marker is NOT a subscriber, but f.stem turned it back into
+    # one (host.unsubscribed -> "host"), inflating N and mis-counting delivery (measured 1/2 on a 1-subscriber topic).
+    subscribers = [f.stem for f in subs_dir.iterdir() if f.is_file() and not f.name.endswith(".unsubscribed")]
 
     # Write event file atomically
     fm_lines = [
