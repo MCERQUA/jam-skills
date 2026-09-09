@@ -42,16 +42,58 @@ def agent_name() -> str:
     return name
 
 
-def discover_my_inbox() -> Path:
+def resolve_my_desk_dir() -> Path:
+    """Return this agent's own desk-root directory (the dir whose "inbox" and
+    other per-desk state actually belong to AGENT_URI), robust to a container
+    that bind-mounts MULTIPLE agents' desks at once.
+
+    Resolution order:
+      1. MESH_ROOT env override (explicit host-mesh layout).
+      2. A desk dir matching this agent's OWN "-desk-<N>" suffix: /agent-desk-<N>
+         — checked BEFORE the bare /agent-desk mount, and only trusted if that
+         exact numbered dir exists on this container.
+      3. /agent-desk — but ONLY when AGENT_URI has NO "-desk-<N>" suffix (the
+         single-desk-per-container case, or the primary "-desktop"/base identity
+         that legitimately owns /agent-desk even on a dual-mounted container).
+      4. Host path /mnt/agent-mesh/agents/<name>.
+
+    Bug fixed 2026-09-09 (measured by josh-desk-1@mesh): webtop-ubuntu-os-josh
+    mounts BOTH /agent-desk (josh-desktop's desk) and /agent-desk-1 (josh-desk-1's
+    OWN desk). The old code checked Path("/agent-desk").is_dir() first,
+    unconditionally, so every "-desk-N" identity sharing that container silently
+    read josh-desktop's inbox instead of its own — 21 unacked messages sat
+    unread while mesh-recv reported "0 unread drained", and mesh-on / the
+    ACTION-prompt relay issued false work orders off the wrong agent's mail.
+    """
     override = os.environ.get("MESH_ROOT")
     if override:
-        return Path(override) / "agents" / agent_name() / "inbox"
-    if Path("/agent-desk").is_dir():
-        return Path("/agent-desk/inbox")
+        return Path(override) / "agents" / agent_name()
+
+    name = agent_name()
+    m = re.match(r"^(.+)-desk-(\d+)$", name)
+    if m:
+        desk_n_dir = Path(f"/agent-desk-{m.group(2)}")
+        if desk_n_dir.is_dir():
+            return desk_n_dir
+        # A "-desk-N" identity with no matching numbered mount on this container.
+        # Do NOT silently fall back to /agent-desk — that is another agent's desk.
+    elif Path("/agent-desk").is_dir():
+        return Path("/agent-desk")
+
     if Path("/mnt/agent-mesh").is_dir():
-        return Path("/mnt/agent-mesh/agents") / agent_name() / "inbox"
+        return Path("/mnt/agent-mesh/agents") / name
+
     die("cannot discover mesh root — set MESH_ROOT")
 
+
+def discover_my_inbox() -> Path:
+    # MESH_INBOX, when set, names THIS desk's own inbox directly and wins over
+    # every path-guessing fallback below (belt-and-suspenders alongside the
+    # AGENT_URI desk-N match in resolve_my_desk_dir()).
+    inbox_override = os.environ.get("MESH_INBOX")
+    if inbox_override:
+        return Path(inbox_override)
+    return resolve_my_desk_dir() / "inbox"
 
 def parse_frontmatter(text: str) -> dict:
     """Tiny YAML-ish parser. We only need flat key: value pairs."""

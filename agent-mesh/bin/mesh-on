@@ -71,20 +71,57 @@ def agent_name() -> str:
     return name
 
 
+def resolve_my_desk_dir() -> Path:
+    """Return this agent's own desk-root directory. See mesh-recv's identical
+    helper for the full rationale; kept in sync by hand (stdlib-only tools,
+    no shared import). Order: MESH_ROOT override -> desk-N mount matching
+    AGENT_URI's own "-desk-<N>" suffix -> bare /agent-desk (only with no
+    desk-N suffix) -> host path.
+    """
+    override = os.environ.get("MESH_ROOT")
+    if override:
+        return Path(override) / "agents" / agent_name()
+
+    name = agent_name()
+    m = re.match(r"^(.+)-desk-(\d+)$", name)
+    if m:
+        desk_n_dir = Path(f"/agent-desk-{m.group(2)}")
+        if desk_n_dir.is_dir():
+            return desk_n_dir
+    elif Path("/agent-desk").is_dir():
+        return Path("/agent-desk")
+
+    if Path("/mnt/agent-mesh").is_dir():
+        return Path("/mnt/agent-mesh/agents") / name
+
+    die("cannot discover mesh root — set MESH_ROOT")
+
+
 def discover_roots() -> tuple[Path, Path, Path]:
-    """Return (mesh_dir, my_dir, watchdog_log_path)."""
+    """Return (mesh_dir, my_dir, watchdog_log_path).
+
+    Bug fixed 2026-09-09 (measured by josh-desk-1@mesh): on a container that
+    bind-mounts BOTH /agent-desk (another agent's desk) and /agent-desk-<N>
+    (this agent's own desk — e.g. webtop-ubuntu-os-josh carries josh-desktop
+    at /agent-desk and josh-desk-1..4 at /agent-desk-1..4), the old check
+    `Path("/agent-desk").is_dir()` matched FIRST unconditionally, so every
+    "-desk-N" identity silently swept and read another agent's claims/inbox.
+    my_dir now goes through resolve_my_desk_dir(), which checks the AGENT_URI-
+    matched /agent-desk-<N> mount before ever falling back to /agent-desk.
+    """
     override = os.environ.get("MESH_ROOT")
     if override:
         root = Path(override)
         return root / "mesh", root / "agents" / agent_name(), Path("/var/log/jambot-mesh-inotify.log")
 
-    if Path("/agent-desk").is_dir() and Path("/mesh").is_dir():
-        return Path("/mesh"), Path("/agent-desk"), Path("/config/workspace/mesh-events.log")
+    my_dir = resolve_my_desk_dir()
+    if my_dir != Path("/mnt/agent-mesh/agents") / agent_name() and Path("/mesh").is_dir():
+        return Path("/mesh"), my_dir, Path("/config/workspace/mesh-events.log")
 
     if Path("/mnt/agent-mesh").is_dir():
         return (
             Path("/mnt/agent-mesh/mesh"),
-            Path("/mnt/agent-mesh/agents") / agent_name(),
+            my_dir,
             Path("/var/log/jambot-mesh-inotify.log"),
         )
 
@@ -209,7 +246,7 @@ def main() -> None:
     print(f"mesh-on: PROTOCOL.md version {version} (mtime {mt_iso})")
 
     # ---- 3. Inbox summary ----
-    inbox = my_dir / "inbox"
+    inbox = Path(os.environ["MESH_INBOX"]) if os.environ.get("MESH_INBOX") else my_dir / "inbox"
     stats = list_inbox_summary(inbox, args.quiet)
     print(f"mesh-on: {stats['unread']} unread / {stats['read']} acked in {inbox}")
     if not args.quiet and stats["files"]:
