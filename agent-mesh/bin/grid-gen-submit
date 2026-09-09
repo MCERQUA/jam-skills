@@ -136,6 +136,50 @@ def main() -> None:
         except OSError:
             pass  # non-fatal — queue file still drives the Mac
 
+    # ── PRODUCER-SIDE FIRST MARKER + PUSH ANNOUNCE (host, 2026-09-09) ──────────────────────
+    # There is NO drain loop on the Mac by design (Mike's 2026-07-30 hold on Mac pollers after a
+    # 23,500-file runaway): the consumer is ping-triggered. Until today nothing pinged it, so an
+    # order sat unseen and the tenant page showed nothing, because the first status marker was
+    # written by the consumer that never ran (danielle, 2 orders, 2026-09-09 17:23/17:37Z).
+    # Now: (1) the producer writes the first `queued` marker (mesh .status/ + tenant grid-orders/),
+    # (2) a KIND:task lands in mac-claude's inbox (its task-runner already drains it) — push, not
+    # poll, so the hold's condition never applies. Host's unwatched-queues monitor is the backstop.
+    marker = {"request_id": rid, "client_id": a.client, "status": "queued", "done": 0,
+              "count": order["count"], "files": [], "error": None,
+              "updated_at": order["submitted_at"],
+              "note": "queued by grid-gen-submit; the Mac writes every later transition"}
+    for mdir in [os.path.join(QUEUE, ".status")] + ([rec_dir] if rec_dir else []):
+        try:
+            os.makedirs(mdir, exist_ok=True)
+            mpath = os.path.join(mdir, f"{rid}.status.json")
+            if not os.path.exists(mpath):  # never clobber a consumer-written transition
+                mfd, mtmp = tempfile.mkstemp(dir=mdir, prefix=f".{rid}.", suffix=".tmp")
+                with os.fdopen(mfd, "w") as f:
+                    json.dump(marker, f)
+                os.chmod(mtmp, 0o664)
+                os.rename(mtmp, mpath)
+        except OSError:
+            pass  # marker is for the page; the queue file + announce are the trigger
+    announce_ok = False
+    try:
+        import subprocess
+        body = (f"grid-gen order {rid} for client {a.client}: {order['count']} x {a.type} "
+                f"(aspect {a.aspect}, layout {layout}), submitted {order['submitted_at']}, reply_to {order['reply_to']}.\n"
+                f"Order file: /mesh/grid-gen-queue/{rid}.json (brief inside). Expected: move to .processing, write the status "
+                f"markers at every transition, then .done. No poller exists on your side by design — this message is the trigger.")
+        r = subprocess.run(["mesh-send", "--to", "mac-claude@mesh", "--kind", "task",
+                            "--subject", f"grid-order-{rid}-{a.client}-{order['count']}x{a.type}",
+                            "--end-of-turn", "mac-claude@mesh — drain this order"],
+                           input=body, capture_output=True, text=True, timeout=30)
+        announce_ok = (r.returncode == 0)
+        if not announce_ok:
+            print(f"  ANNOUNCE FAILED (rc={r.returncode}): {(r.stderr or r.stdout).strip()[:160]}")
+    except Exception as e:  # noqa: BLE001
+        print(f"  ANNOUNCE FAILED: {e}")
+    if announce_ok:
+        print("  announced to mac-claude@mesh (push-triggered drain; no poller on the Mac by design)")
+    else:
+        print("  order is queued but NOT announced — host's unwatched-queues monitor pages mac-claude within 30 min")
     print(f"grid-gen queued: {dst}")
     print(f"  client={a.client} type={a.type} count={order['count']} "
           f"aspect={a.aspect} layout={layout}")
