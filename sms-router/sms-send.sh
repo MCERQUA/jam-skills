@@ -11,9 +11,38 @@
 
 set -euo pipefail
 
-TENANT="${1:?tenant required (nick / danielle / test-dev / mike)}"
+TENANT="${1:?tenant required: YOUR OWN tenant name, the word before the dash in AGENT_URI, e.g. phatty}"
 TO="${2:?to phone E.164 required (+1XXXXXXXXXX)}"
 BODY="${3:?body required}"
+
+# -- SELF-TENANT ENFORCEMENT (2026-09-08) --------------------------------------------------
+# A container may only send AS ITSELF. Measured 2026-09-07/08: the phatty agent wrote itself a
+# skill note saying its tenant argument was danielle (copied from the example list that used to
+# sit in this usage text), so every daily brief from the phatty vault went out tagged as another
+# client, was filed in that client records and was signed with her name. This check uses the
+# container identity (HOST_TENANT / AGENT_URI), which the agent cannot mistype, before any
+# network call. NOTE: the recipient guard below reads a HOST path that is NOT mounted in tenant
+# containers, so inside a container it is inert; the effective recipient guard is host-side
+# (jambot-sms-outbound-drain.py, 2026-09-08). Operator override: SMS_ALLOW_CROSS_TENANT=1.
+# Identity source order: AGENT_URI (phatty-voice@mesh -> phatty) > CLIENT_NAME (Phatty -> phatty)
+# > SMS_SELF_TENANT. NEVER HOST_TENANT: measured 2026-09-09 00:05Z, hermes containers carry
+# HOST_TENANT=test-dev (the PLATFORM host tenant), which made this guard refuse every real send.
+# If none is set the guard is skipped (unknown is not a reason to block a real send).
+SELF_TENANT="${SMS_SELF_TENANT:-}"
+if [ -z "$SELF_TENANT" ] && [ -n "${AGENT_URI:-}" ]; then
+  SELF_TENANT="${AGENT_URI%%@*}"
+  SELF_TENANT="${SELF_TENANT%-voice}"; SELF_TENANT="${SELF_TENANT%-sms}"; SELF_TENANT="${SELF_TENANT%-host}"; SELF_TENANT="${SELF_TENANT%-desktop}"; SELF_TENANT="${SELF_TENANT%-coder}"
+fi
+if [ -z "$SELF_TENANT" ] && [ -n "${CLIENT_NAME:-}" ]; then
+  SELF_TENANT="$(printf '%s' "$CLIENT_NAME" | tr '[:upper:]' '[:lower:]')"
+fi
+if [ "${SMS_ALLOW_CROSS_TENANT:-0}" != "1" ] && [ -n "$SELF_TENANT" ] && [ "$TENANT" != "$SELF_TENANT" ]; then
+  echo "REFUSED: this container is tenant $SELF_TENANT (from AGENT_URI/HOST_TENANT); it cannot send as $TENANT." >&2
+  echo "  Use $SELF_TENANT as the first argument. If the router refuses that, stop and tell host@mesh. Never borrow another tenant name." >&2
+  exit 3
+fi
+# SMS_DRY_RUN=1: print the resolved request and exit 0 before ANY send or queue write (guard tests).
+if [ "${SMS_DRY_RUN:-0}" = "1" ]; then echo "DRY-RUN: would send as tenant=$TENANT to=$TO (self=${SELF_TENANT:-unknown}); nothing sent, nothing queued"; exit 0; fi
 
 # ── CROSS-TENANT RECIPIENT GUARD (2026-09-07) ───────────────────────────────────────
 # This script took <tenant> and <to> as independent arguments and never checked that the
