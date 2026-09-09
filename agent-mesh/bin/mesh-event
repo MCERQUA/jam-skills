@@ -443,6 +443,7 @@ def cmd_publish(args: argparse.Namespace) -> None:
         "---",
         f"KIND: event",
         f"EVENT_ID: {event_id}",
+        *(["NOTIFY: none"] if getattr(args, "no_notify", False) else []),
         f"TOPIC: {args.topic}",
         f"AUTHOR: {me}",
         f"PUBLISHED_AT: {ts}",
@@ -482,6 +483,8 @@ def cmd_publish(args: argparse.Namespace) -> None:
     # host-absolute path first (when agents_dir is usable) and falls back to
     # the container cross-peer convention `/peer-inbox/<name>` — the same
     # resolution mesh-send already used successfully from this same desk.
+    if getattr(args, "no_notify", False):
+        subscribers = []  # durable body only; NOTIFY: none in the frontmatter tells the sweeper to leave it
     delivered = 0
     unreachable = []   # no lane to this subscriber from THIS topology (a desk sees only its /peer-inbox lanes) — host sweeper backstops
     failed = []        # a resolvable inbox where the write itself raised — the only outcome a caller can act on
@@ -849,6 +852,7 @@ def main() -> None:
     pub.add_argument("--body", default=None)
     pub.add_argument("--body-file", default=None)
     pub.add_argument("--ttl", default=None, help="time-to-live in seconds")
+    pub.add_argument("--no-notify", action="store_true", help="write the durable event only; notify nobody (archival/backfill publishes) and mark it NOTIFY: none so the fan-out sweeper skips it too")
     pub.add_argument("--force-leak", action="store_true",
                      help="bypass intel filter; creates audit entry in mesh/DECISIONS/")
 
