@@ -1,0 +1,332 @@
+#!/usr/bin/env python3
+"""mesh-on — session-start ritual for the agent mesh.
+
+Sweeps stale .claim/ slots, re-reads /mesh/PROTOCOL.md version, prints the
+bootstrap sequence summary (PROTOCOL §14), and advertises the watchdog log
+for a caller to tail.
+
+Does NOT itself tail the log — the Claude Code "Monitor" tool (or `tail -F`)
+is the appropriate way to stream events. mesh-on reports the path and the
+last ack-marker so the tailer can resume from there.
+
+Stdlib-only.
+
+Env:
+    AGENT_URI    required
+    MESH_ROOT    optional
+
+Usage:
+    mesh-on                 # full bootstrap
+    mesh-on --quiet         # skip printing message contents, only counts
+    mesh-on --sweep-only    # only do the stale-claim sweep and exit
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as _dt
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+CAPABILITIES_DIR = Path("/mesh/REGISTRY/capabilities")
+STALE_CAPABILITY_HOURS = 48
+
+
+def die(msg: str, code: int = 1) -> None:
+    print(f"mesh-on: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def agent_name() -> str:
+    uri = os.environ.get("AGENT_URI")
+    if not uri:
+        die("AGENT_URI env var required (e.g. AGENT_URI=host@mesh)")
+    if not uri.endswith("@mesh"):
+        die(f"AGENT_URI must end with @mesh, got: {uri}")
+    # Strip EVERY @mesh, not just the last one. This used to be uri[:-len("@mesh")],
+    # a single-suffix strip, while the publisher called from the same §9 run used
+    # str.replace (global). On a doubled URI the two normalisers in ONE mesh-on run
+    # disagreed -- publisher said "bun-desktop", this said "bun-desktop@mesh" -- and
+    # refresh_capability_json() wrote that through verbatim into BOTH the filename and
+    # the agent field, producing /mesh/REGISTRY/capabilities/bun-desktop@mesh.json
+    # containing {"agent": "bun-desktop@mesh@mesh"}. Found by josh-desktop 2026-09-06.
+    # Why it stayed invisible: a filename-vs-field consistency check PASSES on that
+    # file. Stem and field agree with each other; they are simply both wrong. The same
+    # check also passed on the publisher's danielle-default bug, for the opposite
+    # reason -- consistency between two derived values is satisfied by both failure
+    # modes, so it can never be the check that catches either.
+    name = uri.replace("@mesh", "")
+    if not name:
+        die(f"AGENT_URI has no agent name: {uri}")
+    if uri.count("@mesh") > 1:
+        print(f"mesh-on: WARNING - AGENT_URI has a doubled @mesh suffix ({uri}); "
+              f"normalised to {name}@mesh for this run. The env is corrupt upstream and "
+              f"mesh-send will FAIL CLOSED on it, so this lane's alarms cannot be heard. "
+              f"Fix the invoker; see deploy-desktop-mesh-keeper.sh's URI guard.",
+              file=sys.stderr)
+    return name
+
+
+def discover_roots() -> tuple[Path, Path, Path]:
+    """Return (mesh_dir, my_dir, watchdog_log_path)."""
+    override = os.environ.get("MESH_ROOT")
+    if override:
+        root = Path(override)
+        return root / "mesh", root / "agents" / agent_name(), Path("/var/log/jambot-mesh-inotify.log")
+
+    if Path("/agent-desk").is_dir() and Path("/mesh").is_dir():
+        return Path("/mesh"), Path("/agent-desk"), Path("/config/workspace/mesh-events.log")
+
+    if Path("/mnt/agent-mesh").is_dir():
+        return (
+            Path("/mnt/agent-mesh/mesh"),
+            Path("/mnt/agent-mesh/agents") / agent_name(),
+            Path("/var/log/jambot-mesh-inotify.log"),
+        )
+
+    die("cannot discover mesh root — set MESH_ROOT")
+
+
+def sweep_stale_claims(root: Path) -> int:
+    """Recursively sweep stale .claim dirs older than 60s. Returns count."""
+    if not root.is_dir():
+        return 0
+    count = 0
+    cutoff = time.time() - 60
+    for entry in root.rglob("*.claim"):
+        if entry.is_dir():
+            try:
+                if entry.stat().st_mtime < cutoff:
+                    entry.rmdir()
+                    count += 1
+            except OSError:
+                pass
+    return count
+
+
+def read_protocol_version(mesh_dir: Path) -> tuple[str, float]:
+    protocol = mesh_dir / "PROTOCOL.md"
+    if not protocol.is_file():
+        return ("(missing)", 0.0)
+    mt = protocol.stat().st_mtime
+    version = "?"
+    try:
+        with protocol.open("r", encoding="utf-8") as fh:
+            for _ in range(15):
+                line = next(fh, "")
+                m = re.match(r"^version:\s*(\S+)", line)
+                if m:
+                    version = m.group(1)
+                    break
+    except OSError:
+        pass
+    return version, mt
+
+
+def find_last_ack_marker(log_path: Path) -> str | None:
+    if not log_path.is_file():
+        return None
+    try:
+        with log_path.open("r", encoding="utf-8", errors="replace") as fh:
+            lines = fh.readlines()
+    except OSError:
+        return None
+    me = agent_name()
+    for line in reversed(lines):
+        if "# ACKED " in line and f"agent={me}" in line:
+            return line.strip()
+    return None
+
+
+def tail(path: Path, n: int) -> list[str]:
+    if not path.is_file():
+        return []
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as fh:
+            lines = fh.readlines()
+    except OSError:
+        return []
+    return lines[-n:]
+
+
+def list_inbox_summary(inbox: Path, quiet: bool) -> dict:
+    stats = {"unread": 0, "read": 0, "files": []}
+    if not inbox.is_dir():
+        return stats
+    for entry in inbox.iterdir():
+        if entry.is_file() and entry.suffix == ".md":
+            stats["unread"] += 1
+            stats["files"].append(entry.name)
+    read_dir = inbox / ".read"
+    if read_dir.is_dir():
+        for entry in read_dir.iterdir():
+            if entry.is_file() and entry.suffix == ".md":
+                stats["read"] += 1
+    return stats
+
+
+def refresh_capability_json(name: str) -> None:
+    """Update the agent's own JSON in CAPABILITIES_DIR so §8 sees a fresh mtime."""
+    cap_json = CAPABILITIES_DIR / f"{name}.json"
+    ts_now = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        if cap_json.is_file():
+            data = json.loads(cap_json.read_text())
+            data["updated"] = ts_now
+            cap_json.write_text(json.dumps(data, indent=2) + "\n")
+        else:
+            CAPABILITIES_DIR.mkdir(parents=True, exist_ok=True)
+            cap_json.write_text(
+                json.dumps({"agent": f"{name}@mesh", "updated": ts_now, "skills": []}, indent=2) + "\n"
+            )
+    except OSError:
+        pass  # REGISTRY may be ro on this desk; §8 will continue to alarm until host writes it
+
+
+def main() -> None:
+    p = argparse.ArgumentParser()
+    p.add_argument("--quiet", action="store_true")
+    p.add_argument("--sweep-only", action="store_true")
+    args = p.parse_args()
+
+    mesh_dir, my_dir, log_path = discover_roots()
+
+    # ---- 1. Sweep stale claims ----
+    swept = sweep_stale_claims(my_dir)
+    swept += sweep_stale_claims(mesh_dir)
+    print(f"mesh-on: swept {swept} stale claim(s)")
+
+    if args.sweep_only:
+        return
+
+    # ---- 2. Protocol version ----
+    version, mt = read_protocol_version(mesh_dir)
+    mt_iso = _dt.datetime.utcfromtimestamp(mt).strftime("%Y-%m-%dT%H:%M:%SZ") if mt else "-"
+    print(f"mesh-on: PROTOCOL.md version {version} (mtime {mt_iso})")
+
+    # ---- 3. Inbox summary ----
+    inbox = my_dir / "inbox"
+    stats = list_inbox_summary(inbox, args.quiet)
+    print(f"mesh-on: {stats['unread']} unread / {stats['read']} acked in {inbox}")
+    if not args.quiet and stats["files"]:
+        for f in stats["files"][:10]:
+            print(f"    - {f}")
+        if len(stats["files"]) > 10:
+            print(f"    ... and {len(stats['files']) - 10} more")
+
+    # ---- 4. cc/<self>/ summary ----
+    cc_dir = mesh_dir / "cc" / agent_name()
+    # THREE VERDICTS, NOT TWO (host@mesh 2026-09-06, found by bun-desktop@mesh).
+    # `if cc_dir.is_dir(): count(...)` left cc_count at its init 0 when the directory did not
+    # exist, so A MISSING cc DIRECTORY AND AN EMPTY ONE PRINTED THE SAME CONFIDENT ZERO.
+    # bun-desktop's banner read "0 cc'd in /mesh/cc/bun-desktop@mesh" — a path that has never
+    # existed (their URI was doubled) — while the real dir held unread cc traffic. The banner
+    # printed the path it used right beside the zero and every lane on that desk read past it.
+    # A detector whose "nothing here" is indistinguishable from "I could not look" is the
+    # recurring defect class on this fleet; this is the mesh-on instance of it.
+    if not cc_dir.is_dir():
+        print(f"mesh-on: cc dir MISSING — {cc_dir} does not exist (NOT the same as 0 cc'd; "
+              f"check AGENT_URI is not doubled)")
+    else:
+        cc_count = sum(1 for e in cc_dir.iterdir() if e.is_file() and e.suffix == ".md")
+        print(f"mesh-on: {cc_count} cc'd in {cc_dir}")
+
+    # ---- 5. Registry peers ----
+    registry_file = mesh_dir / "REGISTRY.md"
+    peers = []
+    if registry_file.is_file():
+        try:
+            for line in registry_file.read_text(encoding="utf-8").splitlines():
+                m = re.match(r"^-\s+([a-z0-9][a-z0-9\-]*)\s*@\s*mesh", line)
+                if m:
+                    peers.append(m.group(1))
+        except OSError:
+            pass
+    # fall back to scanning REGISTRY/
+    if not peers:
+        reg_dir = mesh_dir / "REGISTRY"
+        if reg_dir.is_dir():
+            for entry in reg_dir.iterdir():
+                if entry.is_file() and entry.suffix == ".md":
+                    peers.append(entry.stem)
+    print(f"mesh-on: {len(peers)} peer(s) in REGISTRY: {', '.join(peers) if peers else '(none)'}")
+
+    # ---- 6. STATE_CHECK latest 5 ----
+    sc_dir = mesh_dir / "STATE_CHECK"
+    sc_latest: list[str] = []
+    if sc_dir.is_dir():
+        sc_entries = sorted([e.name for e in sc_dir.iterdir() if e.is_file() and e.suffix == ".md"])
+        sc_latest = sc_entries[-5:]
+    print(f"mesh-on: STATE_CHECK latest 5: {', '.join(sc_latest) if sc_latest else '(none)'}")
+
+    # ---- 7. Watchdog log + last ack-marker ----
+    print(f"mesh-on: watchdog log: {log_path}")
+    if log_path.is_file():
+        recent = tail(log_path, 5)
+        if recent and not args.quiet:
+            print("mesh-on: last 5 log lines:")
+            for line in recent:
+                print(f"    {line.rstrip()}")
+    last_ack = find_last_ack_marker(log_path)
+    if last_ack:
+        print(f"mesh-on: last ack-marker: {last_ack}")
+    else:
+        print("mesh-on: no prior ack-marker found for this agent — full replay recommended")
+
+    # ---- 8. Stale capability check ----
+    stale: list[str] = []
+    cutoff_ts = time.time() - STALE_CAPABILITY_HOURS * 3600
+    if CAPABILITIES_DIR.is_dir():
+        for cap_file in CAPABILITIES_DIR.glob("*.json"):
+            try:
+                if cap_file.stat().st_mtime < cutoff_ts:
+                    stale.append(cap_file.stem)
+            except OSError:
+                pass
+    if stale:
+        for s in stale:
+            stale_line = f"STALE_CAPABILITY: {s}@mesh"
+            print(f"mesh-on: {stale_line}")
+            try:
+                with log_path.open("a") as lf:
+                    ts_now = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    lf.write(f"{ts_now}\t{stale_line}\n")
+            except OSError:
+                pass
+
+    # ---- 9. Refresh own capability declaration ----
+    # Calls mesh-capabilities-publish (writes CAPABILITIES.md) AND updates the agent's
+    # JSON in CAPABILITIES_DIR so §8 sees a fresh mtime. Success line is conditional on
+    # the subprocess returning 0 — the prior version printed "refreshed" unconditionally
+    # even when the write was a no-op (bun-desktop measured: mtime unchanged across call).
+    cap_publish = None
+    for candidate in (Path("/config/.local/bin/mesh-capabilities-publish"),
+                      Path("/usr/local/bin/mesh-capabilities-publish")):
+        if candidate.is_file():
+            cap_publish = str(candidate)
+            break
+    if cap_publish:
+        try:
+            result = subprocess.run([cap_publish], timeout=30, capture_output=True)
+            if result.returncode == 0:
+                refresh_capability_json(agent_name())
+                print("mesh-on: capability declaration refreshed")
+            else:
+                stderr = result.stderr.decode(errors="replace").strip()
+                print(
+                    f"mesh-on: WARNING — capability publish failed (rc={result.returncode})"
+                    + (f": {stderr[:200]}" if stderr else ""),
+                    file=sys.stderr,
+                )
+        except Exception as e:
+            print(f"mesh-on: WARNING — capability publish failed: {e}", file=sys.stderr)
+
+    print(f"mesh comms armed — watching {log_path} — peers: {peers}")
+
+
+if __name__ == "__main__":
+    main()
