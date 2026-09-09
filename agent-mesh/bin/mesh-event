@@ -474,13 +474,14 @@ def cmd_publish(args: argparse.Namespace) -> None:
     # the container cross-peer convention `/peer-inbox/<name>` — the same
     # resolution mesh-send already used successfully from this same desk.
     delivered = 0
-    undelivered = []
+    unreachable = []   # no lane to this subscriber from THIS topology (a desk sees only its /peer-inbox lanes) — host sweeper backstops
+    failed = []        # a resolvable inbox where the write itself raised — the only outcome a caller can act on
     for sub_name in subscribers:
         if sub_name == me_name:
             continue  # don't deliver to self
         inbox = resolve_subscriber_inbox(agents_dir, sub_name)
         if inbox is None:
-            undelivered.append(sub_name)
+            unreachable.append(sub_name)
             continue
 
         # Slot allocation
@@ -509,22 +510,25 @@ def cmd_publish(args: argparse.Namespace) -> None:
             _write_atomic(notify_path, notify_content)
             delivered += 1
         except OSError as e:
-            undelivered.append(sub_name)
+            failed.append(sub_name)
             print(f"mesh-event: warning: could not notify {sub_name}: {e}", file=sys.stderr)
 
     print(f"{event_id}")
-    status = f"Published to topic '{args.topic}' — notified {delivered}/{len(subscribers)} subscribers"
-    if undelivered:
-        status += f" (undelivered: {', '.join(undelivered)})"
-    # STDOUT, not only stderr — a "0/19" that only a human reading stderr ever
-    # sees is the exact defect this fix closes. Also on stderr for anything
-    # that was already grepping it.
+    # EXIT CONTRACT (host, 2026-09-09, bun-desktop 084): the printed fraction excludes the author and counts
+    # only subscribers REACHABLE from this topology; lanes with no path from here are listed as
+    # "unreachable" and are NOT a failure (the host sweeper delivers them within 5 min), so a desk
+    # publish exits 0 on a normal night. EXIT_PARTIAL_DELIVERY (6) is reserved for a resolvable inbox
+    # whose write raised — the one outcome a caller can act on. A number's meaning must not move under
+    # its callers (PATTERN-mesh-cli-exit-codes.md).
+    reachable = delivered + len(failed)
+    status = f"Published to topic '{args.topic}' — notified {delivered}/{reachable} reachable subscribers"
+    if unreachable:
+        status += f" (unreachable from here, host sweeper backstops: {', '.join(unreachable)})"
+    if failed:
+        status += f" (FAILED writes: {', '.join(failed)})"
     print(status)
     print(status, file=sys.stderr)
-    if delivered < len(subscribers) - (1 if me_name in subscribers else 0):
-        # Non-zero so a wrapper/cron notices without parsing the message text.
-        # 3 is already "usage error" for die(); this is a distinct partial-
-        # delivery signal on the success path, so it uses its own code.
+    if failed:
         sys.exit(EXIT_PARTIAL_DELIVERY)
 
 
