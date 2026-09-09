@@ -4,3 +4,6 @@ node_modules/
 *.pyc
 *.sqlite
 *.db
+
+# the claude CLI binary the containers run via z-code (/skills/.claude-cli/) — 300+ MB, never in git (GitHub 100 MB cap; 2026-09-07 snapshot committed it and every push failed for 2 days)
+.claude-cli/
