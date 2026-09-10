@@ -60,3 +60,13 @@ bash /mnt/shared-skills/sms-router/sms-send.sh nick +15550100004 \
 
 - `/home/mike/MIKE-AI/docs/jambot/sms-router.md` — full architecture
 - `references/durable-replies.md` — long-task ack-then-followup pattern
+
+## HARD RULE — a client never receives a "test" text (2026-09-10)
+
+Every text to a client carries content or does not go. `sms-send.sh` now REFUSES (exit 4) bodies
+that are a test/ping (`test`, `ping`, `hi`, `ok`, anything under 4 characters). Why: on 2026-09-10 a
+brain sent "test" and then "ignore that test" to a client, spending 2 of her 4 one-way slots (Mike's
+4-in-a-row cap), so the one question that mattered was refused and never reached her — and she had
+just told the brain she was confused by a glitch. To check a lane, read the router ledger or ask
+host; never probe with the client's phone. A deliberate OPERATOR probe sets `SMS_ALLOW_SHORT=1`
+and uses a platform identity, never a client's.

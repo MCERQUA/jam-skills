@@ -88,6 +88,22 @@ detect_host_ip() {
     || echo "172.17.0.1"
 }
 
+# CONTENT GUARD (host 2026-09-10): a client-bound text is never a "test" or a ping. Measured on
+# danielle: the brain sent "test", then "ignore that test", burning 2 of her 4 one-way slots (Mike's
+# 4-in-a-row cap) so the one question that mattered was refused and never reached her. Every send to
+# a client carries content or does not go. Operator override for a deliberate probe: SMS_ALLOW_SHORT=1.
+_b="$(printf '%s' "$BODY" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:][:punct:]')"
+case "$_b" in
+  test|tests|testing|ping|pong|hello|hi|hey|ok|x|""|1|123)
+    if [ "${SMS_ALLOW_SHORT:-}" != "1" ]; then
+      echo "REFUSED: body '${BODY}' is a test/ping, not a message — a client never receives a test text (it also spends one of the 4 one-way slots). Set SMS_ALLOW_SHORT=1 only for a deliberate operator probe." >&2
+      exit 4
+    fi ;;
+esac
+if [ "${#BODY}" -lt 4 ] && [ "${SMS_ALLOW_SHORT:-}" != "1" ]; then
+  echo "REFUSED: body is ${#BODY} chars — not a message. SMS_ALLOW_SHORT=1 overrides for a deliberate operator probe." >&2
+  exit 4
+fi
 ROUTER="${SMS_ROUTER_URL:-http://$(detect_host_ip):6450}"
 
 # Try a DIRECT POST first (works when run on the host, or if the router is bridge-reachable).
