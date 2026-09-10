@@ -7,16 +7,16 @@ version: 1.0.0
 > ⚠️ **Host API address:** `172.17.0.1` is the DEFAULT docker bridge and NO tenant
 > container is on it — that address hangs or refuses. The awk snippet below reads your
 > real default gateway from `/proc/net/route` (no `ip` binary needed, it is not installed).
-> Fixed fleet-wide 2026-07-25 after it silently blocked otm-voice and cc-backlinks.
+> Fixed fleet-wide 2026-07-25 after it silently blocked <tenant>-voice and cc-backlinks.
 >
 > ⚠️ **2026-08-20 — the snippet was STILL broken in containers, for a second reason.**
 > The previous version relied on awk converting the string `"0xAC"` to a number inside
 > `printf "%d"`. **gawk does that; mawk does not** — and every tenant container ships
 > mawk (1.3.4), not gawk. So on the host it printed the right gateway and inside a
-> container it printed `0.0.0.0`, with no error. That is why josh-desktop could not
+> container it printed `0.0.0.0`, with no error. That is why a tenant desktop agent could not
 > reach the API and concluded the route table "didn't match what the skill expects" —
 > the table was fine, the snippet was. The version below decodes the hex by hand and
-> was verified to return `172.23.0.1` under mawk in webtop-ubuntu-os-josh AND the
+> was verified to return `172.23.0.1` under mawk in a tenant's webtop-ubuntu-os container AND the
 > correct host gateway under gawk. Do not "simplify" it back to `"0x"substr(...)`.
 
 # Lead Tracker Skill
@@ -29,7 +29,7 @@ All website form submissions are stored in a central database. Use this API to v
 http://$(awk '$2=="00000000"{h=$3;for(i=1;i<=8;i+=2){v=0;for(j=0;j<2;j++){c=toupper(substr(h,i+j,1));v=v*16+index("0123456789ABCDEF",c)-1}o[i]=v}printf "%d.%d.%d.%d",o[7],o[5],o[3],o[1];exit}' /proc/net/route):6350/api/leads
 ```
 
-Always include `?tenant=<USER>` (your username, e.g. `src`, `nick`, `josh`).
+Always include `?tenant=<USER>` (your username, e.g. `src`, `<tenant>`).
 
 ## List All Leads
 

@@ -38,13 +38,13 @@ Single CLI any script/cron/agent calls to alert Mike. Replaces ad-hoc send_alert
 jambot-notify.sh info backup "Nightly backup completed in 4m12s"
 
 # Health check flagged TOOLS.md too large — warn + email
-jambot-notify.sh warn health "josh: TOOLS.md 34280c > 20000c limit" --dedup-key josh-tools-md-bloat
+jambot-notify.sh warn health "<tenant>: TOOLS.md 34280c > 20000c limit" --dedup-key <tenant>-tools-md-bloat
 
 # Admin-review chain broken — critical + SMS
 jambot-notify.sh critical admin-review "tmux first-reviewer down + revival failed" --ack-required --dedup-key tmux-down
 
 # Container won't restart after 3 attempts — urgent (also posts to host@mesh)
-jambot-notify.sh urgent health "openclaw-josh won't start (3 attempts failed)" --dedup-key josh-oc-perma-down
+jambot-notify.sh urgent health "openclaw-<tenant> won't start (3 attempts failed)" --dedup-key <tenant>-oc-perma-down
 ```
 
 ## Channels reference

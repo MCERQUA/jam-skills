@@ -10,7 +10,7 @@ description: "host@mesh conductor pattern — decompose a multi-agent task, disp
 ## When to orchestrate (vs one-agent dispatch)
 
 Orchestrate when:
-- The deliverable has per-agent dependencies (ship to bun, ship to josh, ship to residential)
+- The deliverable has per-agent dependencies (ship to bun, ship to a tenant desktop, ship to residential)
 - Any change requires verification on multiple nodes (Phase 5.5 E2E across 3 agents)
 - Config rollouts (skills sync, deploy keys, compose bake)
 - Audit sweeps ("are all agents healthy / configured / on-version")
@@ -28,7 +28,7 @@ State the end goal in one sentence. List per-agent deliverables. If different ag
 
 Example — **end goal:** "every webtop agent has write access to their scoped canonical repos."
 - bun-desktop → ovui-bridge + ovui-desktop + OVUI-Ubuntu + jam-skills
-- josh-desktop → ovui-bridge + ovui-desktop + jam-skills
+- <tenant>-desktop → ovui-bridge + ovui-desktop + jam-skills
 - residential-laptop → ovui-bridge + jam-skills
 
 Write the scope-map once; reuse in both the host-side script (`setup-agent-push-keys.sh`) AND the dispatch briefs so agents see the same picture.
@@ -52,7 +52,7 @@ Keep in-flight state in your current conversation context (don't spin up an exte
 ```
 rollout-id: phase5.5-e2e
   bun-desktop:        dispatched @ <ts> → awaiting reply
-  josh-desktop:       dispatched @ <ts> → GREEN (r01-result landed)
+  <tenant>-desktop:   dispatched @ <ts> → GREEN (r01-result landed)
   residential-laptop: dispatched @ <ts> → BLOCKED (HF 503, waiting warm)
 ```
 
@@ -124,7 +124,7 @@ This session's model-routing work (residential research → host synth → resid
 3. Dispatch mirror with verification steps
 4. Final sweep confirms all 3 green
 
-Phase 5.5 grounder rollout was pattern D (josh first, then bun, then residential).
+Phase 5.5 grounder rollout was pattern D (a tenant desktop first, then bun, then residential).
 
 ### Pattern E — exclusion-set threading (exclude-before-spend)
 
@@ -183,7 +183,7 @@ When you surface to Mike at close-of-rollout, the message template:
 | Node | State | Notes |
 |---|---|---|
 | bun | ✅ | <brief win> |
-| josh | ✅ | <brief win> |
+| <tenant> | ✅ | <brief win> |
 | residential | ⏳ | <what's outstanding, who owns> |
 
 **Needs you:** <list, or "nothing">
@@ -195,7 +195,7 @@ This is the density Mike expects. Don't blow it out with the full mesh-chatter t
 
 ## Anti-patterns
 
-- ❌ Surfacing every mesh-send to Mike ("ok, dispatched to bun...", "ok, got green from josh...") — spams him with plumbing
+- ❌ Surfacing every mesh-send to Mike ("ok, dispatched to bun...", "ok, got green from <tenant>...") — spams him with plumbing
 - ❌ Asking Mike permission for per-agent dispatches when he approved the rollout — waste of turns
 - ❌ Re-deriving the decomposition mid-rollout — write the scope-map upfront
 - ❌ Dispatching before writing the verification step — agents will ship, you'll have no way to confirm

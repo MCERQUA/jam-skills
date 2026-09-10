@@ -1,6 +1,6 @@
 ---
 name: verification-pass
-description: Run a 5-field verification pass on any artifact (script, doc, deliverable, RFC) before marking it done. Operationalizes Mike directive #3 (2026-05-20) — DoD requires proof artifact, failure-mode pre-mortem, could-be-better note, reviewer tag, failure-doc pointer. Produces a `cr.verification` JSON object drop-in compatible with src-desktop's reflection-to-action-closure RFC §3 schema and danielle-desktop's autonomy-guardrails RFC §6 tier table. Use BEFORE acking any worker deliverable, BEFORE marking any CR `verified`, BEFORE publishing any task-result with KIND=task-result. Trigger phrases — "verification pass", "verify deliverable", "DoD check", "is this done", "mark verified", "sign off", "/vp".
+description: Run a 5-field verification pass on any artifact (script, doc, deliverable, RFC) before marking it done. Operationalizes Mike directive #3 (2026-05-20) — DoD requires proof artifact, failure-mode pre-mortem, could-be-better note, reviewer tag, failure-doc pointer. Produces a `cr.verification` JSON object drop-in compatible with src-desktop's reflection-to-action-closure RFC §3 schema and a tenant desktop's autonomy-guardrails RFC §6 tier table. Use BEFORE acking any worker deliverable, BEFORE marking any CR `verified`, BEFORE publishing any task-result with KIND=task-result. Trigger phrases — "verification pass", "verify deliverable", "DoD check", "is this done", "mark verified", "sign off", "/vp".
 metadata:
   schema_alignment:
     - reflection-to-action-closure-rfc §3 (cr.verification)
@@ -14,7 +14,7 @@ metadata:
 
 A reviewer's mechanical checklist for closing the gap Mike named on 2026-05-20: *"plan and grow ASSUMING everything will fail. plan how to review the result, see what went wrong or what could be better, OR if it failed BEFORE we mark it done."*
 
-This skill does NOT define the DoD — that lives in danielle-desktop's autonomy-guardrails RFC §6 and src-desktop's reflection-to-action-closure RFC §13. This skill is the **executable layer** that produces the verification artifact those RFCs require.
+This skill does NOT define the DoD — that lives in a tenant desktop's autonomy-guardrails RFC §6 and src-desktop's reflection-to-action-closure RFC §13. This skill is the **executable layer** that produces the verification artifact those RFCs require.
 
 ## When to invoke
 
@@ -43,7 +43,7 @@ Every verification produces an object with these keys. **Any null field = NOT ve
   "proof_artifact": "/peer-inbox/host/.read/2026-05-19-169-...verified.md",
   "failure_mode_premortem": "openclaw.json extraDirs path is dangling; future sync may use it as source-of-truth and wipe runtime",
   "could_be_better": "submesh-control + README.md still drift across set diff; mirror canonical both ways",
-  "reviewer_agent": "josh-desktop@mesh",
+  "reviewer_agent": "<tenant>-desktop@mesh",
   "self_verified": false,
   "failure_doc_path": null
 }
@@ -78,7 +78,7 @@ For each artifact under review:
   "proof_artifact": "/workspace/.agents/checkpoint-orchestrator-2026-05-19/worker-c/run-all-result.txt (5/5 PASS)",
   "failure_mode_premortem": "SHARED-NOTES drift on point 3 (offline-reason text) — worker-a's notes claimed `timeout`, actual Phase 1 emits `send-failed-rc-3`. Caught at fixture-pin stage by worker-c. Would have shipped wrong-docs if reviewer had only read SHARED-NOTES without cross-reading the script.",
   "could_be_better": "Worker-a Phase 1 could normalize FAIL_REASON to plain `other` for cleaner enum; current `send-failed-rc-$rc` is informative but breaks enum-purity. Cosmetic — left to worker-a's call.",
-  "reviewer_agent": "josh-desktop@mesh",
+  "reviewer_agent": "<tenant>-desktop@mesh",
   "self_verified": false,
   "failure_doc_path": null
 }
@@ -99,7 +99,7 @@ Notes on what this object enabled:
 
 ## Integration with sibling RFCs
 
-- **autonomy-guardrails-rfc §6 (danielle-desktop):** the per-tier requirement matrix maps directly to this skill's output. Tier 1 allows `self_verified: true`. Tier 2 prefers peer reviewer; allows self with explicit tag. Tier 3 requires `reviewer_agent ≠ owner`.
+- **autonomy-guardrails-rfc §6 (a tenant desktop):** the per-tier requirement matrix maps directly to this skill's output. Tier 1 allows `self_verified: true`. Tier 2 prefers peer reviewer; allows self with explicit tag. Tier 3 requires `reviewer_agent ≠ owner`.
 - **reflection-to-action-closure-rfc §13 (src-desktop):** this skill produces the exact JSON shape required for CR transition `applied → verified`. The apply cron rejects the transition if any field is null — this skill's procedure prevents that rejection.
 - **reflection-to-action-closure-rfc §11 Rule 6:** the citation in a `--vote=block --failure-mode=<enum>` IS this skill's `failure_mode_premortem` field for the block-as-CR-action. Drop-in compatible.
 
@@ -117,7 +117,7 @@ Rule 7 (Reviewer rotation): sub-mesh deliverables (any task-result from
     at Mike-greenlit-or-skipped instead of auto-shipping.
 ```
 
-Status: PROPOSED, agenda item H3 for tonight's BIG meeting. If accepted, becomes Rule 7 in src-desktop's RFC §11 and gets cross-referenced from danielle-desktop's autonomy-guardrails §6 reviewer-agent row.
+Status: PROPOSED, agenda item H3 for tonight's BIG meeting. If accepted, becomes Rule 7 in src-desktop's RFC §11 and gets cross-referenced from a tenant desktop's autonomy-guardrails §6 reviewer-agent row.
 
 ## CLI variant (proposed, not yet built)
 

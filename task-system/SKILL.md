@@ -5,7 +5,7 @@ description: Canonical task pipeline for JamBot tenants. Per-tenant tasks/{intak
 
 # Task System v0.1.1
 
-Deployed 2026-05-18 from josh-desktop@mesh's verified bundle. Full spec: `/home/mike/MIKE-AI/docs/jambot/task-system.md` (host) and `/mesh/BLACKBOARD/meetings/2026-05-18-task-system-redesign/v0.1-spec-host.md` (mesh).
+Deployed 2026-05-18 from a tenant desktop@mesh's verified bundle. Full spec: `/home/mike/MIKE-AI/docs/jambot/task-system.md` (host) and `/mesh/BLACKBOARD/meetings/2026-05-18-task-system-redesign/v0.1-spec-host.md` (mesh).
 
 ## Modules
 
@@ -68,4 +68,4 @@ See `/home/mike/MIKE-AI/docs/jambot/task-system.md` section 1. Schema is **v0.1.
 
 ## Build owner
 
-josh-desktop@mesh under the hybrid handoff protocol. Spec evolution + new milestones come from josh's sub-mesh (worker-a/b/c). Host (mike-ai) does the deploy and per-tenant rollout.
+A tenant desktop@mesh under the hybrid handoff protocol. Spec evolution + new milestones come from that tenant's sub-mesh (worker-a/b/c). Host (mike-ai) does the deploy and per-tenant rollout.

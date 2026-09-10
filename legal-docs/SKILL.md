@@ -62,13 +62,13 @@ When investment or equity is discussed:
 - **Series A:** refer to NVCA/YC Series A term sheet templates
 - **Trigger signal:** "investor", "equity", "fundraising", "SAFE", "term sheet"
 
-### Insurance Context (Josh)
-Josh's business involves insurance. Auto-generate these when working on Josh's projects:
+### Insurance Context (insurance-industry tenants)
+An insurance-focused tenant's business involves insurance. Auto-generate these when working on such a tenant's projects:
 - Insurance Producer Agreement (agent/agency relationship)
 - Certificate of Insurance template request letter
 - Client Authorization / HIPAA Release (if health insurance)
 - Referral Agreement (when referring clients to other agents)
-- **Trigger signal:** any Josh context + insurance, coverage, policy, claim, referral, carrier
+- **Trigger signal:** any insurance-tenant context + insurance, coverage, policy, claim, referral, carrier
 
 ---
 
@@ -223,8 +223,8 @@ Templates live at `/mnt/shared-skills/legal-docs/templates/`. Each is a pre-fill
 | `safe-note.md` | Investor Agreements | YC SAFE | Partial |
 | `advisor-fast.md` | Advisor Agreements | Founder Institute FAST | Partial |
 | `founders-agreement.md` | Founder Agreements | UPenn ELC | Partial |
-| `insurance-producer.md` | Insurance (Josh) | Foundation Template | N/A |
-| `insurance-referral.md` | Insurance (Josh) | Foundation Template | N/A |
+| `insurance-producer.md` | Insurance (tenant-specific) | Foundation Template | N/A |
+| `insurance-referral.md` | Insurance (tenant-specific) | Foundation Template | N/A |
 
 ---
 
@@ -234,7 +234,7 @@ Templates live at `/mnt/shared-skills/legal-docs/templates/`. Each is a pre-fill
 - **Server storage only.** All documents written to `~/.openclaw/workspace/legal/` on server — never in browser memory.
 - **Never provide legal advice.** Generate templates and drafts. Always append the attorney-review disclaimer.
 - **Proactive by default.** Don't wait for the user to ask. If the context calls for a legal document, generate it.
-- **Josh = insurance context.** Any Josh work gets the insurance-specific trigger check first.
+- **Insurance-industry tenant = insurance context.** Any such tenant's work gets the insurance-specific trigger check first.
 - **Jurisdiction defaults:** If not known, default to "State of Arizona" (Mike is AZ-based). Always flag this as an assumption.
 
 ---
@@ -243,4 +243,4 @@ Templates live at `/mnt/shared-skills/legal-docs/templates/`. Each is a pre-fill
 
 | Date | Learning |
 |------|---------|
-| 2026-07-04 | Skill created from ankane/awesome-legal (CC0). Source is a curated link list, not actual doc text — templates are original works in plain-language style inspired by the listed sources. Josh insurance use case flagged at creation. |
+| 2026-07-04 | Skill created from ankane/awesome-legal (CC0). Source is a curated link list, not actual doc text — templates are original works in plain-language style inspired by the listed sources. An insurance-industry tenant use case flagged at creation. |

@@ -37,8 +37,8 @@ bash /mnt/shared-skills/sms-router/sms-send.sh test-dev +15550100003 \
 
 ```bash
 # (inside the spawned task, after it completes)
-bash /mnt/shared-skills/sms-router/sms-send.sh nick +15550100004 \
-  "Website rebuild done. New version live at nick.jam-bot.com. 4 pages updated, no broken links."
+bash /mnt/shared-skills/sms-router/sms-send.sh <tenant> +15550100004 \
+  "Website rebuild done. New version live at <tenant>.jam-bot.com. 4 pages updated, no broken links."
 ```
 
 ## Rules

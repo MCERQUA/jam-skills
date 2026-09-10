@@ -60,7 +60,7 @@ Look for signs of an active manager claim: another agent's in-flight task dispat
 
 **Why this matters:** dispatching against a stale idle/busy read can corrupt a live pipeline or double-spend quota — this happened 2026-07-04 when two workers were commanded mid-active pipeline off a stale read.
 
-_(merged from josh-desktop's desk copy 2026-08-29, verbatim — its desk carried this and the fleet copy did not.)_
+_(merged from a tenant desktop's desk copy 2026-08-29, verbatim — its desk carried this and the fleet copy did not.)_
 
 **Most wasted worker effort comes from skipping this.** Before you write a single task, spend real time understanding the project — or your workers will produce duplicate, off-system, or wrong-target work that you then throw away.
 
@@ -319,7 +319,7 @@ tmux capture-pane -t submesh:grid.1 -p -S -200 | tail -120
 
 **Never double-tap `Escape`** while troubleshooting an input box — two Escapes in a row opens the Rewind menu (checkpoint/revert), which is a destructive action if you accidentally select something. Back out with a single `Escape` if you land there.
 
-_(merged verbatim from josh-desktop 2026-08-29. This CORRECTS the rescue path below: a four-line
+_(merged verbatim from a tenant desktop 2026-08-29. This CORRECTS the rescue path below: a four-line
 `tail -4` cannot see a pending draft.)_
 
 **Rescuing a stuck / full-context worker** (pinned at `100% context used`, or a hung command, or `/clear` didn't take):

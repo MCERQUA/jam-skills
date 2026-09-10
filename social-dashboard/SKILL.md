@@ -22,7 +22,7 @@ Three integrated systems available to you:
 - `X-Tenant: <username>` (or `?tenant=<username>`) — all website/content endpoints
 - `X-Agent-Key: <SOCIAL_DASHBOARD_API_KEY>` — admin-only endpoints (GET /api/tenants). Key is in `/mnt/system/base/.platform-keys.env`.
 
-The tenant is your client's username (e.g., `test-dev`, `brad`, `nick`, `josh`).
+The tenant is your client's username (e.g., `test-dev`, `<tenant>`).
 
 ---
 

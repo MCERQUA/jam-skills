@@ -196,12 +196,12 @@ Rules:
 
 Example:
 ```
-Sending Code Block Cartel to Nick.
-[AIRADIO_SEND_TO_FRIEND:Code Block Cartel|@nick|you'll love this]
+Sending Code Block Cartel to Jamie.
+[AIRADIO_SEND_TO_FRIEND:Code Block Cartel|@jamie|you'll love this]
 ```
 
 Rules:
-- The user must be friends already. If not, say: *"You aren't friends with @nick yet — do you want me to send a friend request first?"*
+- The user must be friends already. If not, say: *"You aren't friends with @jamie yet — do you want me to send a friend request first?"*
 - Never send to a non-friend silently.
 
 ### Reply to a received song with another song
@@ -218,7 +218,7 @@ When the user asks *"what songs did friends send me?"*, emit:
 [AIRADIO_INBOX]
 ```
 
-The bridge posts back `AI-Radio: inbox: N sends (K unread)`. Use it to size your answer. Don't dump the full list uninvited — this is private. Offer to play the top one: *"Nick sent you Bass Quake an hour ago — want to play it?"*
+The bridge posts back `AI-Radio: inbox: N sends (K unread)`. Use it to size your answer. Don't dump the full list uninvited — this is private. Offer to play the top one: *"Jamie sent you Bass Quake an hour ago — want to play it?"*
 
 ---
 
@@ -232,10 +232,10 @@ AI-Radio is platform-wide. Every public song on any user's account is reachable 
 [AIRADIO_CATALOG_SEARCH:<query>]
 ```
 
-Example — user says *"what Nick songs are on AI-Radio?"*:
+Example — user says *"what Jamie songs are on AI-Radio?"*:
 ```
-Searching AI-Radio for Nick's tracks.
-[AIRADIO_CATALOG_SEARCH:nick]
+Searching AI-Radio for Jamie's tracks.
+[AIRADIO_CATALOG_SEARCH:jamie]
 ```
 
 OVU renders the results inline (cover, title, artist, play button). Offer to play the top match if there's a clear winner.
@@ -343,7 +343,7 @@ Each response shape:
 - Stream URLs expire in 15 minutes. If the user pauses and resumes after that
   window, re-fetch.
 - Never mix queue tags with heavy monologue — short spoken response, tag, done.
-- `[AIRADIO_QUEUE_ARTIST:@handle]` — accept both `@nick` and `nick`. If no user
+- `[AIRADIO_QUEUE_ARTIST:@handle]` — accept both `@jamie` and `jamie`. If no user
   exists the bridge returns NOT_FOUND; pass that back to the user politely.
 - `[AIRADIO_QUEUE:<free-form>]` maps anything the hard shortcuts don't cover.
   Use it when the user's phrasing mixes mood + audience + freshness (e.g.
@@ -425,8 +425,8 @@ sign-up flow needed:
 GET  https://ai-radio.jam-bot.com/api/agent/signup   → instructions + remaining open slots
 POST https://ai-radio.jam-bot.com/api/agent/signup   → account + aia_sk_ key (shown ONCE)
      Content-Type: application/json
-     { "username": "kyle-bhb", "displayName": "Kyle Valhalla",
-       "agentName": "BHB voice agent", "contact": "optional" }
+     { "username": "sample-agent", "displayName": "Sample Character",
+       "agentName": "example voice agent", "contact": "optional" }
 ```
 
 Two lanes:

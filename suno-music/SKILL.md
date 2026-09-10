@@ -8,12 +8,12 @@ metadata: {"openclaw": {"emoji": "🎵"}}
 > `localhost:5001` is the AGENT's own loopback and has no Flask app — connections are refused.
 > OpenVoiceUI is a *separate container* reachable over the compose network as **`openvoiceui:5001`**.
 >
-> This cost a real client outage. hrsf's agent followed a `localhost:5001` example, got connection
+> This cost a real client outage. a tenant's agent followed a `localhost:5001` example, got connection
 > refused, and concluded "the Suno proxy isn't running on any local port" — then reported Suno as
 > broken to Mike repeatedly and **never once attempted a generation** (completed queue 0, failed
 > queue 0, no audio files). The key was valid the whole time with 8295 credits upstream. Nothing
 > was down; the documentation pointed at the wrong host.
-> Verified from inside openclaw-hrsf: `localhost:5001` and `127.0.0.1:5001` both CONN_FAIL,
+> Verified from inside openclaw-<tenant>: `localhost:5001` and `127.0.0.1:5001` both CONN_FAIL,
 > `openvoiceui:5001` returns 200.
 
 
@@ -40,8 +40,8 @@ Generate AI songs and short branded jingles. **All generation is async.** Songs 
 internal media dir (`~/.openclaw/media/tool-music-generation/`), and **nothing mounts that path
 into the openvoiceui container** — so the track is paid for, saved, and invisible to the user: it
 never appears in the music player, has no metadata, and has no shareable `/generated_music/` URL.
-Measured 2026-08-08: gcu had **7 tracks and zero** from `/api/suno`, which is exactly what "suno
-isn't working" looked like from the outside; hrsf and test-dev had 3 and 5 more stranded the same
+Measured 2026-08-08: one tenant had **7 tracks and zero** from `/api/suno`, which is exactly what "suno
+isn't working" looked like from the outside; another tenant and test-dev had 3 and 5 more stranded the same
 way. A host cron (`scripts/jambot-tool-media-sweep.py`, hourly) now copies such files into
 `generated_music/` as a safety net, but it is a net, **not** the path — files it rescues still
 carry no title, genre, lyrics or word-sync, because only `/api/suno` writes metadata.

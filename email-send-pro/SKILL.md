@@ -95,7 +95,7 @@ If no key resolves, the wrapper refuses with a clear error naming the env vars i
 
 ```json
 {
-  "tenant": "josh",
+  "tenant": "<tenant>",
   "to": "client@example.com",
   "cc": ["mike@example.com"],
   "bcc": [],
@@ -110,7 +110,7 @@ If no key resolves, the wrapper refuses with a clear error naming the env vars i
         "Their pay-per-claim tier undercuts our flat by 12%",
         "Their bind-to-quote ratio is reported as 0.34"
       ],
-      "canvas_links": ["https://josh.jam-bot.com/canvas-pages/btis-debrief.html"]
+      "canvas_links": ["https://<tenant>.jam-bot.com/canvas-pages/btis-debrief.html"]
     },
     {
       "heading": "Options for next move",
@@ -119,7 +119,7 @@ If no key resolves, the wrapper refuses with a clear error naming the env vars i
     }
   ],
   "cta_label": "View full research",
-  "cta_url": "https://josh.jam-bot.com/canvas-pages/btis-research.html",
+  "cta_url": "https://<tenant>.jam-bot.com/canvas-pages/btis-research.html",
   "signature_style": "warm",
   "labels": ["btis", "research"],
   "in_reply_to": "<message-id>",
@@ -202,7 +202,7 @@ or non-string `in_reply_to` is rejected.
 # On-thread reply, structured payload
 email-send-pro --send --input - <<'EOF'
 {
-  "tenant": "josh",
+  "tenant": "<tenant>",
   "to": "client@example.com",
   "subject": "Re: your BTIS question",
   "intro": "Following up on your thread.",
@@ -248,7 +248,7 @@ To onboard a new tenant's brand, drop a JSON file at the tenant path with any su
 ```bash
 email-send-pro --send --input - <<'EOF'
 {
-  "tenant": "josh",
+  "tenant": "<tenant>",
   "to": "client@example.com",
   "subject": "BTIS Research Debrief — what we found + next options",
   "intro": "Quick update on the BTIS research we ran this afternoon. Three things stood out and we want your call on next move.",
@@ -256,13 +256,13 @@ email-send-pro --send --input - <<'EOF'
     {"heading": "What we found",
      "body": "BTIS pricing undercuts our flat-rate tier by roughly 12% on the pay-per-claim option, but their bind-to-quote ratio is reported in the 0.34 range — meaning a lot of quoting effort that doesn't convert.",
      "bullets": ["Pay-per-claim tier undercuts ours by ~12%", "Bind-to-quote ratio ~0.34 (industry avg ~0.45)", "No service-tier differentiation in their public materials"],
-     "canvas_links": ["https://josh.jam-bot.com/canvas-pages/btis-debrief.html"]},
+     "canvas_links": ["https://<tenant>.jam-bot.com/canvas-pages/btis-debrief.html"]},
     {"heading": "Options",
      "body": "We see three reasonable next moves.",
      "bullets": ["Stand pat — bank the service-depth story", "Match their pay-per-claim and absorb margin hit", "Reposition explicitly against their conversion gap"]}
   ],
   "cta_label": "View full research",
-  "cta_url": "https://josh.jam-bot.com/canvas-pages/btis-research.html",
+  "cta_url": "https://<tenant>.jam-bot.com/canvas-pages/btis-research.html",
   "signature_style": "warm"
 }
 EOF
@@ -300,7 +300,7 @@ email-send-pro --send --input - <<'EOF'
   "sections": [
     {"heading": "Shipped",
      "body": "Three things landed since the morning brief.",
-     "bullets": ["email-send-pro wrapper staged + skill doc written", "BTIS research canvas page published on josh tenant", "Foambot voice greeting fix verified against Z.AI B"]},
+     "bullets": ["email-send-pro wrapper staged + skill doc written", "BTIS research canvas page published on the tenant's site", "a tenant's voice greeting fix verified against Z.AI B"]},
     {"heading": "Blocked / decision needed",
      "body": "One item needs Mike's call before agents can proceed.",
      "bullets": ["Queen Anne lander still missing NAP — we cannot fabricate per memory rule"]}

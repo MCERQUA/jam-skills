@@ -5,10 +5,10 @@ description: "Editing tenant files from a webtop Claude Code session — workspa
 
 # jambot-tenant-workspace
 
-**Who reads this:** `bun-desktop@mesh` or `josh-desktop@mesh` Claude Code sessions running inside the ubuntu-os / ubuntu-os-josh webtop containers. These sessions have the tenant's full workspace bind-mounted at `/workspace/<tenant>/`.
+**Who reads this:** `bun-desktop@mesh` or `<tenant>-desktop@mesh` Claude Code sessions running inside the ubuntu-os / ubuntu-os-<tenant> webtop containers. These sessions have the tenant's full workspace bind-mounted at `/workspace/<tenant>/`.
 
 **Bun's tenant:** `/workspace/bun/`  — source `/mnt/clients/bun/` on Mike-AI host
-**Josh's tenant:** `/workspace/josh/` — source `/mnt/clients/josh/` on Mike-AI host
+**A tenant's workspace:** `/workspace/<tenant>/` — source `/mnt/clients/<tenant>/` on Mike-AI host
 
 Edits to files in `/workspace/<tenant>/` propagate **immediately** (bind-mount, same inode). No sync step.
 

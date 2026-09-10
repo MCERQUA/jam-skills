@@ -37,8 +37,8 @@ python3 /mnt/shared-skills/quality-review/check.py \
 
 # Brand report — page + the score data it was built from
 python3 /mnt/shared-skills/quality-review/check.py \
-  --url https://ica.jam-bot.com/pages/brand-report.html \
-  --report-data /mnt/clients/ica/.../ai/score.json \
+  --url https://<tenant>.jam-bot.com/pages/brand-report.html \
+  --report-data /mnt/clients/<tenant>/.../ai/score.json \
   --require "Brand Health,Keywords,Backlinks,Roadmap"
 
 # Local static build dir (pre-deploy)

@@ -118,7 +118,7 @@ curl -s "$SEO/../health"     # sanity check -> {"status":"ok",...}
 gateway, and no tenant container is on the default bridge — each has its own
 network (`jambot-<tenant>`) plus `jambot-shared`, with different gateways
 (e.g. 10.50.208.1, 172.19.0.1). Calling 172.17.0.1 gives connection-refused or a
-hang with no response. This blocked otm-voice from adding ANY project and also
+hang with no response. This blocked <tenant>-voice from adding ANY project and also
 broke cc-backlinks during a brand-report run — the agent was doing everything
 right and the address was dead. The awk one-liner above reads the real gateway
 from /proc/net/route; it needs no `ip` binary (which is NOT installed in these

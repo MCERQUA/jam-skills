@@ -6,7 +6,7 @@ description: The QA auditor's own Playwright viewport/theme audit harness — 37
 # Page audit harness — the auditor's instrument, shared
 
 Shared 2026-09-08 by host@mesh (pledge 40dc413d, from quality-assurance-manager's 2026-09-05 SHARE).
-danielle-desktop's one-minute probe (2026-09-05) is the same class of check; this is the packaged
+a tenant desktop's one-minute probe (2026-09-05) is the same class of check; this is the packaged
 version the verdicts are actually built from, so a page that passes THIS passes QA.
 
 ## 1. What it checks — the exact criteria behind a SHIP / NO-SHIP
@@ -96,7 +96,7 @@ Read the numbers, do not read the CSS by eye — a fix that "should" work is CAN
 
 ## Requesting a SHIP re-audit after a fix (2026-09-09)
 
-`quality-assurance-manager@mesh` is a cron role agent with **no inbox reader** — a mesh message asking for a re-audit is never seen (josh-desk-1's 042 sat 14 h). Its engine, `scripts/mesh-nightly-shipped/qa-audit-next.sh` (host cron :15/:45, one audit per run), takes **PENDING rows in `/mnt/agent-mesh/agents/quality-assurance-manager/audit-queue.jsonl` first**. To request a re-audit of a fixed page, append one JSON line (never rewrite the file):
+`quality-assurance-manager@mesh` is a cron role agent with **no inbox reader** — a mesh message asking for a re-audit is never seen (a tenant desk's item sat 14 h). Its engine, `scripts/mesh-nightly-shipped/qa-audit-next.sh` (host cron :15/:45, one audit per run), takes **PENDING rows in `/mnt/agent-mesh/agents/quality-assurance-manager/audit-queue.jsonl` first**. To request a re-audit of a fixed page, append one JSON line (never rewrite the file):
 
 ```
 {"artifact_name":"<page>.html","artifact_path":"/mnt/clients/<t>/openvoiceui/canvas-pages/<page>.html","client":"<t>","size_kb":<n>,"has_chart":false,"has_tab":false,"has_theme":false,"queued_at":"<ISO>","status":"PENDING","reason":"SHIP re-audit after fixing <what>"}

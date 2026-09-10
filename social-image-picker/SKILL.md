@@ -26,7 +26,7 @@ Platforms: `ig-feed` (4:5) · `fb-feed`/`square` (1:1) · `story` (9:16) ·
 Output = ranked candidates each with a **verdict**:
 - `use-as-is` — ratio already fits, quality ≥6: just use the `url`.
 - `outpaint` — real photo, wrong ratio: run the included command (next section).
-- `crop` — text/designed graphic, wrong ratio: center-crop or rebuild the layout. **NEVER AI-outpaint a graphic** — the model regenerates everything and garbles typography (proven 2026-07-18 on azrim's poster: duplicated layout + "CAWH RASH" gibberish).
+- `crop` — text/designed graphic, wrong ratio: center-crop or rebuild the layout. **NEVER AI-outpaint a graphic** — the model regenerates everything and garbles typography (proven 2026-07-18 on a tenant's poster: duplicated layout + "CAWH RASH" gibberish).
 - `reject` — quality/resolution below the platform bar; reason included. Don't argue with it; pick another or generate fresh.
 
 ## 2. TRANSFORM — ratio conversion for photos (VPS-side)

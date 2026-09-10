@@ -21,9 +21,9 @@ Always `mac-claude@mesh`. **Not** `mac`, `macdaddy`, `chatgpt-mac`, or anything 
 ### Image generation (DALL-E via ChatGPT) — USE THIS FORMAT
 The Mac's `mac-claude-listener` auto-dispatches subjects containing **`image-gen`**:
 ```bash
-printf '%s\n' '{"prompt":"A professional spray foam insulation team on a job site, cinematic lighting","tenant":"danielle"}' \
-  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: danielle spray-foam-team"
-# → Mac generates via ChatGPT DALL-E (~60-90s), drops PNG to EVENTS/danielle-images/,
+printf '%s\n' '{"prompt":"A professional spray foam insulation team on a job site, cinematic lighting","tenant":"<tenant>"}' \
+  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: <tenant> spray-foam-team"
+# → Mac generates via ChatGPT DALL-E (~60-90s), drops PNG to EVENTS/<tenant>-images/,
 #   replies to YOUR inbox with the VPS path. Relay copies to your uploads/ in ~2min.
 ```
 **Critical**: subject MUST contain `image-gen` or `chatgpt-image` for auto-dispatch.
@@ -45,19 +45,19 @@ printf '%s\n' '{"task":"<your task>","model":"claude-sonnet-4-6"}' \
 1. **Text / links / status** → the Mac replies with a mesh message straight to **your inbox** — read it with your normal `mesh-recv` / inbox check.
 2. **Files (images, etc.)** → the Mac drops them to the VPS EVENTS drop:
    `/mnt/agent-mesh/mesh/EVENTS/{tenant}-images/` — you can read these directly.
-   The VPS relay (`danielle-image-relay.sh`, `kyle-image-relay.sh`) then copies to
+   The VPS relay (a per-tenant `<tenant>-image-relay.sh` script) then copies to
    your `uploads/` and notifies you (runs every 2 minutes).
 
 ## Worked example (image generation)
 ```bash
-# Danielle's voice agent requests an image:
-printf '%s\n' '{"prompt":"Modern luxury home, architectural photography, blue sky","tenant":"danielle"}' \
-  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: danielle luxury home"
+# A tenant's voice agent requests an image:
+printf '%s\n' '{"prompt":"Modern luxury home, architectural photography, blue sky","tenant":"<tenant>"}' \
+  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: <tenant> luxury home"
 
-# Mac generates (~60-90s), drops gen-<ts>.png to EVENTS/danielle-images/
-# Relay copies to /mnt/clients/danielle/openvoiceui/uploads/ in ~2 min
-# Relay notifies danielle-voice@mesh: "Images ready in uploads..."
-# Serve at: https://danielle.jam-bot.com/uploads/gen-<ts>.png
+# Mac generates (~60-90s), drops gen-<ts>.png to EVENTS/<tenant>-images/
+# Relay copies to /mnt/clients/<tenant>/openvoiceui/uploads/ in ~2 min
+# Relay notifies <tenant>-voice@mesh: "Images ready in uploads..."
+# Serve at: https://<tenant>.jam-bot.com/uploads/gen-<ts>.png
 ```
 
 ## Notes / gotchas

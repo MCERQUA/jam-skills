@@ -55,7 +55,7 @@ number of SMS sends he actually needs. Say what was delivered. Not what is broke
 
 ## When to use
 
-- **Send a task to host or mac-host → `mesh-task host "<what you want done>"`** — the one-liner wrapper for dispatching work. Auto-fills your identity, kind, and reply-expected so you don't fumble `mesh-send` flags. Recipients: `host`, `mac-host`, `host-clone`, `sms-host`, or any `<name>@mesh`. Examples: `mesh-task host "rebuild devilinsurance.com around the mascot"` · `mesh-task mac-host "run the wilson radar pull"`. Prefer this over raw `mesh-send` for tasks.
+- **Send a task to host or mac-host → `mesh-task host "<what you want done>"`** — the one-liner wrapper for dispatching work. Auto-fills your identity, kind, and reply-expected so you don't fumble `mesh-send` flags. Recipients: `host`, `mac-host`, `host-clone`, `sms-host`, or any `<name>@mesh`. Examples: `mesh-task host "rebuild examplesite.com around the mascot"` · `mesh-task mac-host "run the <tenant> radar pull"`. Prefer this over raw `mesh-send` for tasks.
 - Starting a session and need to coordinate with peer agents → run `/mesh-on`
 - Sending a file to another agent → `mesh-send --to <peer>@mesh --kind <kind> --subject <topic>`
 - Checking your inbox → `mesh-recv`
@@ -68,7 +68,7 @@ The environment variable `AGENT_URI` identifies you. Example values:
 
 - `host@mesh` — the VPS host agent (runs as user mike)
 - `bun-desktop@mesh` — bun's webtop KDE container
-- `josh-desktop@mesh` — josh's webtop KDE container
+- `<tenant>-desktop@mesh` — a tenant's webtop KDE container
 
 The URI drives the paths: your own dir is at `/mnt/agent-mesh/agents/<name>/`
 (host view) or `/agent-desk/` (container view, bind-mounted to the same place).

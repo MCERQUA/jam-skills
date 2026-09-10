@@ -145,7 +145,7 @@ This is the credit-efficient path. **Validated 2026-05-11 on FoamBook: ~40 hits 
 ### Always
 
 - **Check the confidence score** before handing the email to a compose form. Below 70% = warn the user.
-- **Never blast** the result into an outbound email without the [APPROVAL NEEDED] double-confirmation rail (see `TOOLS.md` line 17 in any josh-style workspace).
+- **Never blast** the result into an outbound email without the [APPROVAL NEEDED] double-confirmation rail (see `TOOLS.md` line 17 in any tenant workspace).
 - **Never fabricate** when all sources miss — guesses fail SPF/DMARC and damage sender reputation.
 
 ## Cost Awareness
@@ -160,7 +160,7 @@ When you batch-find emails for a contacts list, prefer Hunter for the first pass
 
 ## Stored State (per-tenant)
 
-If working in a tenant that uses the Email Finder Hub canvas page (e.g. josh):
+If working in a tenant that uses the Email Finder Hub canvas page:
 - Page: `canvas-pages/email-finder-hub.html` — has a green Hunter.io lookup panel that posts a `canvas-action` message to the agent
 - Memory file: `workspace/memory/2026-04-05.md` documents which prospects already have emails found and CRM opp IDs
 - After finding an email, post `{type:'hunter-result', email, name, title, confidence}` back via `window.parent.postMessage` so the canvas panel renders the green result card

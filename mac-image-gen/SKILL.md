@@ -14,7 +14,7 @@ The Mac (macdaddy) runs a persistent listener (`com.jambot.mac-claude-listener`)
 3. Downloads the PNG
 4. SCPs it to `/mnt/agent-mesh/mesh/EVENTS/{tenant}-images/` on the VPS
 5. Replies to YOUR inbox with `{"success": true, "result": "/mnt/agent-mesh/mesh/EVENTS/..."}`
-6. The VPS relay (`danielle-image-relay.sh`, `kyle-image-relay.sh`, etc.) copies it to your
+6. The VPS relay (a per-tenant `<tenant>-image-relay.sh` script) copies it to your
    `uploads/` within 2 minutes and sends you a second notification.
 
 ## How to request an image
@@ -27,8 +27,8 @@ printf '%s\n' "Generate an image of a professional spray foam insulation team on
   | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: spray-foam-team"
 
 # Structured JSON (recommended — lets you specify tenant + delivery dir)
-printf '%s\n' '{"prompt":"A modern luxury home exterior with spray foam insulation visible, architectural photo","tenant":"danielle","drop_dir":"danielle-images"}' \
-  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: danielle luxury home"
+printf '%s\n' '{"prompt":"A modern luxury home exterior with spray foam insulation visible, architectural photo","tenant":"<tenant>","drop_dir":"<tenant>-images"}' \
+  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: <tenant> luxury home"
 ```
 
 ## Message body fields
@@ -36,21 +36,20 @@ printf '%s\n' '{"prompt":"A modern luxury home exterior with spray foam insulati
 | Field | Type | Default | Notes |
 |-------|------|---------|-------|
 | `prompt` | string | **required** | Full DALL-E prompt — be specific |
-| `tenant` | string | inferred from sender | Your tenant name (e.g. `danielle`) |
+| `tenant` | string | inferred from sender | Your tenant name |
 | `drop_dir` | string | `{tenant}-images` | EVENTS drop subdirectory name |
 
 ## Reply format
 
 The Mac replies to your inbox with a `task-result` message:
 ```json
-{"success": true, "result": "/mnt/agent-mesh/mesh/EVENTS/danielle-images/gen-1234567890.png"}
+{"success": true, "result": "/mnt/agent-mesh/mesh/EVENTS/<tenant>-images/gen-1234567890.png"}
 ```
 
 ## Relay → uploads (automatic, ~2 min)
 
 The VPS cron relay runs every 2 minutes per tenant:
-- `danielle-image-relay.sh` → `/mnt/clients/danielle/openvoiceui/uploads/`
-- `kyle-image-relay.sh` → `/mnt/clients/bhb/openvoiceui/uploads/`
+- `<tenant>-image-relay.sh` → `/mnt/clients/<tenant>/openvoiceui/uploads/` (one relay script per tenant)
 
 After relay, images are at: `https://{tenant}.jam-bot.com/uploads/{filename}`
 
@@ -60,8 +59,8 @@ The relay also sends you a mesh notification listing the new files.
 
 On the VPS host:
 ```bash
-# Copy the relay script
-cp /home/mike/MIKE-AI/scripts/danielle-image-relay.sh \
+# Copy an existing relay script as a template
+cp /home/mike/MIKE-AI/scripts/<existing-tenant>-image-relay.sh \
    /home/mike/MIKE-AI/scripts/{tenant}-image-relay.sh
 # Edit: change DEST path + mesh-send --to {tenant}-voice@mesh
 # Add cron:  */2 * * * *  bash /home/mike/MIKE-AI/scripts/{tenant}-image-relay.sh >> /home/mike/MIKE-AI/logs/{tenant}-image-relay.log 2>&1
@@ -74,7 +73,7 @@ cp /home/mike/MIKE-AI/scripts/danielle-image-relay.sh \
 # Quick image request (voice agent skill pattern):
 REQUEST_IMAGE() {
   local PROMPT="$1"
-  local TENANT="${2:-danielle}"
+  local TENANT="${2:-<tenant>}"
   printf '%s\n' "{\"prompt\":\"$PROMPT\",\"tenant\":\"$TENANT\"}" \
     | mesh-send --to mac-claude@mesh --kind task \
         --subject "image-gen: $TENANT $(date +%s)"

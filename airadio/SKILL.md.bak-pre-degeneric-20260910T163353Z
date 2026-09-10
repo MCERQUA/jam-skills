@@ -1,0 +1,532 @@
+---
+name: airadio
+description: Push songs, playlists, and images to the user's AI-Radio account; pull songs back to play; manage friends; send songs one-to-one; vote on community tracks. Integration with ai-radio.jam-bot.com.
+metadata: {"openclaw": {"emoji": "📻"}}
+---
+
+# AI-Radio Integration
+
+AI-Radio (ai-radio.jam-bot.com) is the user's **persistent, social, multi-user music layer**. You can push music from this OpenVoiceUI workspace into their AI-Radio account and pull music back to play. You can also manage their friends, send songs, and cast votes.
+
+**All AI-Radio actions are done by emitting voice tags** that OpenVoiceUI parses — the tags are stripped from TTS so the user hears the surrounding words but not the tag itself.
+
+---
+
+## When to use this skill
+
+Trigger on phrases like:
+- "send this to my AI-Radio" / "send this song to AI-Radio" / "push to radio"
+- "send my [playlist name] to AI-Radio"
+- "play [song] from AI-Radio" / "pull [song] from radio"
+- "send this song to [friend name]"
+- "add [name] as a friend on AI-Radio"
+- "what songs did my friends send me"
+- "upvote this" / "downvote this" (when playing a song from AI-Radio)
+- "change my AI-Radio profile picture" / "update the cover for [song]"
+
+If the user is just asking generic music questions (generate, play local, skip), use the `suno-music` skill or `[MUSIC_PLAY]` tags instead. This skill is specifically the AI-Radio bridge.
+
+---
+
+## Push from OVU → AI-Radio
+
+### Send a single song
+
+The tag accepts either the exact filename (without extension) OR the song's title — the bridge fuzzy-matches against both library and generated playlists.
+
+```
+[AIRADIO_PUSH_SONG:<title or filename>]
+```
+
+Example — user says *"send 'Code Block Cartel' to my AI-Radio"*:
+```
+On it — pushing Code Block Cartel to your AI-Radio now.
+[AIRADIO_PUSH_SONG:Code-Block-Cartel]
+```
+
+The user will not hear the tag; they'll hear the spoken sentence only. OVU calls the bridge and AI-Radio dedupes by (user, sunoId) / (user, sourceHash), so re-pushing the same song is a safe no-op.
+
+### Cover art — EVERY song you push should have artwork (covers are NOT auto-generated)
+
+AI-Radio does **not** invent a cover for you. A song pushed with no artwork shows a blank/placeholder tile in the catalog. So whenever you put a song on AI-Radio, give it a cover — it's part of "pushing a song," not an optional extra.
+
+#### AI-Radio cover HOUSE STYLE — match the existing catalog (this is mandatory, not optional)
+
+Every AI-Radio cover follows ONE consistent look so the catalog is cohesive. Do NOT invent a different style per song — generate this exact format every time:
+
+- **Square 1:1** image, photorealistic, premium album-art quality.
+- **It depicts a record album SLEEVE with a black vinyl record disc sliding OUT of the right-hand side of the sleeve** — the disc shows grooves and a center label. This vinyl-peeking-from-the-sleeve framing is the signature of the catalog; it must be present.
+- **Song TITLE in large bold UPPERCASE at the TOP**, gold/cream lettering.
+- **Title repeated smaller at the BOTTOM with the artist name beneath** (e.g. `DJ PiGuy`), gold.
+- **A dramatic, photorealistic central subject themed to the song** (its vibe/lyrics) seated/staged inside the sleeve artwork; cinematic lighting, dark glossy reflective floor.
+- Brand rules still apply: **no purple, no emojis**.
+
+Copy-paste image-gen prompt template (fill the `{...}`):
+```
+Square album cover, photorealistic, premium hip-hop/electronic album art. A record
+album sleeve viewed front-on with a glossy BLACK VINYL RECORD sliding out of the RIGHT
+side of the sleeve (grooves and center label visible). Centered subject: {scene themed
+to the song — vibe, lyrics, mood}. Dramatic cinematic lighting, dark reflective floor.
+Song title "{TITLE}" in large bold gold uppercase across the TOP. At the BOTTOM, the
+title "{TITLE}" again with "{ARTIST}" beneath in gold. No purple, no emojis, no
+watermark. 1:1.
+```
+
+How covers get attached (you don't need a special tag — the bridge does it automatically):
+
+1. **Generate the artwork** for the track using the HOUSE STYLE above (square, vinyl-out-of-sleeve, title top + bottom). Use your image-gen tool / FLUX, or a user-supplied image.
+2. **Save it right next to the song file, with the same name**: for `My-Track.mp3` in the generated-music folder, save the cover as `My-Track.png` (`.jpg`/`.webp` also fine). A `covers/My-Track.png` subfolder works too.
+3. **Push as normal** — `[AIRADIO_PUSH_SONG:My-Track]`. The bridge auto-detects the sibling image and uploads it as the cover in the same call. No extra step, no extra tag.
+
+If you're generating a brand-new song to put on AI-Radio, generate its cover in the same breath and save it beside the `.mp3` **before** you emit the push tag. That way artwork rides along every time.
+
+**Fixing / changing a cover after the fact** (song already on AI-Radio, or you want different art): use the explicit cover tag instead —
+```
+[AIRADIO_SET_SONG_COVER:<song filename or title>|/uploads/ai-gen-9999.png]
+```
+
+### Check before pushing — dedup against the user's own AI-Radio library
+
+Before emitting `[AIRADIO_PUSH_SONG:...]` for a track that might already be up there, emit a check tag first and look at the system response on the NEXT turn. This avoids telling the user "I pushed it" when it was already on AI-Radio and no upload actually happened.
+
+```
+[AIRADIO_CHECK_IN_LIBRARY:<title>]
+```
+
+The bridge posts back into your transcript one of:
+- `AI-Radio: "<title>" ALREADY in library (exact match) → <titles>` — skip the push, tell the user it's already there.
+- `AI-Radio: "<title>" NOT in library — safe to push` — OK to push.
+
+Example:
+```
+Checking if that's already on your AI-Radio.
+[AIRADIO_CHECK_IN_LIBRARY:AI On The Line]
+```
+Then, after the next turn confirms it's not there:
+```
+It's not up there yet — pushing now.
+[AIRADIO_PUSH_SONG:AI On The Line]
+```
+
+Rules:
+- Only skip the check if the user explicitly says "push it again" / "re-upload" / "force push". Otherwise check first.
+- Never combine a push tag and a check tag in the same reply — they race. Check, wait for the system line, THEN push on the next turn.
+- For playlists, the upstream dedupes each song individually; no separate playlist check tag is needed.
+
+### "This song" / "send this" — ALWAYS read the current context
+
+Every user turn includes a context line like `[Music PLAYING: <title>]` or `[Available tracks — Generated (N): <list>]` in the message. When the user says *"this song"*, *"send this"*, *"that one"*, or *"the one playing"*, you MUST use the title from the current `[Music PLAYING: <title>]` marker — NOT a song from an earlier turn.
+
+Example — context shows `[Music PLAYING: AI On The Line]` and user says *"push this to airadio"*:
+```
+Pushing AI On The Line to your AI-Radio now.
+[AIRADIO_PUSH_SONG:AI On The Line]
+```
+
+If no track is currently playing, ASK the user which track they mean — do NOT guess based on conversation history.
+
+### Send an entire playlist
+
+```
+[AIRADIO_PUSH_PLAYLIST:<playlist name>]
+```
+
+Example:
+```
+Sending your Focus Beats playlist to AI-Radio — all tracks.
+[AIRADIO_PUSH_PLAYLIST:Focus Beats]
+```
+
+### Set avatar, banner, song cover, playlist cover
+
+Only use local images the user just generated or uploaded (under `uploads/`, `faces/`, `known_faces/`, `generated_music/`, or `1temp/`). The bridge rejects other paths.
+
+```
+[AIRADIO_SET_AVATAR:/uploads/ai-gen-1234.png]
+[AIRADIO_SET_BANNER:/uploads/ai-gen-5678.png]
+[AIRADIO_SET_SONG_COVER:<song filename or title>|/uploads/ai-gen-9999.png]
+[AIRADIO_SET_PLAYLIST_COVER:<playlist name>|/uploads/ai-gen-0000.png]
+```
+
+---
+
+## Pull from AI-Radio → OVU (play)
+
+### Play a specific song from the user's AI-Radio library
+
+```
+[AIRADIO_PLAY_SONG:<song title>]
+```
+
+### Play a playlist
+
+```
+[AIRADIO_PLAY_PLAYLIST:<playlist name>]
+```
+
+### Play a song a friend sent
+
+```
+[AIRADIO_PLAY_FRIEND_SONG:@<handle>|<song title>]
+```
+
+OVU handles resolution + streaming — you do not need to know the URL.
+
+---
+
+## Friends
+
+### Request / accept / decline
+
+```
+[AIRADIO_FRIEND_REQUEST:@<handle>]
+[AIRADIO_FRIEND_ACCEPT:@<handle>]
+[AIRADIO_FRIEND_DECLINE:@<handle>]
+```
+
+Rules:
+- **Only send a friend request when the user explicitly names the person in this turn.** Never auto-add.
+- If you don't know whether the handle exists, ask the user to confirm instead of guessing.
+
+### Send a song to a friend
+
+```
+[AIRADIO_SEND_TO_FRIEND:<song title or id>|@<handle>|<optional 280-char note>]
+```
+
+Example:
+```
+Sending Code Block Cartel to Nick.
+[AIRADIO_SEND_TO_FRIEND:Code Block Cartel|@nick|you'll love this]
+```
+
+Rules:
+- The user must be friends already. If not, say: *"You aren't friends with @nick yet — do you want me to send a friend request first?"*
+- Never send to a non-friend silently.
+
+### Reply to a received song with another song
+
+```
+[AIRADIO_REPLY_TO_SEND:<sendId>|<song title or id>|<note?>]
+```
+
+### Reading the inbox
+
+When the user asks *"what songs did friends send me?"*, emit:
+
+```
+[AIRADIO_INBOX]
+```
+
+The bridge posts back `AI-Radio: inbox: N sends (K unread)`. Use it to size your answer. Don't dump the full list uninvited — this is private. Offer to play the top one: *"Nick sent you Bass Quake an hour ago — want to play it?"*
+
+---
+
+## Catalog & cross-user playback
+
+AI-Radio is platform-wide. Every public song on any user's account is reachable from this workspace — not just the current user's own library. Use these tags for anything that crosses user boundaries.
+
+### Search the full public catalog
+
+```
+[AIRADIO_CATALOG_SEARCH:<query>]
+```
+
+Example — user says *"what Nick songs are on AI-Radio?"*:
+```
+Searching AI-Radio for Nick's tracks.
+[AIRADIO_CATALOG_SEARCH:nick]
+```
+
+OVU renders the results inline (cover, title, artist, play button). Offer to play the top match if there's a clear winner.
+
+### Play any song from the catalog by title or id
+
+```
+[AIRADIO_PLAY_FROM_CATALOG:<song title or id>]
+```
+
+Unlike `[AIRADIO_PLAY_SONG:...]` (which plays from the user's own library), this one resolves against every public song on AI-Radio. OVU fetches a signed 15-minute stream URL and starts playback.
+
+Rules:
+- Only emit when the user explicitly asked for a specific track
+- If the query is ambiguous, surface the top 3 candidates first and let the user pick
+
+### Save a song to the user's library
+
+```
+[AIRADIO_SAVE_TO_LIBRARY:<song id or title>]
+```
+
+Creates a saved reference (like/bookmark) so the song appears in the user's AI-Radio library. Doesn't copy the audio — playback always streams from the original owner.
+
+Rules:
+- Only save when the user explicitly asks
+- Never bulk-save from a search result
+- You can't save a song the user already owns — acknowledge and skip
+
+### Read the user's own library counts
+
+```
+[AIRADIO_LIBRARY]
+```
+
+Bridge posts a summary back: *"library: N songs, M playlists"*. Handy when the user asks how much is up there. Don't dump the actual titles unless they ask.
+
+### Create a playlist
+
+```
+[AIRADIO_PLAYLIST_CREATE:<name>|<optional description>]
+```
+
+Creates a playlist owned by the user. If a playlist with that name already exists, the existing one is returned — no duplicates. After creating, you typically want to add songs via the existing `[AIRADIO_PUSH_PLAYLIST:...]` or playlist add tags.
+
+### Read a playlist's contents
+
+```
+[AIRADIO_PLAYLIST_READ:<playlist id or name>]
+```
+
+Fetches ordered songs with signed stream URLs. Use before announcing *"your Focus Beats has 12 tracks, want me to play it?"* so the list is accurate.
+
+### Stream URLs are temporary
+
+Every stream URL the agent receives from OVU is valid for only 15 minutes. Treat them as ephemeral:
+- Do **not** cache them
+- Do **not** hand them to the user in chat or to another session
+- If a URL is stale, just re-issue — no extra charge, no friction
+
+---
+
+## Queue / Radio (voice-shaped)
+
+For "play X" style commands, use the queue endpoints that return a ready-to-play
+list (20 items by default, each with a signed `streamUrl`). OVU auto-queues the
+items into the music player. Every response has a `reason` string — speak it
+verbatim so the user knows exactly what was queued.
+
+Voice tags:
+```
+[AIRADIO_QUEUE_NEW]                              play something new
+[AIRADIO_QUEUE_TRENDING]                         play what's trending
+[AIRADIO_QUEUE_TOP]                              play the all-time top
+[AIRADIO_QUEUE_TOP:day|week|all]                 scoped top (24h / 7 days / all time)
+[AIRADIO_QUEUE_RANDOM]                           random public songs
+[AIRADIO_QUEUE_FRIENDS]                          songs your friends made
+[AIRADIO_QUEUE_FOLLOWING]                        from people you follow
+[AIRADIO_QUEUE_ME]                               your own songs
+[AIRADIO_QUEUE_LIKED]                            your liked songs
+[AIRADIO_QUEUE_UNHEARD]                          haven't heard yet
+[AIRADIO_QUEUE_GENRE:<slug>]                     play hip-hop, lofi, etc.
+[AIRADIO_QUEUE_MOOD:<mood>]                      chill, upbeat, focused, sad, etc.
+[AIRADIO_QUEUE_ARTIST:@<username>]               one user's public songs
+[AIRADIO_QUEUE_SIMILAR:<songId>]                 more like this
+[AIRADIO_QUEUE:<free-form>]                      natural-language fallback
+```
+
+Valid moods: `relaxed`, `calm`, `chill`, `focused`, `study`, `upbeat`,
+`energetic`, `workout`, `aggressive`, `sad`. Each expands to a genre list.
+
+Each response shape:
+```json
+{
+  "items": [{ "id": "...", "title": "...", "streamUrl": "/api/song/.../stream?t=...", ... }],
+  "reason": "12 chill songs from your friends in lofi + ambient",
+  "nextCursor": null
+}
+```
+
+**Rules:**
+- Only emit on a direct user request **in this turn**. Never auto-queue; never
+  queue anything the user didn't ask for.
+- Speak the `reason` string verbatim. Do not paraphrase the count or the source.
+- Stream URLs expire in 15 minutes. If the user pauses and resumes after that
+  window, re-fetch.
+- Never mix queue tags with heavy monologue — short spoken response, tag, done.
+- `[AIRADIO_QUEUE_ARTIST:@handle]` — accept both `@nick` and `nick`. If no user
+  exists the bridge returns NOT_FOUND; pass that back to the user politely.
+- `[AIRADIO_QUEUE:<free-form>]` maps anything the hard shortcuts don't cover.
+  Use it when the user's phrasing mixes mood + audience + freshness (e.g.
+  "play something chill my friends made that I haven't heard").
+
+---
+
+## Voting
+
+Use only when the user explicitly asks. Never loop "vote all."
+
+```
+[AIRADIO_VOTE:<song title or id>|up]
+[AIRADIO_VOTE:<song title or id>|down]
+[AIRADIO_VOTE:<song title or id>|clear]
+```
+
+Rules:
+- Cannot vote on the user's own songs. If you detect that, tell the user and skip.
+- There's a 10-second cooldown per song per user. If a vote is rejected, acknowledge it.
+- One vote per song. Voting again **changes** the existing vote.
+
+---
+
+## The bridge is pre-configured
+
+The OVU Flask app reads these env vars (set automatically by the JamBot provisioner):
+
+```
+AIRADIO_URL=http://ai-radio:3000
+AIRADIO_AGENT_KEY=<platform-wide secret>
+AIRADIO_JAMBOT_USER=<this-username>
+```
+
+You don't need to authenticate manually. The tags are all you need.
+
+---
+
+## Per-user API keys (new)
+
+Users can now generate their OWN AI-Radio API key from
+`https://ai-radio.jam-bot.com/settings` (section "AI-Radio API key").
+Keys look like `aia_sk_<48 chars>` and authenticate as that specific
+user — no JamBot subdomain wiring required.
+
+They paste it into this workspace via the bridge tag:
+
+```
+[AIRADIO_SET_USER_KEY:aia_sk_...]
+```
+
+When emitted, OVU writes the key to the workspace `.env` (as
+`AIRADIO_USER_KEY=...`) and from then on every agent call
+authenticates as that user via `Authorization: Bearer <key>` — no more
+platform-shared key for this workspace. One user per workspace.
+
+If the user asks "how do I connect my AI-Radio account", walk them through:
+
+  1. Visit https://ai-radio.jam-bot.com/settings
+  2. Scroll to "AI-Radio API key" and click "Generate API Key"
+  3. Copy the `aia_sk_...` value (it is shown exactly once)
+  4. Paste it back here — I'll wire it into this workspace
+
+Rules:
+
+- Never log the key back to the user after setting it. Never read it aloud.
+- The platform-shared key still works — existing deployments are unaffected.
+- If the user revokes or rotates the key in settings, this workspace
+  loses access until they paste the new value.
+
+---
+
+## Agent self-signup (no browser, no Clerk)
+
+AI agents can create their own AI-Radio account programmatically — no human
+sign-up flow needed:
+
+```
+GET  https://ai-radio.jam-bot.com/api/agent/signup   → instructions + remaining open slots
+POST https://ai-radio.jam-bot.com/api/agent/signup   → account + aia_sk_ key (shown ONCE)
+     Content-Type: application/json
+     { "username": "kyle-bhb", "displayName": "Kyle Valhalla",
+       "agentName": "BHB voice agent", "contact": "optional" }
+```
+
+Two lanes:
+
+- **JamBot lane** — include the platform key header `X-JamBot-Agent-Key`
+  (agents inside JamBot infra have it via the bridge) plus optional
+  `"jambotUser": "<tenant>"` to link the tenant. Tier **jambot = 1 GB**
+  storage. No daily cap.
+- **Open lane** — no credential. Capped platform-wide (default 5 signups/day,
+  1 per IP/day). Tier **free = 50 MB** storage.
+
+After signup, use the returned key as `Authorization: Bearer aia_sk_...` on
+all `/api/agent/*` endpoints, or wire it into this workspace with
+`[AIRADIO_SET_USER_KEY:aia_sk_...]`. Check storage anytime:
+`GET /api/agent/quota` → `{ tier, usedBytes, quotaBytes, remainingBytes }`.
+
+**LYRICS ARE REQUIRED on every push (Mike's platform rule — all songs need lyrics).**
+Suno returns the exact lyrics at generation time; they're also saved in your
+workspace `generated_music/generated_metadata.json`. Include them in the
+push-song `meta` as `"lyrics": "...", "lyricsSource": "suno"`. Forgot? Add them
+after: `PATCH /api/agent/song/:id` with `{"lyrics":"...","lyricsSource":"suno"}`.
+Only truly instrumental tracks may omit lyrics.
+
+**Scope gotchas (learned in the field):**
+- The `[AIRADIO_*]` voice tags are executed by the OVU **browser UI** — from an
+  SMS/tmux/headless session they do nothing. Use the direct API above instead
+  (JamBot containers reach it at `http://ai-radio:3000` via jambot-shared).
+- Do NOT probe your own container's env vars to decide whether AI-Radio is
+  configured — the bridge env lives in the **openvoiceui** container, not
+  yours. If your workspace has a key (`workspace/.env` → `AIRADIO_USER_KEY`),
+  verify with a real call to `/api/agent/quota`, not with `env | grep`.
+
+---
+
+## Open the AI-Radio UI in a canvas page
+
+The workspace has a dedicated iframe canvas page that embeds `https://ai-radio.jam-bot.com` inside OpenVoiceUI — the user gets the full AI-Radio interface (library, friends, player, settings) without leaving OVU.
+
+```
+[CANVAS:airadio]
+```
+
+Use this when the user says *"open AI-Radio"*, *"show me my AI-Radio"*, *"let me see the catalog"*, etc. The canvas page has nav shortcuts for Home / Discover / My Library / Friends / Inbox / Settings / My Profile and an "Open in new tab" button.
+
+Do NOT use `[CANVAS_URL:https://ai-radio.jam-bot.com]` — the dedicated page handles nav and user context correctly. Plain `[CANVAS_URL:...]` would work (ai-radio now allows jam-bot subdomain framing) but loses the header nav.
+
+---
+
+## Non-negotiable rules
+
+1. Never emit an AI-Radio tag that the user didn't authorize **in this conversational turn**. Especially for votes, friend requests, and song sends.
+2. Never push a file that isn't clearly identifiable in the user's workspace. If in doubt, ask.
+3. **Check before pushing.** When the user asks to push a song, emit `[AIRADIO_CHECK_IN_LIBRARY:<title>]` FIRST and wait for the system line in the next turn. Only emit `[AIRADIO_PUSH_SONG:...]` if the check reports "NOT in library" — or if the user explicitly said "re-push" / "force". This stops you from telling the user "pushed!" when the song was silently deduped server-side.
+4. Never claim a push/send succeeded until you have CONFIRMED it — the initial tag emission is the *request*, not the result.
+
+   ⚠️ **The `AI-Radio: ...` system line does NOT reach you. Do not wait for it.** Earlier
+   revisions of this rule said the bridge "posts a system line into the transcript"; it does
+   not. `ActionConsole.addEntry` (`src/app.js:9528`) only builds a DOM element and appends it
+   to a panel — no network call, no server write, nothing you can read. Waiting for it means
+   you can NEVER confirm, so you truthfully tell the user "I can't confirm it landed" on a
+   push that actually succeeded. Measured 2026-09-07 on test-dev: the song was live at
+   07:25:51 and the agent reported no confirmation ~2 minutes later. The user reasonably read
+   that as failure.
+
+   **CONFIRM BY ASKING THE BRIDGE YOURSELF.** You have `AGENT_API_KEY` in your environment and
+   OpenVoiceUI trusts that header for internal agent calls:
+
+   ```bash
+   curl -s -H "X-Agent-Key: $AGENT_API_KEY" \
+     "http://openvoiceui:5001/api/airadio/library/search?q=<title>"
+   ```
+
+   Returns `{"exists":true,"count":N,"matches":[{"title":...,"isPublic":...,"createdAt":...}]}`.
+   `exists:true` with a `createdAt` at or after your push is a real confirmation — speak from
+   THAT. `exists:false` means it did not land; say so plainly and offer to retry.
+
+   ❌ **Do NOT call `ai-radio:3000` directly.** The AI-Radio credentials live in the
+   openvoiceui container, not yours, so a direct call fails with `AUTH_AGENT_KEY_INVALID` —
+   which looks like a broken push but is really you knocking on the wrong door. Always go
+   through the OVU bridge.
+5. Never read a friend's inbox contents aloud without being asked.
+6. Never combine AI-Radio actions with heavy monologue — the tags run fast; keep the TTS response short and informative.
+7. The user's own AI-Radio profile is at `https://ai-radio.jam-bot.com/u/<their-username>`. Link to it if they want to review what was sent. Or open `[CANVAS:airadio]` and click "My Profile".
+
+---
+
+## Error surfaces
+
+If the bridge returns errors, you'll see them in the OVU response and should convey to the user:
+
+- `BRIDGE_NOT_CONFIGURED` — setup hasn't been completed. Ask the admin.
+- `NOT_FRIENDS` — when sending songs. Offer to send a friend request.
+- `RATE_LIMITED` — too many actions in a short time. Wait a minute.
+- `NOT_FOUND` — the referenced song / playlist / user doesn't exist.
+- `AGENT_SYNC_DISABLED` — the user turned off agent sync in their AI-Radio settings.
+- `VALIDATION_FAILED` — input problem. Re-read what was asked and try a cleaner version.
+- `AUTH_API_KEY_INVALID` — per-user API key was revoked or rotated. Ask the user to paste a fresh one from `/settings`.
+- `QUOTA_EXCEEDED` — storage quota full (free 50 MB / jambot 1 GB). Delete songs via `DELETE /api/agent/song/:id` or ask the admin about a higher tier.
+- `SIGNUP_CAP_REACHED` — open-lane signups hit the daily cap (5/day platform, 1/IP). Try again after 24h or use the JamBot lane.
+
+---
+
+*This skill is installed in every JamBot client workspace via `jambot-update-skills.sh`.*

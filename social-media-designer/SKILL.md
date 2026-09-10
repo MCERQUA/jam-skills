@@ -8,22 +8,22 @@ description: "Generate branded social-media ad images (Facebook/Instagram) — l
 ## Purpose
 Generate professional, branded social media advertisement images for client businesses.
 
-**Method routing:** if your node has a desktop browser with ChatGPT open (macdaddy/mac-claude), USE THAT — drive the on-screen ChatGPT browser per that node's flow; it is the primary method there. The Gemini pipeline below is the NO-BROWSER path for headless/webtop agents (original use: Contractor's Choice Agency / Josh websites).
+**Method routing:** if your node has a desktop browser with ChatGPT open (macdaddy/mac-claude), USE THAT — drive the on-screen ChatGPT browser per that node's flow; it is the primary method there. The Gemini pipeline below is the NO-BROWSER path for headless/webtop agents (original use: an insurance-tenant's client websites).
 
 ## Activation Triggers
 - "create social media post"
 - "make a Facebook post image"
 - "generate Instagram ad"
 - "social media image for [topic]"
-- "branded post for CCA"
-- Working with posts in JOSH-SOCIAL-APPROVE project
+- "branded post for [brand]"
+- Working with posts in a tenant's `<TENANT>-SOCIAL-APPROVE` project
 
 ## Key Learnings (What Works)
 
 ### 1. Logo Reference is Critical
 Always include the brand logo as a reference image:
 ```
-reference_image_paths: ["/home/josh/gemini_images/CCA-LOGO.jpeg"]
+reference_image_paths: ["/home/<tenant>/gemini_images/<BRAND>-LOGO.jpeg"]
 ```
 
 ### 2. Structured Layout Prompt Format
@@ -62,11 +62,11 @@ Describe specific graphic elements:
 
 ## Brand Assets
 
-### Contractor's Choice Agency
-- **Logo:** `/home/josh/gemini_images/CCA-LOGO.jpeg`
-- **Website:** contractorschoiceagency.com
-- **Phone:** 844-967-5247
-- **Colors:** Navy (#1a2744), Red (#dc3545), White, Gray
+### Example brand config (per-tenant — see the tenant's own brand assets)
+- **Logo:** `/home/<tenant>/gemini_images/<BRAND>-LOGO.jpeg`
+- **Website:** `<tenant-domain>`
+- **Phone:** `<tenant-phone>`
+- **Colors:** tenant-specific palette (example: Navy, Red, White, Gray)
 
 ## Prompt Template
 
@@ -130,7 +130,7 @@ STYLE: High-end insurance marketing. Bold, clean, professional. The design shoul
 ```
 
 ## Output Location
-Save to: `/home/josh/Josh-AI/websites/JOSH-SOCIAL-APPROVE/POSTS/`
+Save to: `/home/<tenant>/<Tenant>-AI/websites/<TENANT>-SOCIAL-APPROVE/POSTS/`
 
 Naming convention: `[topic-slug]-social-v[version].png`
 

@@ -8,7 +8,7 @@ description: "Build-from menu of 119 curated copy-paste CSS components (buttons,
 **Use this skill whenever you are building or styling a website/page** and want ready-made,
 on-brand CSS effects instead of hand-writing animations from scratch. 119 curated components
 (buttons, cards, loaders, text effects, backgrounds, hover, borders, forms, misc) — each with
-copy-paste HTML+CSS, a primary selector, and a usage note. Built by Danielle's agent; this is
+copy-paste HTML+CSS, a primary selector, and a usage note. Built by a tenant's agent; this is
 the agent-facing layer that turns it into a build-from menu.
 
 ## Files
@@ -16,7 +16,7 @@ the agent-facing layer that turns it into a build-from menu.
   Has the agent protocol, section→component composition recipes, and every component (code + usage).
 - `component-catalog.json` — machine-readable index `[{name,category,selector,usage,html,css}]` ×119.
   Use for programmatic selection (filter by category, grab `css`+`html`, apply `selector`).
-- Visual gallery (browse with live previews): Danielle's canvas page `css-effects-library.html`.
+- Visual gallery (browse with live previews): the source tenant's canvas page `css-effects-library.html`.
 
 ## How to use (build-from-menu protocol)
 1. **Map page section → category:**
@@ -43,6 +43,6 @@ the agent-facing layer that turns it into a build-from menu.
 | misc | 9 | badges, tooltips, accents (sparingly) |
 
 ## Maintaining
-The catalog is GENERATED from the `effects` array in Danielle's `css-effects-library.html`
-(the source of truth). To regenerate after she adds components: re-run the extractor
+The catalog is GENERATED from the `effects` array in the source tenant's `css-effects-library.html`
+(the source of truth). To regenerate after new components are added: re-run the extractor
 (`/tmp/csslib/gen-menu.py` pattern — parse the array → emit MENU.md + catalog.json).

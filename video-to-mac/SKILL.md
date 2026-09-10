@@ -69,7 +69,7 @@ scheduled-work budget. The Mac has the GPU and no client workload to damage.
 
     DELIVER TO
       <exact path or URL where the finished file should land, AND who is waiting on it.
-       Name the human and the channel — "Fitzy, by SMS on the BHB line" — so the Mac
+       Name the human and the channel — "Alex, by SMS on the <tenant> line" — so the Mac
        knows the reply is not just a file drop.>
 
     DEADLINE / URGENCY

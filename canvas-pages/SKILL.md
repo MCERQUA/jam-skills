@@ -174,12 +174,12 @@ Returns: `{"url": "/uploads/<uuid>.png", "original_name": "file.png"}`
 
 ### Public-URL delivery fallback — hand the OWNER one file without making a page public
 
-Measured 2026-09-08 (hrsf, `CANVAS_REQUIRE_AUTH=true`): `GET /uploads/<file>` → **HTTP 200 with no
+Measured 2026-09-08 (a tenant, `CANVAS_REQUIRE_AUTH=true`): `GET /uploads/<file>` → **HTTP 200 with no
 login**; `GET /pages/<page>.html` on a private page → **401**. So any file you drop in
 `/app/runtime/uploads/` is a no-auth download URL at `https://<tenant>.jam-bot.com/uploads/<file>`
 — the right way to text or email the owner a zip, an MP3, a rendered video or a PDF when the canvas
-page that holds it stays private. (Pattern from hrsf-voice 2026-09-05, five-song zip; bhb-voice
-2026-09-05, pirate animation.) This is OUR system, so it satisfies the no-Claude-artifacts rule —
+page that holds it stays private. (Pattern from a tenant voice lane, 2026-09-05, five-song zip; another
+tenant voice lane, 2026-09-05, pirate animation.) This is OUR system, so it satisfies the no-Claude-artifacts rule —
 an artifact link never goes to a client; an `/uploads/` link may.
 
 Four rules, all load-bearing:
@@ -190,10 +190,10 @@ Four rules, all load-bearing:
    the owner has not asked to make public stays private (canvas-page-visibility skill HARD RULE),
    and you do not export a private page's contents into `/uploads/` to dodge that.
 3. **Queue-ack is not delivery.** An SMS/email API's 200 means queued. Report "sent" only with the
-   carrier/inbox receipt; until then the status is "queued, not yet confirmed" (bhb 2026-09-05 sat
+   carrier/inbox receipt; until then the status is "queued, not yet confirmed" (a tenant lane, 2026-09-05, sat
    in exactly that state for a day).
 4. **Name it so the owner can find it again.** `/uploads/<uuid>.png` is what `/api/upload` returns;
-   for a deliverable, copy it to a readable name (`memaws-first-drop-songs.zip`) before you send the link.
+   for a deliverable, copy it to a readable name (`first-drop-songs.zip`) before you send the link.
 
 ## Path Mapping (CRITICAL)
 

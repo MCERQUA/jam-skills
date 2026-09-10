@@ -18,7 +18,7 @@ Each agent has write-capable SSH deploy keys for a specific scope:
 | Agent | Can push to |
 |---|---|
 | bun-desktop | ovui-bridge, ovui-desktop, OVUI-Ubuntu, jam-skills |
-| josh-desktop | ovui-bridge, ovui-desktop, jam-skills |
+| <tenant>-desktop | ovui-bridge, ovui-desktop, jam-skills |
 | residential-laptop | ovui-bridge, jam-skills |
 | host@mesh | all MCERQUA repos (uses gh CLI token) |
 

@@ -104,19 +104,19 @@ The header can also be `X-FoamBook-Key: $FOAMBOOK_API_KEY` if Authorization is a
 
 Most new contacts/companies arrive via two channels:
 1. **`residential-laptop@mesh`** runs the FB browser scraper + web-research sub-agents and POSTs results to this API. It's the dominant write source.
-2. **Voice agent on `foambot.jam-bot.com`** — Mike asks foambot to add or correct an entry conversationally, foambot translates to API calls.
+2. **A tenant voice agent (e.g. `<tenant>.jam-bot.com`)** — Mike asks that tenant's agent to add or correct an entry conversationally, it translates to API calls.
 
-Other agents can read freely; before writing, check if residential or foambot already covers your case so you don't create dupes.
+Other agents can read freely; before writing, check if residential-laptop or a tenant voice agent already covers your case so you don't create dupes.
 
 ## When you spot a data quality issue
 
 - Don't silently fix — Mike + residential have a documented review pattern
 - Add a `FLAG <date> (<your-agent>):` line to the contact's `notes` field via PUT
-- If it's a dup, flag both records — let foambot decide the merge
+- If it's a dup, flag both records — let Mike or the owning tenant decide the merge
 
 ## Hard rules
 
 - ❌ Never POST/PUT without the bearer key (server returns 401, costs nothing)
 - ❌ Never use Facebook to enrich a FoamBook record (FB ban risk on Mike's account)
 - ❌ Never auto-tag a confidence-< 70 enrichment hit as canonical email/photo — put it in notes
-- ✅ Always include a `source` string when creating new records ("foambot voice 2026-05-11", "residential dig_log Round 9", "host@mesh email-finder enrichment")
+- ✅ Always include a `source` string when creating new records ("<tenant> voice 2026-05-11", "residential dig_log Round 9", "host@mesh email-finder enrichment")

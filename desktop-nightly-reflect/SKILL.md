@@ -1,6 +1,6 @@
 ---
 name: desktop-nightly-reflect
-description: "Conductor for the nightly reflection cycle on desktop agents (bun/josh/src/danielle-desktop, residential-laptop) — read conversation log → compose reflection → post to chatroom → BLACKBOARD write → ack, with identity attribution enforced structurally. TRIGGER: nightly reflection task lands in inbox, the ~02:30-02:53 UTC cron fires, or a reflection needs filing without a conductor."
+description: "Conductor for the nightly reflection cycle on desktop agents (bun-desktop and per-tenant desktop agents such as <tenant>-desktop, plus residential-laptop) — read conversation log → compose reflection → post to chatroom → BLACKBOARD write → ack, with identity attribution enforced structurally. TRIGGER: nightly reflection task lands in inbox, the ~02:30-02:53 UTC cron fires, or a reflection needs filing without a conductor."
 metadata:
   tags: mesh, nightly, reflect, conductor, desktop, attribution, blackboard
 ---
@@ -9,7 +9,7 @@ metadata:
 
 **What this is:** A conductor skill any desktop mesh agent follows to produce a structurally correct nightly reflection — one that can be aggregated by `synthesize` at 18:00 UTC without missing attribution fields. The format must be machine-parseable at the header level (agent identity, session-type, Users-served) because the synthesizer reads those fields to de-dup and attribute output.
 
-**Who reads this:** `bun-desktop`, `josh-desktop`, `src-desktop`, `danielle-desktop`, `residential-laptop` agents — and any future desktop agent onboarded to the mesh nightly cycle.
+**Who reads this:** `bun-desktop`, per-tenant desktop agents (e.g. `<tenant>-desktop`), `residential-laptop` agents — and any future desktop agent onboarded to the mesh nightly cycle.
 
 ---
 
@@ -49,7 +49,7 @@ Count Clerk-verified user turns in `<date>-conversation.md`. Format:
 ```
 Users served: <N> (Clerk-verified: <username(s)>)
 ```
-Example: `Users served: 1 (Clerk-verified: josh)`
+Example: `Users served: 1 (Clerk-verified: <username>)`
 
 #### Rule B — Conversation memory file DOES NOT EXIST (autonomous / worker-submesh session)
 When no per-day conversation file exists, the agent ran autonomously (no Clerk user was served). Derive attribution from the `sent/` directory outbound volume for the day:

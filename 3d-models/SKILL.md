@@ -15,7 +15,7 @@ metadata: {"openclaw": {"requires": {"env": ["MESHY_API_KEY"], "anyBins": ["curl
 > ⚠️ **Host API address:** `172.17.0.1` is the DEFAULT docker bridge and NO tenant
 > container is on it — that address hangs or refuses. The awk snippet below reads your
 > real default gateway from `/proc/net/route` (no `ip` binary needed, it is not installed).
-> Fixed fleet-wide 2026-07-25 after it silently blocked otm-voice and cc-backlinks.
+> Fixed fleet-wide 2026-07-25 after it silently blocked <tenant>-voice and cc-backlinks.
 
 # 3D Models — Unified Skill
 

@@ -11,14 +11,14 @@ description: When you tell a client you will do something at a time — "I'll re
 or you have not scheduled anything — you have written a note to yourself.**
 
 Never use `.claude/scheduled_tasks.json`. Never use `openclaw cron`. Measured 2026-08-20 on
-hrsf: a reminder written to `scheduled_tasks.json` fired at the wrong hour, **ignored an
+a tenant: a reminder written to `scheduled_tasks.json` fired at the wrong hour, **ignored an
 edit made seven minutes before it fired**, left no receipt anywhere, and sent the client a
 message whose text contradicted its own timing. `openclaw cron list` showed nothing the
 whole time. There was no way to tell, from outside, that a client had been promised
 anything at all.
 
 By contrast the host-cron path has delivered every client message it was asked to: 51 daily
-kickoffs across phatty/gksprayfoam/azrim, each with a carrier id in the drain log.
+kickoffs across three tenants, each with a carrier id in the drain log.
 
 ## One-off promise — "remind me at 1pm", "text me Thursday"
 
@@ -26,7 +26,7 @@ kickoffs across phatty/gksprayfoam/azrim, each with a carrier id in the drain lo
 
 **You cannot run `promise.py`. It is not in your container and neither is `crontab`.**
 Until 2026-08-28 this skill told you to run it anyway, which is why a real appointment
-(foamology lead #1001, inspection booked for Mon Aug 31) had to be escalated over the mesh
+(a tenant's lead #1001, inspection booked for Mon Aug 31) had to be escalated over the mesh
 and only got armed because a host session happened to be awake to do it by hand.
 
 Drop a JSON file into a directory you already have rw on. A host cron picks it up within
@@ -35,12 +35,12 @@ Drop a JSON file into a directory you already have rw on. A host cron picks it u
 ```bash
 cat > /mnt/agent-mesh/mesh/PROMISES/requests/$(date -u +%Y%m%dT%H%M%SZ)-lead1001.json <<'JSON'
 {
-  "request_id": "foamology-lead1001-followup",
-  "tenant": "foamology",
+  "request_id": "<tenant>-lead1001-followup",
+  "tenant": "<tenant>",
   "to": "+15550100001",
   "at_local": "2026-09-01T09:00",
   "body": "Morning — how did the Example inspection go yesterday?",
-  "promised_by": "foamology@mesh",
+  "promised_by": "<tenant>@mesh",
   "source": "ledger/sms/2026-08-28/..."
 }
 JSON
@@ -54,7 +54,7 @@ or ask the host to. Use `"at"` with an explicit `...Z` only when you genuinely m
 **Then READ YOUR RESULT.** Every request gets one, accepted or not:
 
 ```bash
-cat /mnt/agent-mesh/mesh/PROMISES/results/foamology-lead1001-followup.json
+cat /mnt/agent-mesh/mesh/PROMISES/results/<tenant>-lead1001-followup.json
 ```
 
 `"outcome": "ACCEPTED"` carries the `promise_id` — that is your proof it will fire.
@@ -70,10 +70,10 @@ owner, the admin line, a time in the past, a body over 900 chars, and a repeated
 
 ```bash
 python3 /home/mike/MIKE-AI/scripts/promises/promise.py add \
-  --tenant hrsf --to +15550100002 \
+  --tenant <tenant> --to +15550100002 \
   --at-local 2026-08-20T13:00 \
-  --body "Hi Dana — 1pm as you asked. Ready to pick the quoting back up?" \
-  --promised-by hrsf-voice@mesh \
+  --body "Hi there — 1pm as you asked. Ready to pick things back up?" \
+  --promised-by <tenant>-voice@mesh \
   --source ledger/sms/2026-08-20/00-31-15-in-local-1787185875.md
 ```
 
@@ -104,7 +104,7 @@ there was anything worth saying.
 
 ```bash
 python3 /home/mike/MIKE-AI/scripts/promises/report.py subscribe \
-  --tenant hrsf --to +15550100002 --at 13:00 \
+  --tenant <tenant> --to +15550100002 --at 13:00 \
   --sections leads,owed \
   --quote "text me my leads from the day before every morning"
 ```
@@ -125,9 +125,9 @@ Three gates enforce it, in order:
 
 **1. At subscribe time — can this client EVER have something to report?**
 Every section is probed before the subscription is created. If none can produce content, the
-subscribe is **REFUSED**. Measured 2026-08-20: `mrglass` was configured for a 06:00 daily
+subscribe is **REFUSED**. Measured 2026-08-20: a tenant was configured for a 06:00 daily
 kickoff with **0 leads, 0 websites, 0 SMS conversation** — it would have gone SILENT-KEPT
-every day forever, which from outside is indistinguishable from being broken. `phatty` had
+every day forever, which from outside is indistinguishable from being broken. Another tenant had
 **0 leads and still received 28 kickoffs**; that is where the content-free filler came from.
 Connect the data source first, or `--force` if content is genuinely expected before the
 first send.
@@ -176,13 +176,13 @@ States you will see: `ARMED · QUEUED · KEPT · SILENT-KEPT · DEGRADED · UNVE
 different facts and are never merged.
 
 A registered promise with no crontab line reports **BREACH — NOT ARMED** immediately, which
-is exactly the failure that left Dana's reminder as a file nobody ran. The sweep also alerts
+is exactly the failure that left the reminder as a file nobody ran. The sweep also alerts
 when the auditor itself cannot run, so a crashed auditor never reads as "no findings".
 
 ## Checking your own work
 
 ```bash
-python3 .../promise.py list --tenant hrsf     # every promise and its state
+python3 .../promise.py list --tenant <tenant>     # every promise and its state
 python3 .../promise.py audit                  # exit 1 if anything is off track
 python3 .../report.py  audit                  # same for subscriptions
 crontab -l | grep -E 'JAMBOT-PROMISE-ONESHOT|JAMBOT-REPORT'
