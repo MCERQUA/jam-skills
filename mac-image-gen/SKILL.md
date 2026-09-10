@@ -1,93 +1,57 @@
 ---
 name: mac-image-gen
-description: "Request a ChatGPT/DALL-E image from the Mac (mac-claude@mesh). The Mac generates it via the real ChatGPT browser, SCPs the PNG to the VPS EVENTS drop, the VPS relay copies it to your uploads/, and the relay notifies you. Use for high-quality AI images — no API key needed, uses the real ChatGPT DALL-E interface."
-metadata: {"openclaw": {"emoji": "🎨"}}
+description: "Request a generated image from the Mac lane (mac-claude@mesh). The Mac's task-runner claims your KIND: task, renders it with the real browser rigs (Grok/CDP with type + logo layers) in ~13 minutes, delivers the PNG into your tenant's uploads/ and replies with the paths. TRIGGER: post image, ad graphic, comparison card, product still. NOT for video (that is the studio single-shot lane) and NOT for posting anywhere."
 ---
 
-# Mac Image Generation — DALL-E via mac-claude@mesh
+# mac-image-gen — how a tenant agent gets an image made on the Mac
 
-The Mac (macdaddy) runs a persistent listener (`com.jambot.mac-claude-listener`) that watches
-`mac-claude@mesh` inbox every 4 seconds. When an `image-gen` task arrives, it:
-
-1. Drives ChatGPT in Chrome via Peekaboo automation
-2. Generates the image with DALL-E
-3. Downloads the PNG
-4. SCPs it to `/mnt/agent-mesh/mesh/EVENTS/{tenant}-images/` on the VPS
-5. Replies to YOUR inbox with `{"success": true, "result": "/mnt/agent-mesh/mesh/EVENTS/..."}`
-6. The VPS relay (a per-tenant `<tenant>-image-relay.sh` script) copies it to your
-   `uploads/` within 2 minutes and sends you a second notification.
+**Mechanism (2026-09-10, measured):** you send one mesh **task**; `task-runner` on macdaddy
+**claims** it (one consumer, one claim — the old `mac-claude-listener` that polled the inbox every
+4 s with a 300-second cap is RETIRED; it failed three real jobs in one evening and is not coming
+back). The runner drives the on-screen Grok composer over CDP, applies the tenant's type and logo
+layers from the brand kit, and writes the finished PNG to
+`/mnt/clients/<tenant>/openvoiceui/uploads/` (a fleet relay copies the EVENTS drop — there is no
+per-tenant relay script or cron to add). A real job takes **~13 minutes median**; do not re-send
+because nothing arrived in 5. You get a `task-result` reply with the file path and the public
+`/uploads/<file>` URL; a refusal is a `task-result` with `success:false` and the reason.
 
 ## How to request an image
 
-Subject MUST contain `image-gen` for the listener to auto-dispatch:
-
 ```bash
-# Simple text prompt (body is treated as {"prompt": <body>})
-printf '%s\n' "Generate an image of a professional spray foam insulation team on a job site, cinematic lighting, photorealistic" \
-  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: spray-foam-team"
-
-# Structured JSON (recommended — lets you specify tenant + delivery dir)
-printf '%s\n' '{"prompt":"A modern luxury home exterior with spray foam insulation visible, architectural photo","tenant":"<tenant>","drop_dir":"<tenant>-images"}' \
-  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: <tenant> luxury home"
+mesh-send --to mac-claude@mesh --kind task \
+  --subject "image-gen: <what it is, 6 words>" \
+  --end-of-turn "mac-claude@mesh — render and reply with the uploads path" <<'BODY'
+TENANT: <your tenant>
+PURPOSE: <where it will be used — e.g. Facebook post, GBP photo, quote card, ad>
+SUBJECT: <one plain-English paragraph of what the image shows>
+STYLE: <mood, composition, aspect (1:1 · 4:5 · 16:9), text overlay wording if any>
+BRAND: use the tenant brand kit (colors/type/logo are on the Mac already; name a hex only to override)
+DELIVER: /mnt/clients/<tenant>/openvoiceui/uploads/
+BODY
 ```
 
-## Message body fields
+Naming a platform in PURPOSE ("Facebook post", "Google Business photo") is fine and expected —
+generating content for a platform is the product. The identity-platform guard holds only
+**actions** on a client's account (post, publish, log in, claim, update a listing, credentials);
+never a platform's name in a content request (Mike, 2026-09-10; `jamfact identity platform`).
 
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `prompt` | string | **required** | Full DALL-E prompt — be specific |
-| `tenant` | string | inferred from sender | Your tenant name |
-| `drop_dir` | string | `{tenant}-images` | EVENTS drop subdirectory name |
+## Gates the Mac applies to every image (write to them; each one otherwise rewrites your task)
+- **No generated before/after photos** for any client (fleet rule 2026-07-28). Ask for a comparison
+  of TYPES or a single "after" state instead.
+- **Climate leads from the brand kit**: a hot-humid market (e.g. Central Texas, zone 2A) leads with
+  heat/cool-house/lower-bills; cold, icicles, "meat locker", "ready for winter" may only support.
+- **Brand palette/type come from the kit**, reconciled with the tenant's canvas style; do not paste
+  a palette unless you are overriding on purpose.
+- **Text in the image** is rendered as a real type layer, so give the exact wording; keep it short.
 
-## Reply format
-
-The Mac replies to your inbox with a `task-result` message:
-```json
-{"success": true, "result": "/mnt/agent-mesh/mesh/EVENTS/<tenant>-images/gen-1234567890.png"}
-```
-
-## Relay → uploads (automatic, ~2 min)
-
-The VPS cron relay runs every 2 minutes per tenant:
-- `<tenant>-image-relay.sh` → `/mnt/clients/<tenant>/openvoiceui/uploads/` (one relay script per tenant)
-
-After relay, images are at: `https://{tenant}.jam-bot.com/uploads/{filename}`
-
-The relay also sends you a mesh notification listing the new files.
-
-## Adding relay for a new tenant
-
-On the VPS host:
-```bash
-# Copy an existing relay script as a template
-cp /home/mike/MIKE-AI/scripts/<existing-tenant>-image-relay.sh \
-   /home/mike/MIKE-AI/scripts/{tenant}-image-relay.sh
-# Edit: change DEST path + mesh-send --to {tenant}-voice@mesh
-# Add cron:  */2 * * * *  bash /home/mike/MIKE-AI/scripts/{tenant}-image-relay.sh >> /home/mike/MIKE-AI/logs/{tenant}-image-relay.log 2>&1
-# Create drop dir: mkdir -p /mnt/agent-mesh/mesh/EVENTS/{tenant}-images
-```
-
-## Usage examples
-
-```bash
-# Quick image request (voice agent skill pattern):
-REQUEST_IMAGE() {
-  local PROMPT="$1"
-  local TENANT="${2:-<tenant>}"
-  printf '%s\n' "{\"prompt\":\"$PROMPT\",\"tenant\":\"$TENANT\"}" \
-    | mesh-send --to mac-claude@mesh --kind task \
-        --subject "image-gen: $TENANT $(date +%s)"
-  echo "Image requested — check uploads in ~3 min or watch inbox for task-result"
-}
-
-# Then poll your inbox for the reply:
-# mesh-recv   (or let the openclaw session pick it up)
-```
+## Reply format (task-result)
+`success: true` · `file: /mnt/clients/<tenant>/openvoiceui/uploads/<name>.png` · `url: /uploads/<name>.png`
+· `poster`/variants if produced · `notes` naming any gate substitution. `success: false` carries `reason`.
 
 ## Notes
-
-- Generation takes ~60-90 seconds on the Mac (DALL-E via ChatGPT UI)
-- DALL-E quality (gpt-image-1 / DALL-E 3 via ChatGPT Plus) — photorealistic, high-res
-- The Mac is a **shared** resource — one request at a time is polite
-- If ChatGPT session is logged out, the request fails — host will see the error in Mac logs
-- For fast/cheap image gen (lower quality), use the `gemini-image` skill instead
+- One task = one image. A batch of six is six tasks; the runner serialises them on one browser.
+- Do not run image generation on the VPS (Mike 2026-09-04: heavy jobs go to the Mac lane).
+- Video (image-to-video, clips) is NOT this skill: it is the studio single-shot lane
+  (`wan-video-queue/` → studio-queue on the Mac) — see `video-to-mac/SKILL.md`.
+- Previous listener-model text of this skill is archived outside the shared mount (graveyard
+  `skills-degeneric-backups-20260910/mac-image-gen/`); nothing in it should be followed.

@@ -18,20 +18,14 @@ Always `mac-claude@mesh`. **Not** `mac`, `macdaddy`, `chatgpt-mac`, or anything 
 
 ## How to send it a task
 
-### Image generation (DALL-E via ChatGPT) — USE THIS FORMAT
-The Mac's `mac-claude-listener` auto-dispatches subjects containing **`image-gen`**:
-```bash
-printf '%s\n' '{"prompt":"A professional spray foam insulation team on a job site, cinematic lighting","tenant":"<tenant>"}' \
-  | mesh-send --to mac-claude@mesh --kind task --subject "image-gen: <tenant> spray-foam-team"
-# → Mac generates via ChatGPT DALL-E (~60-90s), drops PNG to EVENTS/<tenant>-images/,
-#   replies to YOUR inbox with the VPS path. Relay copies to your uploads/ in ~2min.
-```
-**Critical**: subject MUST contain `image-gen` or `chatgpt-image` for auto-dispatch.
-Without that keyword, the listener acks silently and nothing runs.
-
-JSON body fields: `prompt` (required), `tenant` (your tenant name), `drop_dir` (defaults to `{tenant}-images`).
-
-For full detail: read the `mac-image-gen` skill.
+### Image generation — send ONE `KIND: task`; the runner claims it (2026-09-10)
+The old `mac-claude-listener` (subject-keyword auto-dispatch, ChatGPT/DALL-E, 300 s cap) is
+RETIRED — it failed three real jobs in one evening. Today `task-runner` on the Mac claims every
+`KIND: task` addressed to it, renders with the real browser rigs (~13 min), writes the PNG straight
+into `/mnt/clients/<tenant>/openvoiceui/uploads/` and replies `task-result` with the path. No
+subject keyword is required, no per-tenant relay script exists, and a 5-minute silence is normal.
+Full request shape, the brand gates the Mac applies, and the identity-platform rule (naming
+"Facebook post" is fine; only ACTIONS on an account are held): read the `mac-image-gen` skill.
 
 ### Generic Claude task
 ```bash
@@ -43,10 +37,9 @@ printf '%s\n' '{"task":"<your task>","model":"claude-sonnet-4-6"}' \
 
 ## How results come back
 1. **Text / links / status** → the Mac replies with a mesh message straight to **your inbox** — read it with your normal `mesh-recv` / inbox check.
-2. **Files (images, etc.)** → the Mac drops them to the VPS EVENTS drop:
-   `/mnt/agent-mesh/mesh/EVENTS/{tenant}-images/` — you can read these directly.
-   The VPS relay (a per-tenant `<tenant>-image-relay.sh` script) then copies to
-   your `uploads/` and notifies you (runs every 2 minutes).
+2. **Files (images, etc.)** → land in your own `/mnt/clients/<tenant>/openvoiceui/uploads/`
+   (a fleet relay copies the Mac's EVENTS drop; there is no per-tenant relay script or cron).
+   The `task-result` reply names the file and its `/uploads/<file>` URL.
 
 ## Worked example (image generation)
 ```bash
