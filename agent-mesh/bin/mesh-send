@@ -610,6 +610,11 @@ def main() -> None:
         f"SIZE: {size_tier}",
         f"END-OF-TURN: {end_of_turn}",
     ]
+    if relayed_via_cc:
+        # DISCLOSE THE RELAY IN THE DELIVERED FILE (bun-desktop 2026-09-10-116): rc 0 + a stderr line was
+        # the only trace, and stderr is dropped by every scripted caller — after the fact nobody could tell a
+        # delivered message from a relayed one. The landed file now says so; auditors grep VIA:.
+        fm_lines.append(f"VIA: cc-relay from {sender}@mesh (no peer-inbox bind; host mesh-cc-merge delivered)")
     if args.state_check is not None:
         fm_lines.append(f"STATE_CHECK: {args.state_check}")
     if args.speaking_as:
@@ -664,6 +669,11 @@ def main() -> None:
         release_claim(claim)
 
     if relayed_via_cc:
+        try:  # a persisted marker beside the send log, so the relay is countable after the fact
+            with open(mesh_dir / "mesh-events.log", "a") as _lf:
+                _lf.write(f"{_dt.datetime.now(_dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} RELAY cc-overlay from={sender} to={recipient} slot={slot}\n")
+        except OSError:
+            pass
         print(f"mesh-send: no peer-inbox bind for {recipient} from this desk — RELAYED via cc overlay "
               f"{inbox} (host mesh-cc-merge delivers it to {recipient}'s inbox)", file=sys.stderr)
     # ---- log drop ----
