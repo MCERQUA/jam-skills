@@ -2,10 +2,36 @@
 name: video-to-mac
 description: "How to hand ANY video job to the Mac. No agent on the VPS renders video — this is the only sanctioned path. Use for animation, music video, promo, HTML-to-video, image-to-video, any MP4/MOV/WebM output."
 metadata:
-  version: 1.1.0
+  version: 1.2.0
 ---
 
 # Video jobs go to the Mac. All of them.
+
+## ⚠️ AUTOMATED single-shot requests (WO-8, 2026-09-10) — read this first if you are `wan-video-drain.sh` or a queue drop, not a live agent typing a request
+
+The old automated lane — `wan-video-drain.sh` staging a job under
+`/mnt/agent-mesh/mesh/video-jobs/<tenant>-<rid>/` and mesh-sending a task to `mac-claude@mesh` via
+`route_to_mac()` — is **RETIRED**. The Mac's runner now REFUSES any task naming
+`/mnt/agent-mesh/mesh/video-jobs/`. `route_to_mac()` stays on disk (never delete) but is not called
+by anything any more.
+
+Automated non-studio video asks (the mesh `wan-video-queue/` and the OVU Video Studio plugin's
+`.wan-requests/`) are now staged as a **single-shot JobGroup** directly under
+`/mnt/agent-mesh/mesh/studio-queue/<tenant>-<rid>/` — the SAME shape the Studio product uses
+(`request.json` with `"profile":"single-shot"`, `episode.json`, one `shots/<rid>.json`, the still
+under `assets/`). The Mac's one video drain (`com.jambot.studio-drain`) reads that directory
+directly.
+
+**Gate:** staging only happens once `/mnt/agent-mesh/mesh/studio-queue/.profiles/single-shot.accepted`
+exists (mac-claude writes it when their drain accepts the profile). Until then, requests are held
+in place with a `.held` sidecar and a `"status":"queued"` result — they are NOT sent to the Mac and
+NOT staged. See `scripts/wan-video-drain.sh` on the VPS for the implementation.
+
+**This does not change anything below** — a live agent typing a `mesh-send --to mac-claude@mesh
+--kind task` request by hand (the handoff pattern in this doc) is unaffected; that is a different,
+ad-hoc lane the Mac still accepts. This note only concerns the *automated* drain path.
+
+---
 
 **Mike, 2026-09-03:** *"any video tasks should always be sent to the mac — no VPS local video
 tasks."* And on the image-to-video path specifically: *"wan video sucks."*
