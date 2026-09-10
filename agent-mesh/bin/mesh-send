@@ -570,10 +570,29 @@ def main() -> None:
         if c.is_dir():
             inbox = c
             break
+    relayed_via_cc = False
+    if inbox is None:
+        # RETURN LANE VIA THE cc OVERLAY (host 2026-09-10, pledge ad3d952e — bun-desktop 09-09:
+        # "accountability-manager@mesh has no return lane from this desk ... an agent that can
+        # force-fire me cannot be answered by me. Bind the pair, or own the relay explicitly.")
+        # The relay is owned explicitly: a desk with no per-pair bind-mount drops the canonical
+        # message into the rw /mesh/cc/<recipient>/ overlay, and the host-side mesh-cc-merge.sh
+        # (inotify, @reboot) copies it into the recipient's real inbox within a second. Same slot
+        # naming, same frontmatter, same sent/ copy — only the landing dir differs. Set
+        # MESH_NO_CC_RELAY=1 to get the old fail-closed behaviour (used as the negative control).
+        cc_root = mesh_dir / "cc"
+        if os.environ.get("MESH_NO_CC_RELAY") != "1" and cc_root.is_dir() and os.access(cc_root, os.W_OK):
+            try:
+                (cc_root / recipient).mkdir(parents=True, exist_ok=True)
+                inbox = cc_root / recipient
+                relayed_via_cc = True
+            except OSError:
+                inbox = None
     if inbox is None:
         die(
             f"recipient inbox not found. Tried: {', '.join(str(c) for c in candidate_inboxes)}. "
-            "Cross-peer writes require an explicit per-pair bind-mount (PROTOCOL §2)."
+            "Cross-peer writes require an explicit per-pair bind-mount (PROTOCOL §2), or a writable "
+            "/mesh/cc/ overlay for the relay lane."
         )
 
     # ---- claim slot ----
@@ -644,6 +663,9 @@ def main() -> None:
     finally:
         release_claim(claim)
 
+    if relayed_via_cc:
+        print(f"mesh-send: no peer-inbox bind for {recipient} from this desk — RELAYED via cc overlay "
+              f"{inbox} (host mesh-cc-merge delivers it to {recipient}'s inbox)", file=sys.stderr)
     # ---- log drop ----
     ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     # FILTER PROVENANCE (2026-08-25). MESH_INTEL_FILTER is the FIRST candidate in
