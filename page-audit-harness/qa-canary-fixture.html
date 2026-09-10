@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<!--
+================================================================================
+  QA CALIBRATION CANARY FIXTURE  —  qa-canary-fixture.html
+================================================================================
+  PURPOSE
+    A synthetic artifact with KNOWN, HARDCODED, INTENTIONAL defects. Feed it to
+    the QA audit engine to confirm the auditor STILL catches the bugs it is
+    supposed to catch. If a calibration run on this file comes back clean (or
+    misses a listed defect), the auditor has regressed — investigate before
+    trusting any "SHIP" verdict on real artifacts.
+
+    This is the canary in the coal mine. It is NOT a real client page. It must
+    never be deployed, linked, or treated as production content.
+
+  HOW TO USE (calibration run)
+    qa-audit-next.sh / the audit engine (qa-audit-engine.py) can be pointed at
+    this file directly, e.g.:
+
+      python3 /home/mike/MIKE-AI/scripts/mesh-nightly-shipped/qa-audit-engine.py \
+        /mnt/agent-mesh/workspaces/quality-assurance-manager/fixtures/qa-canary-fixture.html \
+        --client calibration --date "$(date -u +%Y-%m-%d)"
+
+    Expected verdict: NO-SHIP (multiple defects below). A clean verdict = auditor
+    regression.
+
+  INTENTIONAL DEFECTS (expected findings)
+    D1. MISSING <title>            — document has no <title> element.
+                                     Expected: "missing document title" / a11y + SEO.
+    D2. WCAG CONTRAST FAIL (body)  — #cccccc text on #ffffff bg (~1.6:1, needs 4.5:1).
+                                     Expected: low-contrast text finding.
+    D3. WCAG CONTRAST FAIL (hero)  — #d8d8d8 heading on #ffffff (~1.4:1).
+                                     Expected: low-contrast heading finding.
+    D4. MISSING ALT ATTRIBUTES     — three <img> tags with no alt="".
+                                     Expected: images missing alt text (a11y).
+    D5. OFF-SCREEN FIXED ELEMENT   — position:fixed; left:-9999px; visible content
+                                     parked off the viewport.
+                                     Expected: off-screen / hidden-content finding.
+    D6. MISSING LANG ATTRIBUTE     — <html> has no lang attribute.
+                                     Expected: missing language declaration (a11y).
+    D7. EMPTY LINK / NO HREF       — <a> with no href and no discernible text.
+                                     Expected: empty/ambiguous link finding.
+    D8. INPUT WITHOUT LABEL        — text input with no associated <label>.
+                                     Expected: form control missing label (a11y).
+    D9. TINY TAP TARGET            — 8x8px clickable button (< 44px touch target).
+                                     Expected: touch-target too small (mobile a11y).
+    D10. NON-DESCRIPTIVE BUTTON    — button text "Click" only.
+                                     Expected: ambiguous control label (minor).
+
+  If the engine adds/removes a check, update this list so calibration stays honest.
+================================================================================
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- D1: intentionally NO <title> element here -->
+<style>
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #ffffff;
+    color: #cccccc;            /* D2: light-grey body text on white = contrast fail */
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 24px; }
+  .hero h1 {
+    color: #d8d8d8;            /* D3: near-white heading on white = contrast fail */
+    font-size: 38px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+  }
+  .hero p { color: #cccccc; font-size: 16px; }
+  .card {
+    border: 1px solid #eeeeee;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    color: #cccccc;            /* contrast fail repeated in cards */
+  }
+  .gallery img { width: 180px; height: 120px; object-fit: cover; margin: 4px; background:#f3f3f3; }
+  .offscreen {
+    position: fixed;           /* D5: fixed + parked off-screen */
+    left: -9999px;
+    top: 0;
+    width: 300px;
+    background: #ffffff;
+    color: #cccccc;
+  }
+  .tiny-btn {
+    width: 8px;                /* D9: 8x8 tap target, far below 44px */
+    height: 8px;
+    padding: 0;
+    border: none;
+    background: #cccccc;
+    cursor: pointer;
+  }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  footer { color: #cccccc; font-size: 13px; padding: 24px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <section class="hero">
+      <h1>Premier Widget Solutions for the Modern Enterprise</h1>
+      <p>Trusted by teams everywhere to deliver dependable widget outcomes at
+         scale, every single day of the week, in every timezone imaginable.</p>
+    </section>
+
+    <!-- D5: off-screen content that a sighted user can never see in the layout -->
+    <div class="offscreen">
+      <p>This panel is intentionally parked at left:-9999px. It is reachable by
+         the DOM and assistive tech but invisible in the rendered viewport, which
+         is a classic accessibility and layout defect for the auditor to flag.</p>
+    </div>
+
+    <section class="card">
+      <h2 style="color:#d4d4d4;">Why teams choose our widgets</h2>
+      <p>Our widgets are engineered for reliability, observability, and the kind
+         of quiet confidence that lets operations teams sleep at night. We obsess
+         over the details so your customers never have to think about them.</p>
+      <p>From onboarding to renewal, the experience is designed to feel effortless,
+         which is exactly why retention stays high across every cohort we track.</p>
+    </section>
+
+    <!-- D4: three images, none with an alt attribute -->
+    <section class="gallery">
+      <h2 style="color:#d4d4d4;">Gallery</h2>
+      <div class="row">
+        <img src="widget-1.jpg">
+        <img src="widget-2.jpg">
+        <img src="widget-3.jpg">
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="color:#d4d4d4;">Get in touch</h2>
+      <!-- D8: input with no label; D7: empty link; D10: non-descriptive button -->
+      <form>
+        <input type="text" name="email" placeholder="you@example.com">
+        <button type="submit">Click</button>
+      </form>
+      <p><a>Read more</a> about how the platform keeps everything in sync.</p>
+      <a></a>
+    </section>
+
+    <section class="card">
+      <h3 style="color:#d4d4d4;">Quick action</h3>
+      <!-- D9: tiny tap target -->
+      <button class="tiny-btn" aria-hidden="false"></button>
+      <span>Tap the dot to continue.</span>
+    </section>
+
+    <section class="card">
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur sed
+         lacus a nibh tincidunt vehicula. Pellentesque habitant morbi tristique
+         senectus et netus et malesuada fames ac turpis egestas. Vestibulum ante
+         ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae.</p>
+      <p>Integer in volutpat nisl. Donec auctor, arcu non tincidunt fringilla,
+         lorem nibh dignissim risus, vitae lobortis arcu enim non lorem. Sed do
+         eiusmod tempor incididunt ut labore et dolore magna aliqua ad minim.</p>
+    </section>
+
+    <footer>
+      &copy; 2026 Calibration Canary, Inc. This is a QA fixture, not a real page.
+    </footer>
+
+  </div>
+</body>
+</html>

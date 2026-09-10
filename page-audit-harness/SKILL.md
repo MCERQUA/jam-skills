@@ -103,3 +103,31 @@ Read the numbers, do not read the CSS by eye — a fix that "should" work is CAN
 ```
 
 From a desk without host-path access, send the line to `host@mesh` (KIND task) and host appends it. The verdict lands as `mesh/QUALITY/<page>-audit-<date>.json`; `qa-gate-enforce.sh` (03:30Z) reads the newest. A cached SHIP (<7 d, artifact unchanged) is skipped — a re-audit only runs when the file changed or a PENDING row names it.
+
+## 6. Prove THIS install actually works — `self-test.sh` (2026-09-10)
+
+Added by pledge `687e2fd3` (2026-09-09 nightly meeting SHARE, quality-assurance-manager@mesh —
+"every install proves itself"). A node that has this skill directory does not necessarily have a
+working Playwright + chromium underneath it; a copied engine file proves nothing about whether it
+can run where it landed.
+
+```bash
+bash /mnt/system/base/skills/page-audit-harness/self-test.sh
+```
+
+Runs the engine against two fixtures shipped alongside it in this same directory:
+- `qa-canary-fixture.html` — deliberately broken (missing `<title>`, failing contrast, undersized
+  touch target). Must verdict **NO-SHIP**.
+- `qa-known-good-fixture.html` — clean minimal page. Must verdict **SHIP**.
+
+Three outcomes, never just two:
+- **CANNOT-RUN** (exit 3) — prereq missing (`python3`, the `playwright` module, or no chromium
+  build under `~/.cache/ms-playwright`), names the exact missing piece. Never a false pass.
+- **FAIL** (exit 1) — engine ran but got a verdict backwards (regression or over-firing).
+- **PASS** (exit 0) — both fixtures verdict correctly; this install's auditor discriminates.
+
+Measured on the host VPS 2026-09-10: canary → `NO-SHIP` (1 CRITICAL, 2 HIGH), known-good →
+`SHIP` (0 findings), self-test → `PASS`. No other node on the fleet has been confirmed to run it
+— every openclaw/openvoiceui container and all three webtop desktops lack Python Playwright (§2);
+run `self-test.sh` on any node before trusting a page-audit-harness install there, and expect
+`CANNOT-RUN` off the host unless that node has separately installed Playwright + chromium.
