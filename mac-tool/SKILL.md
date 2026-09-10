@@ -27,6 +27,18 @@ subject keyword is required, no per-tenant relay script exists, and a 5-minute s
 Full request shape, the brand gates the Mac applies, and the identity-platform rule (naming
 "Facebook post" is fine; only ACTIONS on an account are held): read the `mac-image-gen` skill.
 
+### The guard, and the one thing you must never do about it (2026-09-10)
+The Mac holds tasks that ACT on a client's identity platforms (post, publish, log in, claim, edit a
+listing, credentials) — recall over precision, by design. Two kinds are exempt from holding on a
+platform's NAME alone: content generation (image-gen, social-media-designer, copy, caption, video)
+and read-only research (`KIND: read-only-research`, or subject prefix `scrape:` / `research:` /
+`lookup:` — public pages only; write actions and credential words still hold). **Declare the KIND in
+the header; the guard reads the filename and KIND/SUBJECT, never body prose.**
+**If a task is held: keep the real words.** Fix the KIND, drop the action you did not mean, or ask
+host@mesh. Never paraphrase a blocklisted term ("the photo-sharing app whose address is…",
+"authenticate" for "login") — a disguised request is unreadable to every later reader and is itself
+held as spelled-around. A hold is not a verdict on you; a paraphrase is.
+
 ### Generic Claude task
 ```bash
 printf '%s\n' '{"task":"<your task>","model":"claude-sonnet-4-6"}' \
