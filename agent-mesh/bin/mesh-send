@@ -669,11 +669,7 @@ def main() -> None:
         release_claim(claim)
 
     if relayed_via_cc:
-        try:  # a persisted marker beside the send log, so the relay is countable after the fact
-            with open(mesh_dir / "mesh-events.log", "a") as _lf:
-                _lf.write(f"{_dt.datetime.now(_dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} RELAY cc-overlay from={sender} to={recipient} slot={slot}\n")
-        except OSError:
-            pass
+        log_drop(f"{_dt.datetime.now(_dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} RELAY cc-overlay from={sender} to={recipient} slot={slot}\n".rstrip("\\n"))  # same writer as the send log (relay countable after the fact)
         print(f"mesh-send: no peer-inbox bind for {recipient} from this desk — RELAYED via cc overlay "
               f"{inbox} (host mesh-cc-merge delivers it to {recipient}'s inbox)", file=sys.stderr)
     # ---- log drop ----
