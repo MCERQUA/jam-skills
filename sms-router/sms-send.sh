@@ -112,12 +112,18 @@ fi
 # write a request to the mesh-mounted queue; the host-side jambot-sms-outbound-drain.py (cron */1)
 # picks it up and POSTs it to the loopback router. /mnt/agent-mesh is mounted in every tenant
 # container, so this works platform-wide. (Added 2026-06-22 — the loopback bind broke the direct path.)
-QDIR=/mnt/agent-mesh/mesh/sms-outbound-queue
+QDIR="${SMS_QUEUE_DIR_OVERRIDE:-/mnt/agent-mesh/mesh/sms-outbound-queue}"
+# ORIGIN TAGS (host 2026-09-10): the item used to carry only tenant/to/body, so every agent send read
+# as an UNTAGGED bypass to sms-thread-watchdog (its brain-origin rule keys on kind/origin). Tag the
+# lane honestly: kind=agent-send (an agent texting from its own container), origin=<lane from
+# AGENT_URI, e.g. josh-voice>, author=sms-send.sh. Not a brain origin — the soft migration to the
+# container brain (candidate file) is pledged separately; this makes the class visible meanwhile.
+ORIGIN_LANE="${AGENT_URI%%@*}"; [ -n "$ORIGIN_LANE" ] || ORIGIN_LANE="${SELF_TENANT:-$TENANT}-agent"
 if mkdir -p "$QDIR" 2>/dev/null; then
   QF="$QDIR/$(date -u +%Y%m%dT%H%M%S)-${TENANT}-$$.json"
-  if TENANT="$TENANT" TO="$TO" BODY="$BODY" python3 -c "
+  if TENANT="$TENANT" TO="$TO" BODY="$BODY" ORIGIN_LANE="$ORIGIN_LANE" python3 -c "
 import json, os
-open(os.environ.get('QF','$QF'),'w').write(json.dumps({'tenant':os.environ['TENANT'],'to':os.environ['TO'],'body':os.environ['BODY']}))
+open(os.environ.get('QF','$QF'),'w').write(json.dumps({'tenant':os.environ['TENANT'],'to':os.environ['TO'],'body':os.environ['BODY'],'kind':'agent-send','origin':os.environ['ORIGIN_LANE'],'author':'sms-send.sh'}))
 " QF="$QF" 2>/dev/null; then
     echo "SMS QUEUED (router not directly reachable — host drain will send within ~1 min)."
     echo "  Queue: $QF"; echo "  To: $TO"; echo "  From-tenant: $TENANT"
