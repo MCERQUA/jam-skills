@@ -436,12 +436,7 @@ def cmd_publish(args: argparse.Namespace) -> None:
     subs_dir.mkdir(exist_ok=True)
     # 2026-09-09 host: an `<agent>.unsubscribed` marker is NOT a subscriber, but f.stem turned it back into
     # one (host.unsubscribed -> "host"), inflating N and mis-counting delivery (measured 1/2 on a 1-subscriber topic).
-    # 2026-09-10 host: `<agent>.post-only` = may PUBLISH (author check passes in synthesize) but is never
-    # DELIVERED to. Tenant-class agents (<t>-voice/-desktop/-sms) are post-only: a delivery is bridged into
-    # the tenant's session-start MESH-INBOX.md, and for a day that carried every tenant's reflection into
-    # every other tenant's workspace (jail cells, not cubicles — Mike 2026-09-08).
-    subscribers = [f.stem for f in subs_dir.iterdir() if f.is_file()
-                   and not f.name.endswith(".unsubscribed") and not f.name.endswith(".post-only")]
+    subscribers = [f.stem for f in subs_dir.iterdir() if f.is_file() and not f.name.endswith(".unsubscribed")]
 
     # Write event file atomically
     fm_lines = [
@@ -610,14 +605,12 @@ def cmd_list_subscribers(args: argparse.Namespace) -> None:
     found = False
     for f in sorted(subs_dir.iterdir()):
         if f.is_file() and not f.name.endswith(".unsubscribed"):
-            tag = "  [post-only: publishes, never delivered to]" if f.name.endswith(".post-only") else ""
-            stem = f.name[:-len(".post-only")] if f.name.endswith(".post-only") else f.stem
             try:
                 data = json.loads(f.read_text())
-                print(f"  {data.get('agent', stem+'@mesh')}  (since {data.get('subscribed_at', '?')}){tag}")
+                print(f"  {data.get('agent', f.stem+'@mesh')}  (since {data.get('subscribed_at', '?')})")
                 found = True
             except Exception:
-                print(f"  {stem}@mesh{tag}")
+                print(f"  {f.stem}@mesh")
                 found = True
 
     if not found:
@@ -802,8 +795,7 @@ def cmd_topics(args: argparse.Namespace) -> None:
                         if f.name.startswith("ev-") and f.suffix == ".md"])
         subs_dir = topic_dir / "subscribers"
         sub_count = len([f for f in subs_dir.iterdir()
-                         if f.is_file() and not f.name.endswith(".unsubscribed")
-                         and not f.name.endswith(".post-only")]) \
+                         if f.is_file() and not f.name.endswith(".unsubscribed")]) \
             if subs_dir.exists() else 0
 
         print(f"  {disp:40s}  {ev_count:4d} events  {sub_count:3d} subscribers")
