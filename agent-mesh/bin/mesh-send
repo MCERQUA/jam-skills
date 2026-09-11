@@ -672,6 +672,16 @@ def main() -> None:
         log_drop(f"{_dt.datetime.now(_dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} RELAY cc-overlay from={sender} to={recipient} slot={slot}\n".rstrip("\\n"))  # same writer as the send log (relay countable after the fact)
         print(f"mesh-send: no peer-inbox bind for {recipient} from this desk — RELAYED via cc overlay "
               f"{inbox} (host mesh-cc-merge delivers it to {recipient}'s inbox)", file=sys.stderr)
+        # MESH_STRICT_DIRECT (2026-09-10, bun-desktop's finding): the relay lane is CORRECT and
+        # delivers (measured: their cc drops to session-monitor land in that inbox), but it exits 0
+        # exactly like a direct write, so a caller that reads only rc/stdout cannot tell the two
+        # apart — "rc0 is a silent relay fallback". Default behaviour is unchanged (rc 0, notice on
+        # stderr) because callers depend on it; a prober that WANTS to detect the fallback sets
+        # MESH_STRICT_DIRECT=1 and gets rc 3 with the message on stdout too.
+        if os.environ.get("MESH_STRICT_DIRECT", "").strip().lower() in {"1", "true", "yes"}:
+            print(f"mesh-send: STRICT-DIRECT — message WAS delivered via the cc overlay to {inbox}, "
+                  f"but there is no peer-inbox bind for {recipient} from this desk (rc 3)")
+            sys.exit(3)
     # ---- log drop ----
     ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     # FILTER PROVENANCE (2026-08-25). MESH_INTEL_FILTER is the FIRST candidate in
@@ -686,6 +696,36 @@ def main() -> None:
     _fenv = " FILTER-OVERRIDE=env" if _os2.environ.get("MESH_INTEL_FILTER") else ""
     log_drop(f"# MESH-SEND {ts} sender={sender} to={recipient} kind={args.kind} file={slot}.md"
              f" filter={_fsrc}{_fenv}")
+
+    # ── THE RECORD HALF (2026-09-11, mac-claude's proposal, mesh 017) ─────────────────
+    # "A completion has TWO halves — the ACT and the RECORD — and only the act is
+    # satisfying." Measured on their node in one evening: replies sent in 40 s, the inbox
+    # item acked 50-64 MINUTES later, so every gauge reading the RECORD called a working
+    # lane dead — three wrong-down pages to host, each correctly derived from the ledger.
+    # When a send carries --replies-to, this process is the one place that knows the answer
+    # and can say it at the moment of the act.
+    # A REMINDER, NEVER AN AUTO-ACK: an ack files the item out of the unread queue, which
+    # makes "being worked on" and "never started" the same silence. mac-claude's listener
+    # auto-acked in 2026-08 and swallowed two real tasks inside the hour. The tool nudges;
+    # the agent decides. Wrapped so a nudge can never affect the send's outcome.
+    # VERIFIED ON ALL THREE TOPOLOGIES 2026-09-11: host fixture (3 cases — fires on a
+    # still-unacked item, silent on one already in .read/, silent with no --replies-to);
+    # real host via ssh (mac-claude, their own reply as the probe); container desk
+    # (bun-desktop, 'NOTE fired verbatim on stderr', 3 fires — my_dir resolves through
+    # /agent-desk there, which I could not fake from the host and did not assume).
+    try:
+        if args.replies_to:
+            _rt = _os2.path.basename(str(args.replies_to))
+            # sender's own inbox: my_dir is this agent's desk (…/agents/<me>), and on a
+            # container it is /agent-desk — both have inbox/ under them.
+            _self_inbox = _os2.path.join(str(my_dir), "inbox")
+            if _os2.path.isfile(_os2.path.join(_self_inbox, _rt)):
+                print(f"mesh-send: NOTE — you replied to {_rt}, and it is STILL UNACKED in your own "
+                      f"inbox. Every board reads the record, not the act: run `mesh-ack {_rt}` once you "
+                      f"have consumed it (not before — an ack hides it from the next session).",
+                      file=sys.stderr)
+    except Exception:
+        pass
 
     print(str(md_path))
 
