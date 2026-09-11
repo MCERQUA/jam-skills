@@ -129,14 +129,22 @@ def review_revert(path, tag_prefix, findings):
     """Compare a page to its last APPROVED state (git tag `<prefix><basename>` in the page's repo).
     Removed visible-text lines are candidate reverts — the class that a rebuild produces silently.
     No tag => CANNOT-TELL, said so, never PASS."""
-    d = os.path.dirname(os.path.abspath(path)); base = os.path.basename(path)
+    # realpath, not abspath: a tenant's workspace/canvas-pages is a SYMLINK to openvoiceui/canvas-pages,
+    # and `git -C <symlink-dir>` + a relpath computed from the symlink gave "fatal: out-of-repo"
+    # (found by danielle-sms 2026-09-11 within the hour of shipping).
+    path = os.path.realpath(path)
+    d = os.path.dirname(path); base = os.path.basename(path)
     def git(*args):
         r = subprocess.run(["git", "-C", d, *args], capture_output=True, text=True, timeout=30)
         return r.returncode, r.stdout, r.stderr
-    rc, top, _ = git("rev-parse", "--show-toplevel")
+    rc, top, err = git("rev-parse", "--show-toplevel")
     if rc != 0:
-        findings.append({"severity": "info", "check": "revert", "where": base,
-                         "detail": "not in a git repo — revert check CANNOT-TELL"})
+        if "dubious ownership" in err:
+            findings.append({"severity": "warn", "check": "revert", "where": base,
+                             "detail": f"git refuses the repo (dubious ownership) — run once: git config --global --add safe.directory {d}"})
+        else:
+            findings.append({"severity": "info", "check": "revert", "where": base,
+                             "detail": "not in a git repo — revert check CANNOT-TELL"})
         return
     tagname = f"{tag_prefix}{base}"
     rc, _, _ = git("rev-parse", "-q", "--verify", f"refs/tags/{tagname}")
@@ -145,7 +153,11 @@ def review_revert(path, tag_prefix, findings):
                          "detail": f"no approved ref — revert check CANNOT-TELL. After a review is approved run: "
                                    f"git -C {d} tag -f {tagname}"})
         return
-    rc, approved, err = git("show", f"{tagname}:{os.path.relpath(os.path.abspath(path), top.strip())}")
+    rc, approved, err = git("show", f"{tagname}:{os.path.relpath(path, os.path.realpath(top.strip()))}")
+    if rc != 0 and "dubious ownership" in err:
+        findings.append({"severity": "warn", "check": "revert", "where": base,
+                         "detail": f"git refuses the repo (dubious ownership) — run once: git config --global --add safe.directory {os.path.realpath(top.strip())}"})
+        return
     if rc != 0:
         findings.append({"severity": "warn", "check": "revert", "where": base,
                          "detail": f"tag {tagname} exists but the file is not in it ({err.strip()[:80]}) — CANNOT-TELL"})
@@ -329,11 +341,15 @@ def main():
                 # (container: ~/.openclaw/workspace/{canvas-pages,business}). On the HOST the two
                 # live under different parents: /mnt/clients/<t>/openvoiceui/canvas-pages vs
                 # /mnt/clients/<t>/openclaw/workspace/business — try that layout second.
-                ap_ = os.path.abspath(p)
-                cands = [os.path.join(os.path.dirname(os.path.dirname(ap_)), "business", "brand-voice.json")]
-                m = re.match(r"^(/mnt/clients/[^/]+)/openvoiceui/canvas-pages/", ap_)
-                if m:
-                    cands.append(os.path.join(m.group(1), "openclaw", "workspace", "business", "brand-voice.json"))
+                # Look beside BOTH the path as given and its realpath: in a tenant container
+                # workspace/canvas-pages is a symlink to openvoiceui/canvas-pages, so the given path
+                # has business/ as a neighbour and the real path does not (danielle-sms, 2026-09-11).
+                cands = []
+                for ap_ in (os.path.abspath(p), os.path.realpath(p)):
+                    cands.append(os.path.join(os.path.dirname(os.path.dirname(ap_)), "business", "brand-voice.json"))
+                    m = re.match(r"^(/mnt/clients/[^/]+)/openvoiceui/canvas-pages/", ap_)
+                    if m:
+                        cands.append(os.path.join(m.group(1), "openclaw", "workspace", "business", "brand-voice.json"))
                 bv_path = next((c for c in cands if os.path.exists(c)), "")
             if bv_path:
                 review_brand_voice(html, tag, load_brand_voice(bv_path), findings)

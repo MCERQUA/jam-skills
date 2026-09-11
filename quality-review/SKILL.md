@@ -97,6 +97,14 @@ until you do, intentional edits also show as warns (that is the point: someone l
 scanned — say so in the review rather than reporting clean. The brand-kit page itself lists the
 banned words and will trip the check; it is the one page you do not run it on.
 
+**First-run friction (measured by danielle-sms 2026-09-11).** Pass the WORKSPACE path
+(`~/.openclaw/workspace/canvas-pages/<page>`) — it is a symlink and the checker resolves it for
+git while still finding `business/brand-voice.json` beside it. If git answers *dubious ownership*
+(the repo is owned by another uid), the check prints the one-time fix:
+`git config --global --add safe.directory <real canvas-pages path>`. `banned_regex` alternations
+need parentheses: `boutique.*(collective|advisory)` — `boutique.*collective|advisory` matches
+every line containing "advisory".
+
 ## What it checks
 
 | Check | Catches |
