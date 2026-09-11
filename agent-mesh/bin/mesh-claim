@@ -50,9 +50,9 @@ mkdir -p "$ROOT" 2>/dev/null   # safe: parent is proven-shared above, never inve
 DEFAULT_TTL="${MESH_CLAIM_TTL:-1800}"          # 30 min: long enough for real work, short
                                                # enough that a dead holder frees the key
 cmd="${1:-}"; key="${2:-}"
-[ -n "$cmd" ] || { echo "usage: mesh-claim.sh {take|release|done|show|reap} <key> [ttl|note]; reap needs no real key (pass 'all')" >&2; exit 64; }
+[ -n "$cmd" ] || { echo "usage: mesh-claim.sh {take|release|extend|done|show|reap} <key> [ttl|note]; extend: <key> <ttl> [born]; reap needs no real key (pass 'all')" >&2; exit 64; }
 # reap is a global sweep — key is ignored; all other verbs require it
-[ "$cmd" = "reap" ] || [ -n "$key" ] || { echo "usage: mesh-claim.sh {take|release|done|show} <key> [ttl|note]; reap: mesh-claim.sh reap [all]" >&2; exit 64; }
+[ "$cmd" = "reap" ] || [ -n "$key" ] || { echo "usage: mesh-claim.sh {take|release|extend|done|show} <key> [ttl|note]; extend: <key> <ttl> [born]; reap: mesh-claim.sh reap [all]" >&2; exit 64; }
 safe=$(printf '%s' "$key" | tr -c 'A-Za-z0-9._:-' '_')
 dir="$ROOT/$safe.claim"
 done_dir="$ROOT/$safe.done"   # COMPLETION marker: survives release, so a later
@@ -92,19 +92,20 @@ reap_if_stale() {
 case "$cmd" in
   take)
     ttl="${3:-$DEFAULT_TTL}"
-    # TTL NORMALISATION (2026-09-03, host). `take <key> 8h` was accepted and written
-    # VERBATIM. reap_if_stale then reads a non-digit and correctly declines to reap --
-    # "a claim you cannot read is CANNOT-TELL, not expired" -- so the claim becomes
-    # IMMORTAL, freed only by a manual release. That breaks CLAUDE.md requirement #4:
-    # a claim MUST carry an expiry, "because an open-ended claim wedges the task forever
-    # when its holder dies".
+    # TTL NORMALISATION (2026-09-03). `take <key> 8h` was accepted silently and wrote the
+    # literal string "8h" to the ttl file. reap_if_stale() then reads it, finds a non-digit,
+    # and correctly returns WITHOUT reaping -- "a claim you cannot read is CANNOT-TELL, not
+    # expired". Safe in the right direction, but the consequence is an IMMORTAL claim: it can
+    # never expire and only a manual release frees the key.
     #
-    # Measured: 7 of 25 live claims immortal (ttl=8h), every one on a LIVE CLIENT SITE,
-    # all one owner. Fixed on the host copy first -- and 3 MORE appeared within the hour
-    # (ttl=12h) because THIS is the copy mounted into every container, and it had not
-    # been patched. A fix that lands on one copy of a duplicated tool has not shipped.
+    # That breaks requirement #4 of the four in CLAUDE.md -- a claim MUST carry an expiry,
+    # because "an open-ended claim wedges the task forever when its holder dies". Measured
+    # when this was found: 7 of 25 live claims, every one on a LIVE CLIENT SITE, all held by
+    # a single agent. Had it died mid-batch, those 7 sites were wedged with no recovery path.
     #
-    # Fail at WRITE time where the caller can see it, never at read time as permanence.
+    # Fix at WRITE time, not read time: accept plain seconds or <n>[smhd] and convert; refuse
+    # anything else loudly. A malformed TTL must fail when it is written, where the caller can
+    # see it, rather than silently becoming permanence nobody notices.
     case "$ttl" in
       *[!0-9]*)
         _n=${ttl%[smhdSMHD]}; _u=${ttl#$_n}
@@ -126,7 +127,17 @@ case "$cmd" in
     # resolution lives in a different message, and an inbox item has no back-reference to it.
     # Deliberately a WARNING, not a refusal: work can legitimately recur, and making take refuse
     # would break every `take || exit 0` caller. Exit codes unchanged.
+    _prev_done=""
     if [ -d "$done_dir" ]; then
+      # MACHINE-READABLE COMPLETION SIGNAL (host@mesh 2026-09-06, raised by mac-claude@mesh).
+      # The warning below is stderr PROSE. A caller following the documented contract
+      # (0 = yours, 2 = held) cannot see completion at all, so mac-claude's task-runner had to
+      # grep this sentence — which makes my wording load-bearing for a peer's correctness: the
+      # day I reword it, their node silently re-runs finished work. That is the same
+      # system-describes-itself defect we spent 2026-09-06 trading. Their proposed shape, adopted
+      # verbatim because it breaks nothing: an extra token on the existing TAKEN stdout line.
+      # Exit codes DELIBERATELY unchanged — a non-zero here would break every `take || exit 0`.
+      _prev_done="$(cat "$done_dir/owner" 2>/dev/null)"
       printf 'mesh-claim: ALREADY COMPLETED — %s by %s at %s\n' "$key" \
         "$(cat "$done_dir/owner" 2>/dev/null)" "$(cat "$done_dir/at" 2>/dev/null)" >&2
       [ -s "$done_dir/note" ] && printf 'mesh-claim:   note: %s\n' "$(cat "$done_dir/note")" >&2
@@ -151,8 +162,37 @@ case "$cmd" in
         # a coder session read this field as an orphan signal and RELEASED a live claim that
         # had 35 minutes left, putting two sessions on one task.
         printf '%s taken-by-helper-pid=%s (ALWAYS DEAD, NOT the holder — liveness is the TTL)\n' "$(hostname)" "$$" > "$dir/where"
-        echo "mesh-claim: TAKEN '$key' by $me (ttl ${ttl}s)"
+        if [ -n "${_prev_done:-}" ]; then
+          echo "mesh-claim: TAKEN '$key' by $me (ttl ${ttl}s) PRIOR_COMPLETION=$_prev_done"
+        else
+          echo "mesh-claim: TAKEN '$key' by $me (ttl ${ttl}s)"
+        fi
         exit 0
+    fi
+    # INHERITED CLAIM — a child of the holder is not a second taker (2026-09-06).
+    # FOUND BY mac-claude@mesh WITHIN AN HOUR OF ADOPTING THIS PATTERN, in the pattern itself
+    # and not in their copy: a dispatcher takes the claim, spawns a child to do the work, and
+    # the child — following the documented "take || exit 0, exit 2 = STAND DOWN" — is told HELD
+    # by its own parent and aborts. The dispatched work silently never happens.
+    #
+    # THE FAILURE SHAPE IS WHY THIS IS NOT A SMALL BUG: it logs as "held by another lane",
+    # which is INDISTINGUISHABLE FROM THE LOCK WORKING. A false positive that renders as
+    # success is unauditable — the dispatcher goes quiet on real work while every instrument
+    # shows a healthy lock doing its job.
+    #
+    # The owner is the right granularity for the collision we were solving (two lanes, one
+    # node, one thread) and both lanes carry the SAME AGENT_URI, so the tool cannot tell a
+    # child from a rival. Only the process tree knows, so the dispatcher must say so.
+    #
+    # SCOPED DELIBERATELY, because this is a lock bypass: the env var must name the EXACT key
+    # (not a blanket "I am inherited"), and the recorded owner must still match $me. A wrong
+    # key or a different owner falls through to HELD. Set it only on a child you yourself
+    # spawned while holding that key.
+    if [ "${MESH_CLAIM_INHERITED:-}" = "$key" ] \
+       && [ "$(cat "$dir/owner" 2>/dev/null)" = "$me" ]; then
+      echo "mesh-claim: INHERITED '$key' — held by $me (this process tree). Proceeding." >&2
+      echo "mesh-claim: TAKEN '$key' by $me (inherited) INHERITED=1"
+      exit 0
     fi
     echo "mesh-claim: HELD '$key' by $(cat "$dir/owner" 2>/dev/null || echo '?') since $(date -u -d "@$(cat "$dir/born" 2>/dev/null || echo 0)" +%H:%M:%SZ 2>/dev/null) — STAND DOWN" >&2
     exit 2 ;;
@@ -173,6 +213,71 @@ case "$cmd" in
         echo "mesh-claim: REFUSING — '$key' is held by $owner, not $me" >&2; exit 3
     fi
     rm -rf "$dir" 2>/dev/null && echo "mesh-claim: released '$key'"; exit 0 ;;
+
+  extend)
+    # extend <key> <ttl> [born]  — lengthen a LIVE claim you already hold.
+    #
+    # WHY THIS EXISTS (mac-claude@mesh, measured twice on 2026-09-11, 05:44Z and 16:15Z):
+    # a TTL that lapses UNDER RUNNING WORK turns a working lock into a collision. Their
+    # interactive lane claimed Mike's SMS thread, texted him, and started a ~70-minute
+    # five-render H3 batch. task-runner read HELD on 33 consecutive passes — this tool
+    # behaving exactly as designed — and then at 16:15:34Z the 4200s TTL expired while the
+    # renders were still going. `take` reaped the key as stale, the runner saw a free file
+    # and spawned a headless session on a thread the other lane was mid-way through.
+    #
+    # The trap is that the failure looks like SUCCESS from every side: the lock held, the
+    # reaper reaped a genuinely expired claim, and the second taker took a genuinely free
+    # key. Nothing malfunctioned. The TTL was simply a guess about duration made before the
+    # work started, and CLAUDE.md requires a TTL precisely so a dead holder cannot wedge a
+    # task forever. Without `extend` the only choices are an over-long TTL (wedge risk) or
+    # expiry-under-work (collision risk); this verb is what lets the claim be sized to the
+    # WORK instead of to a guess.
+    #
+    # Their workaround was `release && take <ttl>` in one remote shell, because a same-owner
+    # re-take answers HELD by design. That leaves a real free window between the two calls,
+    # and it re-implements this tool's liveness arithmetic on the caller's side. Doing it
+    # here closes the window and keeps one implementation.
+    #
+    # ⚠ `born` IS DELIBERATELY NOT REWRITTEN. Callers guard against a lapse-and-retake by
+    # recording the born they were granted and refusing on a mismatch — both of mac-claude's
+    # lanes claim under the SAME AGENT_URI, so after a lapse the replacement claim is
+    # indistinguishable by owner and born is the only field that changes. If extend reset
+    # born, that guard would false-positive on every renewal. So born stays, ttl is measured
+    # from it, and the remaining time is printed rather than left to be inferred.
+    if [ ! -d "$ROOT" ] || [ ! -w "$ROOT" ]; then
+      echo "mesh-claim: FATAL — claims root '$ROOT' missing or not writable. Nothing was recorded." >&2
+      exit 70
+    fi
+    _new_ttl="${3:-}"
+    case "$_new_ttl" in (''|*[!0-9]*) echo "mesh-claim: usage: mesh-claim.sh extend <key> <ttl-seconds> [born]" >&2; exit 64 ;; esac
+    [ -d "$dir" ] || { echo "mesh-claim: REFUSING — '$key' is not held; nothing to extend (re-take it if the work is still yours)" >&2; exit 2; }
+    _owner=$(cat "$dir/owner" 2>/dev/null)
+    if [ "$_owner" != "$me" ]; then
+      echo "mesh-claim: REFUSING — '$key' is held by $_owner, not $me" >&2; exit 3
+    fi
+    _b=$(cat "$dir/born" 2>/dev/null); _t=$(cat "$dir/ttl" 2>/dev/null)
+    # Same per-FIELD guard as reap_if_stale: an unreadable claim is CANNOT-TELL, never
+    # "fine to extend". Checking "$_b$_t" as one string would let an empty born hide behind
+    # an all-digit ttl — the 2026-08-30 joined-guard bug.
+    case "$_b" in (''|*[!0-9]*) echo "mesh-claim: CANNOT-TELL — '$key' has an unreadable born; refusing to extend" >&2; exit 75 ;; esac
+    case "$_t" in (''|*[!0-9]*) echo "mesh-claim: CANNOT-TELL — '$key' has an unreadable ttl; refusing to extend" >&2; exit 75 ;; esac
+    _now=$(date +%s); _age=$(( _now - _b ))
+    if [ "$_age" -ge "$_t" ]; then
+      echo "mesh-claim: REFUSING — '$key' ALREADY EXPIRED: age ${_age}s exceeded its ttl ${_t}s $(( _age - _t ))s ago; another lane may hold it now." >&2
+      echo "  Do not resurrect it silently: re-take it and accept the gap, or check who holds it with \`show\`." >&2
+      exit 2
+    fi
+    _want_born="${4:-}"
+    if [ -n "$_want_born" ] && [ "$_want_born" != "$_b" ]; then
+      echo "mesh-claim: REFUSING — born mismatch on '$key': you recorded $_want_born, live claim is $_b." >&2
+      echo "  Your claim lapsed and this is the retake that replaced it. STAND DOWN." >&2
+      exit 2
+    fi
+    printf '%s' "$_new_ttl" > "$dir/ttl" || { echo "mesh-claim: FATAL — could not write ttl" >&2; exit 70; }
+    printf '%s extended ttl %s -> %s by %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$_t" "$_new_ttl" "$me" >> "$dir/renewals" 2>/dev/null || true
+    echo "mesh-claim: EXTENDED '$key' ttl ${_t}s -> ${_new_ttl}s (born $_b unchanged, age ${_age}s, $(( _b + _new_ttl - _now ))s remaining)"
+    exit 0 ;;
+
   done)
     # Root-reachability guard (2026-08-30, josh-desktop). take and show had this; release
     # and done did NOT — and `done` was the worst of the four: every write failed with

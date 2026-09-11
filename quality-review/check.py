@@ -93,6 +93,12 @@ def visible_text_lines(html):
 def review_brand_voice(html, tag, bv, findings):
     words, regex, prose, names = bv
     lines = visible_text_lines(html)
+    if not words and not regex:
+        # An empty file is the provisioning skeleton. "0 banned words, 0 hits" would read as a
+        # clean pass — it is a check with nothing to check. Say so, as a warn, every run.
+        findings.append({"severity": "warn", "check": "brand-voice", "where": tag,
+                         "detail": "business/brand-voice.json has NO banned_words/banned_regex — the brand-voice "
+                                   "check is decorative until it is filled in from the client's brand kit"})
     for w in words:
         pat = re.compile(r"(?<![\w-])" + re.escape(w) + r"(?![\w-])", re.I)
         for ln in lines:
