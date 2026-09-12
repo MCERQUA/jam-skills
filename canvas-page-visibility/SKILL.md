@@ -45,6 +45,13 @@ no login. That's the link to put in a tweet / send to a client.
   its visibility; ask the host to unlock it.
 - The host `openvoiceui:5001` resolves on your tenant's internal network (also `openvoiceui-<tenant>:5001`).
 - This is READ-nothing/WRITE-visibility-only; it does not expose secrets. Only YOUR tenant's pages.
+- 🔴 **Never edit the tenant's canvas manifest from the HOST with a rename** (`os.replace`, `mv`, `sed -i`,
+  editor save-as-new-file): the manifest is a FILE bind mount, which holds the INODE, so a host-side
+  rename splits host from container — the page reads 200 while the container keeps writing the old
+  inode (2026-09-12: danielle diverged this way; fix was a container restart). Edit in place (`cat >`)
+  or from inside the container, and `chmod 666` afterwards or the container user cannot write it.
+  The rule and the reasoning live in ONE place: `jamfact docker.file_bind_mount_never_rename` and
+  `jamfact ovu.canvas_manifest_must_be_mode_666` — cite those, do not copy them.
 
 ## Need to hand the owner ONE FILE, not a page?
 
