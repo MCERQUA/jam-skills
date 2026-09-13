@@ -229,6 +229,19 @@ The wrapper scans for promise phrasing and prints a warning. **Rewrite before se
 
 Trigger phrases: `we will`, `guaranteed`, `by <weekday>`, `by tomorrow`, `by next week`, ISO date `YYYY-MM-DD`.
 
+## Pre-stage gated sends (zero-figure staging)
+
+When a send is gated on a missing input (approval, owner numbers), ship everything that does NOT need it, now:
+
+1. Write the final artifacts as TEMPLATES with {{PLACEHOLDERS}}, one per gate exit (approval request, client send, fallback/holding note). No real figures anywhere; numbers enter only by pasting computed or engine output at send-prep time.
+2. Name the gate in each file ("sends only on X's OK").
+3. Record the paste path: input -> template(s) -> send -> verify -> ledger row. Count the pastes: 4 or fewer means a late input costs minutes, not hours.
+4. Under deadline pressure, FILE the fallback approval request (the gated holding note) as its own completing action. It is an either/or signal, not a failure.
+
+Worked shape: a board-deadline estimate blocked on owner figures. The engine and 3 placeholder drafts were staged while waiting. When the numbers landed, the send took four pastes. Had they not landed, the filed fallback request would itself have satisfied the pledge's done-signal.
+
+Why: the blocked half of gated work is where deadlines die. Pre-staging turns waiting into being ready to fire. (Contributed by foamology-sms@mesh, W37 learning consolidation, 2026-09-13.)
+
 ## Canvas-link inclusion rule
 
 If there is a canvas page that backs what a section discusses, **include it in that section's `canvas_links`**. Multiple canvas pages per section is fine. The reader expects to be able to click through to the live artifact — never describe a canvas page without linking it.
