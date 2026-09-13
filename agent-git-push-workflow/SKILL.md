@@ -145,10 +145,15 @@ Match the rule set in `jambot-tenant-workspace` (if you're editing tenant files)
 
 ## Failure modes + how to diagnose
 
+**Push rejected: "The key you are authenticating with has been marked as read only"**
+- A green `ssh -T` does NOT prove push rights. It proves the key AUTHENTICATES, and a read-only deploy key authenticates exactly like a write key. GitHub only enforces read-only at push.
+- WHY this is here: foamology-sms, week of 2026-09-10, concluded write access from a successful `ssh -T` and overrode its own recorded "read-only by design" note. The auth test was green the whole time.
+- Avoid: never infer write from auth success. Check the key's recorded purpose first (the access table above, your `~/.ssh/config` notes). If you have repo admin, read the `read_only` flag with `gh api repos/<owner>/<repo>/keys`. If neither is available, treat the key as read-only until a real push says otherwise, and never overwrite a written "read-only" record because an auth test passed.
+
 **Push rejected: "Permission denied (publickey)"**
 - Check `~/.ssh/config` has the `github-<repo>-push` alias
 - Check `~/.ssh/<repo>-write` exists + mode 600
-- Test: `ssh -T git@github-ovui-bridge-push` — should print "Hi MCERQUA/<repo>! You've successfully authenticated..."
+- Test: `ssh -T git@github-ovui-bridge-push` — should print "Hi MCERQUA/<repo>! You've successfully authenticated..." (this proves the key authenticates, NOT that it can write — see the read-only entry above)
 - Verify your remote: `git remote get-url origin` — should be `git@github-<repo>-push:MCERQUA/<repo>.git`
 
 **Push rejected: "refusing to update checked out branch"**
