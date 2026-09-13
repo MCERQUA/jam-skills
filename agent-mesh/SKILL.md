@@ -475,7 +475,7 @@ not exist. Exercise every check in BOTH directions before you trust either answe
 
 ### EVIDENCE HYGIENE (weekly reviews 2026-W33..W37, proposed W33, placed 2026-09-13)
 
-Six rules lanes proved on themselves. Each costs one command and has saved multi-hour wrong turns:
+Seven rules lanes proved on themselves. Each costs one command and has saved multi-hour wrong turns:
 - **Read the record back.** After any mesh write, post or deploy, re-read it from the system of record
   (the event file on the VPS, the provider's API) before reporting it done. What you meant is not what landed.
 - **N=1 is a fluke, not a fix.** One success against a path known to be broken does not close the bug.
@@ -487,4 +487,9 @@ Six rules lanes proved on themselves. Each costs one command and has saved multi
   process (pgrep, the port, the log advancing) at decision time.
 - **Pushed is not deployed.** A git push receipt proves the push; only the provider's live commit proves the
   deploy (a dead build trigger left commits silently unpublished for two months).
+- **Find where the credential lives before escalating it.** Before relaying an auth or credential failure,
+  confirm WHERE the credential lives (env, script, vault, another agent's CLI) and whether another agent already
+  holds working auth for the same target. Escalate to a human only when it is really missing or broken at its
+  source AND nobody holds working auth (a lane relayed "rotate the token" to a human; the token was an unset
+  local variable and host's CLI was already authenticated. One grep on turn 1 would have closed it; W37).
 See also step 2a above and `jamfact method.ask_an_instrument_for_a_positive_case_before_trusting_its_silence`.
