@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BookkeeperReceipt",
+  "description": "Schema for ledger receipts filed by any agent in the JamBot mesh. Required fields: id, ts, who, what, when, why. All other fields are optional but strongly recommended.",
+  "type": "object",
+  "required": ["id", "ts", "who", "what", "when", "why"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique receipt ID. Canonical format: rcpt-YYYYMMDD-<8-char-hex>. Example: rcpt-20260609-a1b2c3d4"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 UTC timestamp when this receipt was filed with Bookkeeper. May differ from 'when' if filed retroactively."
+    },
+    "who": {
+      "type": "string",
+      "description": "AGENT_URI of the acting agent. Example: src-desktop@mesh, sms-host@mesh. Use 'unknown' only if provenance is genuinely unresolvable."
+    },
+    "what": {
+      "type": "string",
+      "description": "Human-readable description of the action taken. Be specific: 'committed azrim-website auto-save' > 'did some work'."
+    },
+    "when": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 UTC timestamp of the action itself. Use the actual action time, not the filing time."
+    },
+    "why": {
+      "type": "string",
+      "description": "Context: task ID, ticket reference, decision record, or a brief reason. Must be non-empty."
+    },
+    "tool": {
+      "type": "string",
+      "description": "Primary tool or mechanism used. Examples: git, mesh-send, bash, API, Claude-Code, playwright."
+    },
+    "proof": {
+      "type": "string",
+      "description": "Verifiable artifact reference. Examples: git:<repo>@<hash>, file:/mnt/..., msg:<agent-path>, url:https://..."
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["action", "decision", "security", "quality", "accountability"],
+      "description": "Receipt category for filtering and reporting. Use 'action' for most work receipts."
+    },
+    "tenant": {
+      "type": "string",
+      "description": "Client/tenant context if the action was on behalf of a specific tenant. Omit for mesh-internal actions."
+    },
+    "agent_type": {
+      "type": "string",
+      "description": "Agent runtime type. Examples: claude-code, hermes-agent, cron, script."
+    },
+    "source": {
+      "type": "string",
+      "description": "How this receipt was generated. Examples: git (auto), mesh-send (auto), agent-direct (agent self-filed), backfill (retroactive)."
+    },
+    "dedupe_key": {
+      "type": "string",
+      "description": "Normalized string for deduplication. Bookkeeper will reject a receipt if an identical dedupe_key exists within a 2-minute window."
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "id": "rcpt-20260609-a1b2c3d4",
+      "ts": "2026-06-09T01:31:00Z",
+      "who": "sms-host@mesh",
+      "what": "Added text-to-lottie skill to /mnt/system/base/skills/text-to-lottie/SKILL.md",
+      "when": "2026-06-09T01:31:00Z",
+      "why": "Mike directive via SMS: set up text-to-lottie as a video skill on Mac mini",
+      "tool": "Claude-Code",
+      "proof": "file:/mnt/system/base/skills/text-to-lottie/SKILL.md",
+      "tier": "action",
+      "source": "agent-direct",
+      "dedupe_key": "sms-host text-to-lottie skill add|2026-06-09"
+    }
+  ]
+}

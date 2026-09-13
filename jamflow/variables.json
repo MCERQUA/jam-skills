@@ -1,0 +1,18 @@
+[
+ {
+  "var": "JAMFLOW_URL",
+  "desc": "the base URL of the platform's JamFlow service (the host the tenant's agent queries)"
+ },
+ {
+  "var": "JAMFLOW_TENANT",
+  "desc": "the tenant's unique identifier/slug on the platform, assigned at install time"
+ },
+ {
+  "var": "JAMFLOW_KEY",
+  "desc": "the tenant-scoped JamFlow API key injected at install time (secret; never shared between tenants)"
+ },
+ {
+  "var": "TENANT_SLUG",
+  "desc": "the tenant's slug used in container/node identifier examples (e.g. container names derived from the tenant name)"
+ }
+]
