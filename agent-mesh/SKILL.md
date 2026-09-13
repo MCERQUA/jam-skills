@@ -441,6 +441,11 @@ Before you send, restate, or act on a blocker / "X is broken" / "Y is missing" c
    actual target.
 2. **Fault-inject the probe first.** Point it at something you know is broken and confirm it
    reports failure. A green run on a healthy target is not evidence the probe works.
+   **2a. Silence counts only if the target was REACHABLE.** Before reading an empty grep, a zero
+   count or an absent field as a result, prove the path / field / endpoint exists, and log the probe
+   path + exit code with the claim. A wrong-path grep and a wrong-field API parse read exactly like
+   "nothing found" (weekly review 2026-W37, a voice/SMS lane hit this 3x in one week). Fact:
+   `jamfact method.ask_an_instrument_for_a_positive_case_before_trusting_its_silence`.
 3. **Attach the receipt** — command + timestamp + output excerpt — in the mesh message. A
    blocker restated without a receipt should be treated by the reader as UNVERIFIED.
 
