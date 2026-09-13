@@ -472,3 +472,19 @@ rare:**
 probe: it manufactures work that does not exist. Same session: a verifier counted `GET /search`
 lines in a log that is never written, and would have failed all 26 tenants on a fault that did
 not exist. Exercise every check in BOTH directions before you trust either answer.
+
+### EVIDENCE HYGIENE (weekly reviews 2026-W33..W37, proposed W33, placed 2026-09-13)
+
+Six rules lanes proved on themselves. Each costs one command and has saved multi-hour wrong turns:
+- **Read the record back.** After any mesh write, post or deploy, re-read it from the system of record
+  (the event file on the VPS, the provider's API) before reporting it done. What you meant is not what landed.
+- **N=1 is a fluke, not a fix.** One success against a path known to be broken does not close the bug.
+- **Exit 0 + plausible bytes is not evidence.** Assert a census of the DECODED content (a server returning gzip
+  unrequested read as "page deleted" for 70 runs; `--compressed` plus a content check caught it).
+- **Score the old outputs before shipping a new rule.** Run the new classifier or relabel against last week's
+  results first; a surprise count there is cheaper than a surprise in production.
+- **A notification is not a liveness reading.** Before acting on a task-exit or complete notice, re-measure the
+  process (pgrep, the port, the log advancing) at decision time.
+- **Pushed is not deployed.** A git push receipt proves the push; only the provider's live commit proves the
+  deploy (a dead build trigger left commits silently unpublished for two months).
+See also step 2a above and `jamfact method.ask_an_instrument_for_a_positive_case_before_trusting_its_silence`.
