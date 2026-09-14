@@ -29,6 +29,16 @@ script — not a human — asserts they agree.*
 - **Silence is not all-clear.** If the day's ledger file is missing, that is a writer failure to
   diagnose — a stopped writer's output is byte-for-byte identical to a quiet day (pb-20260724-001).
 
+## Mark-at-ingest (stamp status at capture time)
+
+When a pipeline captures a row that is not a normal/billable outcome, stamp it with a
+status enum **at ingest** — in the same write that creates the row. Summary queries then
+exclude by status (`WHERE status != 'refused'`), never by re-classifying free text after
+the fact. Why: in the source lane, 681 rows with NULL status (usage-scrapes, not
+refusals) were indistinguishable from real refusals until status was stamped at capture;
+every downstream summary had to carry a heuristic to work around the gap. Needs only a
+nullable status column on the ingest table — set it at write time, backfill nothing.
+
 ## Needs
 
 Nothing but the shared mount. No keys, no packages (bash + python3 stdlib).
