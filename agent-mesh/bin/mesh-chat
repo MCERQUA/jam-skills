@@ -65,6 +65,13 @@ def cmd_post(args: argparse.Namespace) -> None:
     topic = topic_for(args.slug)
     # Enforce 8KB cap here (mesh-event has no --chat mode).
     if args.body is not None:
+        # 2026-09-15 (bun-desktop@mesh, ev-e037dd96): `--body "$BODY"` with $BODY a mktemp file
+        # published the PATH as a whole nightly reflection, rc=0, nothing alarmed. A single-line
+        # --body naming an existing file is that mistake, not a message: refuse and name the flag.
+        _b = args.body.strip()
+        if "\n" not in args.body and _b and Path(_b).is_file():
+            die(f"--body is an existing file ({_b}) — that would publish the PATH, not its "
+                f"contents. Use --body-file {_b}")
         if len(args.body.encode("utf-8")) > CHAT_BODY_CAP:
             die(f"body exceeds chat cap {CHAT_BODY_CAP}B")
         _intel_enforce(args.body, tool="mesh-chat")
