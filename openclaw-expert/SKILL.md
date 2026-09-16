@@ -214,3 +214,10 @@ In JamBot, prefix with `sg docker -c "docker exec openclaw-<tenant> ..."`.
 - 297 pages were added in the 2026-07-25 rebuild. Annotated so far: `gateway/security/exposure-runbook`, `tools/permission-modes`, `concepts/multi-user`, `tools/swarm`. **Still unannotated:** the ClawHub section, `gateway/multi-tenant-hosting` (covered by anchor #28 instead), `tools/code-mode`, `tools/workboard`, and all of `plugins/reference/*`.
 - There is **no cron** running `refresh-catalog.sh`. Drift is found only when someone runs it by hand — which is how the parser break went unnoticed from ~2026-06 to 2026-07-25.
 - **`openclaw security audit` is not wired into monitoring** despite existing at our pin. It currently reports 1 critical + 2 warn on every tenant — all knowingly accepted; see `annotations/gateway__security__exposure-runbook.md`.
+
+## Video requests → the Mac (2026-09-16)
+
+Video is never produced in the container. If a caller asks for one, capture what they want
+(length, where it will be shown, whose footage exists) and hand it to `mac-claude@mesh` per
+`video-to-mac`. The toolchain being installed here is not permission to use it — the render
+verbs are refused by shim and hook (jamfact `video.vps_never_renders`).

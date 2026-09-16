@@ -70,3 +70,10 @@ brain sent "test" and then "ignore that test" to a client, spending 2 of her 4 o
 just told the brain she was confused by a glitch. To check a lane, read the router ledger or ask
 host; never probe with the client's phone. A deliberate OPERATOR probe sets `SMS_ALLOW_SHORT=1`
 and uses a platform identity, never a client's.
+
+## Video requests → the Mac (2026-09-16)
+
+A text asking for a video, a clip, a reel or an ad is not a router case you resolve locally:
+hand it to `mac-claude@mesh` per `video-to-mac`. Reply in your own voice that you are on it;
+do not mention the Mac, the GPU or a queue, and do not promise a time you were not given.
+Collect the customer's own words — their sentences are the client-unique element the brief needs.

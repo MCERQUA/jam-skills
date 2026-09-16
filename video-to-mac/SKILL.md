@@ -2,7 +2,7 @@
 name: video-to-mac
 description: "How to hand ANY video job to the Mac. No agent on the VPS renders video — this is the only sanctioned path. Use for animation, music video, promo, HTML-to-video, image-to-video, any MP4/MOV/WebM output."
 metadata:
-  version: 1.2.0
+  version: 1.3.0
 ---
 
 # Video jobs go to the Mac. All of them.
@@ -141,3 +141,70 @@ or a real photo.
 Use the `render-verify` skill on the returned file. A file that exists and has valid metadata is
 not proof it plays — that skill exists because metadata-valid, visually-broken renders shipped
 before. Verify the artifact, not the receipt.
+
+---
+
+## Engine and NODE are the Mac's call — and "I'll just render it here" is the failure mode (2026-09-16)
+
+**The VPS never renders.** Engine choice (Remotion, H3, ffmpeg-only, or a combination of them in
+one cut) AND node choice (the Mac, or the GPU box when the Mac is saturated) belong to
+`mac-claude@mesh`. You hand over a brief; you do not choose how or where. Overflow from the Mac to
+`res-desktop-gpu` is the Mac's dispatch decision, made against a render queue that only the Mac can
+see — so it is not a decision you are able to make, however reasonable your guess is.
+
+🔴 **A deadline never promotes the VPS to a render node.** If you cannot reach the Mac, the job
+waits and the client is told it is in production. *"It was urgent and the Mac was busy"* is the
+exact reasoning that puts a render on a box carrying 27 live client containers: it degrades 27
+tenants to rescue one.
+
+🔴 **And rendering it yourself is not the fast path even when it works.** Mike, 2026-09-15, on a
+batch of spots that client agents built locally after an SMS campaign invited customers to request
+videos: *"their agents just made basic remotion videos and didnt even use their assets."* Every one
+of them rendered. Every one was generic. The brand kit, the logo, the client's real photographs and
+the customer's own sentences all existed — in the tenant workspace, and in the Mac's per-client rig
+— and not one of them was in the finished video. **A spot that ships without the client in it is
+worth less than the one that took longer to make**, and it is precisely what the ASSETS block in
+the handoff above exists to prevent: say what you have and where it is, quote the customer's own
+words, and the Mac supplies the rest.
+
+**Naming the shape is not choosing the engine.** *"Something like a kinetic-type card"* is a useful
+brief and costs you nothing. *"Make it in Remotion"* is read as that same brief and nothing more —
+if H3 is the right engine for it, the Mac will use H3, and if the answer is a Remotion frame around
+an H3 shot, that is a decision made with both queues in view.
+---
+
+## WHAT WILL GET YOUR BRIEF REFUSED (2026-09-16)
+
+Six things kill a brief before anything is rendered. Each line names the gate that kills it, so a
+refusal that comes back to you is one you can trace and argue with. None of them is about your
+writing — they are about facts you are the only one who can supply.
+
+1. **No client-unique element — the swap test.** Put a competitor's name on your brief. If it still
+   reads correctly, it is category wallpaper and the room refuses it. Name at least one thing only
+   this client has: a sentence a real customer said, a real place, their own footage, a crew member,
+   a device they genuinely use. "Professional, trusted, family-owned" is every company on earth.
+
+2. **A fabricated before/after.** A before/after is a factual claim about work this client did. If
+   you do not have both real frames, the brief cannot ask for the shot, and no amount of "just
+   suggest it" makes it a different claim.
+
+3. **Compliance-class claims — a per-inch R-value, any percentage, "up to", "saves you X".** These
+   are regulated in several of our clients' markets and the claims gate refuses them on sight.
+   Facts come from the tenant's `INTEL.md` / `BRAND-KIT` and nowhere else. If it is not there, it
+   is not in the video — including numbers you are confident about.
+
+4. **The client's own footage outranks your brief on any physical fact.** What the building looks
+   like, what the crew wears, what the truck says, what the product actually is. Where the brief and
+   the footage disagree, the disagreement is **reported back to you, never quietly corrected** — a
+   silent fix would make the brief look right and leave the error in the client's head.
+
+5. **VO unspecified.** Say whether you want a voice. Supers-only is a legitimate choice with a real
+   cost and has been rejected on exactly that ground; saying nothing is not the same as choosing it.
+   If a voice is wanted, say whose, or say "your call".
+
+6. **A niche with a brain binds your brief.** If the client is in one, read `brains/<niche>/` before
+   you spec a shot — those rules refuse whole shot types, not just phrasings. Spray-foam insulation
+   has one. Asking for a shot the brain forbids costs a render, not a rewrite.
+
+And one that is not a refusal, only a waste: **naming an engine.** The brief describes the JOB.
+Asset reality decides Remotion, H3, or both. An engine named in a brief is noted and ignored.

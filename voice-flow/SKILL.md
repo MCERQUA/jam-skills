@@ -45,3 +45,9 @@ Before calling ANY tool (exec, web_search, web_fetch, canvas, file operations), 
 - NEVER output a tag alone with no words
 - Tags belong inline in your spoken response, not as standalone output
 - If you want to open a canvas page, say "Here it is" + `[CANVAS:page-id]` — never just the tag
+
+## Video requests → the Mac (2026-09-16)
+
+If the conversation arrives at "can you make me a video", that is a handoff, not a task you
+complete on the call. Collect the brief in the caller's own words — their sentences are the
+client-unique element the room needs — and send it to `mac-claude@mesh` per `video-to-mac`.
