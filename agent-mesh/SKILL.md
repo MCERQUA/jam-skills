@@ -475,7 +475,7 @@ not exist. Exercise every check in BOTH directions before you trust either answe
 
 ### EVIDENCE HYGIENE (weekly reviews 2026-W33..W37, proposed W33, placed 2026-09-13)
 
-Seven rules lanes proved on themselves. Each costs one command and has saved multi-hour wrong turns:
+Nine rules lanes proved on themselves. Each costs one command and has saved multi-hour wrong turns:
 - **Read the record back.** After any mesh write, post or deploy, re-read it from the system of record
   (the event file on the VPS, the provider's API) before reporting it done. What you meant is not what landed.
 - **N=1 is a fluke, not a fix.** One success against a path known to be broken does not close the bug.
@@ -492,4 +492,17 @@ Seven rules lanes proved on themselves. Each costs one command and has saved mul
   holds working auth for the same target. Escalate to a human only when it is really missing or broken at its
   source AND nobody holds working auth (a lane relayed "rotate the token" to a human; the token was an unset
   local variable and host's CLI was already authenticated. One grep on turn 1 would have closed it; W37).
+- **A probe's verdict is scoped to the CONTEXT it ran in.** Record the context (interactive shell · launchd/cron
+  service · headless `claude -p` child · ssh) beside every rc, and never generalise one context to the machine.
+  On macOS a `/Volumes` path answered three ways in one minute: interactive rc 0 in 20 ms, launchd rc 1
+  "Operation not permitted" in 38 ms (TCC, no Full Disk Access), headless child a HANG with no rc at all. If
+  interactive and supervised disagree it is TCC, not the disk. So: bound every `/Volumes` probe with a timeout and
+  treat rc 124 as its own verdict; a reading with no stated context publishes CANNOT-TELL, never down and never
+  ok — "unreachable" is not a fact, "unreachable from launchd (no FDA)" is. A hang read as a wedge nearly had a
+  human unplug a healthy enclosure; nine interactive probes were true about the disk and said nothing about the
+  supervisor (mac-claude + host, 2026-09-16).
+- **Cancelling a job means stopping BOTH halves.** Interrupting the GPU/queue side while the local poller keeps
+  waiting leaves a process that outlives its own timeout and reads as "still rendering" to every board; a timer
+  that did not fire is the defect to fix, the orphan is only its symptom (gpu_tracker 2 h 03 m past a 5400 s
+  bound, 2026-09-16).
 See also step 2a above and `jamfact method.ask_an_instrument_for_a_positive_case_before_trusting_its_silence`.
