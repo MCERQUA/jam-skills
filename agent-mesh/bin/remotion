@@ -1,0 +1,37 @@
+#!/bin/sh
+# render-guard PATH shim (step 3 of docs/jambot/remotion-vps-render-guard-design-2026-09-16.md §6(a3)).
+# Installed as remotion / remotionb / remotiond / hyperframes in the read-only mesh bin, which
+# tools.exec.pathPrepend puts AHEAD of $PNPM_HOME/bin for every openclaw exec-tool run (28/29
+# tenants; the doc: "pathPrepend entries are prepended inside the shell command right before
+# execution", openclaw-expert/cache/tools__exec.md:145).
+#
+# WHAT IT DOES: prints the SAME one-line handoff as scripts/hooks/render-guard.py to stderr and
+# exits 77 (EX_NOPERM). It is a BELT ONLY: it does not stop `npx remotion`, `node
+# node_modules/.bin/remotion` or `require('@remotion/renderer')` -- the image-level preload
+# (design a1, step 5) does. It also does NOT sit on the SMS-brain lane (claude/z-code launched by
+# tmux inherit the container PATH, pnpm bin first -- measured 2026-09-16 on 12 tenants); that lane
+# is covered by the PreToolUse hook (step 4).
+#
+# BYPASS (a human at the shell, ONE command): JAMBOT_RENDER_ALLOWED=1 <cmd> -- the shim then execs
+# the next same-named binary on PATH AFTER this directory. Same wording as Rule Zero and the hook.
+#
+# Negative control: docker exec openclaw-test-dev sh -c 'PATH=/mnt/shared-skills/agent-mesh/bin:$PATH remotion render x'; echo rc=$?  -> one line, rc=77
+# Positive control: docker exec openclaw-test-dev sh -c 'PATH=/mnt/shared-skills/agent-mesh/bin:$PATH JAMBOT_RENDER_ALLOWED=1 remotion --version'  -> the real binary answers
+self=$(basename "$0")
+here=$(cd "$(dirname "$0")" 2>/dev/null && pwd -P)
+if [ "${JAMBOT_RENDER_ALLOWED:-}" = "1" ]; then
+  oldifs=$IFS; IFS=:
+  for d in $PATH; do
+    [ -z "$d" ] && d=.
+    cand="$d/$self"
+    # skip this directory (by path OR by inode -- a symlinked mount path must not re-exec the shim)
+    [ "$(cd "$d" 2>/dev/null && pwd -P)" = "$here" ] && continue
+    [ "$cand" -ef "$0" ] && continue
+    if [ -x "$cand" ] && [ ! -d "$cand" ]; then IFS=$oldifs; exec "$cand" "$@"; fi
+  done
+  IFS=$oldifs
+  echo "render-guard shim: JAMBOT_RENDER_ALLOWED=1 set but no real '$self' found on PATH after $here" >&2
+  exit 127
+fi
+echo "render-guard: the VPS does not render video. Hand the job to mac-claude@mesh — mesh-send --to mac-claude@mesh --kind task per /mnt/agent-mesh/mesh/contracts/video-to-mac.md (engine and node choice are the Mac's; overflow to the GPU box is the Mac's call). A human at the shell may prefix JAMBOT_RENDER_ALLOWED=1 for ONE command. [shim: $self]" >&2
+exit 77
