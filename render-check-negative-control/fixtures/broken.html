@@ -1,0 +1,11 @@
+<!doctype html>
+<html>
+<head><title>fixture (broken)</title></head>
+<body>
+<div id="app">loading...</div>
+<script>
+window.__DOCK_DATA__ = {/*DATA*/{a:1,b:2}/*DATA*/};
+document.getElementById('app').textContent = 'rendered: ' + JSON.stringify(window.__DOCK_DATA__);
+</script>
+</body>
+</html>
