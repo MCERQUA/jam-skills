@@ -475,7 +475,7 @@ not exist. Exercise every check in BOTH directions before you trust either answe
 
 ### EVIDENCE HYGIENE (weekly reviews 2026-W33..W37, proposed W33, placed 2026-09-13)
 
-Nine rules lanes proved on themselves. Each costs one command and has saved multi-hour wrong turns:
+Ten rules lanes proved on themselves. Each costs one command and has saved multi-hour wrong turns:
 - **Read the record back.** After any mesh write, post or deploy, re-read it from the system of record
   (the event file on the VPS, the provider's API) before reporting it done. What you meant is not what landed.
 - **N=1 is a fluke, not a fix.** One success against a path known to be broken does not close the bug.
@@ -505,4 +505,14 @@ Nine rules lanes proved on themselves. Each costs one command and has saved mult
   waiting leaves a process that outlives its own timeout and reads as "still rendering" to every board; a timer
   that did not fire is the defect to fix, the orphan is only its symptom (gpu_tracker 2 h 03 m past a 5400 s
   bound, 2026-09-16).
+- **PROVISIONAL vs SETTLED — Mike hears settled state or a decision, never the trail.** Mark every finding you
+  send to a peer that can reach the operator PROVISIONAL (planning only, never relayed) or SETTLED (measured AND
+  corroborated by a second independent instrument). No ask that has the operator touch hardware, change a
+  setting or change his behaviour goes out on one reading. Corrections COMBINE — a finding that changes twice in
+  an hour ships once, final state. The relaying lane BATCHES: one message when settled or when he must act;
+  mid-diagnosis is "still measuring" or silence. Mike, 2026-09-16, after three emails in two hours (reseat the
+  enclosure → disregard → it is the scanner): "I don't have time to read them — message the SMS agent directly
+  and figure it out." The kernel log that would have killed the reseat ask before it was drafted was available
+  the whole time (mac-claude + hrsf-sms + host). Client-facing DONE/NOT-DONE is unaffected; a decision only he
+  can make is always allowed, with the settled facts and nothing else.
 See also step 2a above and `jamfact method.ask_an_instrument_for_a_positive_case_before_trusting_its_silence`.
