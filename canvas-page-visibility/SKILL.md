@@ -59,3 +59,37 @@ You do not have to make the page public. Files in `/app/runtime/uploads/` are se
 `/uploads/<file>` **without login** (measured 2026-09-08). See canvas-pages skill → Uploads →
 "Public-URL delivery fallback" for the four rules (no PII ever · only what the owner asked for ·
 queue-ack is not delivery · readable filename). The page itself stays private under the HARD RULE above.
+
+### ⚠️ …but an `.html` in `/uploads/` will NOT render. That is a security control, not a bug.
+
+**Measured 2026-09-20 on a live tenant:** `GET /uploads/<anything>.html` returns
+`content-type: text/plain; charset=utf-8` plus `X-Content-Type-Options: nosniff` and
+`Content-Disposition: attachment`. The viewer gets source text or a download, never a page.
+
+**Do not report this as broken and do not ask the host to "fix" it.** `routes/static_files.py`
+`serve_upload()` allows only known-inert media inline (`png jpg jpeg gif webp bmp ico avif mp4
+webm ogg mov mp3 wav m4a pdf`) and downgrades **everything else** — `.html`, `.svg`, `.xml`, `.js`
+— to a non-rendering `text/plain` attachment under a `default-src 'none'; sandbox` CSP. The reason
+is stored XSS (F-5, 2026-07-15): uploads are agent- and user-supplied, and an `.html` served with
+a rendering content-type executes **in our origin** and can steal the viewer's Clerk session.
+`nosniff` is there precisely so the browser cannot rescue it. Weakening this to publish a page
+would trade a client's session for a convenience.
+
+**So: HTML goes to `canvas-pages/`, never to `uploads/`.** Write
+`/app/runtime/canvas-pages/<name>.html` (or `POST /api/canvas/pages`) and hand over
+`https://<tenant>.jam-bot.com/pages/<name>.html`. That path renders, is Clerk-gated by default,
+and is the one CLAUDE.md requires for anything a client opens. `/uploads/` is for the inert media
+in the list above — a file the owner downloads, not a page they view.
+
+**If the canvas write path looks unavailable, MEASURE IT before working around it.** Verified
+2026-09-20 from inside `openclaw-bhb`: `/app/runtime/canvas-pages` exists, is `drwxrwxrwx`, and is
+writable; `POST /api/canvas/pages` answers (`OPTIONS` → 200, `GET` → 405 because it is POST-only —
+405 means the route is THERE). A 405 is not a missing endpoint. Three commands settle it:
+
+    ls -ld /app/runtime/canvas-pages
+    touch /app/runtime/canvas-pages/.probe-$$ && rm -f /app/runtime/canvas-pages/.probe-$$
+    curl -sS -o /dev/null -w '%{http_code}\n' -X OPTIONS http://openvoiceui:5001/api/canvas/pages
+
+Guessing endpoints against a **live tenant** because the documented path is assumed broken is how
+a production surface collects junk pages and re-POSTed 25MB payloads. Probe a write path with a
+disposable sentinel or on test-dev — never with a production payload.
