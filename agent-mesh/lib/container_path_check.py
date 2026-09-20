@@ -117,6 +117,15 @@ def extract_key_names(body: str) -> list[str]:
             continue
         if tok in _NOT_A_KEY or tok.startswith("mesh-"):
             continue
+        # SHAPE, not just proximity (2026-09-20, josh-desk-2): their message said "worker-c's
+        # `imgscan`" — a MODULE name — and the body happened to mention keys nearby, so the
+        # key branch swept it up and printed MISSING for something that was never a claim about
+        # a file. A MISSING that is not a defect trains readers to skim past MISSING lines,
+        # which is exactly the failure this check exists to prevent. Every real key on these
+        # desks carries a dot or a hyphen (`<repo>.com-write`, `jambot-josh-<repo>`); a bare
+        # single word does not.
+        if "." not in tok and "-" not in tok:
+            continue
         lo, hi = max(0, m.start() - _WINDOW), min(len(body), m.end() + _WINDOW)
         if not _KEY_NEAR.search(body[lo:hi]):
             continue
@@ -206,7 +215,19 @@ def check(body: str, recipients: list[str]) -> list[tuple[str, str, str]]:
                                  f"{agent} ({cname}): no key file by that name in {' or '.join(_KEY_STORES)}"))
             else:
                 findings.append((k, "UNCHECKABLE", f"{agent}: no verdict line returned"))
-    return findings
+    seen_lbl = set()
+    deduped = []
+    for lbl, verdict, detail in findings:
+        # One row per thing mentioned. Probing two key stores for one name produced two
+        # identical MISSING lines for a single occurrence (josh-desk-2, 2026-09-20). Keep the
+        # most informative verdict: OK beats MISSING beats UNCHECKABLE.
+        rank = {"OK": 0, "MISSING": 1, "UNCHECKABLE": 2}
+        prev = next((i for i, x in enumerate(deduped) if x[0] == lbl), None)
+        if prev is None:
+            deduped.append((lbl, verdict, detail))
+        elif rank.get(verdict, 9) < rank.get(deduped[prev][1], 9):
+            deduped[prev] = (lbl, verdict, detail)
+    return deduped
 
 
 def render(findings) -> tuple[str, bool]:
@@ -220,7 +241,7 @@ def render(findings) -> tuple[str, bool]:
     if bad:
         lines.append("mesh-send: ⚠ PATH NOT PRESENT IN THE RECIPIENT'S NAMESPACE (advisory — message still sent):")
         for p, _, d in bad:
-            lines.append(f"    MISSING  {p}   checked inside {d}")
+            lines.append(f"    MISSING  {p}   {d if d.startswith('checked') else 'checked inside ' + d}")
         lines.append("    A key is named by what it AUTHENTICATES to (ssh -T), never by filename or GitHub title.")
     if unk:
         lines.append("mesh-send: ? could not check these paths (NOT a pass):")
