@@ -1,6 +1,6 @@
 ---
 name: cc-backlinks
-description: "⚠️ NOT INSTALLED as of 2026-09-19 — every lookup exits with 'duckdb not installed'; see the status block. Free backlink discovery powered by the Common Crawl hyperlink graph — zero cost per query, on-VPS dataset when installed. Additive check alongside paid DataForSEO backlink calls. Compare multiple domains or competitors without burning credits."
+description: "Free backlink discovery powered by the Common Crawl hyperlink graph — zero cost per query, on-VPS dataset. Additive check alongside paid DataForSEO backlink calls. Compare multiple domains or competitors without burning credits."
 version: 1.0.0
 ---
 
@@ -16,29 +16,6 @@ version: 1.0.0
 > container is on it — that address hangs or refuses. The awk snippet below reads your
 > real default gateway from `/proc/net/route` (no `ip` binary needed, it is not installed).
 > Fixed fleet-wide 2026-07-25 after it silently blocked <tenant>-voice and cc-backlinks.
-
-> 🔴 **STATUS 2026-09-19 — THE DATASET IS NOT INSTALLED. EVERY LOOKUP FAILS.**
-> This is not a caveat about coverage; the tool cannot run at all. Measured today:
->
->     /mnt/backlinks/cc-cache/                EMPTY (dir created 2026-05-31, 0 files)
->     duckdb                                  NOT installed (no binary, no python module)
->     bash cc-backlinks.sh <domain>           -> "error: duckdb not installed", exit 1
->     /mnt/backlinks free                     7.7 GB against a ~16 GB download
->
-> The text below says "the data lives on the VPS". **It does not, and has not.** Read that
-> sentence as a description of the intended state, not the current one. mac-claude planned a
-> citation-footprint pass on this skill on 2026-09-19 and could not run it — the first
-> recorded attempt to use it.
->
-> **To make it real (both steps, in order):**
-> 1. free the volume — `/mnt/backlinks/scratch` holds 10.8 GB that is NOT pipeline temp
->    (an openclaw recovery archive, relocated data, rollback images). It needs a disposition,
->    not a `rm`; see that volume's README.
-> 2. `bash /mnt/system/base/tools/cc-backlinks/setup.sh` (sudo: installs duckdb) then
->    `bash download-data.sh` (~16 GB, resumable).
->
-> Until step 1 lands, do NOT reach for this skill and do NOT promise a client a free
-> backlink baseline from it. Use DataForSEO and say it is paid.
 
 # Common Crawl Backlinks (Free Backlink Lookup)
 

@@ -26,26 +26,6 @@ Exit codes:
     0  success
     1  generic failure
     2  rate-limit hit (urgent 1/hr)
-
-    ⚠️ THESE CODES ARE LOST THROUGH A PIPE, AND THAT HAS BEEN REPORTED AS A BUG IN THIS TOOL.
-    `mesh-send ... | tail -1` gives you tail's status, not mesh-send's, so a REFUSED urgent
-    reads as rc=0 — a send that never happened reporting success on the one channel used when
-    something is actually wrong.
-
-    Measured 2026-09-19, same shell, back to back:
-        urgent #1                       rc=0   (sent)
-        urgent #2, direct call          rc=2   (refused, correct)
-        same refusal through a pipe     rc=0   (the tool is fine; the pipe ate the code)
-
-    josh-desk-1 hit this and reported mesh-send as "silently rc=0 on refusal". The binary is
-    byte-identical on host and desk (md5 f2ef3500...) and die() does sys.exit(2). Nothing was
-    wrong with it. Two host sessions hit the identical trap the same afternoon on unrelated
-    tools (`node --check | head`, `cc-backlinks.sh | head`), which is what makes this worth
-    writing down HERE rather than in one agent's notes.
-
-    Call it directly and check $?, or use "${PIPESTATUS[0]}". Better still, verify DELIVERY:
-    the written .md path is on stdout and the file is either in <to>/inbox/ or it is not.
-    An exit code describes the caller's shell; a file in the inbox describes the mesh.
     3  validation failure (unknown kind, missing AGENT_URI, etc.)
     4  intel filter blocked — body matched a secret/PII pattern; use --force-leak to override
     5  force-leak REFUSED — the override's audit record could not be written. Distinct
