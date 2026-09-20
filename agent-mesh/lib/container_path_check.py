@@ -124,7 +124,15 @@ def extract_key_names(body: str) -> list[str]:
         # which is exactly the failure this check exists to prevent. Every real key on these
         # desks carries a dot or a hyphen (`<repo>.com-write`, `jambot-josh-<repo>`); a bare
         # single word does not.
-        if "." not in tok and "-" not in tok:
+        # MEASURED SHAPE, not "has punctuation". The dot-or-hyphen rule still swept up REPO
+        # names: 2026-09-20 this flagged `sprayfoaminsurance-ca` MISSING when the host merely
+        # mentioned the repo in a sentence about keys. Measured across both stores on josh's
+        # desk: 546 key files, 473 ending in `-write` (the rest are its `.broken-`/`.rotated-`
+        # variants, which still contain it). The one case that started this feature —
+        # `jambot-josh-tracthomecontractorinsurance.com`, a GitHub deploy-key TITLE the host
+        # asserted as a file — begins `jambot-`. Those two shapes catch the real thing and
+        # leave repo names alone.
+        if "-write" not in tok and not tok.startswith("jambot-"):
             continue
         lo, hi = max(0, m.start() - _WINDOW), min(len(body), m.end() + _WINDOW)
         if not _KEY_NEAR.search(body[lo:hi]):
