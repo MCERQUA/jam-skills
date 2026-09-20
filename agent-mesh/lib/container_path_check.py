@@ -82,17 +82,30 @@ def container_for(agent: str) -> tuple[str | None, str]:
 # keys, so an ordinary backticked repo name or command is never flagged.
 _KEYISH = re.compile(r"`([A-Za-z0-9][\w.@-]{6,})`")
 _KEY_STORES = ("/config/.ssh", "/agent-desk/desk/deploy-keys/write")
+# PROXIMITY, not document-level. The first live firing (2026-09-20) flagged `mesh-send`
+# in a message ABOUT keys — a body-wide "does this mention keys" trigger makes every
+# backticked token a candidate, and an advisory checker that cries wolf gets ignored,
+# which is the same as not existing. The word must be near the token.
+_KEY_NEAR = re.compile(r"(?:\bkeys?\b|ssh -T|deploy[- ]key)", re.I)
+_WINDOW = 70
+# Tool and command names that appear in backticks beside the word "key" all day.
+_NOT_A_KEY = {"mesh-send", "mesh-ack", "mesh-recv", "mesh-claim", "ssh-keygen", "read_only",
+              "installation_id", "docker exec", "git push", "gh api"}
 
 
 def extract_key_names(body: str) -> list[str]:
-    if not re.search(r"\bkeys?\b", body, re.I):
-        return []
     out, seen = [], set()
-    for tok in _KEYISH.findall(body):
+    for m in _KEYISH.finditer(body):
+        tok = m.group(1)
         # skip things that are plainly not a filename on disk
         if tok.startswith(("http", "/")) or "/" in tok or tok.isdigit():
             continue
         if re.fullmatch(r"[0-9a-f]{7,40}", tok):  # a git sha
+            continue
+        if tok in _NOT_A_KEY or tok.startswith("mesh-"):
+            continue
+        lo, hi = max(0, m.start() - _WINDOW), min(len(body), m.end() + _WINDOW)
+        if not _KEY_NEAR.search(body[lo:hi]):
             continue
         if tok not in seen:
             seen.add(tok)
