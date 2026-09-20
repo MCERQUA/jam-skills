@@ -42,9 +42,22 @@ _PATH_RE = re.compile(r"(?<![\w/])(/(?:config|agent-desk[\w-]*|workspace|home/no
 
 
 def _docker(args, timeout=25):
-    """Run docker via sg, as the host must. Returns (rc, stdout, stderr)."""
-    cmd = "docker " + " ".join(args)
-    p = subprocess.run(["sg", "docker", "-c", cmd], capture_output=True, text=True, timeout=timeout)
+    """Run docker. Returns (rc, stdout, stderr); rc=127 means no way to run it here.
+
+    The host needs `sg docker -c` (mike is in the docker group but non-login shells do not pick
+    it up). A DESK does not have `sg` at all — measured 2026-09-20 by josh-desk-2, whose send
+    printed `FileNotFoundError(2)` because this reached for a host-only idiom from inside a
+    container. Try the plain binary first, fall back to sg, and report 127 rather than raising."""
+    # ONE invocation style, deliberately. The first fix here tried plain `docker` first and fell
+    # back to sg — but the callers build a shell-string script already wrapped in single quotes
+    # for the sg form, so the direct-argv form received the quotes literally and every exec came
+    # back rc=127. Two styles need two quotings; keeping one style and failing cleanly is simpler
+    # and is what the local fallback below is for.
+    try:
+        p = subprocess.run(["sg", "docker", "-c", "docker " + " ".join(args)],
+                           capture_output=True, text=True, timeout=timeout)
+    except (FileNotFoundError, OSError):
+        return 127, "", "no sg/docker available from here"
     return p.returncode, p.stdout.strip(), p.stderr.strip()
 
 
@@ -138,6 +151,20 @@ def check(body: str, recipients: list[str]) -> list[tuple[str, str, str]]:
         return []
     if os.environ.get("MESH_SKIP_PATH_CHECK"):
         return [(p, "UNCHECKABLE", "MESH_SKIP_PATH_CHECK set") for p in paths]
+
+    # SAME-CONTAINER PEERS: a desk writing to another desk in the SAME container shares its
+    # filesystem, so the recipient's namespace IS this one and a local stat is the RIGHT vantage —
+    # no docker required. This is most of the traffic between the josh desks, and before this it
+    # fell into the docker path, failed FileNotFoundError, and was reported UNVERIFIED (correctly,
+    # but uselessly). Only used when docker is genuinely unreachable from here.
+    if _docker(["version"])[0] == 127:
+        findings = []
+        for p in paths + [f"{d}/{k}" for k in keys for d in _KEY_STORES]:
+            label = p if p in paths else p.rsplit("/", 1)[-1]
+            findings.append((label, "OK" if os.path.exists(p) else "MISSING",
+                             "checked on THIS filesystem (no docker here; valid only because the "
+                             "recipient shares this container)"))
+        return findings
 
     findings: list[tuple[str, str, str]] = []
     for agent in recipients:
