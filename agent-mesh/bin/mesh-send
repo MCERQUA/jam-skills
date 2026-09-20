@@ -534,6 +534,20 @@ def main() -> None:
     sender = agent_name()
     mesh_dir, agents_dir, my_dir = discover_mesh_root()
 
+    # THE SENDER MUST HAVE A SLOT — fail HERE, not silently after delivery.
+    # (2026-09-20, bhb-sms's W38 review.) A lane with no agents/<name>/ dir wrote its message,
+    # got exit 0, and believed it sent; a receiver-side validator then moved it to QUARANTINE for
+    # "unknown AUTHOR agent: no agents/ slot". Two of their sends died that way — a live SMS
+    # tenant brain that was never given a slot. The sender is the ONE party that can still act on
+    # the failure and it was the one party never told.
+    # Same rule as PROTOCOL §9 for kinds: the validator must be a SUPERSET of the sender. If the
+    # receiver will refuse an author, the sender must refuse first.
+    if not my_dir.is_dir():
+        die(f"AGENT_URI '{sender}@mesh' has NO agents/ slot at {my_dir}.\n"
+            f"  The receiver-side validator QUARANTINES messages from an unknown author, so this\n"
+            f"  send would exit 0 and be silently discarded after delivery.\n"
+            f"  Fix: have the host create {my_dir} (inbox/ + sent/), then resend.", 3)
+
     # ---- validate recipient ----
     recipient_uri: str = args.to
     if not recipient_uri.endswith("@mesh"):
