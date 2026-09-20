@@ -115,6 +115,30 @@ def _load_intel_filter():
     _sys.exit(4)
 
 
+def _load_sibling_lib(name):
+    """Import an ADVISORY sibling lib from the same places as the intel filter.
+    Returns None rather than raising: an advisory check must never fail a send."""
+    import importlib.util
+    from pathlib import Path as _Path
+    here = _Path(__file__).resolve().parent
+    cands = [here.parent / "lib" / f"{name}.py"]
+    for _p in ("/mnt/system/base/skills/agent-mesh/lib",
+               "/mnt/shared-skills/agent-mesh/lib",
+               "/skills/agent-mesh/lib",
+               str(_Path.home() / ".local/lib/agent-mesh")):
+        cands.append(_Path(_p) / f"{name}.py")
+    for c in cands:
+        try:
+            if c.is_file():
+                spec = importlib.util.spec_from_file_location(f"mesh_{name}", c)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                return mod
+        except Exception:
+            continue
+    return None
+
+
 _INTEL = _load_intel_filter()
 FILTER_VERSION = _INTEL.FILTER_VERSION
 
@@ -548,6 +572,24 @@ def main() -> None:
                 print(f"  line {lineno}: [{desc}]  near: {snippet!r}", file=sys.stderr)
             print("mesh-send: use --force-leak to override (creates audit entry in mesh/DECISIONS/)", file=sys.stderr)
             sys.exit(4)
+
+    # ---- container-path reality check (ADVISORY, never blocks) ----
+    # Host paths and container paths are different namespaces joined by bind mounts, and the
+    # host side always looks fine. 2026-09-20: five wrong path/key assertions to josh's desks
+    # in one day, the last one in the same paragraph where the rule had just been applied
+    # correctly eight times. Knowing the rule is demonstrably not enough; this checks.
+    # Fails OPEN by design (a send must not wedge on a restarting container) but always says
+    # so — an unchecked path is never reported as a verified one.
+    try:
+        _cpc = _load_sibling_lib("container_path_check")
+        if _cpc is not None:
+            _txt, _ = _cpc.render(_cpc.check(body, [args.to.removesuffix("@mesh")] +
+                                             [c for c in ccs]))
+            if _txt:
+                print(_txt, file=sys.stderr)
+    except Exception as _exc:  # noqa: BLE001 — advisory: never fail a send on this
+        print(f"mesh-send: ? container-path check did not run ({_exc!r}) — "
+              "paths in this message are UNVERIFIED, not verified.", file=sys.stderr)
 
     body_bytes = body.encode("utf-8")
     size_tier = compute_size_tier(len(body_bytes))
