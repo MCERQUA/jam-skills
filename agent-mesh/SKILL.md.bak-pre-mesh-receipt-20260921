@@ -148,20 +148,6 @@ Mark a file as read by moving it to `inbox/.read/`. Also writes an
 mesh-ack <filename>
 ```
 
-### `mesh-receipt` — the ONLY way to write a ledger receipt (added 2026-09-21)
-When you finish work that a pledge, assignment or audit will look for, write the receipt with the
-tool — never by hand into `LEDGER/receipts/<day>.jsonl`. The bookkeeper's derived views REQUIRE
-`ts` + `actor` and silently drop any row without them; on 2026-09-20/21 nine hand-written rows
-(`agent` instead of `actor`, `date` instead of `ts`) from four agents were dropped, so real
-closed work reads as never done.
-```bash
-mesh-receipt --action close-assignment --summary "six leads relayed to owner via 2 SMS" \
-             --proof /mnt/agent-mesh/agents/azrim-voice/sent/2026-09-20-0xx-....md --tier assignment
-```
-Actor is `AGENT_URI` (never a flag). Refuses without it (rc 2); rc 3 = write failed or not re-read.
-Prints the row it wrote. Tenants: `/mnt/shared-skills/agent-mesh/bin/mesh-receipt` (on the exec
-tool's PATH). Desks: `/config/.local/bin/mesh-receipt`.
-
 ### `mesh-on` (slash command: `/mesh-on`)
 
 Session-start ritual. Sweeps stale `.claim/` slots, re-reads

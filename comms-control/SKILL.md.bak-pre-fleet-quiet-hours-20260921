@@ -49,21 +49,6 @@ Confirm: *"Done — your morning kickoff is now 7:00 AM CST. You can change it a
 jq '.quiet_hours.send_window_end = "20:00"' comms-rules.json > .tmp && mv .tmp comms-rules.json && echo OK
 ```
 
-#### ⚠️ Quiet hours apply to EVERY client, with or without this file (fleet rule, Mike 2026-09-21)
-The host drain holds any **proactive** text outside the client's window — `comms-rules.json` if you
-have one, otherwise the **fleet default 08:00–21:00 in the client's local time** (from `Timezone:` in
-USER.md). It decides "proactive" from EVIDENCE, not from what your send tool wrote: if the client
-texted you within the last 120 minutes, your message is a reply and goes at any hour; if not, it waits
-for the window and sends itself when it opens. **`critical: true` from the setup helper is ignored**
-(it was stamped on every message and meant nothing). What passes at night: `urgency: "critical"`, a
-keyword in `critical_keywords` here, or `"override_quiet_hours": true` **with** an `"override_reason"`
-— every override is logged with your reason. When something of yours is held you get ONE mesh note
-per day saying so and when it releases. **If USER.md has no `Timezone:` (or a placeholder), the host
-cannot place the client and holds your proactive texts during 04:00–12:00 UTC (night everywhere in
-the US) — set the Timezone the first time the client mentions where they are.** Origin: hrsf's agent
-texted an unprompted offer at 11:25 PM and a retraction at 12:47 AM her time against a USER.md line
-that said "nothing proactive after 5pm" — the rule was prose, so nothing enforced it.
-
 ### 3. Change how often you may text  ("only once a day" / "a few times a day")
 `frequency_cap_per_day` in **comms-rules.json** — integer, or `null` for unlimited. once=1, a few=3, "only when I ask"=0.
 ```bash

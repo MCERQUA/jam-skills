@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""mesh-receipt — append ONE canonical receipt row to the shared ledger.
+
+WHY (2026-09-21, host@mesh, from bookkeeper-verify PARSE-DEGRADE-FRESH):
+  Nine receipt rows in two days were written BY HAND by agents closing work — security-officer's
+  scanner, azrim/foamology/mrglass/ica voice agents — and every one used its own shape
+  (`agent` instead of `actor`, `date` instead of `ts`). The bookkeeper's derived views require
+  `ts` + `actor` and SILENTLY DROP anything else, so the work was done, the receipt was written,
+  and the ledger still says it never happened. There was no tool to write a receipt with; there
+  was only the file, so every agent invented a schema. This is the tool.
+
+USAGE (AGENT_URI must be set — the actor is never a flag, it is who you are):
+  mesh-receipt --action <verb> --summary "<what, in one line>" [--proof <path-or-url>]
+               [--tier action|deliverable|security|assignment] [--dedupe-key <k>] [--tenant <t>]
+  Prints the row it wrote. Exit 0 = written and re-read; 2 = refused (nothing written);
+  3 = write failed.
+
+CANONICAL ROW (the same keys the host API and sms-host write — do not add dialects):
+  id · ts · actor · agent_type · tenant · tier · action · summary · proof · dedupe_key · source
+"""
+import argparse, json, os, sys, hashlib, time
+from datetime import datetime, timezone
+from pathlib import Path
+
+def die(msg, rc=2):
+    print(f"mesh-receipt: REFUSED — {msg}", file=sys.stderr); sys.exit(rc)
+
+def mesh_root():
+    # Same rule as mesh-send: a CONTAINER has BOTH /agent-desk and /mesh; the HOST has
+    # /mnt/agent-mesh. Never test /mesh alone — the host carries a stray root-owned
+    # /mesh/REGISTRY/tier2-handlers (2026-05-20) that is NOT the mesh, and a tool that
+    # picks it writes to a decoy or dies on permissions (measured 2026-09-21 on this tool
+    # and on the image copy of mesh-semaphore).
+    if os.environ.get("MESH_ROOT"): return Path(os.environ["MESH_ROOT"]) / "mesh"
+    if Path("/agent-desk").is_dir() and Path("/mesh").is_dir(): return Path("/mesh")
+    if Path("/mnt/agent-mesh").is_dir(): return Path("/mnt/agent-mesh/mesh")
+    die("cannot find the mesh root (set MESH_ROOT, or run in a container with /agent-desk+/mesh, or on the host with /mnt/agent-mesh)")
+
+def main():
+    ap = argparse.ArgumentParser(prog="mesh-receipt", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--action", required=True, help="verb: completed · close-assignment · scanner-run · shipped · verified …")
+    ap.add_argument("--summary", required=True, help="one line, what was done (<=500 chars kept)")
+    ap.add_argument("--proof", default="", help="path or URL a reader can open")
+    ap.add_argument("--tier", default="action", choices=["action", "deliverable", "security", "assignment"])
+    ap.add_argument("--dedupe-key", default="", help="stable key so a re-run does not double-count")
+    ap.add_argument("--tenant", default="", help="defaults to the agent name before '-voice/-sms/-desktop'")
+    a = ap.parse_args()
+
+    actor = os.environ.get("AGENT_URI", "").strip()
+    if not actor or not actor.endswith("@mesh") or actor.count("@mesh") != 1:
+        die(f"AGENT_URI must be <name>@mesh (got {actor!r}); a receipt without an actor is exactly the row the ledger drops")
+    if not a.summary.strip():
+        die("--summary is empty; a receipt that says nothing is not a receipt")
+
+    name = actor[:-len("@mesh")]
+    tenant = a.tenant or name.split("-voice")[0].split("-sms")[0].split("-desktop")[0].split("-desk-")[0]
+    agent_type = "desktop" if ("desktop" in name or "-desk-" in name) else "claude-code"
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    rid = "rcpt-" + ts[:10].replace("-", "") + "-" + hashlib.sha1(f"{actor}|{ts}|{a.action}|{a.summary}|{time.time_ns()}".encode()).hexdigest()[:10]
+    row = {"id": rid, "ts": ts, "actor": actor, "agent_type": agent_type, "tenant": tenant, "tier": a.tier,
+           "action": a.action, "summary": a.summary.strip()[:500], "proof": a.proof, "dedupe_key": a.dedupe_key,
+           "source": "mesh-receipt"}
+    line = json.dumps(row, ensure_ascii=False)
+    if "\n" in line: die("row would contain a newline")  # cannot happen after json.dumps; belt and braces
+
+    path = mesh_root() / "LEDGER" / "receipts" / f"{ts[:10]}.jsonl"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(str(path), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o664)
+        try:
+            os.write(fd, (line + "\n").encode("utf-8"))   # single write, O_APPEND: atomic per POSIX for one line
+        finally:
+            os.close(fd)
+    except OSError as e:
+        print(f"mesh-receipt: WRITE FAILED — {e} ({path})", file=sys.stderr); sys.exit(3)
+    # re-read: the receipt is real only if the file now contains it and it parses back with ts+actor
+    try:
+        tail = path.read_text(encoding="utf-8", errors="replace").splitlines()[-50:]
+        back = [json.loads(l) for l in tail if l.strip()]
+        if not any(r.get("id") == rid and r.get("ts") and r.get("actor") for r in back):
+            print("mesh-receipt: WRITE NOT VERIFIED — row not found on re-read", file=sys.stderr); sys.exit(3)
+    except Exception as e:
+        print(f"mesh-receipt: WRITE NOT VERIFIED — {e}", file=sys.stderr); sys.exit(3)
+    print(line)
+
+if __name__ == "__main__":
+    main()
