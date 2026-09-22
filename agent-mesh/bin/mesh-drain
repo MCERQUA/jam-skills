@@ -26,9 +26,62 @@
 #   mesh-drain -n 3      cap this run at 3
 #   mesh-drain --dry-run display only, ack nothing
 #
+# ⚠️⚠️ NEVER PIPE THIS TOOL. Within an hour of it shipping, all four desks defeated it by piping,
+# including its author in the first command he ran against it. Two modes, opposite outcomes, and
+# **you cannot tell which one you are in from the output — both present as success:**
+#
+#   downstream READS TO EOF   (grep|tail, cat, wc, tee)      ack RUNS, bodies discarded  -> ack > read
+#   downstream CLOSES EARLY   (head, grep -m1, sed q, pager) SIGPIPE before the ack      -> silent no-op
+#
+# josh-desk-2 acked ten messages with no body ever rendered, then summarised them from section
+# headings. josh-desk-3 hit the other mode on their first live use and carried three read-but-unacked
+# messages forward. josh-desk-4 believed a lane was drained that was not.
+#
+# v2 makes the SECOND mode visible (see the PIPE trap below). **The first mode has no mechanism and
+# never will** — nothing in this process can see a filter downstream, and `displayed=N acked=N` is
+# true of what this tool EMITTED, never of what the operator SAW. That half is a rule, not a guard.
+#
+# ⚠️ `[ -t 1 ]` IS NOT THE GUARD IT LOOKS LIKE. "Refuse to ack when stdout is not a tty" was
+# proposed twice and MEASURED HERE: stdout is never a tty for any agent on these desks, so that
+# check refuses every legitimate run. Do not add it.
+#
+#   BEST   mesh-drain -n 3 > out 2>&1 ; then read out
+#          A REDIRECT IS NOT A PIPE. Nothing closes the stream early, so the ack stage always runs;
+#          nothing filters it, so every body lands in the file. Same keystroke count as `| head`.
+#          josh-desk-4's habit after being bitten by BOTH modes in one session.
+#   FINE   mesh-drain -n 2                      unpiped, read the whole output
+#   WRONG  mesh-drain | anything                either mode, and you cannot tell which
+#
+# ⚠️ THE REDIRECT PROTECTS THE TOOL, NOT YOUR READING. It was proposed as making mode B "a
+# mechanism" and it does not, quite. Measured by josh-desk-2 on the exact form:
+#
+#     mesh-drain > out 2>&1            0 remaining, 2/2 bodies in the file   both modes closed
+#     then: grep '^mesh-drain:' out    bodies actually read: 0               same failure, later
+#
+# **Grepping `out` instead of reading it is the same failure one step after the ack, and nothing can
+# detect it.** What the redirect guarantees is that the bodies SURVIVE ON DISK — mode B becomes
+# RECOVERABLE instead of LOSSY. Mode A it eliminates outright. Host's framing stands unchanged:
+# mode A is a mechanism, mode B is a rule; the redirect makes the rule easier to keep, not
+# unnecessary. josh-desk-2 committed the reading half three times in three consecutive turns, twice
+# while quoting the rule against it — if you read "redirect solves mode B" as covering your reading,
+# the next instance is already written.
+#
 # The cap exists because a truncated display is an unread message: if the output scrolls past what
 # you take in, the guarantee is void. Small batches, run twice.
 set -u
+
+# ⚠️ PIPE TRAP (v2, 2026-09-22). If stdout closes mid-display — `| head -N`, a pager, `grep -m1` —
+# v1 died of SIGPIPE before the ack stage and said NOTHING: the operator saw a display and
+# reasonably concluded the drain had happened. Safe in direction (nothing acked unread), dangerous
+# in belief. Now it is loud, on STDERR, which a stdout filter cannot swallow.
+_drain_sigpipe() {
+  exec 1>/dev/null
+  printf 'mesh-drain: OUTPUT TRUNCATED — stdout closed mid-display (a pipe that exits early:\n' >&2
+  printf '            head / pager / grep -m1 / sed q). ACKED NOTHING; inbox UNCHANGED.\n' >&2
+  printf '            Re-run WITHOUT a pipe:  mesh-drain -n <small>   (or > file, then read it)\n' >&2
+  exit 3
+}
+trap _drain_sigpipe PIPE
 
 # ⚠️ NO DEFAULT LANE. Five agents share this container and this bin dir; a tool that defaults to one
 # desk's inbox will silently drain a stranger's lane. Same failure mesh-ack-snapshot v1 had.
@@ -93,6 +146,8 @@ now_unread=$(ls -1 *.md 2>/dev/null | wc -l)
 # Getting this wrong is the same defect class as a guard that states a reason it did not compute:
 # v1 used (now_unread - REMAIN + acked) and printed "3 arrived" beside "0 still unread".
 arrived=$(( now_unread - REMAIN - (${#BATCH[@]} - acked) ))
-echo "mesh-drain: displayed=${#BATCH[@]} acked=$acked refused=$refused; $now_unread still unread"
+# to BOTH streams: a stdout filter must not be able to hide the accounting.
+_summary="mesh-drain: displayed=${#BATCH[@]} acked=$acked refused=$refused; $now_unread still unread"
+echo "$_summary"; echo "$_summary" >&2
 [ "$arrived" -gt 0 ] && echo "mesh-drain: $arrived arrived during this run — left unread, as intended."
 exit 0
