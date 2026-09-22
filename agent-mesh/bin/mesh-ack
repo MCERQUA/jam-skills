@@ -134,7 +134,11 @@ def ack_file(inbox: Path, filename: str) -> bool:
         import re as _re, time as _time, json as _json
         _m = _re.match(r"^(\d{4}-\d{2}-\d{2}-\d{3})-([a-z0-9-]+?)-", filename)
         _win = float(os.environ.get("MESH_ACK_SEQ_WINDOW", "10"))
-        _state = inbox / ".last-ack.json"
+        # NOT in the inbox (josh-desk-1 + desk-3, 04:1xZ): a state file in the mail directory IS mail to
+        # mesh-recv/mesh-watch-arm since the non-.md fix. State lives beside the inbox, in .read/ (a
+        # directory every tool already treats as "not unread"), so it is never listed as a message.
+        _state = inbox / ".read" / ".last-ack.json"
+        (inbox / ".read").mkdir(exist_ok=True)
         if _m and _win > 0 and os.environ.get("MESH_ACK_ALLOW_SEQ") != "1":
             _prev = {}
             if _state.is_file():
