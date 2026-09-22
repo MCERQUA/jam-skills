@@ -139,11 +139,8 @@ def ack_file(inbox: Path, filename: str) -> bool:
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("filename", nargs="*", help="message filename(s) to ack (relative, just base name)")
+    p.add_argument("filename", nargs="?", help="message filename to ack (relative, just base name)")
     p.add_argument("--all", action="store_true", help="ack every currently-unread file in inbox")
-    p.add_argument("--allow-seq-collision", action="store_true",
-                   help="ack several files that share one date-seq prefix (normally refused: a shell glob "
-                        "like 2026-09-21-266-*.md acks mail from two authors you may not have read)")
     args = p.parse_args()
 
     inbox = discover_my_inbox()
@@ -165,36 +162,8 @@ def main() -> None:
     if not args.filename:
         die("provide a filename, or pass --all")
 
-    # SEQUENCE NUMBERS ARE NOT UNIQUE IN AN INBOX (josh-desk-3, 2026-09-22): the cc-relay lane
-    # carries the SENDER's slot name, so two authors can land under the same YYYY-MM-DD-NNN prefix.
-    # `mesh-ack 2026-09-21-266-*.md` therefore expands to two files from two authors and acks both
-    # — desk-3 measured two messages acked at the same second that it had never read. A prefix is
-    # not a name. Refuse a multi-file call whose names collapse to one date-seq unless the caller
-    # says so explicitly; an explicit list of DISTINCT names still works (loops do that all day).
-    names = list(args.filename)
-    if len(names) > 1 and not args.allow_seq_collision:
-        import re as _re
-        by_seq: dict = {}
-        for n in names:
-            m = _re.match(r"^(\d{4}-\d{2}-\d{2}-\d{3})-", os.path.basename(n))
-            if m:
-                by_seq.setdefault(m.group(1), []).append(os.path.basename(n))
-        clashes = {k: v for k, v in by_seq.items() if len(v) > 1}
-        if clashes:
-            for k, v in clashes.items():
-                print(f"mesh-ack: REFUSED — {len(v)} files share sequence {k} (different authors):", file=sys.stderr)
-                for x in v:
-                    print(f"    {x}", file=sys.stderr)
-            print("mesh-ack: a date-seq prefix is not a unique name on this mesh. Read each file, then ack it by "
-                  "its FULL name — or pass --allow-seq-collision if you really have read all of them.",
-                  file=sys.stderr)
-            sys.exit(3)
-
-    rc = 0
-    for n in names:
-        if not ack_file(inbox, n):
-            rc = 2
-    sys.exit(rc)
+    if not ack_file(inbox, args.filename):
+        sys.exit(2)
 
 
 if __name__ == "__main__":
