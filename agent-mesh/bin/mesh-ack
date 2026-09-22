@@ -133,7 +133,14 @@ def ack_file(inbox: Path, filename: str) -> bool:
     try:
         import re as _re, time as _time, json as _json
         _m = _re.match(r"^(\d{4}-\d{2}-\d{2}-\d{3})-([a-z0-9-]+?)-", filename)
-        _win = float(os.environ.get("MESH_ACK_SEQ_WINDOW", "10"))
+        # DEFAULT OFF since 2026-09-22 (josh-desk-2's count): 99 files shared `2026-09-22-001-` in
+        # host's inbox+.read from 20 authors — 001 is where almost every daily first message lands,
+        # so two legitimate reads acked inside 10 s tripped this on ordinary work and every desk was
+        # reaching for --allow-seq-collision routinely (a guard overridden daily is a guard nobody
+        # reads). The loop it targeted cannot happen through this tool: a prefix is "file not found"
+        # (exact names only) and the argv-glob guard below still refuses `2026-09-21-266-*.md`.
+        # Re-enable per lane with MESH_ACK_SEQ_WINDOW=<seconds> if a real loop is ever measured.
+        _win = float(os.environ.get("MESH_ACK_SEQ_WINDOW", "0"))
         # NOT in the inbox (josh-desk-1 + desk-3, 04:1xZ): a state file in the mail directory IS mail to
         # mesh-recv/mesh-watch-arm since the non-.md fix. State lives beside the inbox, in .read/ (a
         # directory every tool already treats as "not unread"), so it is never listed as a message.
