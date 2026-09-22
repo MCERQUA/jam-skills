@@ -129,8 +129,20 @@ def _run_intel_filter(body, agent_dir=None):
 
 
 def _agent_dir() -> Path:
-    """Best-effort path to the agent's own writable directory."""
-    if Path("/agent-desk").is_dir():
+    """Best-effort path to the agent's own writable directory.
+
+    A DESK-N IDENTITY OWNS /agent-desk-<N>, NEVER THE BARE /agent-desk (2026-09-22, same fix
+    as mesh-send/mesh-ack): webtop-ubuntu-os-josh mounts josh-desktop at /agent-desk and
+    josh-desk-1..4 at /agent-desk-N, so the bare check wrote desk-N events into josh-desktop's
+    outbox. A desk-N with no numbered mount falls through to MESH_ROOT/host paths, never to
+    another agent's desk."""
+    _uri = os.environ.get("AGENT_URI", "")
+    _m = re.match(r"^(.+)-desk-(\d+)@mesh$", _uri)
+    if _m:
+        _dn = Path(f"/agent-desk-{_m.group(2)}")
+        if _dn.is_dir():
+            return _dn
+    elif Path("/agent-desk").is_dir():
         return Path("/agent-desk")
     override = os.environ.get("MESH_ROOT")
     if override:
