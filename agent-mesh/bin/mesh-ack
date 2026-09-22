@@ -148,8 +148,8 @@ def ack_file(inbox: Path, filename: str) -> bool:
             if _prev.get("seq") == _seq and _prev.get("file") != filename and (_now - float(_prev.get("ts", 0))) < _win:
                 print(f"mesh-ack: REFUSED — {filename} shares sequence {_seq} with {_prev.get('file')} acked "
                       f"{_now - float(_prev.get('ts', 0)):.1f}s ago (different author). Two messages in under "
-                      f"{_win:.0f}s is a loop over a colliding prefix, not two reads. Read it, then ack it again; "
-                      f"MESH_ACK_ALLOW_SEQ=1 overrides.", file=sys.stderr)
+                      f"{_win:.0f}s is a loop over a colliding prefix, not two reads. Read it, then ack it again — "
+                      f"or, having read it, pass --allow-seq-collision (same as MESH_ACK_ALLOW_SEQ=1).", file=sys.stderr)
                 return False
             _state.write_text(_json.dumps({"seq": _seq, "file": filename, "ts": _now}))
     except Exception:
@@ -173,8 +173,8 @@ def main() -> None:
     p.add_argument("filename", nargs="*", help="message filename(s) to ack (relative, just base name)")
     p.add_argument("--all", action="store_true", help="ack every currently-unread file in inbox")
     p.add_argument("--allow-seq-collision", action="store_true",
-                   help="ack several files that share one date-seq prefix (normally refused: a shell glob "
-                        "like 2026-09-21-266-*.md acks mail from two authors you may not have read)")
+                   help="override BOTH sequence-collision guards (the argv check on a glob like 2026-09-21-266-*.md, "
+                        "and the 10-s same-seq loop check) for files you have actually read; = MESH_ACK_ALLOW_SEQ=1")
     args = p.parse_args()
 
     inbox = discover_my_inbox()
@@ -203,6 +203,11 @@ def main() -> None:
     # not a name. Refuse a multi-file call whose names collapse to one date-seq unless the caller
     # says so explicitly; an explicit list of DISTINCT names still works (loops do that all day).
     names = list(args.filename)
+    if args.allow_seq_collision:
+        # ONE override for BOTH guards (josh-desk-1, 04:2xZ): the flag documented the argv check while
+        # the stateful loop check read only the env — a reader who hit the second guard reached for the
+        # flag in --help and was refused again. The flag now sets the env the loop guard honours.
+        os.environ["MESH_ACK_ALLOW_SEQ"] = "1"
     if len(names) > 1 and not args.allow_seq_collision:
         import re as _re
         by_seq: dict = {}
