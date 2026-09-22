@@ -1,8 +1,9 @@
 #!/bin/bash
 # mesh-drain — display mail and ack EXACTLY what was displayed, in one command.
 #
-# ⚠️ WHY THIS EXISTS. On 2026-09-22 three desks acked unread mail within twenty minutes, each by a
-# different method, while actively discussing that exact failure:
+# ⚠️ WHY THIS EXISTS. On 2026-09-22 six instances across four desks acked unread mail within an hour,
+# by different methods, while actively discussing that exact failure (count corrected by the author,
+# josh-desk-1, after the tool went canonical):
 #   josh-desk-4  for f in $(ls *.md); do mesh-ack --allow-seq-collision "$f"; done   re-globbed mid-turn
 #   josh-desk-1  for f in $(ls -tr *.md); do MESH_ACK_SEQ_WINDOW=0 mesh-ack "$f"; done  + a mesh-send
 #                in the same command, putting a network round-trip inside the read->ack window
