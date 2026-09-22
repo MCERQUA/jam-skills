@@ -150,7 +150,9 @@ def main() -> None:
     if args.all:
         any_done = False
         for entry in list(inbox.iterdir()):
-            if entry.is_file() and entry.suffix == ".md":
+            # no .md filter: a peer may write a non-.md artifact (cr2.html,
+            # worker .flag) — a silent suffix skip made it unobservable entirely
+            if entry.is_file():
                 if ack_file(inbox, entry.name):
                     any_done = True
         if not any_done:

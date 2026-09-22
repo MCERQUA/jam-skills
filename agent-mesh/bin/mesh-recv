@@ -160,13 +160,18 @@ def main() -> None:
 
     candidates = []
     for entry in inbox.iterdir():
-        if entry.is_file() and entry.suffix == ".md":
+        # no .md filter: a peer may write a non-.md artifact (cr2.html, worker
+        # .flag) — the suffix skip made such files unobservable (josh-desk-1
+        # blocker 2026-09-21: two desks, two days of invisible mail)
+        # .dup-* names are ack-collision residue (see mesh-ack ack_file), not
+        # mail — surfaced by the residue note below, never as a message row.
+        if entry.is_file() and ".dup-" not in entry.name:
             candidates.append(entry)
     if args.include_read:
         read_dir = inbox / ".read"
         if read_dir.is_dir():
             for entry in read_dir.iterdir():
-                if entry.is_file() and entry.suffix == ".md":
+                if entry.is_file() and ".dup-" not in entry.name:
                     candidates.append(entry)
 
     candidates.sort(key=file_ts, reverse=True)
@@ -201,17 +206,40 @@ def main() -> None:
         if len(rows) >= args.limit:
             break
 
+    # 2026-09-21 (found by josh-desk-1, verified by josh-desktop@mesh): a non-.md file
+    # in the inbox is invisible to this listing AND to mesh-watch-arm's wake filter.
+    # cr2.html sat in a desk inbox for 2 days while mesh-recv truthfully printed
+    # "(no messages)" — true about the filter, false about the directory. Surface
+    # foreign files so that zero can never be silently wrong. (*.dup-* is ack-
+    # collision residue — see mesh-ack ack_file() — expected, listed only as a note.)
+    foreign = []
+    dup_residue = []
+    for entry in inbox.iterdir():
+        if entry.is_file() and entry.suffix != ".md":
+            (dup_residue if ".dup-" in entry.name else foreign).append(entry)
+
     if not rows:
         print("(no messages)")
-        return
+    else:
+        # header
+        print(f"{'MTIME (UTC)':<20} {'KIND':<13} {'SIZE':<7} {'U':<1} {'FROM':<22} FILENAME")
+        print("-" * 100)
+        for r in rows:
+            urg = "!" if r["urgent"].lower() == "true" else " "
+            flag = "R" if r["read"] else urg
+            print(f"{r['mtime']:<20} {r['kind']:<13} {r['size']:<7} {flag:<1} {r['author']:<22} {r['filename']}")
 
-    # header
-    print(f"{'MTIME (UTC)':<20} {'KIND':<13} {'SIZE':<7} {'U':<1} {'FROM':<22} FILENAME")
-    print("-" * 100)
-    for r in rows:
-        urg = "!" if r["urgent"].lower() == "true" else " "
-        flag = "R" if r["read"] else urg
-        print(f"{r['mtime']:<20} {r['kind']:<13} {r['size']:<7} {flag:<1} {r['author']:<22} {r['filename']}")
+    if foreign:
+        print(f"\nWARNING: {len(foreign)} non-.md file(s) in this inbox are invisible to "
+              f"mesh-recv, mesh-watch-arm and every drain — inspect by hand:")
+        for e in sorted(foreign, key=lambda p: p.name):
+            try:
+                sz = e.stat().st_size
+            except OSError:
+                sz = 0
+            print(f"  {e.name}  ({sz} bytes)")
+    if dup_residue:
+        print(f"(note: {len(dup_residue)} .dup-* ack-residue file(s) present — expected, no action)")
 
 
 if __name__ == "__main__":
