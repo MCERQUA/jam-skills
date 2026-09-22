@@ -123,33 +123,6 @@ def ack_file(inbox: Path, filename: str) -> bool:
     if not src.is_file():
         print(f"mesh-ack: file not found: {filename}", file=sys.stderr)
         return False
-    # THE LOOP FORM (josh-desk-3, 2026-09-22): `for f in 2026-09-21-266-*.md; do mesh-ack "$f"; done`
-    # is one name per call, so the argv guard in main() never sees the collision — and that loop is
-    # what actually acked two unread messages from two authors at 21:01:32Z. What distinguishes a
-    # blind loop from a reader acking two same-seq files one at a time is SPEED: nobody reads two
-    # messages in under ten seconds. Keep the last ack per lane; a second ack whose date-seq matches
-    # the previous one, from a DIFFERENT author, inside 10 s, is refused with the same message.
-    # MESH_ACK_SEQ_WINDOW=0 disables (or --allow-seq-collision via env MESH_ACK_ALLOW_SEQ=1).
-    try:
-        import re as _re, time as _time, json as _json
-        _m = _re.match(r"^(\d{4}-\d{2}-\d{2}-\d{3})-([a-z0-9-]+?)-", filename)
-        _win = float(os.environ.get("MESH_ACK_SEQ_WINDOW", "10"))
-        _state = inbox / ".last-ack.json"
-        if _m and _win > 0 and os.environ.get("MESH_ACK_ALLOW_SEQ") != "1":
-            _prev = {}
-            if _state.is_file():
-                try: _prev = _json.loads(_state.read_text())
-                except Exception: _prev = {}
-            _seq, _now = _m.group(1), _time.time()
-            if _prev.get("seq") == _seq and _prev.get("file") != filename and (_now - float(_prev.get("ts", 0))) < _win:
-                print(f"mesh-ack: REFUSED — {filename} shares sequence {_seq} with {_prev.get('file')} acked "
-                      f"{_now - float(_prev.get('ts', 0)):.1f}s ago (different author). Two messages in under "
-                      f"{_win:.0f}s is a loop over a colliding prefix, not two reads. Read it, then ack it again; "
-                      f"MESH_ACK_ALLOW_SEQ=1 overrides.", file=sys.stderr)
-                return False
-            _state.write_text(_json.dumps({"seq": _seq, "file": filename, "ts": _now}))
-    except Exception:
-        pass  # the guard must never break an ack it cannot evaluate
     read_dir = inbox / ".read"
     read_dir.mkdir(exist_ok=True, mode=0o755)
     dest = read_dir / filename
