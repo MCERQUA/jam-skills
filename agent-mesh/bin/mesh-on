@@ -314,6 +314,38 @@ def main() -> None:
     else:
         print("mesh-on: no prior ack-marker found for this agent — full replay recommended")
 
+    # ---- 7b. SESSION-START READS (2026-09-22, josh-desktop 120) ----
+    # A file that says "read at session start, every session" is a convention until something
+    # opens it. Measured: the submesh manager's OPEN-HOLDS.md said exactly that; nothing carried
+    # the instruction; 4 of 18 holds went materially stale (zionsprayfoam.com was redeployed two
+    # weeks after being held for Mike). This is the construction: a lane lists the files its
+    # session must open in <its desk>/SESSION-START-READS.txt (one path per line, as the lane
+    # sees it, # comments allowed) and mesh-on prints each one here — the agent cannot skip a
+    # file that is already in front of it. Capped per file so a runaway register cannot flood
+    # the boot; a MISSING file is said out loud, never silently skipped.
+    _ssr = my_dir / "SESSION-START-READS.txt"
+    if _ssr.is_file():
+        _cap = int(os.environ.get("MESH_SESSION_START_READ_CAP", "12000"))
+        _lines = [l.strip() for l in _ssr.read_text(encoding="utf-8", errors="replace").splitlines()]
+        _paths = [l for l in _lines if l and not l.startswith("#")]
+        print(f"mesh-on: SESSION-START READS — {len(_paths)} file(s) declared in {_ssr}")
+        for _p in _paths:
+            _fp = Path(os.path.expandvars(os.path.expanduser(_p)))
+            if not _fp.is_file():
+                print(f"mesh-on: === SESSION-START READ MISSING: {_p} (declared, not found from this lane) ===")
+                continue
+            try:
+                _txt = _fp.read_text(encoding="utf-8", errors="replace")
+            except Exception as _e:  # noqa: BLE001
+                print(f"mesh-on: === SESSION-START READ UNREADABLE: {_p} ({_e}) ===")
+                continue
+            _mt = _dt.datetime.utcfromtimestamp(_fp.stat().st_mtime).strftime("%Y-%m-%dT%H:%M:%SZ")
+            print(f"mesh-on: === SESSION-START READ: {_p} ({len(_txt)} chars, mtime {_mt}) ===")
+            print(_txt[:_cap].rstrip())
+            if len(_txt) > _cap:
+                print(f"mesh-on: === (truncated at {_cap} chars — open {_p} for the rest) ===")
+            print(f"mesh-on: === END {_p} ===")
+
     # ---- 8. Stale capability check ----
     stale: list[str] = []
     cutoff_ts = time.time() - STALE_CAPABILITY_HOURS * 3600
