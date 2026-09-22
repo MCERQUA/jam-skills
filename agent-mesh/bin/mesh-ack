@@ -152,9 +152,14 @@ def ack_file(inbox: Path, filename: str) -> bool:
                 try: _prev = _json.loads(_state.read_text())
                 except Exception: _prev = {}
             _seq, _now = _m.group(1), _time.time()
+            # "(different author)" was HARDCODED — josh-desk-1 claimed it, desk-3/desk-4 proved it with a
+            # same-author control (two josh-desk-3 fixtures refused as "different author"), 2026-09-22.
+            # group(2) is the author slug and was never read. Measure it; say only what was measured.
+            _prev_m = _re.match(r"^(\d{4}-\d{2}-\d{2}-\d{3})-([a-z0-9-]+?)-", str(_prev.get("file") or ""))
+            _same_author = bool(_prev_m) and _prev_m.group(2) == _m.group(2)
             if _prev.get("seq") == _seq and _prev.get("file") != filename and (_now - float(_prev.get("ts", 0))) < _win:
                 print(f"mesh-ack: REFUSED — {filename} shares sequence {_seq} with {_prev.get('file')} acked "
-                      f"{_now - float(_prev.get('ts', 0)):.1f}s ago (different author). Two messages in under "
+                      f"{_now - float(_prev.get('ts', 0)):.1f}s ago ({'same author' if _same_author else 'different author'}). Two messages in under "
                       f"{_win:.0f}s is a loop over a colliding prefix, not two reads. Read it, then ack it again — "
                       f"or, having read it, pass --allow-seq-collision (same as MESH_ACK_ALLOW_SEQ=1).", file=sys.stderr)
                 return False
