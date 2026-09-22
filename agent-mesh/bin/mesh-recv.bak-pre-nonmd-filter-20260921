@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+"""mesh-recv — list unread messages in own inbox, newest first.
+
+Reads frontmatter, prints a summary table. "Unread" = in inbox/ but not
+moved to inbox/.read/.
+
+Stdlib-only.
+
+Env:
+    AGENT_URI    required
+    MESH_ROOT    optional
+
+Usage:
+    mesh-recv                              # list all unread
+    mesh-recv --kind rfc                   # filter by KIND
+    mesh-recv --since 2026-04-21T00:00:00Z # only newer than ts
+    mesh-recv --limit 20
+    mesh-recv --show <filename>            # print full contents of a single file
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as _dt
+import os
+import re
+import sys
+from pathlib import Path
+
+
+def die(msg: str, code: int = 1) -> None:
+    print(f"mesh-recv: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def agent_name() -> str:
+    uri = os.environ.get("AGENT_URI")
+    if not uri:
+        die("AGENT_URI env var required")
+    if not uri.endswith("@mesh"):
+        die(f"AGENT_URI must end with @mesh, got: {uri}")
+    name = uri[: -len("@mesh")]
+    return name
+
+
+def resolve_my_desk_dir() -> Path:
+    """Return this agent's own desk-root directory (the dir whose "inbox" and
+    other per-desk state actually belong to AGENT_URI), robust to a container
+    that bind-mounts MULTIPLE agents' desks at once.
+
+    Resolution order:
+      1. MESH_ROOT env override (explicit host-mesh layout).
+      2. A desk dir matching this agent's OWN "-desk-<N>" suffix: /agent-desk-<N>
+         — checked BEFORE the bare /agent-desk mount, and only trusted if that
+         exact numbered dir exists on this container.
+      3. /agent-desk — but ONLY when AGENT_URI has NO "-desk-<N>" suffix (the
+         single-desk-per-container case, or the primary "-desktop"/base identity
+         that legitimately owns /agent-desk even on a dual-mounted container).
+      4. Host path /mnt/agent-mesh/agents/<name>.
+
+    Bug fixed 2026-09-09 (measured by josh-desk-1@mesh): webtop-ubuntu-os-josh
+    mounts BOTH /agent-desk (josh-desktop's desk) and /agent-desk-1 (josh-desk-1's
+    OWN desk). The old code checked Path("/agent-desk").is_dir() first,
+    unconditionally, so every "-desk-N" identity sharing that container silently
+    read josh-desktop's inbox instead of its own — 21 unacked messages sat
+    unread while mesh-recv reported "0 unread drained", and mesh-on / the
+    ACTION-prompt relay issued false work orders off the wrong agent's mail.
+    """
+    override = os.environ.get("MESH_ROOT")
+    if override:
+        return Path(override) / "agents" / agent_name()
+
+    name = agent_name()
+    m = re.match(r"^(.+)-desk-(\d+)$", name)
+    if m:
+        desk_n_dir = Path(f"/agent-desk-{m.group(2)}")
+        if desk_n_dir.is_dir():
+            return desk_n_dir
+        # A "-desk-N" identity with no matching numbered mount on this container.
+        # Do NOT silently fall back to /agent-desk — that is another agent's desk.
+    elif Path("/agent-desk").is_dir():
+        return Path("/agent-desk")
+
+    if Path("/mnt/agent-mesh").is_dir():
+        return Path("/mnt/agent-mesh/agents") / name
+
+    die("cannot discover mesh root — set MESH_ROOT")
+
+
+def discover_my_inbox() -> Path:
+    # MESH_INBOX, when set, names THIS desk's own inbox directly and wins over
+    # every path-guessing fallback below (belt-and-suspenders alongside the
+    # AGENT_URI desk-N match in resolve_my_desk_dir()).
+    inbox_override = os.environ.get("MESH_INBOX")
+    if inbox_override:
+        return Path(inbox_override)
+    return resolve_my_desk_dir() / "inbox"
+
+def parse_frontmatter(text: str) -> dict:
+    """Tiny YAML-ish parser. We only need flat key: value pairs."""
+    if not text.startswith("---"):
+        return {}
+    lines = text.split("\n")
+    if len(lines) < 2:
+        return {}
+    fm = {}
+    i = 1
+    while i < len(lines) and lines[i].strip() != "---":
+        line = lines[i]
+        m = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", line)
+        if m:
+            fm[m.group(1)] = m.group(2).strip()
+        i += 1
+    return fm
+
+
+def file_ts(p: Path) -> float:
+    try:
+        return p.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def parse_iso_since(since: str) -> float:
+    try:
+        dt = _dt.datetime.strptime(since, "%Y-%m-%dT%H:%M:%SZ")
+        return dt.replace(tzinfo=_dt.timezone.utc).timestamp()
+    except ValueError:
+        die(f"--since must be ISO format YYYY-MM-DDTHH:MM:SSZ, got: {since}")
+
+
+def main() -> None:
+    # Voice-tenant admin gate (added 2026-05-13). See mesh-gate-check.
+    import subprocess
+    gate_check = Path(__file__).parent / "mesh-gate-check"
+    if gate_check.exists():
+        try:
+            subprocess.run([str(gate_check)], check=True, capture_output=False)
+        except subprocess.CalledProcessError:
+            sys.exit(4)
+
+    p = argparse.ArgumentParser()
+    p.add_argument("--kind", help="filter by KIND")
+    p.add_argument("--since", help="only include files modified after ISO timestamp YYYY-MM-DDTHH:MM:SSZ")
+    p.add_argument("--limit", type=int, default=50)
+    p.add_argument("--show", help="print full contents of a single filename")
+    p.add_argument("--include-read", action="store_true", help="also list files in inbox/.read/")
+    args = p.parse_args()
+
+    inbox = discover_my_inbox()
+    if not inbox.is_dir():
+        die(f"inbox not found: {inbox}")
+
+    if args.show:
+        # try both unread and read locations
+        for candidate in (inbox / args.show, inbox / ".read" / args.show):
+            if candidate.is_file():
+                sys.stdout.write(candidate.read_text(encoding="utf-8"))
+                return
+        die(f"file not found: {args.show}", code=2)
+
+    candidates = []
+    for entry in inbox.iterdir():
+        if entry.is_file() and entry.suffix == ".md":
+            candidates.append(entry)
+    if args.include_read:
+        read_dir = inbox / ".read"
+        if read_dir.is_dir():
+            for entry in read_dir.iterdir():
+                if entry.is_file() and entry.suffix == ".md":
+                    candidates.append(entry)
+
+    candidates.sort(key=file_ts, reverse=True)
+
+    since_ts = parse_iso_since(args.since) if args.since else 0.0
+
+    rows = []
+    for f in candidates:
+        ts = file_ts(f)
+        if ts < since_ts:
+            continue
+        try:
+            head = ""
+            with f.open("r", encoding="utf-8", errors="replace") as fh:
+                for _ in range(30):
+                    head += next(fh, "")
+        except OSError:
+            continue
+        fm = parse_frontmatter(head)
+        kind = fm.get("KIND", "?")
+        if args.kind and kind != args.kind:
+            continue
+        rows.append({
+            "filename": f.name,
+            "kind": kind,
+            "author": fm.get("AUTHOR", "?"),
+            "size": fm.get("SIZE", "?"),
+            "urgent": fm.get("URGENT", ""),
+            "mtime": _dt.datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S"),
+            "read": f.parent.name == ".read",
+        })
+        if len(rows) >= args.limit:
+            break
+
+    if not rows:
+        print("(no messages)")
+        return
+
+    # header
+    print(f"{'MTIME (UTC)':<20} {'KIND':<13} {'SIZE':<7} {'U':<1} {'FROM':<22} FILENAME")
+    print("-" * 100)
+    for r in rows:
+        urg = "!" if r["urgent"].lower() == "true" else " "
+        flag = "R" if r["read"] else urg
+        print(f"{r['mtime']:<20} {r['kind']:<13} {r['size']:<7} {flag:<1} {r['author']:<22} {r['filename']}")
+
+
+if __name__ == "__main__":
+    main()
