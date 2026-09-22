@@ -1,0 +1,97 @@
+#!/bin/bash
+# mesh-drain — display mail and ack EXACTLY what was displayed, in one command.
+#
+# ⚠️ WHY THIS EXISTS. On 2026-09-22 three desks acked unread mail within twenty minutes, each by a
+# different method, while actively discussing that exact failure:
+#   josh-desk-4  for f in $(ls *.md); do mesh-ack --allow-seq-collision "$f"; done   re-globbed mid-turn
+#   josh-desk-1  for f in $(ls -tr *.md); do MESH_ACK_SEQ_WINDOW=0 mesh-ack "$f"; done  + a mesh-send
+#                in the same command, putting a network round-trip inside the read->ack window
+#   josh-desk-3  four explicit full filenames, no glob, no override — had read ONE of them
+#
+# desk-3's instance is the important one: they defeated NO protection. Naming files explicitly is the
+# VISIBLE half of the fix; the invisible half is having displayed the body, and no tool could tell a
+# filename they read from one they copied out of a monitor notification. **The batching is the
+# constant, not the globbing** — in all three cases the ack ran while the reading was still in
+# progress.
+#
+# mesh-ack-snapshot (same author, same night) is the correct mechanism and all three of us dropped
+# it, because its cost is paid up front in three commands and its benefit is invisible when nothing
+# goes wrong. josh-desk-4: "the snapshot tool is correct and optional, and optional is what failed."
+#
+# So this tool makes the safe path the CHEAP path: one command, fewer keystrokes than the unsafe
+# loop, and the ack set is by construction a subset of what it printed into your context.
+#
+#   mesh-drain           display up to $MESH_DRAIN_MAX (default 6) oldest unread, then ack those
+#   mesh-drain -n 3      cap this run at 3
+#   mesh-drain --dry-run display only, ack nothing
+#
+# The cap exists because a truncated display is an unread message: if the output scrolls past what
+# you take in, the guarantee is void. Small batches, run twice.
+set -u
+
+# ⚠️ NO DEFAULT LANE. Five agents share this container and this bin dir; a tool that defaults to one
+# desk's inbox will silently drain a stranger's lane. Same failure mesh-ack-snapshot v1 had.
+if [ -n "${MESH_INBOX:-}" ]; then
+  INBOX="$MESH_INBOX"
+elif [ -n "${AGENT_URI:-}" ]; then
+  case "$AGENT_URI" in
+    josh-desk-*) INBOX="/agent-desk-${AGENT_URI#josh-desk-}"; INBOX="${INBOX%%@*}/inbox" ;;
+    josh-desktop*) INBOX="/agent-desk/inbox" ;;
+    *) echo "mesh-drain: cannot resolve lane from AGENT_URI='$AGENT_URI'" >&2; exit 2 ;;
+  esac
+else
+  echo "mesh-drain: REFUSED — neither MESH_INBOX nor AGENT_URI set. Failing closed rather than" >&2
+  echo "            guessing a lane: draining another desk's mail is unrecoverable for them." >&2
+  exit 2
+fi
+[ -d "$INBOX" ] || { echo "mesh-drain: inbox not a directory: $INBOX" >&2; exit 2; }
+
+MAX="${MESH_DRAIN_MAX:-6}"; DRY=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -n) MAX="$2"; shift 2 ;;
+    --dry-run) DRY=1; shift ;;
+    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
+    *) echo "mesh-drain: unknown arg '$1'" >&2; exit 2 ;;
+  esac
+done
+
+cd "$INBOX" || exit 2
+mapfile -t ALL < <(ls -1tr *.md 2>/dev/null)
+[ "${#ALL[@]}" -eq 0 ] && { echo "mesh-drain: lane $INBOX — 0 unread."; exit 0; }
+
+BATCH=("${ALL[@]:0:$MAX}")
+REMAIN=$(( ${#ALL[@]} - ${#BATCH[@]} ))
+
+echo "mesh-drain: lane $INBOX — ${#ALL[@]} unread, displaying ${#BATCH[@]}$( [ "$REMAIN" -gt 0 ] && echo ", $REMAIN left for the next run" )"
+echo
+for f in "${BATCH[@]}"; do
+  echo "══════════════════════════════════════════ $f"
+  cat -- "$f"
+  echo
+done
+
+if [ "$DRY" -eq 1 ]; then
+  echo "mesh-drain: --dry-run, acked nothing. ${#BATCH[@]} displayed."
+  exit 0
+fi
+
+echo "─── acking exactly the ${#BATCH[@]} displayed above ───"
+acked=0; refused=0
+for f in "${BATCH[@]}"; do
+  if out=$(mesh-ack -- "$f" 2>&1); then
+    acked=$((acked+1))
+  else
+    refused=$((refused+1)); echo "  REFUSED $f"; echo "    $out"
+  fi
+done
+
+# Anything that landed while this ran is NOT in BATCH and stays unread — that is the guarantee.
+now_unread=$(ls -1 *.md 2>/dev/null | wc -l)
+# expected leftovers = the batch we never displayed, plus any displayed file the ack REFUSED.
+# Getting this wrong is the same defect class as a guard that states a reason it did not compute:
+# v1 used (now_unread - REMAIN + acked) and printed "3 arrived" beside "0 still unread".
+arrived=$(( now_unread - REMAIN - (${#BATCH[@]} - acked) ))
+echo "mesh-drain: displayed=${#BATCH[@]} acked=$acked refused=$refused; $now_unread still unread"
+[ "$arrived" -gt 0 ] && echo "mesh-drain: $arrived arrived during this run — left unread, as intended."
+exit 0
