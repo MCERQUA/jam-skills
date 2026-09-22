@@ -694,6 +694,41 @@ def main() -> None:
             "/mesh/cc/ overlay for the relay lane."
         )
 
+    # ---- --replies-to must name ONE message, never a sequence prefix (2026-09-22) ────────
+    # Sequence numbers restart per author per day, so on any busy desk several authors share
+    # `YYYY-MM-DD-001-`. Measured in host's inbox 2026-09-22: TEN authors held a
+    # `2026-09-22-001-…` at once. josh-desk-2 addressed a correction by that prefix, it landed
+    # on josh-desk-1 (whose claim it was not), and josh-desktop — whose claim it WAS — never
+    # learned it was wrong. First misroute of the collision class; until then it only
+    # over-acked. So: a bare seq, or a prefix that is not a full `.md` filename, is REFUSED
+    # here with the candidates listed. A full filename that this agent does not hold in any
+    # of its own dirs is allowed with a WARN — replies to items seen via cc or a digest are
+    # legitimate, and the record still carries the exact name.
+    if args.replies_to:   # runs in --dry-run too: a dry run that passes what the send refuses is unfaithful
+        _rt_raw = str(args.replies_to).strip()
+        _rt_base = os.path.basename(_rt_raw)
+        _own_dirs = [os.path.join(str(my_dir), d) for d in ("inbox", "inbox/.read", "inbox-acked", "sent", "sent/archive")]
+        def _own_matches(prefix):
+            out = []
+            for d in _own_dirs:
+                try:
+                    out += [f for f in os.listdir(d) if f.startswith(prefix)]
+                except OSError:
+                    pass
+            return sorted(set(out))
+        if not _rt_base.endswith(".md") or re.match(r"^\d{4}-\d\d-\d\d-\d{3}(\.md)?$", _rt_base):
+            _cands = _own_matches(_rt_base.replace(".md", ""))
+            die(
+                f"--replies-to '{_rt_raw}' is a sequence prefix, not a message. Sequence numbers restart per "
+                f"author per day, so a prefix names whichever file you saw first — a correction sent this way "
+                f"reached the wrong desk on 2026-09-22. Pass the FULL filename. "
+                + (f"Files in your own dirs starting with it: {', '.join(_cands[:8])}" if _cands else "No file in your own dirs starts with it.")
+            )
+        if not _own_matches(_rt_base):
+            print(f"mesh-send: WARN — --replies-to {_rt_base} is not in any of your own dirs (inbox, .read, "
+                  f"inbox-acked, sent, sent/archive). Allowed — a reply to a cc'd or digested item — but make sure "
+                  f"the name is the sender's exact filename, not one you reconstructed from a prefix.", file=sys.stderr)
+
     # ---- claim slot ----
     slot, md_path, claim = claim_slot(inbox, sender, topic)
 
