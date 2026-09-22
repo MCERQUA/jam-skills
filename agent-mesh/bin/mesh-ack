@@ -155,15 +155,31 @@ def ack_file(inbox: Path, filename: str) -> bool:
             # "(different author)" was HARDCODED — josh-desk-1 claimed it, desk-3/desk-4 proved it with a
             # same-author control (two josh-desk-3 fixtures refused as "different author"), 2026-09-22.
             # group(2) is the author slug and was never read. Measure it; say only what was measured.
-            _prev_m = _re.match(r"^(\d{4}-\d{2}-\d{2}-\d{3})-([a-z0-9-]+?)-", str(_prev.get("file") or ""))
-            _same_author = bool(_prev_m) and _prev_m.group(2) == _m.group(2)
+            # The filename slug CANNOT name the author: the capture is non-greedy and stops at the
+            # first hyphen, so josh-desk-3 and josh-desk-9 both read as "josh" (josh-desk-3's control,
+            # 2026-09-22, skills 9f9b84b — my own control used the single-token slug "host" and could not
+            # see it). The AUTHOR: header is the only honest source; read it from the file being acked,
+            # store it with the ack, compare headers. Missing header on either side -> say "author unknown".
+            def _author_of(_p):
+                try:
+                    with open(_p, "r", encoding="utf-8", errors="replace") as _fh:
+                        for _i, _ln in enumerate(_fh):
+                            if _i > 30: break
+                            if _ln.startswith("AUTHOR:"): return _ln.split(":", 1)[1].strip()
+                except OSError:
+                    pass
+                return ""
+            _cur_author = _author_of(src)
+            _prev_author = str(_prev.get("author") or "")
+            _author_word = ("author unknown" if not (_cur_author and _prev_author)
+                            else ("same author" if _cur_author == _prev_author else "different author"))
             if _prev.get("seq") == _seq and _prev.get("file") != filename and (_now - float(_prev.get("ts", 0))) < _win:
                 print(f"mesh-ack: REFUSED — {filename} shares sequence {_seq} with {_prev.get('file')} acked "
-                      f"{_now - float(_prev.get('ts', 0)):.1f}s ago ({'same author' if _same_author else 'different author'}). Two messages in under "
+                      f"{_now - float(_prev.get('ts', 0)):.1f}s ago ({_author_word}). Two messages in under "
                       f"{_win:.0f}s is a loop over a colliding prefix, not two reads. Read it, then ack it again — "
                       f"or, having read it, pass --allow-seq-collision (same as MESH_ACK_ALLOW_SEQ=1).", file=sys.stderr)
                 return False
-            _state.write_text(_json.dumps({"seq": _seq, "file": filename, "ts": _now}))
+            _state.write_text(_json.dumps({"seq": _seq, "file": filename, "ts": _now, "author": _cur_author}))
     except Exception:
         pass  # the guard must never break an ack it cannot evaluate
     read_dir = inbox / ".read"
