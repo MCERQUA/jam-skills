@@ -25,6 +25,17 @@ LocalBusiness includes `hasOfferCatalog`, `areaServed`, and `aggregateRating` wh
 
 > **Merchant/product listings (reference, 2026-07-07):** this generator targets local-business landers, not ecommerce. If you hand-author `Product`/`Offer` JSON-LD for a store, Google now (a) accepts `Product.category` as `Text` (own taxonomy) and/or `CategoryCode` (Google Product Category via `inCodeSet` + `codeValue`), and (b) supports a sale-price date range via `validFrom` + `validThrough`/`priceValidUntil` on the `Offer`/`PriceSpecification`. Add both for discounted products — rich-result eligibility/quality, not a ranking lever. (developers.google.com/search/docs/appearance/structured-data/merchant-listing)
 
+
+## ⛔ aggregateRating — ONLY from a real, citable review source (2026-09-22)
+
+An `aggregateRating` is emitted only when `rating` carries `value`, `count` **and** `source`
+(`"gmb:<place-id>"` / the profile URL the numbers were read from, plus `as_of`). The generator
+REFUSES an unsourced rating. Never put a placeholder in a config "to fill it in later": the
+example config's old `4.9 / 127` was copied verbatim into live client sites (4.8/127, 4.9/847)
+with no review on the page — fabricated structured data, a Google review-snippet policy
+violation and a JamBot NO-FAKE violation. No reviews = omit the field. (Rule: always match the
+live Google Business Profile; read it at build time, cite it.)
+
 ## Usage
 
 ```bash

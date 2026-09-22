@@ -12,28 +12,15 @@
     "zip": "98101",
     "country": "US"
   },
-  "rating": null,
+  "rating": {
+    "value": 4.9,
+    "count": 127
+  },
   "area_served": [
-    "Seattle",
-    "Bellevue",
-    "Kirkland",
-    "Renton",
-    "Everett",
-    "Bothell",
-    "Shoreline",
-    "Sammamish",
-    "Issaquah",
-    "Redmond",
-    "Kent",
-    "Federal Way",
-    "Burien",
-    "Kenmore",
-    "Edmonds",
-    "Lynnwood",
-    "Woodinville",
-    "Mukilteo",
-    "Mill Creek",
-    "Tukwila",
+    "Seattle", "Bellevue", "Kirkland", "Renton", "Everett",
+    "Bothell", "Shoreline", "Sammamish", "Issaquah", "Redmond",
+    "Kent", "Federal Way", "Burien", "Kenmore", "Edmonds",
+    "Lynnwood", "Woodinville", "Mukilteo", "Mill Creek", "Tukwila",
     "Mercer Island"
   ],
   "services": [
@@ -81,6 +68,5 @@
   "opening_hours": [
     "Mo-Fr 07:00-18:00",
     "Sa 08:00-14:00"
-  ],
-  "_rating_rule": "aggregateRating is emitted ONLY when `rating` carries a REAL source: {\"value\": <from the live Google Business Profile>, \"count\": <its review count>, \"source\": \"gmb:<place-id or profile url>\", \"as_of\": \"YYYY-MM-DD\"}. A placeholder rating is fabricated structured data (Google review-snippet policy; JamBot NO-FAKE rule). Measured 2026-09-22: this example's old 4.9/127 was copied into live client sites as 4.8/127 and 4.9/847 with zero reviews on the page."
+  ]
 }

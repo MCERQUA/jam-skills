@@ -107,6 +107,16 @@ def build_local_business(
             schema["areaServed"] = {"@type": "City", "name": area_served}
 
     if rating:
+        # NEVER a placeholder. A rating without a citable source is fabricated structured data —
+        # Google's review-snippet policy forbids self-serving/unsourced ratings and JamBot's NO-FAKE
+        # rule forbids inventing numbers. Measured 2026-09-22: the example config's 4.9/127 was
+        # copied into live client sites (crane-insurance.com 4.8/127 + 4.9/847, framinginsurance.com,
+        # mrglassworks.com, theseattledeckingcompany.com) with no review anywhere on the page.
+        # Require the source the number came from; refuse loudly otherwise.
+        if not (isinstance(rating, dict) and rating.get("source") and rating.get("value") and rating.get("count")):
+            raise SystemExit(
+                "REFUSED: `rating` needs value, count AND source (e.g. \"gmb:<place-id>\") — an unsourced "
+                "aggregateRating is fabricated structured data. Omit `rating` if there is no real review source.")
         schema["aggregateRating"] = {
             "@type": "AggregateRating",
             "ratingValue": str(rating["value"]),
