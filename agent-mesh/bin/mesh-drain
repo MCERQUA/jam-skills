@@ -41,9 +41,23 @@
 # never will** — nothing in this process can see a filter downstream, and `displayed=N acked=N` is
 # true of what this tool EMITTED, never of what the operator SAW. That half is a rule, not a guard.
 #
-# ⚠️ `[ -t 1 ]` IS NOT THE GUARD IT LOOKS LIKE. "Refuse to ack when stdout is not a tty" was
-# proposed twice and MEASURED HERE: stdout is never a tty for any agent on these desks, so that
-# check refuses every legitimate run. Do not add it.
+# ⚠️ NO PIPE-DETECTION GUARD CAN WORK HERE — do not add one, and this is why (josh-desk-3, measured
+# on a plain UNPIPED call):
+#
+#     [ -t 1 ]                  FALSE
+#     readlink /proc/self/fd/1  pipe:[1749974715]
+#
+# **Every command an agent runs has stdout on a pipe — that is how the harness captures output.**
+# It is not a property of piping this tool; it is a property of an agent existing. So `[ -t 1 ] ||
+# refuse` would have rejected every correct drain every desk ran all night, including the runs
+# offered as verification for the guard itself.
+#
+# The deeper reason, which rules out the whole family and not just the tty idiom: **the harness's
+# pipe and `head`'s pipe are the same object.** Nothing the process can inspect tells them apart.
+# `[ -t 1 ]` is the right idiom for "am I talking to a human at a terminal" and on this mesh there
+# is no such case — a correct-looking guard encoding a premise nobody measured. It has now been
+# proposed three times (host, josh-desk-2, and the author's first instinct); it is written here so
+# there is no fourth.
 #
 #   BEST   mesh-drain -n 3 > out 2>&1 ; then read out
 #          A REDIRECT IS NOT A PIPE. Nothing closes the stream early, so the ack stage always runs;
@@ -146,8 +160,29 @@ now_unread=$(ls -1 *.md 2>/dev/null | wc -l)
 # Getting this wrong is the same defect class as a guard that states a reason it did not compute:
 # v1 used (now_unread - REMAIN + acked) and printed "3 arrived" beside "0 still unread".
 arrived=$(( now_unread - REMAIN - (${#BATCH[@]} - acked) ))
-# to BOTH streams: a stdout filter must not be able to hide the accounting.
+# The accounting goes to BOTH streams so a stdout filter cannot hide it (mode B), and so the
+# TRUNCATED notice survives when `head` closes stdout (mode A). Under the recommended
+# `mesh-drain > out 2>&1` both land in one file and the summary appeared TWICE (josh-desk-3, and
+# josh-desk-4 isolated it by splitting the streams). Fixed: detect that the two fds are the same
+# destination and print once.
+#
+# ⚠️ TWO WRONG WAYS TO ASK THIS QUESTION, both committed here before the right one:
+#   $(readlink /proc/self/fd/1)        command substitution REPLACES fd 1 with its own capture pipe,
+#                                      so inside $(...) the answer is always "a pipe". The
+#                                      instrument measured its own plumbing.
+#   readlink /proc/self/fd/2 2>/dev/null
+#                                      the `2>/dev/null` redirects READLINK'S OWN fd 2 to /dev/null
+#                                      and readlink then reports /dev/null. The suppression flag
+#                                      became the measurement. This produced a false published
+#                                      finding ("stderr does not land where 2>&1 says") that was
+#                                      retracted.
+# Duplicate BOTH fds to spare descriptors first, and do not suppress stderr on the readlink.
 _summary="mesh-drain: displayed=${#BATCH[@]} acked=$acked refused=$refused; $now_unread still unread"
-echo "$_summary"; echo "$_summary" >&2
+echo "$_summary"
+exec 9>&1 8>&2
+_fd1=$(readlink /proc/self/fd/9); _fd2=$(readlink /proc/self/fd/8)
+exec 9>&- 8>&-
+# merged (`> out 2>&1`, or a bare agent call where both go to one capture file) -> already printed.
+[ -n "$_fd1" ] && [ "$_fd1" = "$_fd2" ] || echo "$_summary" >&2
 [ "$arrived" -gt 0 ] && echo "mesh-drain: $arrived arrived during this run — left unread, as intended."
 exit 0
