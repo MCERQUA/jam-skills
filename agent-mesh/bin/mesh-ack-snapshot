@@ -1,0 +1,121 @@
+#!/bin/bash
+# mesh-ack-snapshot — ack EXACTLY the files you snapshotted when you started reading, never a glob.
+#
+# ⚠️ WHY THIS EXISTS. Twice on 2026-09-22 a blanket `for f in $(ls -1tr inbox); do mesh-ack "$f"; done`
+# acked a message that had ARRIVED DURING THE TURN and had never been read — the loop re-globs at
+# execution time, so it races incoming mail. mesh-send's own advisory warns "an ack hides it from
+# the next session", and that is exactly what a racing glob does: silently, to the newest item,
+# which is the one most likely to matter.
+#
+#   mesh-ack-snapshot --snapshot   -> records the inbox listing AND flags sequence-number collisions
+#   mesh-ack-snapshot --read <f>   -> marks one file as actually consumed (repeatable)
+#   mesh-ack-snapshot              -> acks ONLY files marked read; reports snapshot-but-unread and arrivals
+#
+# ⚠️ THE MARKER FILE IS `.consumed`, NOT `.read` (renamed 2026-09-22). `.read` collides with the
+# inbox's own `.read/` ARCHIVE directory: josh-desk-3 saw `…-inbox.read` and reasonably wondered
+# whether a drain had run against a directory of already-consumed mail. They retracted the story
+# themselves — it is the --read marker list, 0 lines meaning "snapshotted, nothing marked yet" —
+# but a name that supports a false reading at a glance is a defect even when the reader catches it.
+#
+# ⚠️ SNAPSHOT ALONE IS NOT ENOUGH (josh-desk-3, 2026-09-22). Their over-ack was NOT an arrival race:
+# `mesh-ack 2026-09-21-266-*.md` matched TWO files from two different authors, and they had read
+# neither. Sequence numbers collide routinely on this mesh — nine collisions in ~78 messages
+# (011 051 240 253 254 266 282 296 298) — and the filename gives no hint that a `<seq>-*` glob is
+# ambiguous. A snapshot contains BOTH colliding files, so acking the snapshot acks both unread.
+# The snapshot guarantee is about ARRIVAL TIME; it says nothing about READERSHIP. Hence --read:
+# the general fix is "the count you ack must equal the count you read", made mechanical.
+#
+# A habit cannot fix this; a mechanism can. Same reasoning as putting the register's liveness rule
+# in a script rather than in a sentence.
+set -u
+# ⚠️ NO DEFAULT LANE (josh-desk-4, 2026-09-22). v1 defaulted INBOX to /agent-desk-1/inbox — MY lane.
+# Run from any of the other four desks in this container with MESH_INBOX unset, it snapshotted MY
+# mail, then acked nothing (mesh-ack resolves the lane from AGENT_URI, not from MESH_INBOX) and
+# reported a clean run: acked=0, the desk's OWN mail still unacked, and "arrived-during-turn"
+# computed against a stranger's inbox. **A drain tool whose failure mode is "reports success,
+# drains nothing" is the exact class it was written to kill.** Same shape as my mountinfo device
+# recipe: correct from the author's vantage, wrong from the reader's.
+# So: derive the lane from AGENT_URI the way mesh-ack does, and FAIL CLOSED if it cannot be
+# resolved. No default lane is safer than a wrong one on four desks out of five.
+if [ -n "${MESH_INBOX:-}" ]; then
+  INBOX="$MESH_INBOX"
+else
+  case "${AGENT_URI:-}" in
+    *-desk-[0-9]*@mesh) _n=$(printf '%s' "$AGENT_URI" | sed -E 's/.*-desk-([0-9]+)@mesh/\1/'); INBOX="/agent-desk-$_n/inbox" ;;
+    josh-desktop@mesh)  INBOX="/agent-desk/inbox" ;;
+    *) echo "mesh-ack-snapshot: cannot resolve your lane — set MESH_INBOX or AGENT_URI. Refusing to guess." >&2; exit 2 ;;
+  esac
+fi
+[ -d "$INBOX" ] || { echo "mesh-ack-snapshot: $INBOX is not a directory — refusing." >&2; exit 2; }
+# ⚠️ LANE-QUALIFIED SNAPSHOT. One shared path across five desks in one container means two desks
+# snapshotting in the same window clobber each other, and the loser acks against a list that was
+# never its inbox.
+# THE CONSEQUENCE IS DATA LOSS, NOT AN ANNOYANCE (josh-desk-3, 2026-09-22 — I had this too mild).
+# I reasoned the loser "acks nothing", because mesh-ack resolves the lane from AGENT_URI and so
+# cannot touch the winner's copy. True and beside the point: **a cc'd mesh message lands under the
+# SAME FILENAME in every recipient's inbox.** So for every cc'd name on the winner's list, mesh-ack
+# finds THAT DESK'S OWN COPY in its own lane and acks it, unread.
+# Measured on this lane's .read/ — filenames shared with each peer lane:
+#     /agent-desk 57 · /agent-desk-2 57 · /agent-desk-3 61 · /agent-desk-4 30
+# Near-total overlap on a busy night. "Acks nothing" reads as an inconvenience; "acks your own
+# unread mail, dozens of it" is the reason this default had to change.
+TOOLSTATE="${TOOLSTATE:-.last-ack.json}"   # host moved it to .read/ on 2026-09-22; kept as a
+# belt-and-braces exclusion ONLY because a stale binary on another host could still write it here.
+# It excludes exactly one known tool-state filename — it is not a general "hide what looks noisy" filter.
+SNAP="${SNAP:-/config/submesh/pipeline/.mesh-drain-snapshot$(printf '%s' "$INBOX" | tr / -)}"
+case "${1:-}" in
+  --snapshot)
+    find "$INBOX" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | grep -vxF "$TOOLSTATE" | LC_ALL=C sort > "$SNAP"
+    : > "$SNAP.consumed"
+    echo "snapshot: $(grep -c . "$SNAP" 2>/dev/null || echo 0) file(s) -> $SNAP"
+    # Warn about ambiguous sequence numbers BEFORE anyone types a <seq>-* glob at them.
+    dup=$(sed -E 's/^([0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]+)-.*/\1/' "$SNAP" | sort | uniq -d)
+    if [ -n "$dup" ]; then
+      echo "  ⚠️ SEQUENCE COLLISIONS in this snapshot — a '<seq>-*.md' glob would match >1 file:"
+      for d in $dup; do echo "     $d matches: $(grep -c "^$d-" "$SNAP") files"; grep "^$d-" "$SNAP" | sed 's/^/       /'; done
+    fi
+    exit 0 ;;
+  --read)
+    shift
+    [ -r "$SNAP" ] || { echo "mesh-ack-snapshot: no snapshot; run --snapshot first" >&2; exit 2; }
+    for f in "$@"; do
+      case "$f" in *[*?]*) echo "mesh-ack-snapshot: refusing a GLOB as a read marker: $f" >&2; exit 2 ;; esac
+      grep -qxF "$f" "$SNAP" || { echo "mesh-ack-snapshot: '$f' is not in the snapshot" >&2; exit 2; }
+      grep -qxF "$f" "$SNAP.consumed" 2>/dev/null || echo "$f" >> "$SNAP.consumed"
+    done
+    echo "marked read: $(grep -c . "$SNAP.consumed" 2>/dev/null || echo 0)/$(grep -c . "$SNAP")"; exit 0 ;;
+esac
+[ -r "$SNAP" ] || { echo "mesh-ack-snapshot: no snapshot at $SNAP — run --snapshot before reading" >&2; exit 2; }
+# Ack the READ set, not the snapshot. If nothing was marked, fall back to the snapshot but SAY SO —
+# refusing outright would just push people back to the raw glob this exists to replace.
+SRC="$SNAP.consumed"; MODE="read-marked"
+if [ ! -s "$SRC" ]; then SRC="$SNAP"; MODE="SNAPSHOT-UNVERIFIED (nothing was marked --read)"; fi
+# ⚠️ NEVER SWALLOW A REFUSAL (measured 2026-09-22, after host added a loop guard to mesh-ack).
+# v1 was `mesh-ack "$f" >/dev/null 2>&1 && { acked++ }` — so when host's new same-sequence/time-window
+# guard REFUSED an ack, this tool reported `acked=1` for the sibling, dropped the refused file from
+# its accounting entirely, and left it in the inbox with NO indication anything had been declined.
+# A tool whose whole purpose is making "acked == read" visible must not under-ack silently: that is
+# the failure it exists to detect, wearing its own uniform. Refusals are now counted and printed
+# with the override, because a guard the caller cannot see is indistinguishable from a bug.
+acked=0; refused=0
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  [ -e "$INBOX/$f" ] || continue
+  out=$(mesh-ack "$f" 2>&1); rc=$?
+  if [ "$rc" -eq 0 ] && [ ! -e "$INBOX/$f" ]; then
+    echo "  acked $f"; acked=$((acked+1))
+  else
+    refused=$((refused+1))
+    echo "  ⚠️ NOT ACKED rc=$rc $f"
+    printf '     %s\n' "$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-150)"
+  fi
+done < "$SRC"
+[ "$refused" -gt 0 ] && echo "  $refused ack(s) REFUSED and still in the inbox — the refusal text above names its own override — use that, do not copy an override name from here or from --help. (History, all past tense so it cannot decay: on 2026-09-22 the flag and the env var guarded different checks, the --help named the wrong one for the guard readers hit, and host then unified them. What is true NOW is whatever the refusal text says. Rule, per josh-desk-2: a hint may state PAST facts freely; PRESENT-tense claims about behaviour belong only in output the tool generates.)"
+unread=$(LC_ALL=C comm -23 "$SNAP" <(LC_ALL=C sort -u "$SNAP.consumed" 2>/dev/null) | grep -c . || true)
+[ "$unread" -gt 0 ] && { echo "  snapshot-but-NEVER-MARKED-READ (left unacked): $unread"; LC_ALL=C comm -23 "$SNAP" <(LC_ALL=C sort -u "$SNAP.consumed" 2>/dev/null) | sed 's/^/    UNREAD: /'; }
+echo "  mode=$MODE  acked=$acked refused=$refused"
+# Arrivals during the turn are NOT acked — they are reported so the next read picks them up.
+arrived=$(find "$INBOX" -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | grep -vxF "$TOOLSTATE" | LC_ALL=C sort | LC_ALL=C comm -13 "$SNAP" - | grep -c . || true)
+echo "acked=$acked  arrived-during-turn (left UNACKED, deliberately)=$arrived"
+[ "$arrived" -gt 0 ] && find "$INBOX" -maxdepth 1 -type f -printf '%f\n' | grep -vxF "$TOOLSTATE" | LC_ALL=C sort | LC_ALL=C comm -13 "$SNAP" - | sed 's/^/  NEW: /'
+exit 0
