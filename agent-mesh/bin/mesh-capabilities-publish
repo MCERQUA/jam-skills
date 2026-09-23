@@ -170,6 +170,12 @@ DESK_PATH = os.pathsep.join((
     "/usr/sbin", "/usr/bin",
     "/sbin", "/bin",
     "/lsiopy/bin",
+    # macOS desks (2026-09-23, mac-claude): Homebrew owns node/ffmpeg/gh/convert/python3 there;
+    # without it the Mac declared system python 3.9.6 and none of those tools. The desk's own
+    # ~/.local/bin holds its mesh-* wrappers (on webtops HOME=/config, so it is already above).
+    # Absent dirs are ignored by shutil.which, so Linux desks are unaffected.
+    "/opt/homebrew/bin", "/opt/homebrew/sbin",
+    str(Path.home() / ".local" / "bin"),
 ))
 
 
@@ -317,7 +323,8 @@ def _relay_to_host(content: str, out_path: Path) -> None:
     AUTHOR has no matching sent/ record, and mesh-send reports success either
     way, so a direct write is a silent-loss path (see 2026-09-06 dead-letter).
     """
-    if not _which("mesh-send"):
+    mesh_send = _which("mesh-send")
+    if not mesh_send:
         sys.exit(f"REGISTRY ro and mesh-send not found — cannot write or relay {out_path}")
     body = (
         f"Please write the following to {out_path} on the host filesystem:\n\n"
@@ -328,7 +335,7 @@ def _relay_to_host(content: str, out_path: Path) -> None:
     # (reported 2026-09-06); pass the clean AGENT_URI explicitly either way.
     env = {**os.environ, "AGENT_URI": f"{AGENT_NAME}@mesh"}
     subprocess.run(
-        ["mesh-send", "--to", "host@mesh", "--kind", "attachment",
+        [mesh_send, "--to", "host@mesh", "--kind", "attachment",
          "--subject", "capabilities-declaration"],
         input=body, text=True, check=True, env=env,
     )
@@ -345,7 +352,23 @@ def main() -> None:
                     help="Print the declaration without writing it")
     args = ap.parse_args()
 
-    special = [s.strip() for s in args.special_access.split(",") if s.strip()]
+    # AN SSH-WRAPPED CALLER IS DESCRIBING THE WRONG MACHINE (2026-09-23, mac-claude@mesh).
+    # macdaddy's ~/.local/bin/mesh-on is `ssh mike@<vps> "AGENT_URI=mac-claude@mesh ... mesh-on"`,
+    # and mesh-on §9 runs this in-process — so it detected the VPS (x86_64, py3.12.3, /config
+    # scan) and relayed that as mac-claude's desk. Every ssh-wrapped agent does the same.
+    # sshd sets SSH_CONNECTION on a remote command; host keeper/tmux sessions do not carry it
+    # (measured 2026-09-23). Exit 3 = SKIPPED, distinct from success, so mesh-on can say so
+    # instead of printing "refreshed". Override for a deliberate ssh-in-to-own-desk run:
+    # MESH_CAP_PUBLISH_FORCE=1. --dry-run is diagnostic and is never blocked.
+    if (os.environ.get("SSH_CONNECTION") and not args.dry_run
+            and os.environ.get("MESH_CAP_PUBLISH_FORCE") != "1"):
+        print(f"mesh-capabilities-publish: SKIPPED — called over ssh (SSH_CONNECTION set), so this "
+              f"machine ({os.uname().sysname} {os.uname().machine}) is not necessarily {AGENT_URI}'s "
+              f"desk. Run it on the desk itself, or set MESH_CAP_PUBLISH_FORCE=1 if it is.",
+              file=sys.stderr)
+        sys.exit(3)
+
+    special =[s.strip() for s in args.special_access.split(",") if s.strip()]
     if detect_gpu() and "gpu" not in special:
         special.append("gpu")
 
@@ -388,7 +411,10 @@ def main() -> None:
         try:
             _cand.mkdir(parents=True, exist_ok=True)
             if os.access(_cand, os.W_OK):
-                _state = _cand / ".mesh-capabilities-last.sha"
+                # Per-agent name (2026-09-23, mac-claude): on the VPS every ssh-wrapped agent's
+                # run shares mike's ~/.cache, so one un-named marker de-duped each agent's
+                # declaration against ANOTHER agent's.
+                _state = _cand / f".mesh-capabilities-last.{AGENT_NAME}.sha"
                 break
         except OSError:
             continue

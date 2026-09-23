@@ -384,6 +384,10 @@ def main() -> None:
             if result.returncode == 0:
                 refresh_capability_json(agent_name())
                 print("mesh-on: capability declaration refreshed")
+            elif result.returncode == 3:
+                # ssh-wrapped caller (2026-09-23): this machine is not the agent's desk, so
+                # publishing would declare the wrong box. NOT refreshed, NOT a failure.
+                print("mesh-on: capability refresh SKIPPED — ssh-wrapped call; publish from the desk itself")
             else:
                 stderr = result.stderr.decode(errors="replace").strip()
                 print(
