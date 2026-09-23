@@ -54,8 +54,8 @@ curl -sS -X POST http://openvoiceui:5001/api/audio-clips/generate \
   -H 'Content-Type: application/json' \
   -d '{
     "text": "Text to narrate (max 8000 chars).",
-    "provider": "supertonic",
-    "voice": "F2",
+    "provider": "groq",
+    "voice": "autumn",
     "label": "delphina-letter",
     "leading_silence_ms": 1000
   }'
@@ -64,9 +64,9 @@ curl -sS -X POST http://openvoiceui:5001/api/audio-clips/generate \
 **Response:** clip metadata including `id`, `url` (`/uploads/audio-clips/<id>.mp3`), `duration_ms`, `size_bytes`.
 
 **Defaults & rules:**
-- `provider` defaults to `supertonic`. Other options: `qwen3`, `resemble`, `elevenlabs`. **`groq` is BANNED (Mike 2026-09-22 GPU ruling — no Groq API calls, period); the provider raises rather than calling the API.**
-- `voice` is provider-specific. Supertonic voices: F1-F5 (F), M1-M5 (M). Former Orpheus map: autumn/diana/hannah -> F2, austin/daniel/troy -> M2.
-- `leading_silence_ms` defaults to 1000ms — a silence pad protecting the opening word of synthesized clips. Set to 0 only when you specifically want no silence.
+- `provider` defaults to `groq` (Orpheus). Other options: `supertonic`, `qwen3`, `resemble`, `elevenlabs`.
+- `voice` is provider-specific. Orpheus voices: autumn, diana, hannah (F); austin, daniel, troy (M).
+- `leading_silence_ms` defaults to 1000ms — Groq Orpheus clips the first 1-2 seconds, so the silence pad protects the opening word. Set to 0 only when you specifically want no silence.
 - `label` is for clip-history display.
 - Max text 8000 chars (vs 2000 for the live `/api/tts/generate` endpoint).
 

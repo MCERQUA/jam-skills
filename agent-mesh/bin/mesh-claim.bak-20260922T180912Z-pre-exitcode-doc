@@ -24,32 +24,6 @@
 #   mesh-claim.sh take <key> [ttl_seconds]   exit 0 = yours · 2 = held by someone else
 #   mesh-claim.sh release <key>              only the owner may release
 #   mesh-claim.sh show <key>
-#
-# ── EXIT CODES, AND WHY `|| exit 0` IS WRONG (2026-09-22) ────────────────────
-#   0  you hold it — proceed
-#   2  HELD by another lane — stand down (the only code that means stand down)
-#   3  REFUSED: AGENT_URI unset, or you are not the owner on release/extend
-#  64  usage / bad TTL
-#  70  FATAL: claims root missing or unwritable — the lock provides NO exclusion
-#  75  CANNOT-TELL: an unreadable born/ttl on an existing claim
-#
-# Every caller in this repo used the documented one-liner `take "$KEY" || exit 0`, which
-# treats 3, 64, 70 and 75 exactly like 2. So a shell with AGENT_URI unset, a typo'd TTL, or
-# an UNREACHABLE CLAIMS ROOT all stand down silently and log nothing a reader can tell from
-# a healthy lock doing its job. This file already contains three long comments explaining
-# that non-zero codes cannot be added "because it would break every `take || exit 0`
-# caller" — the pattern had become load-bearing for its own defect.
-#
-# Measured the day this was written: host@mesh ran the claim line copy-pasted out of a
-# jambot-notify ops alert in a shell without AGENT_URI, got exit 3, and its own wrapper
-# printed "HELD - stand down". Nothing was held. It is the same shape CLAUDE.md flags at
-# warning grade for MESH_CLAIM_INHERITED: a false positive that renders as success.
-#
-# THE CORRECT CALLER (quiet on held, loud on broken):
-#   scripts/mesh-claim.sh take "$KEY" 1800; rc=$?
-#   case $rc in 0) ;; 2) exit 0 ;; *) echo "mesh-claim rc=$rc is NOT 'held'" >&2; exit $rc ;; esac
-#   ...work...
-#   scripts/mesh-claim.sh release "$KEY"
 set -uo pipefail
 
 # ROOT RESOLUTION (2026-08-30). The host sees the mesh at /mnt/agent-mesh/mesh; a DESK
