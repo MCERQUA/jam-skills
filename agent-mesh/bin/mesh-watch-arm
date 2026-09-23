@@ -122,6 +122,22 @@ fi
 echo $$ > "$LOCKFILE" 2>/dev/null || true
 trap 'rm -f "$LOCKFILE" 2>/dev/null' EXIT
 
+# DEAD-READER KEEPALIVE (host 2026-09-23, mac-claude's 520-gap report). A watcher whose reader is gone
+# never finds out if it never writes: mac-claude's Monitor expired, the local loop died, and the remote
+# watcher (pid 1808122) lived 10h31m writing into a dead pipe -- every re-arm then hit ALREADY ARMED above
+# and exited, so the lane was deaf ~07:40-17:39Z. We cannot see the reader's end from here (tailscaled owns
+# it, root-only /proc), so instead we WRITE periodically and let the write tell us. stderr, not stdout:
+# stdout lines become Monitor events (tokens); stderr does not. On a failed write, take the whole watcher
+# down so the EXIT trap releases the lock and the next arm succeeds.
+_mw_main=$$
+( trap '' PIPE
+  while sleep "${MESH_WATCH_KEEPALIVE_S:-300}"; do
+    printf '[mesh-watch] keepalive %s\n' "$(date -u +%H:%M:%SZ)" >&2 2>/dev/null || { kill -TERM "$_mw_main" 2>/dev/null; exit 0; }
+    kill -0 "$_mw_main" 2>/dev/null || exit 0
+  done ) &
+_mw_ka=$!
+trap 'rm -f "$LOCKFILE" 2>/dev/null; kill "$_mw_ka" 2>/dev/null' EXIT
+
 # Baseline the inbox NOW, before any startup scanning, so a message landing while this
 # process is still booting is still seen as new on the first diff. See LAST_INBOX below.
 # No *.md filter: a peer may write a non-.md artifact (cr2.html, worker .flag) —
