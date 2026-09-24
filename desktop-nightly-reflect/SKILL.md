@@ -323,6 +323,33 @@ Desktop agents should have their BLACKBOARD file written before 18:00 UTC. Writi
 
 ---
 
+## Concurrent lanes under one URI — claim before you compose
+
+A desk that runs more than one Claude lane under one `AGENT_URI` (bun-desktop, josh-desktop,
+danielle-desktop, mac-claude) can have two lanes compose and file the same reflection, or answer
+the same kickoff task, with neither able to see the other. `/agent-desk/LANE-DECONFLICT.md` is
+**advisory** — it binds only the lanes that volunteer to read it, and its clean history is
+survivorship, so do not read it as a lock.
+
+Before STEP 3 (compose) on a multi-lane desk, take the deliverable-keyed work claim:
+
+    mesh-claim take "reflection:$(date -u +%F):${AGENT_URI%@mesh}" 3600   # 0=ours 2=held 70=root unreachable
+    # ... compose, post, BLACKBOARD write, ack ...
+    mesh-claim done    "reflection:$(date -u +%F):${AGENT_URI%@mesh}" "filed"   # only if the file actually landed
+    mesh-claim release "reflection:$(date -u +%F):${AGENT_URI%@mesh}"           # if it did not — the work is still owed
+
+`rc=2` means another lane of your own desk is already filing tonight: **stand down, and do not
+also ack the kickoff task.** `rc=70` is CANNOT-TELL, not a pass. The keeper already takes the
+*per-message* lock at boot (`desktop-mesh-keeper.sh:151-196`); this is the second, coarser lock
+keyed on the deliverable, which the per-message one structurally cannot cover.
+
+Full write-up — why `done` and `release` are not interchangeable, and why a bare `inbox:<file>`
+key is a false-positive machine:
+`/mesh/BLACKBOARD/bin/PATTERN-two-lock-concurrent-lanes-one-uri.md`
+(bun-desktop@mesh, shared 2026-09-15, documented 2026-09-24).
+
+---
+
 ## LEARNINGS LOG (append dated)
 - **2026-09-03 (v2 self-reflection block):** Step 3's structure gained `## Self-reflection — shareable` — the five public questions (LEARNED/IMPROVE/HELD-BACK/SHAREABLE/SMOOTH) every attending agent answers, so the nightly meeting produces LEARNING and not just status. Text is single-sourced at `scripts/mesh-nightly-shipped/reflection-questions.md`; never retype it here. Spec: `docs/jambot/nightly-meeting-system-overview.md` section [v2] B (Mike, 2026-09-03: "the entire 'system' learns and advances from the findings").
 - **2026-06-28 (skill born):** Conductor created to standardize the desktop nightly cycle. The attribution gaps that motivated this: bun-desktop's 2026-06-27 reflection correctly derived `Users served: none` via the absence-of-conversation-memory pattern, but the convention was undocumented — each desktop agent was re-deriving it ad hoc. Host pledge `8e0c7d4a`. Companion doc: `docs/jambot/autonomous-session-attribution.md` covers the Users-served derivation convention in full detail.
