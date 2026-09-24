@@ -178,6 +178,46 @@ print(f"[auto-reconcile] reconciled {len(evidence)} pledge(s)")
 PYEOF
 fi
 
+# Check 5: receipts parse-check (promised 2026-09-18, wired 2026-09-21).
+# The derived views (aggregates, DONE rollups) silently drop unparseable JSONL lines —
+# a row-drop between the raw store and every derived view is invisible to count-based checks.
+# Quantify daily: scan the last 7 receipt day-files for unparseable lines and lines missing
+# required fields (ts, actor). FAIL only on fresh corruption (the 2 newest files); older
+# decay is reported in the log so the leak size is known, not guessed.
+if [[ -d "${LEDGER_DIR}/receipts" ]]; then
+PARSE_BAD="$(python3 - "${LEDGER_DIR}/receipts" <<'PYEOF'
+import json, sys, glob, os
+receipts_dir = sys.argv[1]
+files = sorted(glob.glob(os.path.join(receipts_dir, "????-??-??.jsonl")))[-7:]
+if not files:
+    print("0 0 no-files"); sys.exit(0)
+total_bad = fresh_bad = 0
+for path in files:
+    bad = 0
+    for line in open(path, errors="replace"):
+        line = line.strip()
+        if not line: continue
+        try:
+            r = json.loads(line)
+        except Exception:
+            bad += 1; continue
+        if not r.get("ts") or not r.get("actor"):
+            bad += 1
+    if bad:
+        total_bad += bad
+        print(f"[parse-check] PARSE-DEGRADE {os.path.basename(path)}: {bad} row(s) unparseable/missing ts+actor", file=sys.stderr)
+        if path in files[-2:]:
+            fresh_bad += bad
+print(f"{total_bad} {fresh_bad} ok")
+PYEOF
+)"
+FRESH_BAD="$(echo "${PARSE_BAD}" | awk '{print $2}')"
+if [[ "${FRESH_BAD}" -gt 0 ]]; then
+    FAIL=1
+    REASONS+=("PARSE-DEGRADE-FRESH: ${FRESH_BAD} unparseable/required-field-missing receipt row(s) in the 2 newest day-files — derived views silently drop them (see parse-check stderr)")
+fi
+fi
+
 if [[ "${FAIL}" -eq 0 ]]; then
     echo "[bookkeeper-verify-daily] OK — receipts present, DONE file present, pledge-index fresh"
     # Circular-liveness guard (Night 68, 2026-08-01): after 12:00Z, a day where every receipt
