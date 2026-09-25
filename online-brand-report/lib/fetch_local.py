@@ -90,6 +90,34 @@ def _domain_matches(item: dict, domain: str) -> bool:
     return False
 
 
+# Words that name the TRADE, not the business. A maps query for "AZ Rim Repair" in Mesa
+# returns every nearby tire/wheel shop, and those share the trade words, never the brand's
+# own ones. Only the remaining (distinctive) tokens identify the brand.
+_GENERIC_NAME_TOKENS = {
+    "the", "and", "of", "llc", "inc", "co", "corp", "company", "ltd", "services", "service",
+    "repair", "repairs", "shop", "center", "centre", "pros", "pro", "group", "solutions",
+    "wheel", "wheels", "tire", "tires", "auto", "glass", "insulation", "roofing", "plumbing",
+}
+
+def _name_tokens(name: str) -> set:
+    return set(re.findall(r"[a-z0-9]+", (name or "").lower().replace("&", " and ")))
+
+def _brand_name_ok(item: dict, brand_name: str) -> bool:
+    """True when a maps listing's TITLE carries every distinctive token of the brand name.
+    Needed on the multi-location path, where the query is a brand name but the result set
+    is "everything relevant near the centre": 2026-09-25 azrimrepair.com, the Mesa query
+    returned 17 listings, 14 of them other businesses (tire shops, a BMW specialist, a
+    powder coater), and _loc_ok accepted all 14 because they are in Mesa. The report then
+    published 4,833 reviews (true: ~296), a competitor's street address as the client's,
+    and "name inconsistent across listings". If the brand name has no distinctive token,
+    fall back to requiring the whole name, so the check never silently widens."""
+    want = _name_tokens(brand_name)
+    if not want:
+        return False
+    distinctive = want - _GENERIC_NAME_TOKENS or want
+    return distinctive <= _name_tokens(item.get("title", ""))
+
+
 def _region_granularity_ok(txt: str, city: str, state: str) -> bool:
     """ADDITIVE accept path for when the caller gave a PROVINCE/REGION as 'city' (no real
     city). Confirms only when the haystack carries that province's name or 2-letter
@@ -334,9 +362,12 @@ def _fetch_gbp_locations(brand_name: str, city: str, state: str, domain: str,
                 continue
             # Same name-collision guard the single-listing path uses: accept on domain match
             # OR in-area match, so a same-named business in another metro can't inflate counts.
-            if not (_domain_matches(item, domain) or _loc_ok(item, city, state)):
+            # Domain match = proof. Otherwise the listing must be in-area AND carry the
+            # brand's own name: a brand-name maps query returns neighbours too.
+            if not (_domain_matches(item, domain)
+                    or (_loc_ok(item, city, state) and _brand_name_ok(item, brand_name))):
                 print(f"[INFO] maps listing '{item.get('title','?')}' @ {item.get('address','?')} "
-                      f"— no domain/area match, skipping name-collision", file=sys.stderr)
+                      f"— no domain match and not (in-area + brand name), skipping", file=sys.stderr)
                 continue
             _seen_place_ids.add(_pid)
             rating_info = item.get("rating") or {}
