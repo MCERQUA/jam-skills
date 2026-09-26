@@ -34,7 +34,7 @@ The Google Search Console MCP server provides 19 tools. All are **free** (no per
 | `list_properties` | List all verified GSC properties |
 | `get_search_analytics` | Search performance data (impressions, clicks, CTR, position) |
 | `get_performance_overview` | Quick performance summary |
-| `inspect_url_enhanced` | Deep URL inspection (index status, crawl, mobile, rich results) |
+| `inspect_url_enhanced` | Deep URL inspection (index status, crawl, mobile, rich results). ⚠️ **Rich-result ISSUES are always empty below mcp-gsc 0.4.0.** It reads a top-level `richResultsIssues` key that Google's UrlInspectionResult does not have; the real issues are at `detectedItems[].items[].issues[]`. Upstream fixed it in 0.4.0 (83b1ac5, 02ba448). Check `pip show mcp-gsc` before trusting an empty issue list; `batch_url_inspection` likewise prints "None" for any non-PASS rich verdict below 0.4.0. |
 | `check_indexing_issues` | Site-wide indexing problems |
 | `get_sitemaps` | List submitted sitemaps |
 | `submit_sitemap` | Submit new sitemap |
