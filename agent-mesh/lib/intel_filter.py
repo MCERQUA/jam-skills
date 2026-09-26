@@ -23,7 +23,7 @@ import re
 import sys
 from pathlib import Path
 
-FILTER_VERSION = "2026-08-16.1"
+FILTER_VERSION = "2026-09-26.1"
 
 # ---------------------------------------------------------------------------
 # Built-in secret / PII patterns.
@@ -94,6 +94,9 @@ BUILTIN_FILTER_PATTERNS: list[tuple[str, str]] = [
     (r"(?<![A-Za-z0-9_])msy_[A-Za-z0-9]{32,}(?![A-Za-z0-9])",       "Meshy API key (msy_...)"),
     (r"(?<![A-Za-z0-9_])nfp_[A-Za-z0-9]{32,}(?![A-Za-z0-9])",       "Netlify token (nfp_...)"),
     (r"(?<![A-Za-z0-9_])whsec_[A-Za-z0-9+/]{28,}(?![A-Za-z0-9])",   "webhook signing secret (whsec_...)"),
+    # 2026-09-26: a live Supabase secret key (sb_secret_, 31 chars after the prefix) was put in a mesh
+    # message by a tenant agent and this filter PASSED it. sb_publishable_ is public by design: not listed.
+    (r"(?<![A-Za-z0-9_])sb_secret_[A-Za-z0-9_-]{27,}(?![A-Za-z0-9_-])", "Supabase secret key (sb_secret_...)"),
 ]
 
 
@@ -419,6 +422,11 @@ if __name__ == "__main__":
             "whsec" + "_" + _b64[:28]: True,
             "whsec" + "_" + _b64[:27]: False,
             "verify the callback against the whsec_ signing secret": False,
+            # sb_secret_ — Supabase secret key, LEN 31 [A-Za-z0-9_-] (N=1, 2026-09-26)
+            "sb_" + "secret_" + _aln[:31]: True,
+            "sb_" + "secret_" + _aln[:27]: True,
+            "sb_" + "secret_" + _aln[:26]: False,
+            "Supabase secret keys start with sb_secret_ in the dashboard": False,
             # ── structural negatives (not per-prefix) ─────────────────────────
             # (a) prefix MID-TOKEN inside a longer run -> the LOOKBEHIND's whole job.
             #     Without (?<![A-Za-z0-9_]) this is a false positive on every hash that
