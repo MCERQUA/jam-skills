@@ -5,7 +5,7 @@ import requests
 from .config import dfs_post, dfs_get_items
 
 # A REALISTIC browser UA — many real business sites sit behind Cloudflare/WAF and
-# 403 any UA that self-identifies as a bot (e.g. azrimrepair.com blocked our old
+# 403 any UA that self-identifies as a bot (e.g. a client site blocked our old
 # "JamBot-BrandAudit/1.0" → no logo/GMB). Look like a normal Chrome visitor.
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")

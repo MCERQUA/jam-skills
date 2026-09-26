@@ -154,7 +154,7 @@ def _probe_homepage_meta(domain: str):
     dependency-free, fail-soft (any error → empties → caller falls through)."""
     import re as _re, urllib.request as _u, html as _html
     # Realistic browser UA — bot-identifying UAs get 403'd by Cloudflare/WAF on many
-    # real business sites (azrimrepair.com etc.), which silently breaks detection.
+    # real business sites (client sites among them), which silently breaks detection.
     _ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
            "(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
     for scheme in ("https://", "http://"):
@@ -590,7 +590,7 @@ def main():
     llm_profile_data = {}
     if service.strip().lower() in _PLACEHOLDER_SERVICES:
         # PREFERRED: LLM reads the homepage and returns an accurate structured profile
-        # (replaces fragile regex that produced garbage like azrimrepair.com →
+        # (replaces fragile regex that produced garbage from a hyphenless client domain →
         # "restoration including cracks" instead of "rim repair"). Fail-OPEN: claude may
         # be unavailable inside tenant containers → returns {} → we fall back to the
         # deterministic detect_service() regex below.

@@ -90,8 +90,8 @@ def _domain_matches(item: dict, domain: str) -> bool:
     return False
 
 
-# Words that name the TRADE, not the business. A maps query for "AZ Rim Repair" in Mesa
-# returns every nearby tire/wheel shop, and those share the trade words, never the brand's
+# Words that name the TRADE, not the business. A maps query for a wheel-repair brand in its
+# city returns every nearby tire/wheel shop, and those share the trade words, never the brand's
 # own ones. Only the remaining (distinctive) tokens identify the brand.
 _GENERIC_NAME_TOKENS = {
     "the", "and", "of", "llc", "inc", "co", "corp", "company", "ltd", "services", "service",
@@ -105,10 +105,11 @@ def _name_tokens(name: str) -> set:
 def _brand_name_ok(item: dict, brand_name: str) -> bool:
     """True when a maps listing's TITLE carries every distinctive token of the brand name.
     Needed on the multi-location path, where the query is a brand name but the result set
-    is "everything relevant near the centre": 2026-09-25 azrimrepair.com, the Mesa query
-    returned 17 listings, 14 of them other businesses (tire shops, a BMW specialist, a
-    powder coater), and _loc_ok accepted all 14 because they are in Mesa. The report then
-    published 4,833 reviews (true: ~296), a competitor's street address as the client's,
+    is "everything relevant near the centre": 2026-09-25, a multi-location wheel-repair
+    brand's city query returned 17 listings, 14 of them other businesses (tire shops, a
+    specialist garage, a powder coater), and _loc_ok accepted all 14 because they were in
+    the same city. The report then inflated the review total ~16x, used a competitor's
+    street address as the client's,
     and "name inconsistent across listings". If the brand name has no distinctive token,
     fall back to requiring the whole name, so the check never silently widens."""
     want = _name_tokens(brand_name)

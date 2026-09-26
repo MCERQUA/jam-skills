@@ -11,7 +11,7 @@ from .config import dfs_post, dfs_get_items
 # "Missing" for both P1 roadmap items on a site that actually HAS a real Yoast-generated
 # llms.txt and valid HomeAndConstructionBusiness+WebSite JSON-LD schema. A realistic
 # Chrome UA passes clean via requests (confirmed same session). Matches the identical
-# precedent already fixed in generate.py's _probe_homepage_meta() for azrimrepair.com —
+# precedent already fixed in generate.py's _probe_homepage_meta() for a client site —
 # this file just never got the same fix applied.
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
