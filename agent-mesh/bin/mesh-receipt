@@ -12,11 +12,27 @@ WHY (2026-09-21, host@mesh, from bookkeeper-verify PARSE-DEGRADE-FRESH):
 USAGE (AGENT_URI must be set — the actor is never a flag, it is who you are):
   mesh-receipt --action <verb> --summary "<what, in one line>" [--proof <path-or-url>]
                [--tier action|deliverable|security|assignment] [--dedupe-key <k>] [--tenant <t>]
+               [--pledge-id <id>]
   Prints the row it wrote. Exit 0 = written and re-read; 2 = refused (nothing written);
   3 = write failed.
 
 CANONICAL ROW (the same keys the host API and sms-host write — do not add dialects):
   id · ts · actor · agent_type · tenant · tier · action · summary · proof · dedupe_key · source
+  + pledge_id, ONLY when --pledge-id is given (a row without the flag is exactly as before)
+
+--pledge-id (2026-09-26, host; found by bun-desktop@mesh 275). Every consumer that closes a pledge
+  from a receipt matches on the receipt's `pledge_id` FIELD and nothing else — not dedupe_key, not
+  action text:
+    reconcile-pledge-index.py  (06:20, 18:15)  d.get("pledge_id") or d.get("pid")  -> DONE-RECEIPTED
+    bookkeeper-verify-daily.sh (05:20)         r.get("pledge_id"), and action in
+                                               shipped|resolved|completed|delivered|implemented|task-done
+    jambot-pledge-verify.sh Check 4 (06:00)    d.get("pledge_id"), and proof = an absolute path or
+                                               git:<sha> that resolves outside the receipt store
+  This tool had no way to write that field, so an agent closing a pledge the canonical way
+  (bun-desktop's rcpt-20260926-504fecac19 for ed6cc4b9: action=close-pledge-ed6cc4b9,
+  dedupe_key=pledge:ed6cc4b9:close) produced a receipt no reconciler can match. The id is checked
+  against the pledge index when it is readable: not found = REFUSED (such a receipt closes nothing);
+  index unreadable from here = written anyway, with a warning that says so.
 """
 import argparse, json, os, sys, hashlib, time
 from datetime import datetime, timezone
@@ -44,6 +60,7 @@ def main():
     ap.add_argument("--tier", default="action", choices=["action", "deliverable", "security", "assignment"])
     ap.add_argument("--dedupe-key", default="", help="stable key so a re-run does not double-count")
     ap.add_argument("--tenant", default="", help="defaults to the agent name before '-voice/-sms/-desktop'")
+    ap.add_argument("--pledge-id", default="", help="the pledge this receipt closes; the ONLY field the pledge reconcilers match on")
     a = ap.parse_args()
 
     actor = os.environ.get("AGENT_URI", "").strip()
@@ -56,10 +73,39 @@ def main():
     tenant = a.tenant or name.split("-voice")[0].split("-sms")[0].split("-desktop")[0].split("-desk-")[0]
     agent_type = "desktop" if ("desktop" in name or "-desk-" in name) else "claude-code"
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    pledge_id = a.pledge_id.strip()
+    if a.pledge_id and not pledge_id:
+        die("--pledge-id is empty")
+    if pledge_id:
+        if any(c.isspace() for c in pledge_id) or len(pledge_id) > 64:
+            die(f"--pledge-id {pledge_id!r} is not an id (no spaces, <=64 chars)")
+        idx = mesh_root() / "BLACKBOARD" / "accountability" / "pledge-index.jsonl"
+        try:
+            known = False
+            with open(idx, encoding="utf-8", errors="replace") as fh:
+                for l in fh:
+                    if pledge_id in l:
+                        try:
+                            if json.loads(l).get("pledge_id") == pledge_id:
+                                known = True; break
+                        except Exception:
+                            pass
+        except OSError as e:
+            known = None
+            print(f"mesh-receipt: WARNING — cannot read the pledge index to confirm {pledge_id} exists "
+                  f"({e}); writing the receipt anyway", file=sys.stderr)
+        if known is False:
+            die(f"pledge_id {pledge_id!r} is not in {idx}; a receipt for a pledge that does not exist closes nothing")
+        if a.action.lower() not in {"shipped", "resolved", "completed", "delivered", "implemented", "task-done"}:
+            print(f"mesh-receipt: NOTE — action {a.action!r} is not one bookkeeper auto-reconcile counts as DONE "
+                  f"(shipped/resolved/completed/delivered/implemented/task-done); reconcile-pledge-index.py "
+                  f"still matches on pledge_id alone", file=sys.stderr)
     rid = "rcpt-" + ts[:10].replace("-", "") + "-" + hashlib.sha1(f"{actor}|{ts}|{a.action}|{a.summary}|{time.time_ns()}".encode()).hexdigest()[:10]
     row = {"id": rid, "ts": ts, "actor": actor, "agent_type": agent_type, "tenant": tenant, "tier": a.tier,
            "action": a.action, "summary": a.summary.strip()[:500], "proof": a.proof, "dedupe_key": a.dedupe_key,
            "source": "mesh-receipt"}
+    if pledge_id:
+        row["pledge_id"] = pledge_id
     line = json.dumps(row, ensure_ascii=False)
     if "\n" in line: die("row would contain a newline")  # cannot happen after json.dumps; belt and braces
 

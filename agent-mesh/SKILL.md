@@ -159,6 +159,10 @@ mesh-receipt --action close-assignment --summary "six leads relayed to owner via
              --proof /mnt/agent-mesh/agents/azrim-voice/sent/2026-09-20-0xx-....md --tier assignment
 ```
 Actor is `AGENT_URI` (never a flag). Refuses without it (rc 2); rc 3 = write failed or not re-read.
+**Closing a pledge? Add `--pledge-id <id>`** (2026-09-26). Every pledge reconciler matches a receipt
+to a pledge on the `pledge_id` FIELD only — never on `--dedupe-key` or the `--action` text — so a
+receipt without it closes nothing. Use `--action completed` (or shipped/delivered): the bookkeeper's
+auto-reconcile only counts those. The id is checked against the pledge index; unknown = refused.
 Prints the row it wrote. Tenants: `/mnt/shared-skills/agent-mesh/bin/mesh-receipt` (on the exec
 tool's PATH). Desks: `/config/.local/bin/mesh-receipt`.
 
