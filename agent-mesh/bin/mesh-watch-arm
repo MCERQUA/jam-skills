@@ -177,7 +177,11 @@ emit_existing() {
 
 snapshot_queue() {
     if [[ -d "$QUEUE_ROOT" ]]; then
-        find "$QUEUE_ROOT" -mindepth 2 -maxdepth 2 -name "*.md" -path "*/pending/*" 2>/dev/null | sort
+        # QUEUE/<queue>/pending/<task>.md is DEPTH 3 below QUEUE_ROOT. At depth 2 the
+        # "*/pending/*" filter can only match a queue literally NAMED "pending", so this
+        # snapshot was always empty and a new pending task NEVER emitted "[mesh new] queue".
+        # (backport of filament c41ae9e bin/mesh-watch-arm:192, host routed work 198)
+        find "$QUEUE_ROOT" -mindepth 3 -maxdepth 3 -name "*.md" -path "*/pending/*" 2>/dev/null | sort
     fi
 }
 
@@ -204,9 +208,11 @@ if [[ "$SKIP_BACKLOG_DRAIN" -eq 0 ]]; then
             [ -n "$f" ] && echo "[mesh queued] inbox: $(basename "$f")"
         done
     fi
-    emit_existing "$QUEUE_ROOT" "queue" "*/pending/*.md" 2>/dev/null || true
+    # (queue backlog is emitted once, by the find below — with the find at the correct
+    #  depth, an emit_existing glob here as well would list every pending task twice.
+    #  backport of filament c41ae9e bin/mesh-watch-arm:219-222, host routed work 198)
     if [[ -d "$QUEUE_ROOT" ]]; then
-        find "$QUEUE_ROOT" -mindepth 2 -maxdepth 2 -name "*.md" -path "*/pending/*" 2>/dev/null | while read -r f; do
+        find "$QUEUE_ROOT" -mindepth 3 -maxdepth 3 -name "*.md" -path "*/pending/*" 2>/dev/null | while read -r f; do
             echo "[mesh queued] queue: $(basename "$f")"
         done
     fi
