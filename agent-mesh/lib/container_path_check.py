@@ -147,6 +147,11 @@ def extract_paths(body: str) -> list[str]:
     seen, out = set(), []
     for raw in _PATH_RE.findall(body):
         p = raw.rstrip(_TRAIL)
+        # `path:line` / `path:start-end` is the mesh's standard citation form. Stat the FILE, not
+        # "file:321": every citation was reported MISSING until 2026-09-26 (bun-desktop 327:
+        # /config/.claude/commands/mesh-start.md:321 exists, 362 lines). A false MISSING trains
+        # readers to skim MISSING lines, the exact failure this check exists to prevent.
+        p = re.sub(r":\d+(?:-\d+)?$", "", p)
         if not p.startswith(CONTAINER_PREFIXES):
             continue
         if p not in seen:
