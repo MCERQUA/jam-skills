@@ -99,9 +99,35 @@ _lane="${MESH_LANE:-${TMUX_PANE:-}}"
 [ -n "$_lane" ] || _lane="sid$(ps -o sess= -p $$ 2>/dev/null | tr -d ' ')"
 _lockkey=$(printf '%s|%s' "$INBOX" "$_lane" | md5sum | cut -c1-12)
 LOCKFILE="${TMPDIR:-/tmp}/mesh-watch-arm.${_lockkey}.pid"
+# A BORROWED PANE TAG (josh-desktop 2026-09-27-177). A tool-call shell ran this with MESH_INBOX=/agent-desk-4/inbox
+# and an INHERITED TMUX_PANE=%3, so its key equalled desk-4's own. For 23 min every desk-4 re-arm hit "ALREADY
+# ARMED" and exited 0 (success by the /mesh-start contract) while nothing was watching for desk-4. The guard cannot
+# tell "this lane re-arming" from "someone else holding this lane's key", and those need opposite outcomes. When
+# the lane comes from TMUX_PANE (no explicit MESH_LANE), ask tmux for that pane's process and check the holder runs
+# inside it. PROVABLY outside means squatted, and the lane takes its lock back, loudly. If tmux cannot be asked,
+# that is CANNOT-TELL, and it keeps the old behaviour (refuse) rather than stealing.
+_holder_outside_pane() {   # $1 = holder pid. Exit 0 only when PROVEN outside this lane's pane.
+    [[ -z "${MESH_LANE:-}" && -n "${TMUX_PANE:-}" && -n "${TMUX:-}" ]] || return 1
+    # Ask THE LANE'S OWN tmux server (socket = first field of $TMUX). A bare `tmux` with $TMUX unset queries the
+    # DEFAULT server, where a pane with the same id is a stranger's; that made the first cut of this check steal.
+    local pp p i=0 sock="${TMUX%%,*}"
+    [[ -S "$sock" ]] || return 1
+    pp=$(tmux -S "$sock" display -p -t "$TMUX_PANE" '#{pane_pid}' 2>/dev/null) || return 1
+    [[ "$pp" =~ ^[0-9]+$ ]] || return 1
+    p="$1"
+    while [[ "$p" =~ ^[0-9]+$ && "$p" -gt 1 && $i -lt 64 ]]; do
+        [[ "$p" == "$pp" ]] && return 1
+        p=$(ps -o ppid= -p "$p" 2>/dev/null | tr -d ' '); i=$((i+1))
+    done
+    [[ $i -lt 64 ]]   # walked to init without meeting the pane: outside. A walk that ran out is CANNOT-TELL.
+}
 if [[ "${MESH_WATCH_FORCE:-0}" != "1" && -f "$LOCKFILE" ]]; then
     _oldpid=$(cat "$LOCKFILE" 2>/dev/null || true)
     if [[ -n "$_oldpid" && -d "/proc/$_oldpid" ]] \
+       && grep -qa 'mesh-watch-arm' "/proc/$_oldpid/cmdline" 2>/dev/null \
+       && _holder_outside_pane "$_oldpid"; then
+        echo "[mesh-watch] LOCK SQUATTED: pid $_oldpid holds the key for $INBOX lane=$_lane but does NOT run inside tmux pane $_lane (a borrowed pane tag). Taking this lane's lock back; that process keeps running but no longer owns the lane." >&2
+    elif [[ -n "$_oldpid" && -d "/proc/$_oldpid" ]] \
        && grep -qa 'mesh-watch-arm' "/proc/$_oldpid/cmdline" 2>/dev/null; then
         # ⚠️ THIS IS A POINT-IN-TIME CHECK, AND IT MUST NOT READ AS A STATE.
         # josh-desk-2, 2026-09-21: got "ALREADY ARMED ... (pid 3485953)", trusted it, and minutes
@@ -120,7 +146,9 @@ if [[ "${MESH_WATCH_FORCE:-0}" != "1" && -f "$LOCKFILE" ]]; then
     fi
 fi
 echo $$ > "$LOCKFILE" 2>/dev/null || true
-trap 'rm -f "$LOCKFILE" 2>/dev/null' EXIT
+# Release the lock only if it is still OURS: a squatter whose lock was taken back must not delete the lane's.
+_mw_release() { [[ "$(cat "$LOCKFILE" 2>/dev/null)" == "$$" ]] && rm -f "$LOCKFILE" 2>/dev/null; return 0; }
+trap '_mw_release' EXIT
 
 # DEAD-READER KEEPALIVE (host 2026-09-23, mac-claude's 520-gap report). A watcher whose reader is gone
 # never finds out if it never writes: mac-claude's Monitor expired, the local loop died, and the remote
@@ -136,7 +164,7 @@ _mw_main=$$
     kill -0 "$_mw_main" 2>/dev/null || exit 0
   done ) &
 _mw_ka=$!
-trap 'rm -f "$LOCKFILE" 2>/dev/null; kill "$_mw_ka" 2>/dev/null' EXIT
+trap '_mw_release; kill "$_mw_ka" 2>/dev/null' EXIT
 
 # Baseline the inbox NOW, before any startup scanning, so a message landing while this
 # process is still booting is still seen as new on the first diff. See LAST_INBOX below.
