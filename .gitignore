@@ -16,3 +16,10 @@ node_modules/
 *.bak.*
 *.pre-*
 *.orig
+
+# client data never lives in this public repo: per-client blog-factory configs, ledgers and generated
+# articles belong in the owning tenant cell (/mnt/clients/<tenant>/openclaw/workspace/blog-factory/)
+article-writer/scripts/config/*.json
+article-writer/blog-factory-ledger.jsonl
+article-writer/scripts/blog-factory-ledger.jsonl
+article-writer/scripts/output*.mdx

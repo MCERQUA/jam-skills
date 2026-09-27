@@ -165,7 +165,9 @@ if bash "$DIR/deploy.sh" "$CFG" "$RUN_DIR"; then
   SLUG=$(jq -r '.slug' "$RUN_DIR/topic.json")
   URL="${SITE_URL%/}$(j .blog_path_prefix)$SLUG"
   # ledger
-  LEDGER="$DIR/../blog-factory-ledger.jsonl"
+  # Beside the config's directory: a tenant-cell config (.../blog-factory/config/x.json) logs to that
+  # tenant's .../blog-factory/blog-factory-ledger.jsonl, never to the shared skill dir (2026-09-27).
+  LEDGER="${BLOG_FACTORY_LEDGER:-$(cd "$(dirname "$CFG")/.." && pwd)/blog-factory-ledger.jsonl}"
   jq -nc --arg ts "$(date -u +%FT%TZ)" --arg site "$SITE_KEY" --arg slug "$SLUG" \
      --arg url "$URL" --arg model "$GEN_MODEL" --arg wc "$WC" \
      '{ts:$ts,site:$site,slug:$slug,url:$url,gen_model:$model,words:($wc|tonumber),status:"published",gates:"all-pass"}' \

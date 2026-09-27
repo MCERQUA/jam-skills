@@ -297,21 +297,25 @@ scripts/
     make_schema.py           # deterministic JSON-LD from frontmatter + extracted FAQ (no LLM)
     update_index.py          # inserts the post into a Next.js blog index (posts[] array OR [slug] record map)
   config/
-    _schema.md               # per-client config field reference
-    <site_key>.json          # one per target site (blog dir, framework, money pages, gate thresholds, cadence)
-  ../blog-factory-ledger.jsonl   # append-only log of published runs {ts,site,slug,url,gen_model,words}
+    _schema.md               # per-client config field reference (the ONLY file that belongs here)
+
+# A client's config and its ledger live in the OWNING TENANT's cell, never in this shared, public skill dir:
+/mnt/clients/<tenant>/openclaw/workspace/blog-factory/
+  config/<site_key>.json     # one per target site (blog dir, framework, money pages, gate thresholds, cadence)
+  blog-factory-ledger.jsonl  # append-only log of published runs {ts,site,slug,url,gen_model,words}, written beside config/
+# blog-factory-cron.sh <site_key> finds the config there, and refuses if two tenants claim one site_key.
 ```
 
 ### Run it
 ```bash
 # Self-test / dry-run: full pipeline through verify-all, prints PASS/FAIL per gate, NOTHING published
-bash scripts/blog-factory.sh scripts/config/<site_key>.json --self-test
+bash scripts/blog-factory.sh /mnt/clients/<tenant>/openclaw/workspace/blog-factory/config/<site_key>.json --self-test
 
 # Dry-run on a chosen topic
-bash scripts/blog-factory.sh scripts/config/<site_key>.json --dry-run --topic "..." --keyword "..."
+bash scripts/blog-factory.sh <tenant-cell>/blog-factory/config/<site_key>.json --dry-run --topic "..." --keyword "..."
 
 # REAL run (auto-pick topic, generate, verify, deploy, verify-live, ledger)
-bash scripts/blog-factory.sh scripts/config/<site_key>.json
+bash scripts/blog-factory.sh <tenant-cell>/blog-factory/config/<site_key>.json
 
 # Run ONE gate against any framework's staged output (article.mdx + meta.json + schema.json)
 python3 scripts/verify/check-components.py /path/to/work_dir
@@ -320,7 +324,7 @@ bash    scripts/verify/verify-all.sh       /path/to/work_dir
 
 ### Framework field (`config.framework`)
 - `next-mdx-content` — `.mdx` files in `blog_dir`; index has a `posts[]` array we prepend to.
-  (Proof target: `manufacturedproductinsurance.com`.)
+  (Proven on a client site, 2026-06-25.)
 - `next-slug-record` — content stored as a record in `[slug]/page.tsx`; we insert a `"<slug>": {…}` entry.
 - `markdown` — generic `.md` drop-in for an SSG that auto-lists (Astro/Hugo/Eleventy).
 The **gates are framework-agnostic** (they read the staged `article.mdx`/`meta.json`/

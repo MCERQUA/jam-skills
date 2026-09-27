@@ -9,14 +9,14 @@ It is PARAMETERIZED so the same shared engine serves every client on any framewo
 ```jsonc
 {
   // --- identity ---
-  "site_key":    "manufacturedproductinsurance",      // unique key (matches filename)
-  "brand":       "Manufactured Product Insurance",     // publisher / byline brand
-  "site_author": "Contractor's Choice Agency",         // author byline
-  "site_url":    "https://manufacturedproductinsurance.com",
+  "site_key":    "exampleproductinsurance",           // unique key (matches filename)
+  "brand":       "Example Product Insurance",          // publisher / byline brand
+  "site_author": "Example Agency",                     // author byline
+  "site_url":    "https://exampleproductinsurance.com",
   "location":    "United States",                       // DataForSEO location_name
 
   // --- where the code lives + how blogs are deployed ---
-  "repo_path":   "/mnt/clients/josh/openclaw/workspace/Websites/manufacturedproductinsurance.com",
+  "repo_path":   "/mnt/clients/<tenant>/openclaw/workspace/Websites/exampleproductinsurance.com",
   "git_branch":  "main",
   "framework":   "next-mdx-content",   // one of:
                                        //   next-mdx-content : .mdx files in blog_dir,

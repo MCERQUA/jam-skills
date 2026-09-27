@@ -17,8 +17,21 @@
 set -uo pipefail
 SITE_KEY="${1:?usage: blog-factory-cron.sh <site_key> [flags]}"; shift || true
 DIR="$(cd "$(dirname "$0")" && pwd)"
-CFG="$DIR/config/${SITE_KEY}.json"
+# A client's site config lives in the OWNING tenant's cell, never in this shared (public) skill dir
+# (2026-09-27): /mnt/clients/<tenant>/openclaw/workspace/blog-factory/config/<site_key>.json, and the run's
+# ledger is written beside it. Two tenants claiming one site_key is refused, not guessed. The legacy
+# $DIR/config/<site_key>.json is still read. BLOG_FACTORY_CONFIG=<path> overrides; BLOG_FACTORY_RESOLVE_ONLY=1
+# prints the resolved config and exits (tests).
+CFG="${BLOG_FACTORY_CONFIG:-}"
+if [ -z "$CFG" ]; then
+  mapfile -t _cands < <(ls -1 "${BLOG_FACTORY_CLIENTS_ROOT:-/mnt/clients}"/*/openclaw/workspace/blog-factory/config/"${SITE_KEY}".json 2>/dev/null)
+  if [ "${#_cands[@]}" -gt 1 ]; then
+    echo "$(date -u +%FT%TZ) blog-factory-cron: site_key '$SITE_KEY' is claimed by ${#_cands[@]} tenant cells, refusing: ${_cands[*]}"; exit 2
+  fi
+  CFG="${_cands[0]:-$DIR/config/${SITE_KEY}.json}"
+fi
 [ -f "$CFG" ] || { echo "$(date -u +%FT%TZ) blog-factory-cron: no config $CFG"; exit 2; }
+[ "${BLOG_FACTORY_RESOLVE_ONLY:-0}" = 1 ] && { echo "$CFG"; exit 0; }
 
 # env: OAuth token + platform keys (idempotent if already set)
 if [ -f /home/mike/MIKE-AI/scripts/with-claude-env.sh ]; then
