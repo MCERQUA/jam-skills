@@ -203,7 +203,7 @@ def _is_excluded(host: str, excluded: set[str]) -> bool:
     # Exact host OR a true subdomain of an excluded host (e.g. members.sprayfoam.org,
     # m.yelp.com). Do NOT use a bare `e in host` substring test — that wrongly excludes
     # a legitimate business whose domain merely CONTAINS an aggregator string
-    # (e.g. 'allstatesprayfoam.com' contains 'sprayfoam.com' → was thrown away →
+    # (e.g. 'examplesprayfoam.com' contains 'sprayfoam.com' → was thrown away →
     # the real report fell back to an empty greenfield build). The endswith("." + e)
     # clause already covers every real subdomain case.
     return any(host == e or host.endswith("." + e) for e in excluded)

@@ -3,7 +3,7 @@
 WHY THIS EXISTS
 ---------------
 `fetch_organic.py` reads DataForSEO **Labs** `ranked_keywords/live` — a periodic crawl
-DB that UNDER-reports rankings for small / new / non-US domains. For printguys.ca
+DB that UNDER-reports rankings for small / new / non-US domains. For a small .ca client site
 (Concord, ON) the Labs lookup returned just 1 ranked keyword, even though the business
 genuinely ranks on Google's first page for several terms.
 

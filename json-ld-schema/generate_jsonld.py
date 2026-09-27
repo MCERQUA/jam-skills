@@ -110,8 +110,8 @@ def build_local_business(
         # NEVER a placeholder. A rating without a citable source is fabricated structured data —
         # Google's review-snippet policy forbids self-serving/unsourced ratings and JamBot's NO-FAKE
         # rule forbids inventing numbers. Measured 2026-09-22: the example config's 4.9/127 was
-        # copied into live client sites (crane-insurance.com 4.8/127 + 4.9/847, framinginsurance.com,
-        # mrglassworks.com, theseattledeckingcompany.com) with no review anywhere on the page.
+        # copied into live client sites (four of them, one carrying 4.8/127 + 4.9/847,
+        # measured 2026) with no review anywhere on the page.
         # Require the source the number came from; refuse loudly otherwise.
         if not (isinstance(rating, dict) and rating.get("source") and rating.get("value") and rating.get("count")):
             raise SystemExit(

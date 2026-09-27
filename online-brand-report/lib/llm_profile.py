@@ -5,7 +5,7 @@ llm_profile — LLM-powered business-profile reader for the online-brand-report 
 WHY THIS EXISTS
 The report seeds keyword research from a `service` string. Historically that was
 derived by regex from the homepage title/meta (`generate.py:detect_service`), which
-produces garbage on many sites (azrimrepair.com → "restoration including cracks"
+produces garbage on many sites (a rim-repair client → "restoration including cracks"
 instead of "rim repair" — it's an auto rim/wheel repair shop). This module instead
 asks Claude to READ the homepage and return an accurate, structured business profile.
 
@@ -370,6 +370,8 @@ Return ONLY a single JSON object (no prose, no markdown fences) with EXACTLY the
 
 # ── CLI smoke-test ────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    doms = sys.argv[1:] or ["azrimrepair.com"]
+    doms = sys.argv[1:]
+    if not doms:
+        sys.exit("usage: llm_profile.py <domain> [<domain> ...]")
     for d in doms:
         print(d, json.dumps(llm_business_profile(d)))

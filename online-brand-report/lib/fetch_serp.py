@@ -26,7 +26,7 @@ def _brand_tokens(domain: str, name: str) -> list:
     Catches branded social/directory listings (Facebook, Yelp, Instagram) that carry
     the client's name but not their domain."""
     tokens = []
-    # Domain label: 'hrfoam' from hrfoam.com
+    # Domain label: 'examplefoam' from examplefoam.com
     label = (domain or "").replace("www.", "").split(".")[0].lower()
     if label and len(label) > 2:
         tokens.append(label)

@@ -8,7 +8,7 @@
 # pointed at Netlify. curl round-robins onto a dead parking IP, the TLS handshake times out,
 # and curl reports 000 — indistinguishable from a site that is genuinely down.
 #
-# Measured 2026-08-20 on arizonaalpineacademy.com: bare curl 000 on BOTH :443 and :80 for
+# Measured 2026-08-20 on a client site: bare curl 000 on BOTH :443 and :80 for
 # five hours, while the site had been live since 03:25 with a valid issued certificate.
 # `resolvectl flush-caches` does not help — the stale answer is at the UPSTREAM, not local.
 #
@@ -26,7 +26,7 @@
 #   NOT-LIVE      resolved fine, but the site did not answer 200  (real problem)
 #   CANNOT-CHECK  DoH could not resolve it at all                 (unknown, not a verdict)
 #
-# Usage:  bash site-liveness.sh foamcollege.com insulationguide.org
+# Usage:  bash site-liveness.sh example.com example.org
 # Exit:   0 all LIVE · 1 any NOT-LIVE · 4 any CANNOT-CHECK (and none NOT-LIVE)
 set -uo pipefail
 [ $# -ge 1 ] || { echo "usage: site-liveness.sh <domain> [<domain> ...]"; exit 2; }

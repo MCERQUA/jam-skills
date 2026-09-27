@@ -317,7 +317,7 @@ def main() -> None:
     # ---- 7b. SESSION-START READS (2026-09-22, josh-desktop 120) ----
     # A file that says "read at session start, every session" is a convention until something
     # opens it. Measured: the submesh manager's OPEN-HOLDS.md said exactly that; nothing carried
-    # the instruction; 4 of 18 holds went materially stale (zionsprayfoam.com was redeployed two
+    # the instruction; 4 of 18 holds went materially stale (one client site was redeployed two
     # weeks after being held for Mike). This is the construction: a lane lists the files its
     # session must open in <its desk>/SESSION-START-READS.txt (one path per line, as the lane
     # sees it, # comments allowed) and mesh-on prints each one here — the agent cannot skip a

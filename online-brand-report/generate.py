@@ -366,7 +366,7 @@ def detect_service(domain: str, brand_data: dict,
 # ── Country / location_code resolver ──────────────────────────────────────────
 # DataForSEO keyword/SERP endpoints take a numeric location_code. Every fetcher used
 # to hardcode 2840 (United States), so Canadian (and any non-US) businesses got ZERO
-# keyword data (printguys.ca, Concord ON → ranked_keywords: 0). This resolver maps the
+# keyword data (a Concord, ON client → ranked_keywords: 0). This resolver maps the
 # business location to the right country code. Conservative + fail-open: anything we
 # can't positively identify as Canada falls back to the US default (2840) so existing
 # US clients are unaffected.
@@ -674,7 +674,7 @@ def main():
 
     # ── LIVE SERP rank check ──────────────────────────────────────────────────
     # DataForSEO **Labs** ranked_keywords UNDER-reports rankings for small / new /
-    # non-US domains (printguys.ca: Labs returned 1 keyword while the business ranks
+    # non-US domains (a .ca client: Labs returned 1 keyword while the business ranks
     # page-1 for several). Query Google LIVE for a candidate keyword set NOW and fold
     # the real rankings into organic_data so every section reflects the live truth.
     _brand_token = (domain.split(".")[0] if domain else "").strip()

@@ -64,7 +64,7 @@ sure it has all the stuff, if not give the page back… in a loop until it has e
    HTML is self-contained (Tailwind Play CDN + Google Fonts inline) and renders whole.
 
 ## Brand rule (lead-gen sites)
-Display the SITE name in words (e.g. `surveillanceinsurance.com` → "Surveillance Insurance")
+Display the SITE name in words (e.g. `examplesecurityinsurance.com` → "Example Security Insurance")
 everywhere a company name appears. The underlying agency (e.g. "Contractor's Choice Agency")
 appears ONLY as a small footer attribution (and on the About page body, as the operator).
 

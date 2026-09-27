@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from .config import dfs_post, dfs_get_items
 
 # Realistic browser UA, not a self-identifying one. Verified 2026-08-09 against
-# koolfoamllc.com: this exact self-identifying string ("JamBot-BrandAudit/1.0") got
+# A client site (2026): this exact self-identifying string ("JamBot-BrandAudit/1.0") got
 # 403'd by the site's WAF on BOTH the llms.txt and schema checks, silently producing
 # "Missing" for both P1 roadmap items on a site that actually HAS a real Yoast-generated
 # llms.txt and valid HomeAndConstructionBusiness+WebSite JSON-LD schema. A realistic

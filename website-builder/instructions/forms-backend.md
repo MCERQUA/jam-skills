@@ -301,7 +301,7 @@ const res = await fetch("/api/contact", {
 ## AEO traffic-source capture (MANDATORY on every lead form) — platform standard
 
 **Why:** AI engines (ChatGPT/Copilot/Perplexity/Gemini) citing a niche site is the proven #1 lead
-channel (fightclubinsurance.com: 23% of leads, all from `utm_source=chatgpt.com`/`copilot.com`). A
+channel (one client site: 23% of leads, all from `utm_source=chatgpt.com`/`copilot.com`). A
 site that doesn't capture the traffic source is BLIND — it could be AI-driven and we can't see it.
 Capture it on EVERY lead form so `scripts/aeo-attribution-report.py` can attribute leads + find the
 next winners. Additive + invisible — hidden fields only, no content/design change.

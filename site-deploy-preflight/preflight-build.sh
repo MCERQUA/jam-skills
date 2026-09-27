@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # preflight-build.sh — prove a website builds BEFORE you push it to a deploy branch.
 #
-# WHY THIS EXISTS (2026-07-24, printguys.ca):
+# WHY THIS EXISTS (2026-07-24, a client's Next.js site):
 #   An agent pushed a Footer.tsx with a malformed JSX comment straight to the
 #   auto-deploying `web-dev` branch. Netlify failed. The project CLAUDE.md already
 #   said "run the build first" — but following that advice IN PLACE was broken two ways:

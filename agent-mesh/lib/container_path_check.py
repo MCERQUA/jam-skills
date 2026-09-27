@@ -89,7 +89,7 @@ def container_for(agent: str) -> tuple[str | None, str]:
 
 
 # The 2026-09-20 miss was not a PATH at all — it was a bare key NAME in backticks
-# ("you already hold `jambot-josh-tracthomecontractorinsurance.com`"), taken from a GitHub
+# ("you already hold `jambot-<tenant>-<domain>`"), taken from a GitHub
 # deploy-key TITLE. Nothing with a slash in it was wrong, so a path-only checker walks past
 # the exact sentence that caused the damage. Trigger only when the body is talking about
 # keys, so an ordinary backticked repo name or command is never flagged.
@@ -129,7 +129,7 @@ def extract_key_names(body: str) -> list[str]:
         # mentioned the repo in a sentence about keys. Measured across both stores on josh's
         # desk: 546 key files, 473 ending in `-write` (the rest are its `.broken-`/`.rotated-`
         # variants, which still contain it). The one case that started this feature —
-        # `jambot-josh-tracthomecontractorinsurance.com`, a GitHub deploy-key TITLE the host
+        # `jambot-<tenant>-<domain>`, a GitHub deploy-key TITLE the host
         # asserted as a file — begins `jambot-`. Those two shapes catch the real thing and
         # leave repo names alone.
         if "-write" not in tok and not tok.startswith("jambot-"):

@@ -2,7 +2,7 @@
 # mesh-task — the ONE-LINER a voice/tenant agent uses to send a task to host or mac-host.
 # No flags to remember, no stdin gotcha, no --kind enum. Just:
 #
-#     mesh-task host "rebuild devilinsurance.com around the mascot logo"
+#     mesh-task host "rebuild example.com around the mascot logo"
 #     mesh-task mac-host "pull the latest radar data for wilson"
 #     echo "longer multi-line body..." | mesh-task host "short subject here"
 #
@@ -24,7 +24,7 @@ mesh-task — send a task to another agent (host, mac-host, ...). Usage:
   <who>:  host | mac-host | mac | host-clone | sms-host | <anything>@mesh
 
 Examples:
-  mesh-task host "rebuild devilinsurance.com around the Devil mascot logo"
+  mesh-task host "rebuild example.com around the mascot logo"
   mesh-task mac-host "run the wilson radar pull now"
 U
 }

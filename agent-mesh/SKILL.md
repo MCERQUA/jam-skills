@@ -25,7 +25,7 @@ theirs. If you cannot confirm it, do not name it. Escalate to `host@mesh` instea
 looked like theirs" are all inferences, and inference is exactly what fails here.
 
 ### The incident this comes from (2026-08-27)
-An SMS asked a client whether `memawsflower.com` was in his portfolio. **It is a DIFFERENT
+An SMS asked a client whether another client's domain was in his portfolio. **It is a DIFFERENT
 client's site.** It appeared in his data because his domain feed is built from his GoDaddy
 account — and a registrar account can hold domains that belong to other people. The feed has no
 owner field, so an agent needing a contact asked the only client it associated with the data.
