@@ -1,6 +1,6 @@
 ---
 name: site-architecture
-description: When the user wants to plan, map, or restructure their website's page hierarchy, navigation, URL structure, or internal linking. Also use when the user mentions "sitemap," "site map," "visual sitemap," "site structure," "page hierarchy," "information architecture," "IA," "navigation design," "URL structure," "breadcrumbs," "internal linking strategy," "website planning," "what pages do I need," "how should I organize my site," or "site navigation." Use this whenever someone is planning what pages a website should have and how they connect. NOT for XML sitemaps (that's technical SEO — see seo-audit). For SEO audits, see seo-audit. For structured data, see schema-markup.
+description: When the user wants to plan, map, or restructure their website's page hierarchy, navigation, URL structure, or internal linking. Also use when the user mentions "sitemap," "site map," "visual sitemap," "site structure," "page hierarchy," "information architecture," "IA," "navigation design," "URL structure," "breadcrumbs," "internal linking strategy," "website planning," "what pages do I need," "how should I organize my site," "site navigation," "hreflang," "international SEO," or "multi-language site." Use this whenever someone is planning what pages a website should have and how they connect. NOT for XML sitemaps (that's technical SEO — see seo-audit). For SEO audits, see seo-audit. For structured data, see schema-markup.
 metadata:
   version: 1.1.0
 ---
@@ -203,6 +203,61 @@ The breadcrumb trail should mirror the URL path:
 
 ---
 
+## International / hreflang
+
+**Decide whether you need this at all — usually you do not.** A single-country local service
+business does NOT need hreflang. Separate pages per city are not "international" — that's a
+`service-area-pages` problem. Wrong hreflang is worse than none: it splits ranking signals
+between pages that should be consolidating.
+
+### When You Need It
+
+| You have | Use |
+|----------|-----|
+| One country, many cities | NO hreflang — see `service-area-pages` |
+| Same language, different country/pricing/compliance (e.g. CA + US) | `en-ca` / `en-us` + `x-default` |
+| Genuinely translated pages | `en` / `es` / `fr-ca` + `x-default` |
+
+### Implementation
+
+All three parts or none:
+
+1. Every page in a locale set lists **every** member of the set, **including itself**
+   (self-referencing).
+2. The links are **reciprocal** — if A points to B, B must point back, or Google drops the pair.
+3. One `x-default` tag names the fallback for unmatched locales.
+
+```html
+<link rel="alternate" hreflang="en-ca" href="https://example.com/ca/service/" />
+<link rel="alternate" hreflang="en-us" href="https://example.com/us/service/" />
+<link rel="alternate" hreflang="x-default" href="https://example.com/service/" />
+```
+
+Verify from both sides — don't assume the reciprocal link exists:
+
+```bash
+for u in https://example.com/ca/service/ https://example.com/us/service/; do
+  echo "== $u"; curl -sL "$u" | grep -o '<link[^>]*hreflang="[^"]*"[^>]*>'
+done
+# PASS = every URL lists BOTH locales AND x-default. A page missing its own
+# self-reference is the most common real-world break.
+```
+
+### Common Mistakes
+
+- **Region code used as a language** — `hreflang="uk"` is Ukrainian, not the United Kingdom
+  (use `en-gb`).
+- **Pointing at a dead target** — the annotated URL 301s, 404s, or is `noindex`. The target must
+  be indexable.
+- **Annotating near-duplicates** — fix the duplication/canonical strategy first, then add
+  hreflang; it does not substitute for one.
+- **Thin machine translation** — annotating `/es/` pages that are auto-translated gets more
+  low-quality pages indexed, not fewer.
+- **Fake internationalization** — hreflang on a `?lang=` parameter you can't make canonical, or
+  on a site where only the currency symbol differs, is not a real locale split.
+
+---
+
 ## Visual Sitemap Output (Mermaid)
 
 Use Mermaid `graph TD` for visual sitemaps. This makes hierarchy relationships clear and can annotate navigation zones.
@@ -355,3 +410,4 @@ Mermaid diagram showing page relationships and navigation zones. Use `graph TD` 
 - **page-cro**: For optimizing individual pages for conversion
 - **schema-markup**: For implementing breadcrumb and site navigation structured data
 - **competitor-alternatives**: For comparison page frameworks and URL patterns
+- **service-area-pages**: For multi-city coverage in ONE country — the usual answer when someone asks for "international"

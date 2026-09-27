@@ -1,6 +1,6 @@
 ---
 name: analytics-tracking
-description: When the user wants to set up, improve, or audit analytics tracking and measurement. Also use when the user mentions "set up tracking," "GA4," "Google Analytics," "conversion tracking," "event tracking," "UTM parameters," "tag manager," "GTM," "analytics implementation," "tracking plan," "how do I measure this," "track conversions," "attribution," "Mixpanel," "Segment," "are my events firing," or "analytics isn't working." Use this whenever someone asks how to know if something is working or wants to measure marketing results. For A/B test measurement, see ab-test-setup.
+description: When the user wants to set up, improve, or audit analytics tracking and measurement. Also use when the user mentions "set up tracking," "GA4," "Google Analytics," "conversion tracking," "event tracking," "UTM parameters," "tag manager," "GTM," "analytics implementation," "tracking plan," "how do I measure this," "track conversions," "attribution," "Mixpanel," "Segment," "are my events firing," "analytics isn't working," "offline conversion import," "gclid," or "phone calls aren't showing up as conversions." Use this whenever someone asks how to know if something is working or wants to measure marketing results. For A/B test measurement, see ab-test-setup.
 metadata:
   version: 1.1.0
 ---
@@ -196,6 +196,56 @@ dataLayer.push({
 - Use underscores or hyphens consistently
 - Be specific but concise: `blog_footer_cta`, not `cta1`
 - Document all UTMs in a spreadsheet
+
+---
+
+## Attribution and Offline Conversions
+
+For a local service business the money event is usually **not** on the website — it's a phone
+call, a booked job, or a signed quote, often days later. Web-only conversion data systematically
+over-credits last-click and under-credits whatever actually generated the call.
+
+### Attribution Model
+
+- GA4 defaults to data-driven attribution; Google Ads reports its own conversions separately —
+  state which model each number uses before comparing them. Treating the two as the same measure
+  is the most common bad number in a client report.
+- Low-volume local accounts (roughly under 300 conversions/month) don't have the volume for
+  data-driven attribution to be meaningful. Say so rather than presenting it as precision.
+
+### Offline Conversion Import
+
+The high-value wiring for a local business: capture the click id on the form or call, then send
+the *outcome* back when the job actually closes.
+
+1. Capture `gclid` (or `wbraid`) on landing (`?gclid=...`) and store it with the lead record.
+2. On close, upload `gclid` + conversion time + value to Google Ads (Offline Conversion Import),
+   or to GA4 via the Measurement Protocol.
+3. Bid on the imported "job closed" conversion — not on "form submitted."
+
+```bash
+# GA4 Measurement Protocol — send a closed job server-side
+curl -s -X POST \
+  "https://www.google-analytics.com/mp/collect?measurement_id=$GA4_ID&api_secret=$GA4_SECRET" \
+  -H 'Content-Type: application/json' \
+  -d '{"client_id":"'"$CLIENT_ID"'","events":[{"name":"job_closed",
+       "params":{"value":4200,"currency":"CAD","lead_source":"google_ads"}}]}'
+# Validate against the /debug/mp/collect endpoint FIRST — it returns validationMessages.
+# The live endpoint returns 204 for malformed payloads too, so a 204 is NOT proof it was accepted.
+```
+
+### Common Issues
+
+| Issue | Check |
+|-------|-------|
+| Offline conversion rejected | Click older than Google Ads' ~90-day window, or <24h since the click |
+| GA4 sessions/users look wrong after import | `client_id` set to a CRM id instead of the real GA client id — this creates a new user per upload and breaks session stitching |
+| "Accepted" but never shows up | A 204 from the live Measurement Protocol endpoint means received, not valid — re-check against `/debug/mp/collect` |
+| Numbers double-counted | Both the web `form_submit` and the offline `job_closed` uploaded as the same conversion action |
+| No click id to import | Visitor declined ad storage/consent — do not backfill a guess |
+
+**Do not** report web conversions and CRM closes side by side as if they measure the same thing,
+and do not change the attribution model mid-reporting-period.
 
 ---
 
