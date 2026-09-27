@@ -332,11 +332,22 @@ def die(msg: str, code: int = 3) -> None:
 # ---------------------------------------------------------------------------
 # Slot claim (PROTOCOL §5)
 # ---------------------------------------------------------------------------
+# NUMBER-KEYED-CLAIM (2026-09-27, found by bun-desktop@mesh 2026-09-27-038, measured by josh-desktop@mesh).
+# The claim used to be keyed on the FULL filename ({date}-{n}-{sender}-{topic}), so two senders with
+# different topics at the same number both "won" and the same NUMBER went out twice. Nothing checked
+# whether a delivered .md already carried the number either, so a start point computed from a stale
+# view re-issued it. Now: the claim key is the number alone, the files themselves are checked after
+# the claim (_number_in_use), and the sweep TTL outlives a slow send (container path checks and the
+# intel filter run inside the claim window, and 60s swept live claims).
+# Test (fails on the pre-fix copy, both legs): scripts/agent-mesh/tests/mesh-send-seq-alloc-test.py
+CLAIM_TTL_S = 600
+
+
 def sweep_stale_claims(inbox: Path) -> None:
-    """Remove .claim dirs older than 60s."""
+    """Remove .claim dirs older than CLAIM_TTL_S (a dead claim only costs a skipped number)."""
     if not inbox.is_dir():
         return
-    cutoff = time.time() - 60
+    cutoff = time.time() - CLAIM_TTL_S
     for entry in inbox.iterdir():
         if entry.is_dir() and entry.name.endswith(".claim"):
             try:
@@ -382,6 +393,32 @@ def find_start_seq(inbox: Path, date: str) -> int:
     return maxn + 1 if maxn else 1
 
 
+def _number_in_use(inbox: Path, date: str, n: int) -> bool:
+    """True if a message (or a pre-fix sender's filename-keyed claim) already carries {date}-{n}.
+
+    The authoritative backstop: the number-keyed claim is transient, the files are not. A directory we
+    cannot read counts as IN USE, so an unreadable archive costs a skipped number, never a reuse."""
+    pat = f"{date}-{n:03d}-*"
+    for d in (inbox, inbox / ".read", inbox / ".archive", inbox / ".acked"):
+        try:
+            if d.is_dir() and next(d.glob(pat), None) is not None:
+                return True
+        except OSError:
+            return True
+    return False
+
+
+def _allocator_stamp() -> str:
+    """Which copy allocated this number: the next reuse names its own writer (ALLOCATOR: frontmatter)."""
+    try:
+        import hashlib
+        here = os.path.realpath(__file__)
+        with open(here, "rb") as fh:
+            return f"mesh-send {hashlib.sha256(fh.read()).hexdigest()[:8]} {here}"
+    except OSError:
+        return "mesh-send unknown"
+
+
 def claim_slot(inbox: Path, sender: str, topic: str) -> tuple[str, Path]:
     """Atomically reserve a slot. Returns (basename, final_md_path).
 
@@ -394,18 +431,23 @@ def claim_slot(inbox: Path, sender: str, topic: str) -> tuple[str, Path]:
 
     def _try_range(rng):
         for n in rng:
-            slot = f"{date}-{n:03d}-{sender}-{topic}"
-            claim = inbox / f"{slot}.claim"
+            claim = inbox / f"{date}-{n:03d}.claim"     # NUMBER-KEYED-CLAIM: one claim per number
             try:
                 claim.mkdir(mode=0o755)
-                return slot, inbox / f"{slot}.md", claim
             except FileExistsError:
                 continue
+            if _number_in_use(inbox, date, n):
+                release_claim(claim)
+                continue
+            slot = f"{date}-{n:03d}-{sender}-{topic}"
+            return slot, inbox / f"{slot}.md", claim
         return None
 
     result = _try_range(range(start, 1000))
     if result is None:
-        # race fallthrough — try from 1
+        # Reached only when every number from start to 999 is taken today. Safe since 2026-09-27:
+        # each low number is checked against the files before it is used. (Before that, this branch
+        # read as the cause of low-number reuse to two reviewers; it never ran.)
         result = _try_range(range(1, start))
     if result is None:
         die("no free slot in 999 tries", code=1)
@@ -763,6 +805,7 @@ def main() -> None:
         fm_lines.append(f"RETRACT-REASON: {args.retract_reason}")
     if args.urgent:
         fm_lines.append("URGENT: true")
+    fm_lines.append(f"ALLOCATOR: {_allocator_stamp()}")
     fm_lines.append("---")
     fm_lines.append("")
     content = "\n".join(fm_lines) + body
