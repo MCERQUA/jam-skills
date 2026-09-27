@@ -152,6 +152,13 @@ def extract_paths(body: str) -> list[str]:
         # /config/.claude/commands/mesh-start.md:321 exists, 362 lines). A false MISSING trains
         # readers to skim MISSING lines, the exact failure this check exists to prevent.
         p = re.sub(r":\d+(?:-\d+)?$", "", p)
+        # A GLOB is a pattern, not a path: "/agent-desk/sent/**" can never exist, so stat'ing it gave a
+        # false MISSING for a real directory (bun-desktop 2026-09-27-092, third false-MISSING class).
+        # Check the literal directory prefix instead; a base that does not exist is still MISSING.
+        if any(ch in p for ch in "*?["):
+            parts = p.split("/")
+            cut = next(i for i, seg in enumerate(parts) if any(ch in seg for ch in "*?["))
+            p = "/".join(parts[:cut]) or "/"
         if not p.startswith(CONTAINER_PREFIXES):
             continue
         if p not in seen:
