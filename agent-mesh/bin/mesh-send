@@ -51,6 +51,10 @@ Exit codes:
     5  force-leak REFUSED — the override's audit record could not be written. Distinct
        from 4 on purpose: 4 means "you may override this", 5 means "your override was
        denied". Sharing a code would make them indistinguishable to retry logic.
+    6  the PRIMARY WAS DELIVERED but one or more --cc copies could not be written. Do NOT resend
+       the primary (it would duplicate); re-send only to the cc named FAILED on stdout. (2026-09-27,
+       per-recipient numbering design amendment 2.) With --cc, stdout carries one line per
+       recipient before the path, and the path stays the LAST line; without --cc stdout is unchanged.
 """
 from __future__ import annotations
 
@@ -763,6 +767,7 @@ def main() -> None:
     # here with the candidates listed. A full filename that this agent does not hold in any
     # of its own dirs is allowed with a WARN — replies to items seen via cc or a digest are
     # legitimate, and the record still carries the exact name.
+    _rt_canonical = None
     if args.replies_to:   # runs in --dry-run too: a dry run that passes what the send refuses is unfaithful
         _rt_raw = str(args.replies_to).strip()
         _rt_base = os.path.basename(_rt_raw)
@@ -787,6 +792,28 @@ def main() -> None:
             print(f"mesh-send: WARN — --replies-to {_rt_base} is not in any of your own dirs (inbox, .read, "
                   f"inbox-acked, sent, sent/archive). Allowed — a reply to a cc'd or digested item — but make sure "
                   f"the name is the sender's exact filename, not one you reconstructed from a prefix.", file=sys.stderr)
+        # TWO NAMES (2026-09-27, per-recipient numbering amendment 3): a cc copy renumbered into this inbox
+        # carries CC-ORIGINAL (the author's sent/ name). REPLIES-TO stays the name AS DELIVERED here
+        # (mesh-ack, .md.lock mutexes and mesh-on key on local files); REPLIES-TO-CANONICAL adds the
+        # author-side name so the author's tooling can find the reply. Cite as delivered in the citing
+        # inbox; resolve across inboxes via CC-ORIGINAL.
+        for _d in _own_dirs:
+            _p = os.path.join(_d, _rt_base)
+            if not os.path.isfile(_p):
+                continue
+            try:
+                with open(_p, encoding="utf-8", errors="replace") as _fh:
+                    _lines = _fh.read(6000).splitlines()
+                if _lines and _lines[0].strip() == "---":
+                    for _ln in _lines[1:80]:
+                        if _ln.strip() == "---":
+                            break
+                        if _ln.startswith("CC-ORIGINAL:"):
+                            _rt_canonical = _ln.split(":", 1)[1].strip() or None
+                            break
+            except OSError:
+                pass
+            break
 
     # ---- claim slot ----
     slot, md_path, claim = claim_slot(inbox, sender, topic)
@@ -803,6 +830,8 @@ def main() -> None:
         f"SIZE: {size_tier}",
         f"END-OF-TURN: {end_of_turn}",
     ]
+    if _rt_canonical and _rt_canonical != os.path.basename(str(args.replies_to)):
+        fm_lines.insert(5, f"REPLIES-TO-CANONICAL: {_rt_canonical}")   # right after REPLIES-TO
     if relayed_via_cc:
         # DISCLOSE THE RELAY IN THE DELIVERED FILE (bun-desktop 2026-09-10-116): rc 0 + a stderr line was
         # the only trace, and stderr is dropped by every scripted caller — after the fact nobody could tell a
@@ -843,6 +872,7 @@ def main() -> None:
         return
 
     # ---- write primary ----
+    cc_results = []   # (cc, "queued"|"FAILED", path-or-error): the per-recipient truth (amendment 2)
     try:
         _write_atomic(md_path, content)
         # sent/ mirror (keeps audit record + powers AUTHOR validation + RECENT.md)
@@ -858,8 +888,10 @@ def main() -> None:
             try:
                 cc_dir.mkdir(parents=True, exist_ok=True)
                 _write_atomic(cc_dir / f"{slot}.md", content)
+                cc_results.append((cc, "queued", str(cc_dir / f"{slot}.md")))
             except OSError as e:
                 print(f"mesh-send: warning: could not cc to {cc}: {e}", file=sys.stderr)
+                cc_results.append((cc, "FAILED", str(e)))
     finally:
         release_claim(claim)
 
@@ -962,7 +994,19 @@ def main() -> None:
         if _os2.environ.get("MESH_NOTE_DEBUG"):
             print(f"mesh-send: NOTE-DEBUG — reminder block raised {_note_exc!r}", file=sys.stderr)
 
+    if ccs:
+        # PER-RECIPIENT TRUTH (2026-09-27, amendment 2): one line per recipient, the path still LAST.
+        # A cc copy is queued in the overlay; host mesh-cc-merge numbers it in the cc's own inbox.
+        _how = "relayed via cc overlay (host merge delivers)" if relayed_via_cc else "delivered"
+        print(f"to {recipient_uri}: {_how} {md_path}")
+        for _cc, _st, _info in cc_results:
+            if _st == "queued":
+                print(f"cc {_cc}@mesh: queued for merge into {_cc}'s inbox ({_info})")
+            else:
+                print(f"cc {_cc}@mesh: FAILED ({_info})")
     print(str(md_path))
+    if any(_st == "FAILED" for _, _st, _ in cc_results):
+        sys.exit(6)   # primary delivered; a cc copy was not. Never resend the primary on this code.
 
 
 if __name__ == "__main__":
