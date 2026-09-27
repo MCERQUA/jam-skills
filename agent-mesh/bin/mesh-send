@@ -393,18 +393,32 @@ def find_start_seq(inbox: Path, date: str) -> int:
     return maxn + 1 if maxn else 1
 
 
+_UNCHECKED_DIRS: set = set()
+
+
 def _number_in_use(inbox: Path, date: str, n: int) -> bool:
     """True if a message (or a pre-fix sender's filename-keyed claim) already carries {date}-{n}.
 
-    The authoritative backstop: the number-keyed claim is transient, the files are not. A directory we
-    cannot read counts as IN USE, so an unreadable archive costs a skipped number, never a reuse."""
-    pat = f"{date}-{n:03d}-*"
+    The authoritative backstop: the number-keyed claim is transient, the files are not.
+    THREE VERDICTS, not two. An unreadable directory is CANNOT-TELL: it is skipped (treating it as "every
+    number in use" was measured to block ALL delivery to that inbox, "no free slot in 999 tries", which
+    trades a reuse for lost mail), and it is RECORDED in _UNCHECKED_DIRS, which the ALLOCATOR frontmatter
+    line carries, so a later reuse is attributable instead of silent.
+    List explicitly: pathlib.Path.glob() swallows PermissionError and yields nothing, so the first version
+    of this check read an unreadable dir as EMPTY and said nothing (bun-desktop 2026-09-27-057, measured)."""
+    pfx = f"{date}-{n:03d}-"
     for d in (inbox, inbox / ".read", inbox / ".archive", inbox / ".acked"):
         try:
-            if d.is_dir() and next(d.glob(pat), None) is not None:
-                return True
+            if not d.is_dir():
+                continue
+            with os.scandir(d) as it:
+                if any(e.name.startswith(pfx) for e in it):
+                    return True
         except OSError:
-            return True
+            if d.name not in _UNCHECKED_DIRS:
+                _UNCHECKED_DIRS.add(d.name)
+                print(f"mesh-send: WARNING cannot read {d}; sequence numbers there are unchecked "
+                      f"(recorded in ALLOCATOR)", file=sys.stderr)
     return False
 
 
@@ -414,7 +428,10 @@ def _allocator_stamp() -> str:
         import hashlib
         here = os.path.realpath(__file__)
         with open(here, "rb") as fh:
-            return f"mesh-send {hashlib.sha256(fh.read()).hexdigest()[:8]} {here}"
+            stamp = f"mesh-send {hashlib.sha256(fh.read()).hexdigest()[:8]} {here}"
+        if _UNCHECKED_DIRS:
+            stamp += " unchecked=" + ",".join(sorted(_UNCHECKED_DIRS))
+        return stamp
     except OSError:
         return "mesh-send unknown"
 
