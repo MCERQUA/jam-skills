@@ -67,7 +67,7 @@ curl -sS -X POST 'https://foambook.jam-bot.com/api/contacts' \
 curl -sS -X PUT 'https://foambook.jam-bot.com/api/contacts/66' \
   -H "Authorization: Bearer $FOAMBOOK_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"phone":"(817) 677-1200","notes":"updated 2026-05-11"}'
+  -d '{"phone":"(555) 010-0142","notes":"updated 2026-05-11"}'
 ```
 
 The header can also be `X-FoamBook-Key: $FOAMBOOK_API_KEY` if Authorization is awkward.

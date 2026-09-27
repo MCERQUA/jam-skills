@@ -42,10 +42,10 @@ bash -c '
   ./scripts/deploy-design-system.sh nick > /tmp/deploy-$$.log 2>&1
   RC=$?
   if [ $RC -eq 0 ]; then
-    bash /mnt/shared-skills/sms-router/sms-send.sh test-dev +14374559131 \
+    bash /mnt/shared-skills/sms-router/sms-send.sh test-dev +1<MIKE_PHONE> \
       "Deploy done. Design system live on nick.jam-bot.com. No errors."
   else
-    bash /mnt/shared-skills/sms-router/sms-send.sh test-dev +14374559131 \
+    bash /mnt/shared-skills/sms-router/sms-send.sh test-dev +1<MIKE_PHONE> \
       "Deploy FAILED (exit $RC). Log: /tmp/deploy-$$.log"
   fi
 ' &
@@ -57,7 +57,7 @@ The `&` backgrounds it so your agent reply turn can finish + ack the operator im
 
 ```bash
 # Spawn a sub-mesh agent that handles the work + reports back
-mesh_send mesh-agent-nick "deploy design system; on done, sms-send test-dev +14374559131 'deploy done'"
+mesh_send mesh-agent-nick "deploy design system; on done, sms-send test-dev +1<MIKE_PHONE> 'deploy done'"
 ```
 
 **Pattern C: cron-scheduled completion check**
@@ -73,7 +73,7 @@ curl -X POST http://172.17.0.1:6450/thread/open \
   -H 'Content-Type: application/json' \
   -d '{
     "tenant": "test-dev",
-    "operator_phone": "+14374559131",
+    "operator_phone": "+1<MIKE_PHONE>",
     "summary": "Deploy design system to nick",
     "task_id": "deploy-abc123"
   }'

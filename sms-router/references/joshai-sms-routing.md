@@ -16,7 +16,7 @@ agent's own number (+19286986125) rather than the shared admin line.
 | InkBox phone_id | `f9f18067-c34f-43ea-a785-ed6d82191b2e` |
 | Creds file | `/mnt/clients/josh/openclaw/workspace/.inkbox-joshai.env` (gitignored) |
 | Webhook subscription | `b5110c34-…` (text.received, filter_mode=whitelist) |
-| Whitelist | Mike's `+14374559131` only |
+| Whitelist | Mike's `+1<MIKE_PHONE>` only |
 | Admin line (Mike) | `+15204341343` (reference profile — CA already enabled) |
 
 ---
@@ -33,7 +33,7 @@ agent's own number (+19286986125) rather than the shared admin line.
 
 Agent (or drain script) POSTs:
 ```json
-{"identity": "joshai", "to": "+14374559131", "body": "..."}
+{"identity": "joshai", "to": "+1<MIKE_PHONE>", "body": "..."}
 ```
 to `http://127.0.0.1:6450/send` → `inkbox_send_as("joshai", to, body)` → InkBox API →
 reply lands on Mike's phone FROM `+19286986125`.
@@ -64,10 +64,10 @@ Fix requires Mike's login to the InkBox dashboard:
 
 To verify after Mike's fix:
 ```bash
-# From sms-host, ask Mike to trigger a joshai→+14374559131 test text, then check:
+# From sms-host, ask Mike to trigger a joshai→+1<MIKE_PHONE> test text, then check:
 curl -s -X POST http://127.0.0.1:6450/send \
   -H "Content-Type: application/json" \
-  -d '{"identity":"joshai","to":"+14374559131","body":"joshai CA routing test"}'
+  -d '{"identity":"joshai","to":"+1<MIKE_PHONE>","body":"joshai CA routing test"}'
 # Expect: {"sid":"...","status":"queued"} — NOT carrier_rejected
 ```
 

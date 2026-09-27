@@ -12,7 +12,7 @@
 #   foambook.sh company 38
 #   foambook.sh companies --segment manufacturer
 #   foambook.sh add-contact "Joel" "Pressley" --company-id 42 --role "Field Supervisor" --email joel@insulate48.com
-#   foambook.sh update-contact 66 --phone "(817) 677-1200"
+#   foambook.sh update-contact 66 --phone "(555) 010-0142"
 #   foambook.sh add-company "Insulate48" --segment contractor --website insulate48.com
 #   foambook.sh set-photo 66 /tmp/joel.jpg
 
