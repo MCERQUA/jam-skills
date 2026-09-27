@@ -20,11 +20,14 @@ import generate as g
 from lib import fetch_brand
 
 # (domain, expected_country_substr_or_None) — real businesses across country/stack/vertical.
+# NOT our clients (this repo is public): third-party sites chosen 2026-09-27 to exercise the same detector
+# paths the client fixtures did, all PASS on every signal. A Canada row must be a .ca: with no --state/--city
+# the resolver falls back to United States for a .com, whatever the business.
 MATRIX = [
-    ("azrimrepair.com", "United States"),               # US, AZ, rim repair
+    ("kwicksilverusa.com", "United States"),            # US, wheel/rim repair
     ("foamit.ca", "Canada"),                            # CA, insulation, WordPress, www-redirect
-    ("printguys.ca", "Canada"),                         # CA, apparel printing, Next.js
-    ("insulationcontractorsofarizona.com", "United States"),
+    ("apexworkwear.ca", "Canada"),                      # CA, apparel printing, Next.js
+    ("cameronhomeinsulation.com", "United States"),     # US, insulation contractor, WordPress
 ]
 
 _BAD_LOGO_HINTS = ("og-image", "og_image", "social", "banner", "hero", "cover",
