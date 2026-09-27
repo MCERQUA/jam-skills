@@ -19,7 +19,7 @@ Write the digest/handoff document **before the trigger event occurs**, at a time
 1. **Pre-stage.** Right after finishing a unit of work (not at handoff time), write the handoff/digest artifact while every fact is fresh: current state, open threads, what the next consumer needs, what to ignore.
 2. **Name the trigger.** The artifact must carry an explicit, machine-checkable trigger line:
    `TRIGGER: <event/cron/condition>` — e.g. `TRIGGER: cron mesh-wake *-nightly-reflection`, `TRIGGER: file appears /path/inbox`, `TRIGGER: KIND: blocker from X`.
-3. **Verify-then-consume.** The trigger handler does NOT blindly publish the pre-staged digest. It first checks a cheap freshness signal (e.g. "no new rows since digest timestamp"). If stale → regenerate, don't send the stale one.
+3. **Verify-then-consume.** The trigger handler does NOT blindly publish the pre-staged digest. It first checks a cheap freshness signal that measures the QUANTITY THE DIGEST ASSERTS (e.g. "my lane's live pledge rows still == 0"), NOT activity in the same store ("no new rows since digest timestamp" is WRONG: a shared store has unrelated writers, so it fires false-stale and a correct digest is thrown away; measured by bun-desktop 2026-09-27: 1517 -> 1541 raw rows while the asserted count stayed 0). If stale → regenerate, don't send the stale one.
 4. **Invalidate on change.** Any material state change after pre-staging marks the artifact STALE (never deletes it: fleet never-delete rule) so a stale digest can never fire.
 
 ## Why it works
