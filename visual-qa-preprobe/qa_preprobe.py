@@ -42,13 +42,27 @@ CHECK_JS = """
     }
     return false;
   };
-  // element overflow (skip intentional hiders)
+  // by-design ellipsis clip: ancestor chose text-overflow:ellipsis + hidden/clip overflow —
+  // clipped text is the designed presentation, not an offscreen bug (predicate fix 2026-09-28;
+  // 12 of 13 raw flags on insurance-app-tasks were this artifact shape — NO-SHIP by construction)
+  const isEllipsisClip = el => {
+    let c = el;
+    while (c && c !== document.body) {
+      const cs = getComputedStyle(c);
+      if (cs.textOverflow === 'ellipsis' && (cs.overflowX === 'hidden' || cs.overflowX === 'clip')) return true;
+      c = c.parentElement;
+    }
+    return false;
+  };
+  // element overflow (skip intentional hiders and by-design ellipsis clips; count exclusions)
   out.elem_overflow = [];
+  out.excluded_ellipsis_elem = 0;
   const seen = new Set();
   document.querySelectorAll('*').forEach(el => {
     if (!visible(el)) return;
     const ovs = getComputedStyle(el).overflowX;
     if (ovs === 'auto' || ovs === 'scroll') return;
+    if ((ovs === 'hidden' || ovs === 'clip') && getComputedStyle(el).textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 2) { out.excluded_ellipsis_elem++; return; }
     const tag = el.tagName;
     if (['HTML','BODY','SCRIPT','STYLE','LINK','META','HEAD'].includes(tag)) return;
     const cs = getComputedStyle(el);
@@ -70,6 +84,7 @@ CHECK_JS = """
     const el = n.parentElement;
     if (!el) continue;
     if (inScrollRail(el)) continue;
+    if (isEllipsisClip(el)) { out.excluded_ellipsis_text = (out.excluded_ellipsis_text || 0) + 1; continue; }
     let hidden = false, cur = el;
     while (cur && cur !== document.body) {
       const cs = getComputedStyle(cur);
@@ -297,7 +312,7 @@ def main():
     verdict = "SHIP" if counts["CRITICAL"] == 0 and counts["HIGH"] == 0 else "NO-SHIP"
     report = {
         "artifact": name, "artifact_path": artifact, "client": client,
-        "audit_date": "2026-09-06", "auditor": "quality-assurance-manager@mesh",
+        "audit_date": __import__("datetime").date.today().isoformat(), "auditor": "quality-assurance-manager@mesh",
         "audit_type": "re-audit after root-cause fix",
         "viewports": [v[2] for v in VIEWPORTS], "combinations": combos,
         "bug_counts": counts, "total_bugs": len(bugs), "verdict": verdict,
@@ -308,7 +323,7 @@ def main():
     }
     with open(os.path.join(outdir, "audit-report.json"), "w") as f:
         json.dump(report, f, indent=1)
-    lines = [f"# Re-audit — {name} ({client}) — 2026-09-06", "",
+    lines = [f"# Re-audit — {name} ({client}) — {report['audit_date']}", "",
              f"**Verdict: {verdict}** — {counts['CRITICAL']} critical / {counts['HIGH']} high / {counts['MEDIUM']} medium / {counts['LOW']} low",
              ""]
     for b in bugs:

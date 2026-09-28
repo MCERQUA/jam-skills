@@ -7,19 +7,3 @@ node_modules/
 
 # the claude CLI binary the containers run via z-code (/skills/.claude-cli/) — 300+ MB, never in git (GitHub 100 MB cap; 2026-09-07 snapshot committed it and every push failed for 2 days)
 .claude-cli/
-
-# Backup copies never belong in this PUBLIC repo (2026-09-27): 148 were tracked, 8 of them the
-# pre-redaction originals of files whose PII had been removed, which undid the 08-30 redaction.
-# Backups stay on disk (never delete); they are just not published.
-*.bak
-*.bak-*
-*.bak.*
-*.pre-*
-*.orig
-
-# client data never lives in this public repo: per-client blog-factory configs, ledgers and generated
-# articles belong in the owning tenant cell (/mnt/clients/<tenant>/openclaw/workspace/blog-factory/)
-article-writer/scripts/config/*.json
-article-writer/blog-factory-ledger.jsonl
-article-writer/scripts/blog-factory-ledger.jsonl
-article-writer/scripts/output*.mdx

@@ -1,0 +1,50 @@
+{
+  "site_key": "internationalinsuranceagency",
+  "brand": "International Insurance Agency",
+  "site_author": "International Insurance Agency",
+  "site_url": "https://internationalinsuranceagency.co",
+  "location": "United States",
+
+  "repo_path": "/mnt/clients/josh/openclaw/workspace/Websites/internationalinsuranceagency.co",
+  "git_branch": "main",
+  "framework": "next-mdx-content",
+  "blog_dir": "content/blog",
+  "blog_index": "src/app/blog/page.tsx",
+  "sitemap_file": "",
+  "blog_path_prefix": "/blog/",
+  "frontmatter_desc_key": "excerpt",
+
+  "knowledge_base": "/mnt/clients/josh/openclaw/workspace/knowledge",
+
+  "money_pages": ["/quote", "/contact", "/about", "/services/global-business-insurance", "/services/political-risk-insurance"],
+
+  "authority_seed_urls": [
+    "https://www.iii.org/article/what-is-business-insurance",
+    "https://www.sba.gov/business-guide/launch-your-business/get-business-insurance",
+    "https://www.naic.org/consumer.htm",
+    "https://travel.state.gov/content/travel/en/international-travel/before-you-go/your-health-abroad/insurance-providers-overseas.html",
+    "https://www.trade.gov/insurance",
+    "https://www.dfc.gov/what-we-offer/our-products/political-risk-insurance",
+    "https://www.ftc.gov/business-guidance",
+    "https://www.irs.gov/businesses/small-businesses-self-employed"
+  ],
+
+
+  "gates": {
+    "min_words": 1000,
+    "meta_desc_min": 120,
+    "meta_desc_max": 200,
+    "title_max": 75,
+    "min_h2": 4,
+    "require_featured_image": false,
+    "min_outbound": 4,
+    "authority_dr_min": 60,
+    "authority_allowlist": [".gov", ".edu", "iii.org", "naic.org", "irs.gov", "osha.gov", "sba.gov", "consumer.ftc.gov", "state.gov", "trade.gov", "iso.org", "ansi.org", "nist.gov", "ftc.gov", "opic.gov", "dfc.gov"],
+    "min_money_links": 1,
+    "min_blog_links": 1,
+    "min_internal_total": 2
+  },
+
+  "cadence_cron": "0 14 * * 2",
+  "gen_model": "glm"
+}

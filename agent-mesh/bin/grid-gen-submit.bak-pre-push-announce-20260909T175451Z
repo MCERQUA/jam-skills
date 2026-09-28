@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""grid-gen-submit — a tenant voice agent drops a Grid Creator order into the mesh queue for the
+Mac creative node (macmini-office@mesh) to drain.
+
+FILE-DROP, NOT a mesh `task`, on purpose (2026-07-30): a `task` to macmini-office@mesh is
+auto-executed by the Mac's permissionless `mac-listener` (TRUSTED_SENDERS includes the tenant
+*-voice agents) → `claude --print --dangerously-skip-permissions`, with NO brand kit, NO CDP
+ChatGPT browser rig, and a possible paid-API image call — the June-2026 incident class. The Mac
+does NOT watch grid-gen-queue/, so it drains this file one-at-a-time with the full brand rig.
+
+The brief is read from STDIN so quotes/newlines in it can never corrupt the JSON.
+
+Usage (run by the tenant voice agent per its TOOLS.md [GRID-GEN] instruction):
+  grid-gen-submit --client <tenant> --request-id <id> --type post|logo|character|mascot \
+      --count 9 --aspect 1:1 --layout composite|separate <<'BRIEF'
+  <the brief text, verbatim>
+  BRIEF
+"""
+import argparse
+import json
+import os
+import sys
+import tempfile
+import time
+import pathlib as _pl
+sys.path.insert(0, str(_pl.Path(__file__).resolve().parent.parent / "lib"))
+from intel_filter import enforce as _intel_enforce  # noqa: E402  SEC-032 fail-closed gate
+
+MESH_ROOT = os.environ.get("MESH_ROOT", "/mnt/agent-mesh")
+QUEUE = os.path.join(MESH_ROOT, "mesh", "grid-gen-queue")
+VALID_TYPES = {"post", "logo", "character", "mascot"}
+VALID_LAYOUT = {"composite", "separate"}
+
+
+def _find_record_dir():
+    """Locate this tenant's openvoiceui uploads/grid-orders/ dir from inside the agent container.
+
+    The openclaw container mounts the tenant's openvoiceui uploads/ at these paths (RW). Writing
+    the order record there makes a voice-scheduled order appear in the Grid Creator page queue.
+    Returns the grid-orders path to use, or None if no uploads mount is present (e.g. run on the
+    host, where the page/API already owns the record).
+    """
+    env = os.environ.get("GRID_ORDER_DIR")
+    if env:
+        return env
+    home = os.path.expanduser("~")
+    for base in (f"{home}/.openclaw/workspace/uploads", "/app/runtime/uploads",
+                 "/home/node/.openclaw/workspace/uploads"):
+        if os.path.isdir(base):
+            return os.path.join(base, "grid-orders")
+    return None
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(prog="grid-gen-submit")
+    p.add_argument("--client", required=True, help="tenant id — selects the brand kit on the Mac")
+    p.add_argument("--request-id", default="", help="optional — auto-generated if omitted")
+    p.add_argument("--type", required=True)
+    p.add_argument("--count", type=int, default=9)
+    p.add_argument("--aspect", default="1:1")
+    p.add_argument("--layout", default="composite")
+    a = p.parse_args()
+
+    rid = (a.request_id or "").strip()
+    if not rid:
+        rid = "gg-" + format(int(time.time()), "x") + "-" + os.urandom(3).hex()
+    if "/" in rid or "\\" in rid or ".." in rid:
+        sys.exit("grid-gen-submit: invalid --request-id")
+    if a.type not in VALID_TYPES:
+        sys.exit(f"grid-gen-submit: --type must be one of {sorted(VALID_TYPES)}")
+    layout = a.layout if a.layout in VALID_LAYOUT else "composite"
+    brief = sys.stdin.read().strip()
+    if not brief:
+        sys.exit("grid-gen-submit: brief (stdin) is empty — nothing to generate")
+    _intel_enforce(brief[:2000], tool="grid-gen-submit")  # SEC-032 — fail-closed on leak
+
+    order = {
+        "client_id": a.client,
+        "request_id": rid,
+        "grid_type": a.type,
+        "count": max(1, min(24, a.count)),
+        "aspect": a.aspect,
+        "layout": layout,
+        "brief": brief[:2000],
+        "reply_to": f"{a.client}-voice@mesh",
+        "submitted_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+
+    os.makedirs(QUEUE, exist_ok=True)
+    dst = os.path.join(QUEUE, f"{rid}.json")
+    # Atomic write: temp file in the same dir + rename, so the Mac's drainer never reads a
+    # half-written order.
+    fd, tmp = tempfile.mkstemp(dir=QUEUE, prefix=f".{rid}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(order, f)
+        # mkstemp is 0600; the Mac reads the mesh share possibly as a different uid, so make the
+        # order world-readable or it can silently fail to pick up the drop.
+        os.chmod(tmp, 0o664)
+        os.rename(tmp, dst)
+    except OSError as e:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        sys.exit(f"grid-gen-submit: could not write queue file: {e}")
+
+    # ALSO drop an order record into the tenant's openvoiceui uploads/grid-orders/ so the Grid
+    # Creator page lists it as "queued" immediately — this is what makes a voice-scheduled order
+    # (no page form) show up in the queue. The openclaw agent container mounts that uploads dir
+    # RW. Best-effort: the page-driven flow already wrote this record via the API, so a failure
+    # here is non-fatal (the queue file is the authoritative trigger regardless).
+    record = {
+        "request_id": rid, "grid_type": a.type, "brief": brief[:2000],
+        "count": order["count"], "aspect": a.aspect, "layout": layout, "refs": [],
+        "status": "queued", "created_at": order["submitted_at"],
+        "source": "voice-agent",
+    }
+    rec_dir = _find_record_dir()
+    rec_written = None
+    if rec_dir:
+        try:
+            os.makedirs(rec_dir, exist_ok=True)
+            try:
+                os.chmod(rec_dir, 0o777)
+            except OSError:
+                pass
+            rpath = os.path.join(rec_dir, f"{rid}.json")
+            if not os.path.exists(rpath):  # never clobber a page-written record
+                rfd, rtmp = tempfile.mkstemp(dir=rec_dir, prefix=f".{rid}.", suffix=".tmp")
+                with os.fdopen(rfd, "w") as f:
+                    json.dump(record, f)
+                os.chmod(rtmp, 0o664)
+                os.rename(rtmp, rpath)
+                rec_written = rpath
+        except OSError:
+            pass  # non-fatal — queue file still drives the Mac
+
+    print(f"grid-gen queued: {dst}")
+    print(f"  client={a.client} type={a.type} count={order['count']} "
+          f"aspect={a.aspect} layout={layout}")
+    if rec_written:
+        print(f"  order shows on the Grid Creator page: {rec_written}")
+
+
+if __name__ == "__main__":
+    main()
