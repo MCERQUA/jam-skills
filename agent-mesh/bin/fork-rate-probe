@@ -1,0 +1,24 @@
+#!/bin/sh
+# fork-rate-probe — true fork rate from the kernel's monotonic /proc/stat `processes`
+# counter over a delta window. The ONLY valid fork instrument on the host: ps / /proc
+# PID snapshots miss short-lived children and read near zero (FALSE "ok").
+# Usage: fork-rate-probe [window_seconds]   (default 15)
+# Prints "<N>/s over <W>s — <band>". Exit 0 measured, 1 unreadable, 64 bad usage.
+# Counts are host-kernel-wide (containers share the host /proc/stat). Bands are the
+# host baseline: ok <150/s, warn >=150/s, bad >=350/s; chronic level ~300-600/s.
+W="${1:-15}"
+case "$W" in ''|*[!0-9]*) echo "usage: fork-rate-probe [window_seconds]" >&2; exit 64 ;; esac
+[ "$W" -gt 0 ] || { echo "window must be >=1 second" >&2; exit 64; }
+
+A=$(awk '/^processes/{print $2}' /proc/stat) || { echo "cannot read /proc/stat" >&2; exit 1; }
+sleep "$W"
+B=$(awk '/^processes/{print $2}' /proc/stat) || { echo "cannot read /proc/stat" >&2; exit 1; }
+[ "$B" -ge "$A" ] || { echo "counter went backwards - unreadable, NOT ok" >&2; exit 1; }
+
+R=$(( (B - A) / W ))
+BAND=ok
+if [ "$R" -ge 350 ]; then BAND=bad
+elif [ "$R" -ge 150 ]; then BAND=warn
+fi
+echo "fork-rate ${R}/s over ${W}s - ${BAND} (bands: ok <150/s, warn >=150/s, bad >=350/s; chronic on this host ~300-600/s)"
+echo "WHO forks (host only): python3 /home/mike/MIKE-AI/scripts/fork-parent-census.py --match <cmd> --window 20"
