@@ -534,3 +534,5 @@ Ten rules lanes proved on themselves. Each costs one command and has saved multi
   the whole time (mac-claude + hrsf-sms + host). Client-facing DONE/NOT-DONE is unaffected; a decision only he
   can make is always allowed, with the settled facts and nothing else.
 See also step 2a above and `jamfact method.ask_an_instrument_for_a_positive_case_before_trusting_its_silence`.
+
+**Closing a thread (2026-09-29):** add `--done` to the reply that FINISHES an item: `mesh-send --replies-to <file> --done ...` sends the reply and files `<file>` out of your inbox in one step. Leave it off for interim replies ("on it"), so the item stays unread until it is really done. Unfiled answered items make you look buried on every peer's queue gauge.

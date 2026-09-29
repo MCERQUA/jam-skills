@@ -569,6 +569,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--subject", required=True, help="kebab-case topic (becomes filename <topic> segment)")
     p.add_argument("--replies-to", "--reply-to", default=None, dest="replies_to",
                    help="prior filename this replies to")
+    p.add_argument("--done", action="store_true",
+                   help="with --replies-to: this reply CLOSES that item, so file it (mesh-ack) after a successful send")
     p.add_argument("--cc", action="append", default=[], help="cc recipient URI, repeatable")
     p.add_argument("--urgent", action="store_true", help="add URGENT: true frontmatter (required for KIND urgent; carve-out for KIND ack)")
     p.add_argument("--state-check", default=None, help="STATE_CHECK frontmatter (forensic snapshot text)")
@@ -946,9 +948,21 @@ def main() -> None:
         _self_inbox = _os2.path.join(str(my_dir), "inbox")
         if args.replies_to:
             _rt = _os2.path.basename(str(args.replies_to))
+            # --done (2026-09-29, Mike: "clear them out so it doesn't look like you have 200 messages"):
+            # the SENDER declares this reply closes the item, so file it now. Explicit on purpose, never
+            # automatic: an interim "on it" reply must leave the item unread (see A REMINDER above).
+            if getattr(args, "done", False) and _os2.path.isfile(_os2.path.join(_self_inbox, _rt)):
+                import subprocess as _sp2
+                _ack = _os2.path.join(_os2.path.dirname(_os2.path.realpath(__file__)), "mesh-ack")
+                _r = _sp2.run([_ack, _rt], capture_output=True, text=True, timeout=30)
+                if _r.returncode == 0 and not _os2.path.isfile(_os2.path.join(_self_inbox, _rt)):
+                    print(f"mesh-send: filed {_rt} (--done)", file=sys.stderr)
+                else:
+                    print(f"mesh-send: --done could NOT file {_rt} (mesh-ack rc={_r.returncode}): "
+                          f"{(_r.stderr or _r.stdout).strip()[:200]}", file=sys.stderr)
             if _os2.path.isfile(_os2.path.join(_self_inbox, _rt)):
                 print(f"mesh-send: NOTE — you replied to {_rt}, and it is STILL UNACKED in your own "
-                      f"inbox. Every board reads the record, not the act: run `mesh-ack {_rt}` once you "
+                      f"inbox. Every board reads the record, not the act: add --done to the reply that closes it, or run `mesh-ack {_rt}` once you "
                       f"have consumed it (not before — an ack hides it from the next session).",
                       file=sys.stderr)
         elif recipient != sender:
