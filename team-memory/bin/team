@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""team — ONE shared memory + task board for every agent that serves the same person/tenant.
+
+Mike, 2026-10-01: "her laptop, desktop and voice and sms agents all need to share the same
+context/memory/task managers". Before this, each lane kept its own memory (desktop: Claude
+project memory; voice: workspace MEMORY.md; sms: none; laptop: a local CLAUDE.md) and nothing
+was shared.
+
+Store: <tenant workspace>/team/   (inside the tenant's own jail cell, never shared across tenants)
+  MEMORY.md    append-only shared memory, one dated entry per fact, author = AGENT_URI
+  tasks.json   the task board (authoritative); TASKS.md is re-rendered from it on every write
+
+Commands (every lane runs the same tool; the restricted laptop door exposes it as `team ...`):
+  team context                     memory + open tasks: what a session should load at start
+  team memory                      print the shared memory
+  team remember  < text            append a dated entry
+  team tasks [--all]               open tasks (or all)
+  team task-add "<title>" [--owner <agent>] [--for <person>] [--note "<text>"]
+  team task-set <id> <open|doing|waiting|done> [--owner <agent>] [--note "<text>"]
+  team kit <file>                  print a file from this skill's laptop-kit/ (remote-node setup)
+
+Tenant: --tenant <t>, else TEAM_TENANT, else the first segment of AGENT_URI (danielle-desktop@mesh
+-> danielle). A lane can only reach the workspace mounted into its own container, so it cannot
+read another tenant's store.
+"""
+import fcntl, json, os, re, sys, time
+from contextlib import contextmanager
+
+SKILL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATUSES = ("open", "doing", "waiting", "done")
+NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,40}$")
+
+def die(msg, rc=64):
+    sys.stderr.write(f"team: {msg}\n"); sys.exit(rc)
+
+def now():
+    return time.strftime("%Y-%m-%d %H:%MZ", time.gmtime())
+
+def agent():
+    a = os.environ.get("AGENT_URI", "").strip()
+    if not re.fullmatch(r"[a-z0-9-]+@mesh", a):
+        die("AGENT_URI must be set to <agent>@mesh (it is written as the author)", 3)
+    return a
+
+def tenant(args):
+    if "--tenant" in args:
+        i = args.index("--tenant"); t = args[i + 1] if i + 1 < len(args) else ""; del args[i:i + 2]
+    else:
+        t = os.environ.get("TEAM_TENANT") or agent().split("@")[0].split("-")[0]
+    if not NAME_RE.fullmatch(t or ""):
+        die(f"bad tenant {t!r}")
+    return t
+
+def store(t):
+    test = os.environ.get("TEAM_STORE_TEST")  # self-test only; the laptop door passes no such env
+    if test:
+        os.makedirs(test, exist_ok=True); return test
+    # Candidates in the order a lane would see its OWN tenant's workspace. The first two are only
+    # ever mounted for that container's tenant; the host path names the tenant explicitly.
+    for ws in (f"/mnt/clients/{t}/openclaw/workspace", "/home/node/.openclaw/workspace", "/workspace"):
+        if os.path.isdir(ws) and (ws.startswith("/mnt/clients/") or os.path.isfile(os.path.join(ws, "MEMORY.md"))):
+            d = os.path.join(ws, "team")
+            os.makedirs(d, exist_ok=True)
+            return d
+    die(f"no workspace for tenant {t!r} is mounted here (CANNOT-TELL, not empty)", 66)
+
+@contextmanager
+def locked(d):
+    with open(os.path.join(d, ".lock"), "a+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+def opt(args, name, default=None):
+    if name in args:
+        i = args.index(name)
+        if i + 1 >= len(args): die(f"{name} needs a value")
+        v = args[i + 1]; del args[i:i + 2]; return v
+    return default
+
+def load_tasks(d):
+    p = os.path.join(d, "tasks.json")
+    if not os.path.exists(p):
+        return {"next": 1, "tasks": []}
+    with open(p) as f:
+        return json.load(f)
+
+def save_tasks(d, data):
+    p = os.path.join(d, "tasks.json"); tmp = p + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=1); f.write("\n")
+    os.replace(tmp, p)
+    lines = ["# Team task board (generated from tasks.json by `team` -- do not hand-edit)", ""]
+    for s in STATUSES:
+        rows = [x for x in data["tasks"] if x["status"] == s]
+        if not rows: continue
+        lines.append(f"## {s} ({len(rows)})")
+        for x in rows[-200:]:
+            lines.append(f"- **{x['id']}** {x['title']} | owner: {x.get('owner') or '-'} | for: {x.get('for') or '-'} | {x['updated']}")
+            for n in x.get("notes", [])[-3:]:
+                lines.append(f"  - {n}")
+        lines.append("")
+    tmp = os.path.join(d, "TASKS.md.tmp")
+    with open(tmp, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.replace(tmp, os.path.join(d, "TASKS.md"))
+
+def fmt_task(x):
+    s = f"{x['id']} [{x['status']}] {x['title']}  (owner: {x.get('owner') or '-'}, for: {x.get('for') or '-'}, updated {x['updated']})"
+    for n in x.get("notes", [])[-3:]:
+        s += f"\n    - {n}"
+    return s
+
+def print_memory(d):
+    p = os.path.join(d, "MEMORY.md")
+    sys.stdout.write(open(p).read() if os.path.exists(p) else "(team memory is empty)\n")
+
+def print_tasks(d, all_=False):
+    rows = [x for x in load_tasks(d)["tasks"] if all_ or x["status"] != "done"]
+    print("\n".join(fmt_task(x) for x in rows) if rows else "(no open tasks)")
+
+def main():
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help", "help"):
+        print(__doc__); return
+    tflag = None
+    if "--tenant" in args:  # global option, accepted anywhere on the line
+        i = args.index("--tenant")
+        if i + 1 >= len(args): die("--tenant needs a value")
+        tflag = args[i + 1]; del args[i:i + 2]
+    if not args: die("no command (try: team help)")
+    cmd = args.pop(0)
+    if cmd == "kit":
+        if len(args) != 1 or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", args[0]):
+            die("kit takes one file name from laptop-kit/")
+        p = os.path.join(SKILL, "laptop-kit", args[0])
+        if not os.path.isfile(p): die(f"no kit file {args[0]!r}", 66)
+        sys.stdout.write(open(p).read()); return
+    t = tenant(["--tenant", tflag] if tflag else []); d = store(t)
+    if cmd == "context":
+        print(f"=== TEAM MEMORY (tenant {t}, shared by every agent serving this person) ===")
+        print_memory(d)
+        print(f"\n=== OPEN TEAM TASKS ===")
+        print_tasks(d)
+        return
+    if cmd == "memory":
+        print_memory(d); return
+    if cmd == "tasks":
+        print_tasks(d, "--all" in args); return
+    if cmd == "remember":
+        a = agent(); text = sys.stdin.read().strip()
+        if not text: die("remember reads the entry from stdin; it was empty")
+        if len(text) > 4000: die("entry over 4000 chars: keep shared memory short, link to the detail")
+        with locked(d):
+            p = os.path.join(d, "MEMORY.md")
+            head = "" if os.path.exists(p) else ("# Team memory (shared by every agent serving this person)\n\n"
+                    "Append with `team remember`. One fact per entry. Newest at the bottom.\n")
+            with open(p, "a") as f:
+                f.write(f"{head}\n## {now()} -- {a}\n{text}\n")
+        print("remembered"); return
+    if cmd == "task-add":
+        a = agent(); owner = opt(args, "--owner"); who = opt(args, "--for"); note = opt(args, "--note")
+        if len(args) != 1 or not args[0].strip(): die('task-add takes one quoted title')
+        with locked(d):
+            data = load_tasks(d); tid = f"T{data['next']:03d}"; data["next"] += 1
+            x = {"id": tid, "title": args[0].strip()[:200], "status": "open", "owner": owner, "for": who,
+                 "created": now(), "created_by": a, "updated": now(), "notes": []}
+            if note: x["notes"].append(f"{now()} {a}: {note[:500]}")
+            data["tasks"].append(x); save_tasks(d, data)
+        print(fmt_task(x)); return
+    if cmd == "task-set":
+        a = agent(); owner = opt(args, "--owner"); note = opt(args, "--note")
+        if len(args) != 2: die("task-set <id> <status>")
+        tid, st = args
+        if st not in STATUSES: die(f"status must be one of {', '.join(STATUSES)}")
+        with locked(d):
+            data = load_tasks(d)
+            x = next((y for y in data["tasks"] if y["id"] == tid), None)
+            if not x: die(f"no task {tid}", 66)
+            x["status"] = st; x["updated"] = now()
+            if owner: x["owner"] = owner
+            x.setdefault("notes", []).append(f"{now()} {a}: -> {st}" + (f": {note[:500]}" if note else ""))
+            save_tasks(d, data)
+        print(fmt_task(x)); return
+    die(f"unknown command {cmd!r} (try: team help)")
+
+if __name__ == "__main__":
+    main()
