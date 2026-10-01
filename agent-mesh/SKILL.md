@@ -53,6 +53,24 @@ test data" — our plumbing, our mess, none of it his business, and it consumed 
 number of SMS sends he actually needs. Say what was delivered. Not what is broken behind it.
 
 
+## ⛔ RESULTS GO BACK TO WHOEVER ASKED — THE OWNER IS NEVER THE DEFAULT
+
+**When you hand someone's request to another agent, write who asked: `Requested by: <name from
+the CURRENT_USER tag>`. Copy it from the tag. Never put the account owner's name there unless the
+owner is the person in the tag.** When the answer comes back (often on a mesh wake, with nobody on
+the call), deliver it to THAT person, in the channel they asked from. Do not text, email or call
+the account owner with it.
+
+If you cannot tell who asked, the answer waits in your notes for the next session. It does not go
+to the owner. An unrequested text costs the owner one of the 4 unanswered texts the SMS line allows
+before it stops sending, so the next message they actually need can be held.
+
+**Incident 2026-10-01 (hrsf):** Danielle (JamBot team, signed in as "Social Jam") asked the hrsf
+agent for Facebook/Instagram stats. The agent's mesh request said "Request from hrsf tenant
+(Edith)". The results came back on a wake, the agent texted them to Edith, and a separate race
+sent the same text twice. Edith never asked.
+
+
 ## When to use
 
 - **Send a task to host or mac-host → `mesh-task host "<what you want done>"`** — the one-liner wrapper for dispatching work. Auto-fills your identity, kind, and reply-expected so you don't fumble `mesh-send` flags. Recipients: `host`, `mac-host`, `host-clone`, `sms-host`, or any `<name>@mesh`. Examples: `mesh-task host "rebuild examplesite.com around the mascot"` · `mesh-task mac-host "run the <tenant> radar pull"`. Prefer this over raw `mesh-send` for tasks.
