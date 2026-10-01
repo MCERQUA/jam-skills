@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Live delivery</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="page-icon" content="dashboard">
+<!--
+  live-delivery-page/1: a TEMPLATE, not a one-off. Contract: the live-delivery-page skill's SKILL.md.
+  Published as /pages/<job>.html, it reads /uploads/<job>.json (derived from its OWN filename)
+  and re-reads it every 30 s. Nothing about a job is in this file: title, note, finding, ask and
+  every slot come from the manifest. A new job is a new manifest plus a copy of this file.
+
+  Obligations this file discharges (a rewrite that drops one is a regression, not a restyle):
+    1 slots render in NUMBER order, always
+    2 a pending slot never renders as an empty gap or a broken player: it holds its place and
+      says what it is FOR and what state it is in
+    3 honest degradation: "could not read the list" is never rendered as "the list is empty"
+    4 a visible last-updated stamp, so live and stuck can be told apart
+    5 phone-first, 44px tap targets, numbered for a one-number reply
+    6 a poll never tears down an artifact the viewer is part-way through playing
+    7 a declared file that is not at its URL says so on its card, instead of a broken player
+-->
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel2:#1c232c; --fg:#e2e8f0; --mut:#8b97a8;
+  --line:#273140; --blue:#3b82f6; --cyan:#06b6d4; --amber:#f59e0b; --emerald:#10b981; --red:#f87171;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  -webkit-text-size-adjust:100%}
+.wrap{max-width:820px;margin:0 auto;padding:22px 20px 90px}
+@media (max-width:640px){ .wrap{padding:16px 0 80px} }
+h1{font-size:25px;line-height:1.2;margin:0 0 4px;letter-spacing:-.01em;overflow-wrap:anywhere}
+.sub{color:var(--mut);font-size:13.5px;margin:0 0 18px}
+@media (max-width:640px){ h1,.sub{padding:0 12px} #stampwrap{padding:0 12px;display:block} }
+.stamp{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut);
+  border:1px solid var(--line);border-radius:99px;padding:5px 12px;background:var(--panel)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--emerald);flex:0 0 8px}
+.dot.stale{background:var(--amber)} .dot.dead{background:var(--red)}
+.band,.how,.err{border-radius:10px;padding:15px 17px;border:1px solid var(--line);background:var(--panel)}
+.band{border-left:4px solid var(--cyan);margin:16px 0 10px}
+.band h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--cyan);margin:0 0 7px}
+.band p{margin:0;font-size:15.5px;line-height:1.5;overflow-wrap:anywhere}
+.band p + p{margin-top:9px;color:var(--mut);font-size:14px}
+.how{border-left:4px solid var(--blue);margin:14px 0 22px;font-size:15.5px}
+.how strong{color:#fff}
+.how span{display:block;color:var(--mut);font-size:13.5px;margin-top:6px}
+.err{background:#241618;border-color:#5a2c2c;border-left:4px solid var(--red);margin:0 0 18px;font-size:15px;color:#ffd9d9}
+.err code{font-size:13px;color:#ffb4b4;word-break:break-all}
+@media (max-width:640px){ .band,.how,.err{border-radius:0;border-left-width:4px;border-right:none} }
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px 18px;margin:0 0 16px}
+@media (max-width:640px){ .card{border-radius:0;border-left-width:0;border-right-width:0} }
+.card.pending{background:var(--panel2);border-style:dashed;opacity:.85}
+.card.failed{border-color:#5a2c2c}
+.card.skipped{opacity:.5}
+.hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:8px}
+.num{display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex:0 0 44px;
+  border-radius:12px;background:var(--blue);color:#04121f;font-weight:800;font-size:21px}
+.pending .num{background:#33404f;color:var(--mut)}
+.failed .num{background:#5a2c2c;color:#ffd9d9}
+.hd h3{font-size:18px;margin:2px 0 0;line-height:1.3;flex:1;overflow-wrap:anywhere}
+.beat{display:block;font-size:12px;color:var(--cyan);letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px}
+.shows{color:var(--mut);font-size:14px;margin:0 0 12px;padding-left:56px;overflow-wrap:anywhere}
+@media (max-width:640px){ .shows{padding-left:0;margin-top:8px} }
+.media{margin:0 0 12px}
+.media video,.media img{display:block;width:100%;height:auto;border-radius:10px;background:#000;border:1px solid var(--line)}
+.media audio{display:block;width:100%}
+.media a.file{display:flex;align-items:center;min-height:44px;padding:10px 14px;border:1px solid var(--line);
+  border-radius:10px;color:var(--fg);text-decoration:none;background:#111822;overflow-wrap:anywhere}
+.pendingbox,.missing{display:flex;align-items:center;gap:12px;justify-content:center;min-height:132px;
+  border-radius:10px;color:var(--mut);font-size:15px;margin:0 0 12px;padding:18px;text-align:center}
+.pendingbox{border:1px dashed var(--line);
+  background:repeating-linear-gradient(135deg,#1a212a,#1a212a 12px,#171d26 12px,#171d26 24px)}
+.missing{border:1px solid #5a2c2c;background:#241618;color:#ffd9d9;overflow-wrap:anywhere}
+.spin{width:16px;height:16px;flex:0 0 16px;border-radius:50%;border:2px solid #33404f;
+  border-top-color:var(--cyan);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){ .spin{animation:none;border-top-color:#33404f} }
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 10px}
+.tag{font-size:12.5px;padding:4px 11px;border-radius:99px;border:1px solid var(--line);color:var(--mut);
+  background:#111822;max-width:100%;overflow-wrap:anywhere}
+.tag b{color:var(--fg);font-weight:700}
+.tag.ok{border-color:#1c4a3a;color:var(--emerald)}
+.tag.bad{border-color:#5a2c2c;color:var(--red)}
+.notes{color:var(--mut);font-size:14px;margin:8px 0 0;line-height:1.5;overflow-wrap:anywhere}
+.alts{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.altshd{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.alts .alt{display:inline-block;vertical-align:top;width:48%;margin:0 1% 8px 0}
+@media (max-width:640px){ .alts .alt{width:100%;margin:0 0 8px} }
+footer{color:var(--mut);font-size:12.5px;border-top:1px solid var(--line);margin-top:34px;padding-top:16px;line-height:1.6}
+@media (max-width:640px){ footer{padding-left:12px;padding-right:12px} }
+code{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:#111822;padding:2px 6px;border-radius:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">Loading&hellip;</h1>
+  <p class="sub" id="sub">everything on one page, in order &middot; this page refreshes itself</p>
+  <div id="stampwrap"><span class="stamp"><span class="dot" id="dot"></span><span id="stamp">loading&hellip;</span></span></div>
+
+  <div class="how" id="how">
+    <strong id="ask" hidden></strong>
+    <span id="progress">Slots still in progress hold their place and fill in on their own &mdash; no need to reload.</span>
+  </div>
+
+  <div class="band" id="findingband" hidden>
+    <h2>What this has shown so far</h2>
+    <p id="finding"></p>
+    <p id="note"></p>
+  </div>
+
+  <div id="err" class="err" hidden></div>
+  <div id="list"></div>
+
+  <footer>
+    Served from this site on our own system. The list comes from <code id="srcpath"></code>,
+    re-read every 30&nbsp;seconds, so a finished item appears without this page being rebuilt.<span id="foot"></span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // /pages/<job>.html -> /uploads/<job>.json, from this page's OWN filename: one file serves any job.
+  var JOB = (function () {
+    var m = (location.pathname || "").match(/\/([^\/]+?)(?:\.html?)?$/);
+    return (m && m[1] && m[1] !== "index") ? m[1] : "live-delivery";
+  })();
+  var SRC = "/uploads/" + JOB + ".json";
+  var EVERY = 30000;
+  var STALE = 20 * 60 * 1000;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var listEl = $("list"), errEl = $("err"), stampEl = $("stamp"), dotEl = $("dot");
+  $("srcpath").textContent = SRC;
+
+  var lastGood = null, lastFetch = null, sigs = {}, broken = {};
+
+  function esc(s) {
+    return String(s === null || s === undefined ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function ago(ms) {
+    if (isNaN(ms)) { return "at an unknown time"; }
+    var s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (s < 60) { return s + "s ago"; }
+    if (s < 3600) { return Math.round(s / 60) + " min ago"; }
+    if (s < 86400) { return Math.round(s / 3600) + " h ago"; }
+    return Math.round(s / 86400) + " d ago";
+  }
+  function showsOf(c) { return c.shows || c.tests || ""; }
+  function kindOf(url) {
+    var e = (String(url).split("?")[0].match(/\.([a-z0-9]+)$/i) || [])[1];
+    e = (e || "").toLowerCase();
+    if (/^(mp4|webm|mov|m4v)$/.test(e)) { return "video"; }
+    if (/^(mp3|wav|m4a|ogg|oga|aac|flac)$/.test(e)) { return "audio"; }
+    if (/^(png|jpe?g|webp|gif|avif|svg)$/.test(e)) { return "image"; }
+    return "file";
+  }
+  function mediaHtml(url, n, small) {
+    var k = kindOf(url), a = ' data-slot="' + esc(n) + '" data-url="' + esc(url) + '"';
+    if (k === "video") { return '<video controls playsinline preload="' + (small ? "none" : "metadata") + '"' + a + ' src="' + esc(url) + '"></video>'; }
+    if (k === "audio") { return '<audio controls preload="' + (small ? "none" : "metadata") + '"' + a + ' src="' + esc(url) + '"></audio>'; }
+    if (k === "image") { return '<a href="' + esc(url) + '" target="_blank" rel="noopener"><img loading="lazy" alt=""' + a + ' src="' + esc(url) + '"></a>'; }
+    return '<a class="file" href="' + esc(url) + '" target="_blank" rel="noopener">Open ' + esc(url.split("/").pop()) + '</a>';
+  }
+  function missingHtml(url) {
+    return '<div class="missing">The file for this slot is not at its address (' + esc(url) +
+      '). It was delivered and has since moved. Tell whoever sent you this link.</div>';
+  }
+  function statusWord(st) {
+    if (st === "rendering") { return "in progress now…"; }
+    if (st === "queued") { return "queued — not started yet"; }
+    if (st === "failed") { return "this one failed — it is being redone"; }
+    if (st === "skipped") { return "skipped — not part of this one"; }
+    return "pending…";
+  }
+  function measTags(m) {
+    var out = [];
+    if (!m || typeof m !== "object") { return out; }
+    Object.keys(m).forEach(function (k) {
+      var v = m[k];
+      if (v === null || v === undefined || v === "" || typeof v === "object") { return; }
+      out.push('<span class="tag">' + esc(k.replace(/_/g, " ")) + ' <b>' + esc(v) + '</b></span>');
+    });
+    return out;
+  }
+  function sigOf(c) {
+    return [c.status, c.url || "", c.label || "", c.beat || "", showsOf(c), JSON.stringify(c.measurements || {}),
+            c.notes || "", JSON.stringify(c.alternates || []), broken[c.url] ? 1 : 0].join("|");
+  }
+  function cardHtml(c) {
+    var ready = c.status === "ready" && c.url;
+    var cls = "card" + (ready ? "" : (c.status === "failed" ? " failed pending" :
+              (c.status === "skipped" ? " skipped pending" : " pending")));
+    var h = '<div class="' + cls + '" id="slot-' + esc(c.n) + '">';
+    h += '<div class="hd"><div class="num">' + esc(c.n) + '</div><h3>' +
+         (c.beat ? '<span class="beat">' + esc(c.beat) + '</span>' : '') + esc(c.label || ("Slot " + c.n)) + '</h3></div>';
+    if (showsOf(c)) { h += '<p class="shows">' + esc(showsOf(c)) + '</p>'; }
+    if (ready) {
+      h += '<div class="media">' + (broken[c.url] ? missingHtml(c.url) : mediaHtml(c.url, c.n, false)) + '</div>';
+    } else {
+      h += '<div class="pendingbox">' + (c.status === "rendering" ? '<span class="spin"></span>' : '') +
+           '<span>' + esc(statusWord(c.status)) +
+           (c.status === "skipped" ? '' : '<br><span style="font-size:13px">It will appear right here on its own.</span>') +
+           '</span></div>';
+    }
+    var tags = [];
+    if (ready && broken[c.url]) { tags.push('<span class="tag bad">file missing</span>'); }
+    else if (ready) { tags.push('<span class="tag ok">ready</span>');
+      tags.push('<a class="tag" href="' + esc(c.url) + '" target="_blank" rel="noopener">open file</a>'); }
+    else if (c.status === "failed") { tags.push('<span class="tag bad">failed</span>'); }
+    else { tags.push('<span class="tag">' + esc(c.status) + '</span>'); }
+    if (ready) { tags = tags.concat(measTags(c.measurements)); }
+    h += '<div class="tags">' + tags.join("") + '</div>';
+    if (c.notes) { h += '<p class="notes">' + esc(c.notes) + '</p>'; }
+    var alts = (c.alternates || []).filter(function (x) { return x && x.url; });
+    if (alts.length) {
+      h += '<div class="alts"><div class="altshd">' + alts.length + ' other take' + (alts.length > 1 ? 's' : '') + '</div>';
+      alts.forEach(function (x) {
+        h += '<div class="alt media">' + (broken[x.url] ? missingHtml(x.url) : mediaHtml(x.url, c.n, true)) +
+             (x.note ? '<p class="notes">' + esc(x.note) + '</p>' : '') + '</div>';
+      });
+      h += '</div>';
+    }
+    return h + '</div>';
+  }
+
+  // Obligation 7: a media element whose file is gone becomes a named "missing" box on its own card.
+  // An error event alone is NOT proof the file is gone: a file this browser cannot decode fires the
+  // same event. Only the server saying 404/410 marks it missing; anything else leaves the player
+  // (and the card's "open file" link) alone.
+  listEl.addEventListener("error", function (ev) {
+    var t = ev.target, url = t && t.getAttribute && t.getAttribute("data-url");
+    if (!url || broken[url] !== undefined) { return; }
+    broken[url] = false;
+    fetch(url, { method: "HEAD", cache: "no-store", credentials: "same-origin" })
+      .then(function (r) {
+        if (r.status === 404 || r.status === 410) { broken[url] = true; if (lastGood) { render(lastGood); } }
+      })
+      .catch(function () { /* could not ask: never claim missing on a failed probe */ });
+  }, true);
+
+  function render(m) {
+    var clips = (m.clips || []).slice().sort(function (a, b) { return (a.n || 0) - (b.n || 0); });
+    if (m.title) { $("title").textContent = m.title; document.title = m.title; }
+    $("sub").textContent = [m.client, "everything on one page, in order", "this page refreshes itself"]
+      .filter(Boolean).join(" · ");
+    if (m.ask) { $("ask").textContent = m.ask; $("ask").hidden = false; } else { $("ask").hidden = true; }
+    if (m.finding) { $("finding").textContent = m.finding; $("note").textContent = m.note || ""; $("findingband").hidden = false; }
+    else { $("findingband").hidden = true; }
+
+    var order = clips.map(function (c) { return c.n; }).join(",");
+    if (listEl.getAttribute("data-order") !== order) { listEl.innerHTML = ""; sigs = {}; listEl.setAttribute("data-order", order); }
+    var nReady = 0, nPend = 0;
+    clips.forEach(function (c) {
+      if (c.status === "ready" && c.url) { nReady++; } else if (c.status !== "skipped") { nPend++; }
+      var sig = sigOf(c), el = document.getElementById("slot-" + c.n);
+      if (!el) { listEl.insertAdjacentHTML("beforeend", cardHtml(c)); sigs[c.n] = sig; }
+      else if (sigs[c.n] !== sig) { el.outerHTML = cardHtml(c); sigs[c.n] = sig; }
+    });
+    $("progress").textContent = nPend > 0
+      ? (nReady + " of " + clips.length + " ready now. " + nPend + " still coming — they fill in on their own, no need to reload.")
+      : ("All " + nReady + " are up.");
+    $("foot").textContent = m.written_by ? " Last written by " + m.written_by + "." : "";
+    lastGood = m;
+  }
+
+  function setStamp(m, failing) {
+    var upd = m && m.updated ? Date.parse(m.updated) : NaN;
+    dotEl.className = "dot" + (failing ? " dead" : ((Date.now() - upd) > STALE ? " stale" : ""));
+    var bits = [];
+    if (!isNaN(upd)) { bits.push("list updated " + ago(upd)); }
+    if (failing) { bits.push("cannot reach the list right now — showing what loaded last"); }
+    else if (lastFetch) { bits.push("checked " + ago(lastFetch)); }
+    stampEl.textContent = bits.join(" · ") || "loading…";
+  }
+
+  function fail(why) {
+    errEl.hidden = false;
+    if (lastGood) {
+      errEl.innerHTML = "Could not re-read the list just now (" + esc(why) + "). Everything below is " +
+        "what loaded last; anything finished since then is not showing yet. Retrying every 30 seconds.";
+      setStamp(lastGood, true);
+    } else {
+      errEl.innerHTML = "<strong>The list could not be loaded.</strong><br>" + esc(why) +
+        "<br>Source: <code>" + esc(SRC) + "</code><br>This page is not empty because there is " +
+        "nothing to show. It is empty because it could not read the list. It retries every 30 " +
+        "seconds; if it stays like this, tell whoever sent you this link.";
+      dotEl.className = "dot dead";
+      stampEl.textContent = "list unreadable";
+      $("title").textContent = "List unavailable";
+    }
+  }
+
+  function poll() {
+    fetch(SRC + "?t=" + Date.now(), { cache: "no-store", credentials: "same-origin" })
+      .then(function (r) { if (!r.ok) { throw new Error("HTTP " + r.status); } return r.json(); })
+      .then(function (m) {
+        if (!m || !m.clips || !m.clips.length) { throw new Error("the list came back with nothing in it"); }
+        errEl.hidden = true;
+        lastFetch = Date.now();
+        render(m);
+        setStamp(m, false);
+      })
+      .catch(function (ex) { fail(ex && ex.message ? ex.message : String(ex)); });
+  }
+
+  poll();
+  setInterval(poll, EVERY);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { poll(); } });
+})();
+</script>
+</body>
+</html>

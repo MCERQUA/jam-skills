@@ -1,43 +1,49 @@
-# qa-reaudit — parameterized 3-viewport Playwright QA battery
+# qa-reaudit — 3-viewport browser audit battery
 
-Re-audit a visual artifact (canvas page, brand report) across mobile 375x812, tablet
-768x1024, desktop 1440x900 and emit a JSON verdict (SHIP / NO-SHIP) with per-check
-findings. The workflow it implements: docs/jambot/visual-artifact-qa-workflow.md.
-Shared 2026-09-24 from quality-assurance-manager@mesh (pledge 9e025325).
+Reusable Playwright audit for ANY user-facing HTML artifact (canvas pages, brand
+reports, dashboards, mockups). Canonical copy: `/mnt/system/base/skills/qa-reaudit/qa-reaudit.py`.
+Owner: quality-assurance-manager@mesh. Routed share from the 2026-09-30 mesh meeting
+(host task: "turn qa-reaudit.py into a shared skill / fleet install").
 
 ## Usage
 
-```bash
-python3 qa-reaudit.py <artifact.html> <client> <outdir>
+```sh
+python3 /mnt/system/base/skills/qa-reaudit/qa-reaudit.py <artifact.html> <client> <outdir>
 ```
 
-- `<artifact.html>` — file to audit (a live copy, not the QA reference).
-- `<client>` — client slug (used in the output report metadata).
-- `<outdir>` — directory for `audit-report.json` + screenshots.
+Needs: `playwright` (sync API) + chromium. No keys, no network — runs on `file://`.
 
-## What it checks
+## What it checks (per viewport x theme combination)
 
-- horizontal overflow (document + per-element, scroll-rail aware)
-- off-screen text nodes
-- body background does not flip between theme classes (theme leak)
-- render health: body innerText length AND a static no-JS character count
-  (a failed harness load is indistinguishable from a blank page by runtime
-  read alone — 2026-09-21 storehouse false-CRITICAL)
-- purple hue detection (project rule: no purple in UI artifacts)
+- Document + per-element horizontal overflow (`scrollWidth > clientWidth`)
+- Off-screen visible text nodes (beyond viewport edges)
+- WCAG contrast < 4.5:1 on badge-like elements (`.pill .tag .badge .status .mention [class*=sev-] .chip`), with alpha-composited background resolution
+- Touch targets < 44px (mobile viewport only)
+- Canvas health (non-zero dims + non-empty `toDataURL`)
+- Tab invariant (exactly one active panel)
+- Purple detection (hue 255-305, project rule: NO purple in UI artifacts)
+- Emoji detection in UI text (project rule: NO emojis)
+- Render health: runtime `innerText` AND no-JS static text char count — both must read zero before "blank page" is reported (kills harness false-CRITICALs)
 
-## Requirements
+Severity: CRITICAL = doc overflow / blank page / tab invariant broken; HIGH = element
+overflow (non-clipped), offscreen text, contrast, touch, canvas, purple, emoji;
+MEDIUM = clipped (`overflow-x: hidden`) residual overflow.
 
-- playwright + chromium installed in the calling lane
-- read access to the artifact
+Verdict: SHIP iff 0 CRITICAL and 0 HIGH. Outputs `audit-report.json`, `audit-report.md`,
+and `screenshots/<viewport>_<theme>.png` into `<outdir>`.
 
-## Re-audit rule
+## Gotchas baked in (do not remove when forking)
 
-A NO-SHIP audit is only cleared by a re-audit at the SAME scope that ran the
-original (same viewports, same checks). Success = 0 CRITICAL and 0 HIGH.
-Never clear a gate from the fixer's self-report.
+- overflow-x:hidden elements CLIP — that is MEDIUM, not HIGH (paint-underlap impossible).
+- Content inside an `overflow-x: auto/scroll` rail is reachable by design — not offscreen.
+- Theme detection: clicks the toggle, compares body background; if the click does not
+  change the background, light theme is skipped WITH a recorded reason, never silently.
+- The no-JS static text count is the second instrument — `innerText==0` from a failed
+  harness load is CANNOT-TELL, not a bug.
 
-## Companion
+## Convergence note
 
-`qa-noship-age-scan.sh` (quality-assurance-manager workspace) — daily scanner over
-`/mnt/agent-mesh/mesh/QUALITY/*.json` sorting stale NO-SHIP verdicts into
-RETIRED / AWAITING-RE-AUDIT / STAGNANT, one digest per class per run.
+Older drifted copies: quality-assurance-manager workspace `artifacts/qa-reaudit-2026-09-27.py`
+and `artifacts/qa-reaudit-2026-09-28.py` (dated snapshots, historical). Canonical is THIS
+file; `artifacts/qa-reaudit.py` in the QA workspace symlinks here. Do not start new forks —
+parameterize, don't copy.

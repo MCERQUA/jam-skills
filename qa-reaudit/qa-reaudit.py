@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """Re-audit visual artifacts per visual-artifact-qa-workflow.md.
-Usage: qa-reaudit-2026-09-06.py <artifact.html> <client> <outdir>
+Usage: qa-reaudit.py <artifact.html> <client> <outdir>
+
+Canonical fleet copy (host task routed 2026-09-30). Needs: playwright + chromium.
+Runs 3 viewports x detected themes; checks overflow, offscreen text, WCAG contrast,
+touch targets, canvas health, tab invariant, purple + emoji rules. Writes
+audit-report.json/.md + screenshots/ into <outdir>.
 """
 import json, sys, os, re
+from datetime import date
 from playwright.sync_api import sync_playwright
 
 VIEWPORTS = [(375, 812, "mobile"), (768, 1024, "tablet"), (1440, 900, "desktop")]
@@ -99,7 +105,7 @@ CHECK_JS = """
   const parseA = s => { const m = s.match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)(?:,\\s*([\\d.]+))?\\)/); return m ? [+m[1],+m[2],+m[3], m[4] === undefined ? 1 : +m[4]] : null; };
   const ratio = (fg, bg) => { const l1 = lum(...fg), l2 = lum(...bg); return (Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05); };
   // composite translucent ancestor backgrounds up the chain until opaque
-  const bgOf = el => { let acc = null; let c = el.parentElement || el; while (c) { const bg = parseA(getComputedStyle(c).backgroundColor); if (bg && bg[3] > 0) { if (acc === null) acc = bg.slice(); else { const a = bg[3]; for (let i=0;i<3;i++) acc[i] = Math.round(a*bg[i] + (1-a)*acc[i]); acc[3] = Math.min(1, acc[3] + a*(1-acc[3])); } if (acc[3] >= 0.99) return acc.slice(0,3); } if (c === document.documentElement) break; c = c.parentElement; } if (acc === null) return [255,255,255]; return acc.slice(0,3); };
+  const bgOf = el => { let acc = null; let c = el; while (c) { const bg = parseA(getComputedStyle(c).backgroundColor); if (bg && bg[3] > 0) { if (acc === null) acc = bg.slice(); else { const a = bg[3]; for (let i=0;i<3;i++) acc[i] = Math.round(a*bg[i] + (1-a)*acc[i]); acc[3] = Math.min(1, acc[3] + a*(1-acc[3])); } if (acc[3] >= 0.99) return acc.slice(0,3); } if (c === document.documentElement) break; c = c.parentElement; } if (acc === null) return [255,255,255]; return acc.slice(0,3); };
   out.contrast = [];
   const cseen = new Set();
   document.querySelectorAll('.pill,.tag,.badge,.status,.mention,[class*="sev-"],.chip').forEach(el => {
@@ -213,7 +219,14 @@ def classify(res, viewport_name, is_mobile, static_chars):
             f"documentElement scrollWidth {o['scrollWidth']} > clientWidth {o['clientWidth']} (body {o['bodyScrollWidth']}/{o['bodyClientWidth']})",
             "html/body")
     for e in res["elem_overflow"]:
-        add("HIGH", "element-overflow", f"scrollWidth {e['scrollWidth']} > clientWidth {e['clientWidth']} (overflow-x: {e['overflowX']})", e["selector"])
+        # overflow-x:hidden clips at the border box — nothing can PAINT outside the
+        # element, so it is not a paint-underlap bug (the 09-28 foamology class).
+        # Residual is invisible truncation = MEDIUM observation. visible/auto/scroll
+        # readings still flag HIGH so the real bug class keeps firing (canary kept).
+        if e["overflowX"] == "hidden":
+            add("MEDIUM", "clipped-overflow", f"scrollWidth {e['scrollWidth']} > clientWidth {e['clientWidth']} (overflow-x: hidden — clipped, no paint-underlap possible)", e["selector"])
+        else:
+            add("HIGH", "element-overflow", f"scrollWidth {e['scrollWidth']} > clientWidth {e['clientWidth']} (overflow-x: {e['overflowX']})", e["selector"])
     for t in res["offscreen_text"]:
         add("HIGH", "offscreen-text", f"text '{t['text']}' spans {t['left']}..{t['right']} vs viewport {t['viewport']}", t["selector"])
     for c in res["contrast"]:
@@ -234,6 +247,7 @@ def classify(res, viewport_name, is_mobile, static_chars):
 
 def main():
     artifact, client, outdir = sys.argv[1], sys.argv[2], sys.argv[3]
+    audit_date = date.today().isoformat()
     os.makedirs(os.path.join(outdir, "screenshots"), exist_ok=True)
     name = os.path.basename(artifact)
     s_chars = static_text_chars(artifact)
@@ -297,7 +311,7 @@ def main():
     verdict = "SHIP" if counts["CRITICAL"] == 0 and counts["HIGH"] == 0 else "NO-SHIP"
     report = {
         "artifact": name, "artifact_path": artifact, "client": client,
-        "audit_date": "2026-09-06", "auditor": "quality-assurance-manager@mesh",
+        "audit_date": audit_date, "auditor": "quality-assurance-manager@mesh",
         "audit_type": "re-audit after root-cause fix",
         "viewports": [v[2] for v in VIEWPORTS], "combinations": combos,
         "bug_counts": counts, "total_bugs": len(bugs), "verdict": verdict,
@@ -308,7 +322,7 @@ def main():
     }
     with open(os.path.join(outdir, "audit-report.json"), "w") as f:
         json.dump(report, f, indent=1)
-    lines = [f"# Re-audit — {name} ({client}) — 2026-09-06", "",
+    lines = [f"# Re-audit — {name} ({client}) — {audit_date}", "",
              f"**Verdict: {verdict}** — {counts['CRITICAL']} critical / {counts['HIGH']} high / {counts['MEDIUM']} medium / {counts['LOW']} low",
              ""]
     for b in bugs:

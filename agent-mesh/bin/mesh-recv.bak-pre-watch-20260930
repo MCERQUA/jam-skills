@@ -16,9 +16,6 @@ Usage:
     mesh-recv --since 2026-04-21T00:00:00Z # only newer than ts
     mesh-recv --limit 20
     mesh-recv --show <filename>            # print full contents of a single file
-    mesh-recv --watch                      # poll own inbox, print new mail in full
-    mesh-recv --watch --cc                 # poll mesh/cc/<name>/ instead (skips .acked)
-    mesh-recv --watch --interval 15
 """
 from __future__ import annotations
 
@@ -27,7 +24,6 @@ import datetime as _dt
 import os
 import re
 import sys
-import time
 from pathlib import Path
 
 
@@ -132,55 +128,6 @@ def parse_iso_since(since: str) -> float:
         die(f"--since must be ISO format YYYY-MM-DDTHH:MM:SSZ, got: {since}")
 
 
-def watch(inbox: Path, cc: bool, interval: int) -> None:
-    """Poll a directory forever; print every NEW file in full, one per pass.
-
-    Added 2026-09-30: keeper-capability-gate's MONITOR_ALLOW names
-    `mesh-recv --watch` as the sanctioned cc-fanout watcher shape, but no
-    such flag existed (mac-claude@mesh report 2026-09-30-207). This is that
-    flag. Existing files at start are snapshotted, so only arrivals after
-    launch are reported. Stdlib-only, no external state.
-    """
-    if cc:
-        name = agent_name()
-        root = Path(os.environ.get("MESH_ROOT") or "/mnt/agent-mesh")
-        target = root / "mesh" / "cc" / name
-        skip_suffix = ".acked"
-    else:
-        target = inbox
-        skip_suffix = None
-
-    if not target.is_dir():
-        die(f"watch target not found: {target}")
-
-    def snapshot() -> set:
-        names = set()
-        for e in target.iterdir():
-            if not e.is_file() or ".dup-" in e.name:
-                continue
-            if skip_suffix and e.name.endswith(skip_suffix):
-                continue
-            names.add(e.name)
-        return names
-
-    label = f"cc:{target}" if cc else f"inbox:{target}"
-    print(f"mesh-recv --watch: polling {label} every {interval}s; "
-          f"new files printed in full", flush=True)
-    seen = snapshot()
-    while True:
-        time.sleep(interval)
-        for fname in sorted(snapshot() - seen):
-            seen.add(fname)
-            f = target / fname
-            try:
-                text = f.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            print(f"\n===== NEW ({'cc' if cc else 'inbox'}): {fname} =====",
-                  flush=True)
-            print(text, flush=True)
-
-
 def main() -> None:
     # Voice-tenant admin gate (added 2026-05-13). See mesh-gate-check.
     import subprocess
@@ -197,17 +144,7 @@ def main() -> None:
     p.add_argument("--limit", type=int, default=50)
     p.add_argument("--show", help="print full contents of a single filename")
     p.add_argument("--include-read", action="store_true", help="also list files in inbox/.read/")
-    p.add_argument("--watch", action="store_true",
-                   help="poll for new files forever and print each in full")
-    p.add_argument("--cc", action="store_true",
-                   help="with --watch: watch mesh/cc/<name>/ instead of the inbox (.acked skipped)")
-    p.add_argument("--interval", type=int, default=10,
-                   help="with --watch: poll interval in seconds (min 2, default 10)")
     args = p.parse_args()
-
-    if args.watch:
-        watch(discover_my_inbox(), args.cc, max(2, args.interval))
-        return
 
     inbox = discover_my_inbox()
     if not inbox.is_dir():
