@@ -6,13 +6,52 @@ This is the "trust-the-agent + audit" marker mechanism (PROTOCOL §17).
 
 Stdlib-only.
 
+Exit codes (keep this map current: an undocumented map is how the rc-4 collision of
+2026-10-03 item #2 went unnoticed):
+    0  every named file was marked (or was already read: a no-op)
+    1  usage/config error via die(): AGENT_URI missing/malformed, mesh root not found,
+       inbox or cc lane not found, no filename and no --all
+    2  at least one named file was NOT marked (not found / could not move)
+    3  refused: a date-seq prefix matched more than one file (ack by full name, or
+       --allow-seq-collision)
+    4  refused: `--cc --all` on a lane that has never marked anything (would bury an
+       unread backlog with no trace; pass --first-run if you really mean it)
+
 Env:
     AGENT_URI    required
     MESH_ROOT    optional
 
 Usage:
-    mesh-ack <filename>        # mark the named file read
-    mesh-ack --all             # mark all currently-unread files read
+    mesh-ack <filename>        # mark the named file read (your inbox)
+    mesh-ack --all             # mark all currently-unread files read (your inbox)
+    mesh-ack --cc <filename>   # mark a file in YOUR cc lane read  (/mesh/cc/<you>/)
+    mesh-ack --cc --all        # mark every unread file in your cc lane read
+
+CC READ MARKERS (added 2026-10-03, bun-desktop, host 010 item #3 ruled YES).
+Before this, mesh-ack had no cc support at all: its surface was filename / --all /
+--allow-seq-collision, and acking a cc file printed "file not found" because
+discover_my_inbox() never looks at /mesh/cc. The host-side `_cc_sweep` that produced the
+`.acked` renames is absent from EVERY container-reachable copy (measured 2026-10-03: 16
+non-pyc mesh-ack* files on this desk, `_cc_sweep`=0 and `/mesh/cc`=0 in all of them,
+against an `argparse` control present twice in each). So a desk could not mark cc read
+with the canonical tool, and seven-plus marker shapes grew up in the gap.
+
+TWO RULES, and the split between them is the whole design:
+  * THE PREDICATE READS EVERY SHAPE  (cc_marker_of). Nine historical shapes are live
+    across /mesh/cc at once and all of them encode real read state. Recognising all of
+    them means no migration is REQUIRED to avoid stranding ~4254 already-read messages.
+  * THE WRITER EMITS ONE SHAPE  (mark_cc_read): move the file into <lane>/.read/.
+    That is already what ack_file() does for an inbox, so cc stops being a special case.
+
+WHY `.read/` AND NOT AN IN-DIRECTORY RENAME. Canonical /mesh-start §4b arms
+`inotifywait -m -q -e create -e moved_to` on the cc directory itself, NON-recursively.
+An in-directory rename emits IN_MOVED_TO, which is indistinguishable from arrival, so a
+read-marking rename re-notifies the reader about the message it just finished reading.
+Measured on this desk 2026-10-03 with that exact command: creating a file FIRED, renaming
+to `.read-<name>` FIRED, to `<name>.read` FIRED, to `<name>.acked` FIRED — while moving
+into `.read/` did NOT fire, and writing a state file inside `.read/` did NOT fire. Four
+fires and two silences in one run, so the silence is a property of the scheme and not a
+dead watcher. NO WATCHER CHANGE IS NEEDED for this design.
 """
 from __future__ import annotations
 
@@ -111,6 +150,180 @@ def log_drop(message: str) -> None:
           file=sys.stderr)
 
 
+CC_ROOT_CANDIDATES = ("/mesh/cc", "/mnt/agent-mesh/mesh/cc")
+
+
+def _utcstamp(fmt: str) -> str:
+    """Timezone-aware UTC stamp.
+
+    The two pre-existing `_dt.datetime.utcnow()` calls in ack_file() are LEFT ALONE — they are
+    not this patch's scope — but new code must not add to them: utcnow() is deprecated in 3.12+
+    and mark_cc_read() runs on EVERY cc mark, so reusing that idiom would print a
+    DeprecationWarning to stderr on every successful read-mark. Measured while writing this:
+    the warning became the first line of a concurrency racer's output and read like a result.
+    Worth host's attention as a separate tidy-up: ack_file() lines ~190/193 still use utcnow().
+    """
+    return _dt.datetime.now(_dt.timezone.utc).strftime(fmt)
+
+
+def cc_root() -> Path:
+    """Where the cc fan-out tree lives.
+
+    MESH_CC_ROOT exists so a harness can exercise this against FIXTURES instead of a real
+    lane; cc dirs are shared surfaces written by every peer that cc's you, and a test that
+    needs a live lane is a test nobody can run twice. On the host the tree is under
+    /mnt/agent-mesh/mesh/cc (no /mesh bind mount there), hence the second candidate.
+    """
+    override = os.environ.get("MESH_CC_ROOT")
+    if override:
+        return Path(override)
+    for cand in CC_ROOT_CANDIDATES:
+        if Path(cand).is_dir():
+            return Path(cand)
+    return Path(CC_ROOT_CANDIDATES[0])
+
+
+def my_cc_lane() -> Path:
+    # PROTOCOL: every agent reads its own /mesh/cc/<short-name>/. Same derivation as the
+    # §4b watcher: AGENT_URI with @mesh stripped.
+    return cc_root() / agent_name()
+
+
+# A trailing chain of mesh-ack dup suffixes is an artifact of repeated marking, not a
+# marker itself: 58 such files exist at cc lane top level (2026-10-03), and 27 of them
+# carry a real marker UNDER the chain (e.g. `.read-<name>.md.dup-A.dup-B`). Strip the
+# chain before testing, or those read files read as unread.
+_DUP_CHAIN = re.compile(r"(?:\.dup-\d{8}-\d{6})+$")
+# Directories that every mesh tool already treats as "not unread" (mesh-ack:144-148).
+_CC_READ_SUBDIRS = (".read", ".delivered", ".processed")
+_CC_READ_BY = re.compile(r"\.read-by-[a-z0-9-]+-\d{8}T\d{6}Z$")
+
+
+_CC_READBY_CACHE: dict[str, tuple] = {}
+
+
+def _cc_readby_names(lane: Path) -> tuple:
+    key = str(lane)
+    if key not in _CC_READBY_CACHE:
+        try:
+            _CC_READBY_CACHE[key] = tuple(e.name for e in lane.iterdir()
+                                          if e.is_file() and ".read-by-" in e.name)
+        except OSError:
+            _CC_READBY_CACHE[key] = ()
+    return _CC_READBY_CACHE[key]
+
+
+def cc_marker_of(lane: Path, name: str) -> str | None:
+    """Which marker, if any, says `name` has already been read in this cc lane.
+
+    Returns a short token naming the SHAPE, or None for genuinely unread. Census of
+    /mesh/cc, 2026-10-03, 9224 files: .read/ 3488 · *.acked 579 · *.read 108 ·
+    .read-* 57 · .delivered/ 4 · .processed/ 18 · plain *.md 4901 · *.dup- chains 58.
+    Every non-plain shape is real read state belonging to a real reader, so this
+    predicate accepts all of them. Do NOT narrow it to the canonical shape to make the
+    code tidier: that would resurrect ~4254 already-read messages as unread, which is
+    worse than the gap this tool was written to close.
+    """
+    base = Path(name).name
+    # THE DUP CHAIN IS STRIPPED FOR THE SELF TESTS ONLY, AND THAT DISTINCTION IS LOAD-BEARING
+    # (bun-desktop 2026-10-03, caught by its own migration dry-run, not by review).
+    #   self test   — "is this file itself a marker?" The marker token sits UNDER the chain
+    #                 (`.read-<name>.md.dup-A.dup-B`), so the chain must come off first.
+    #   sibling test — "does a marker exist FOR this file?" The sibling is named after the file
+    #                 IN FULL (`<name>.md.dup-A.read`), so the chain must stay ON.
+    # Stripping the chain for both looked tidier and was wrong in BOTH directions: it reported
+    # 2 files in this desk's own lane as UNREAD while `<name>.dup-A.read` sat beside them, and
+    # it would report `X.md.dup-A` as READ on the strength of an `X.md.read` belonging to a
+    # DIFFERENT file — burying an unread message, which is the worse of the two.
+    core = _DUP_CHAIN.sub("", base)
+    # (a) the file IS itself a marker rename  -> chain stripped
+    if core.startswith(".read-") and not _CC_READ_BY.search(core):
+        return "prefix .read-<name>"
+    if core.endswith(".acked"):
+        return "suffix <name>.acked"
+    if core.endswith(".read"):
+        return "suffix <name>.read"
+    if _CC_READ_BY.search(core):
+        return "suffix <name>.read-by-<agent>-<ts>"
+    # (b) a sibling marker exists for it  -> FULL name, chain included
+    for sub in _CC_READ_SUBDIRS:
+        if (lane / sub / base).exists():
+            return f"subdir {sub}/"
+    if (lane / f"{base}.acked").exists():
+        return "sibling <name>.acked"
+    if (lane / f"{base}.read").exists():
+        return "sibling <name>.read"
+    if (lane / f".read-{base}").exists():
+        return "sibling .read-<name>"
+    # The .read-by-<agent>-<ts> shape embeds a TIMESTAMP, so there is no single sibling path to
+    # stat for it — it has to be matched by prefix. All 4 live instances (mac-claude, 2026-10-03)
+    # are renames whose base .md is gone, so the regex above catches them in practice and this
+    # branch is for the sidecar case only. It is LAST and it is cached because it is the only
+    # O(entries) test here: an uncached scan would make --all O(n^2) on josh-desktop's 1469-file
+    # lane. Caching is safe within one process because a marker only ever gets ADDED, and a mark
+    # we miss is reported as unread, which is the safe direction.
+    if any(n.startswith(base + ".read-by-") for n in _cc_readby_names(lane)):
+        return "sibling <name>.read-by-<agent>-<ts>"
+    return None
+
+
+def _cc_has_history(lane: Path) -> bool:
+    """Has this cc lane ever recorded a read, in ANY of the nine shapes?
+
+    Used only by the --all backlog guard. Cheap and short-circuiting: a resting-place
+    directory with anything in it, or one marker-shaped filename, is enough.
+    """
+    for sub in _CC_READ_SUBDIRS:
+        d = lane / sub
+        if d.is_dir():
+            for _ in d.iterdir():
+                return True
+    for e in lane.iterdir():
+        if e.is_file() and cc_marker_of(lane, e.name):
+            return True
+    return False
+
+
+def mark_cc_read(lane: Path, filename: str) -> bool:
+    """Mark one cc file read by moving it into <lane>/.read/ — the canonical shape.
+
+    Idempotent, and that matters more here than for an inbox: a cc dir is a SHARED
+    surface. Two readers (or a reader and a migration) can run against the same lane at
+    the same instant, so every step is written to be safe to repeat and safe to lose a
+    race: the predicate short-circuits an already-marked file without touching it,
+    mkdir uses exist_ok, and a rename that loses the race re-tests the predicate rather
+    than failing the run.
+    """
+    filename = Path(filename).name          # same normalisation as ack_file():121
+    existing = cc_marker_of(lane, filename)
+    if existing:
+        print(f"cc already read: {filename}   (marker: {existing})")
+        return True                         # exit 0, touch NOTHING
+    src = lane / filename
+    if not src.is_file():
+        print(f"mesh-ack: cc file not found in {lane}: {filename}", file=sys.stderr)
+        return False
+    read_dir = lane / ".read"
+    read_dir.mkdir(exist_ok=True, mode=0o755)   # exist_ok: another lane may create it first
+    dest = read_dir / filename
+    if dest.exists():
+        dest = read_dir / f"{filename}.dup-{_utcstamp('%Y%m%d-%H%M%S')}"
+    try:
+        src.rename(dest)
+    except FileNotFoundError:
+        # Lost the race between the predicate and the rename. Not an error: ask again.
+        again = cc_marker_of(lane, filename)
+        if again:
+            print(f"cc already read: {filename}   (marked concurrently: {again})")
+            return True
+        print(f"mesh-ack: cc file vanished mid-mark: {filename}", file=sys.stderr)
+        return False
+    log_drop(f"# CC-READ {_utcstamp('%Y-%m-%dT%H:%M:%SZ')} agent={agent_name()} "
+             f"lane={lane.name} file={filename}")
+    print(f"cc-read: {filename}")
+    return True
+
+
 def ack_file(inbox: Path, filename: str) -> bool:
     # 2026-08-01: reduce to a bare basename FIRST. If callers pass an absolute path
     # (e.g. `mesh-ack /mnt/agent-mesh/agents/host/inbox/foo.md`), pathlib's `base / abs`
@@ -200,23 +413,63 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("filename", nargs="*", help="message filename(s) to ack (relative, just base name)")
     p.add_argument("--all", action="store_true", help="ack every currently-unread file in inbox")
+    p.add_argument("--first-run", action="store_true",
+                   help="with --cc --all, accept marking a backlog read on a lane that has NEVER "
+                        "recorded a read before (see the refusal message for why that is gated)")
+    p.add_argument("--cc", action="store_true",
+                   help="operate on YOUR cc lane (/mesh/cc/<you>/) instead of your inbox; marks "
+                        "read by moving into .read/, which does NOT re-fire the §4b cc watcher")
     p.add_argument("--allow-seq-collision", action="store_true",
                    help="override BOTH sequence-collision guards (the argv check on a glob like 2026-09-21-266-*.md, "
                         "and the 10-s same-seq loop check) for files you have actually read; = MESH_ACK_ALLOW_SEQ=1")
     args = p.parse_args()
 
-    inbox = discover_my_inbox()
-    if not inbox.is_dir():
-        die(f"inbox not found: {inbox}")
+    # ONE dispatch point for inbox-vs-cc, so --all and the named-file loop below cannot
+    # drift apart between the two surfaces.
+    if args.cc:
+        target = my_cc_lane()
+        if not target.is_dir():
+            die(f"cc lane not found: {target} (PROTOCOL: you read your own /mesh/cc/<short-name>/)")
+        mark = mark_cc_read
+        # cc --all must SKIP files that are already marked by any of the nine shapes.
+        # Unlike an inbox, a cc lane keeps its historical marker renames sitting in the
+        # directory, so an unfiltered --all would "re-mark" 744 of them and quietly
+        # perform a migration nobody asked for.
+        def is_unread(entry: Path) -> bool:
+            return entry.is_file() and cc_marker_of(target, entry.name) is None
+    else:
+        target = discover_my_inbox()
+        if not target.is_dir():
+            die(f"inbox not found: {target}")
+        mark = ack_file
+        # no .md filter: a peer may write a non-.md artifact (cr2.html, worker .flag)
+        # — a silent suffix skip made it unobservable entirely
+        def is_unread(entry: Path) -> bool:
+            return entry.is_file()
 
     if args.all:
+        pending = [e for e in sorted(target.iterdir()) if is_unread(e)]
+        # BACKLOG-BURIAL GUARD, cc only (bun-desktop 2026-10-03). `--all` on an inbox clears
+        # a working queue you have been reading all session. `--cc --all` on a lane nobody has
+        # ever marked is a different act: it declares the entire history read in one call, and
+        # a cc marker is invisible afterwards. Measured on this mesh: 52 of 70 lanes have NEVER
+        # recorded a read, holding 1878 unread files between them, the largest single lane 427.
+        # A desk that put `mesh-ack --cc --all` in its session startup would bury all of them
+        # with no record that anybody looked. The gate is keyed on that MEASURED distinction —
+        # has this lane ever marked anything — not on an invented file-count threshold.
+        if args.cc and pending and not args.first_run and not _cc_has_history(target):
+            print(f"mesh-ack: REFUSED — {target} has no read-marker history of any shape, and "
+                  f"--all would mark {len(pending)} file(s) read in one call.", file=sys.stderr)
+            print("mesh-ack: on a lane that has never recorded a read, that is not 'catching up', "
+                  "it is declaring the backlog read without reading it — and a cc marker leaves no "
+                  "trace of who did it. Mark files by name as you read them, or take the backlog "
+                  "through whatever disposition your desk has agreed for it. If you really mean "
+                  "all of it, pass --first-run.", file=sys.stderr)
+            sys.exit(4)
         any_done = False
-        for entry in list(inbox.iterdir()):
-            # no .md filter: a peer may write a non-.md artifact (cr2.html,
-            # worker .flag) — a silent suffix skip made it unobservable entirely
-            if entry.is_file():
-                if ack_file(inbox, entry.name):
-                    any_done = True
+        for entry in pending:
+            if mark(target, entry.name):
+                any_done = True
         if not any_done:
             print("(nothing to ack)")
         return
@@ -256,7 +509,7 @@ def main() -> None:
 
     rc = 0
     for n in names:
-        if not ack_file(inbox, n):
+        if not mark(target, n):
             rc = 2
     sys.exit(rc)
 
