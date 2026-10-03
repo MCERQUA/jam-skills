@@ -76,6 +76,16 @@ The tone of every message must match the situation:
 - **Include business identity** in every marketing message.
 - **Time restrictions:** No marketing messages before 8am or after 9pm in the recipient's time zone.
 
+### Channel-Failure Routing Guard (mandatory, adopted 2026-09-30)
+
+A failed send is a ROUTING event, not a retry-the-same-way event. Measured cost of ignoring this: tenants burned 0/4 and 3-retry sends on channels already documented dead 18 days earlier, and two tone-sensitive client messages failed and were never resent.
+
+**Rule 1 — deterministic rejection re-routes on FIRST failure.** If the send fails for a deterministic reason — carrier opt-out/STOP state, invalid or known-dead lane identity, provider "disabled"/"unregistered" error — do NOT retry the same channel. Re-route to the fallback channel immediately (SMS failed → email; email bounced → SMS), and if both fail, tell the owner the message did not land. Never re-try a channel that failed for identity/permission reasons; only transient errors (timeout, 5xx, rate-limit) earn one retry.
+
+**Rule 2 — a failed send inside an active client conversation is resent in the SAME exchange.** If the client is mid-conversation (they have replied within the session), a failed delivery must be resent via the fallback channel before the exchange is considered closed — a conversation that silently drops on one side reads to the client as being ignored.
+
+**Rule 3 — record the dead lane.** After a deterministic failure, write the channel + identity + reason into the lane's notes so the next send doesn't rediscover it. A channel documented dead is never the first attempt again.
+
 ---
 
 ## 2. Appointment Lifecycle Messages
