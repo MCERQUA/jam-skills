@@ -220,6 +220,58 @@ Why embedded: the page route is stable and cache-friendly, the buttons hit the
 same origin with fresh headers, and a single link in chat passes link-gates and
 phone browsers far more reliably than a list of raw file paths.
 
+## Server-Synced Notes Box (client → agent async feedback channel)
+
+> Contributed by danielle-voice@mesh, 2026-10-01; installed by host.
+
+Proven on tenant danielle (Client Hub brainstorm page + Candy Nails app). Turns "she left me
+a note" into an async requirements channel — the client types feedback into a canvas page at
+any hour; the desk agent picks it up without a call or SMS round-trip.
+
+**Client-side (inside the page HTML), as staged:**
+1. Keep page state (checkbox decisions + a `<textarea id="notes">`) in one JS object,
+   persisted to `localStorage` under a per-page key so refresh never loses it.
+2. On every change (debounced ~1s) AND on page load, mirror the state to the server:
+
+```js
+var SYNC_NAME = '<page-id>-state.json';
+function pushState(){
+  var blob = new Blob([JSON.stringify(state)], {type:'application/json'});
+  var fd = new FormData(); fd.append('file', blob, SYNC_NAME);
+  fetch('/api/upload', {method:'POST', body:fd}).catch(function(){});
+}
+pushState(); // fires on load too — lifts an already-typed note out of the browser on next refresh
+```
+
+3. Include `state['synced_at'] = new Date().toISOString()` so the reader can tell stale from fresh.
+
+**Agent-side:** the blob lands in uploads storage (`/app/runtime/uploads/<page-id>-state.json`
+in the container; `/uploads/...` from the browser). Read it, parse `notes` + checkbox keys,
+act on it. `fetch(...).catch(noop)` makes the sync best-effort.
+
+**Guardrails:**
+- One client's page syncs only its own state file — never point this at another tenant's data.
+- The notes box is client-OUTBOUND (requirements/feedback). It is not a chat; replies go back
+  via the normal channel (page update + SMS/voice as appropriate for that tenant's caps).
+- Debounce the input handler so a brain-dump doesn't fire a POST per keystroke.
+
+Reference implementations: `canvas-pages/client-hub-brainstorm.html` (danielle tenant,
+2026-09-30) and the Candy Nails app page — see `pushState()` + `SYNC_NAME` in each.
+
+> **HOST NOTE (2026-10-03) — fix step 1 before reusing this pattern.** This project's
+> standing rule is absolute: OpenVoiceUI is a VPS browser terminal, not a distributed app —
+> **NEVER use `localStorage`/`sessionStorage` to persist ANY state, and never cache state in
+> the browser; the server is always available** (see `CLAUDE.md` → "JAM-BOT/OPENVOICEUI IS A
+> VPS BROWSER TERMINAL"). Step 1 above, as staged, makes `localStorage` the primary store with
+> the server as a mirror — that is backwards and must not be copied as written. The server
+> upload in step 2 is the right half of this pattern; keep that. Replace step 1 with: hold
+> `state` in a plain in-memory JS object, and on page load **fetch the existing
+> `<page-id>-state.json` from the server FIRST** (`GET /uploads/<page-id>-state.json` or the
+> workspace-browse API) to seed `state` before the user types anything — that is what makes
+> "refresh never loses it" true without touching browser storage. Everything else in this
+> section (debounce, `synced_at`, per-tenant isolation, outbound-only semantics) stands as
+> staged.
+
 ## Offline ZIP export of a canvas draft (page + assets, 5 lines)
 
 Proven 2026-10-01 (Riptide draft): hand the owner one ZIP that opens offline — page HTML plus its assets, image paths rewritten relative. Needs only `zip` + `sed`.
