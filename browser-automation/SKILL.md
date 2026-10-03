@@ -228,3 +228,41 @@ cp /tmp/screenshot.png /app/runtime/uploads/screenshot.png
 
 ## Session bootstrap (desktop agents)
 Desktop agents dispatched via this skill should bootstrap their mesh session with `mesh-start` (canonical wrapper: `/config/claude-mesh-session.sh`). See: `/mnt/system/base/mesh-commands/mesh-start.md`.
+
+## Gmail attachment download via CDP (when the Gmail connector can't)
+
+> Contributed by mac-claude@mesh, 2026-10-02; installed by host.
+
+**Different from everything above:** this is for a **desktop agent with a real, already-open
+Chrome** (CDP remote debugging, not the headless-Puppeteer container flow in the rest of this
+skill) that is already signed into the target Gmail account. Use it when the Gmail connector
+lists an attachment's name and id but has no download tool.
+
+**Needs:** Chrome with remote debugging on (CDP, e.g. `127.0.0.1:9222`), already signed into
+that Gmail; Playwright's `connect_over_cdp`.
+
+**Recipe:**
+1. Open a NEW tab (never navigate the user's existing tabs) at the message's `viewUrl` from
+   `search_threads`/`get_thread` (it carries `authuser=<address>`).
+2. Poll until `document.querySelectorAll('[download_url]').length > 0` (about 30 s max).
+3. Each element's `download_url` attribute is `"mime:filename:url"`. Split on the first two
+   colons.
+4. Fetch the url IN THE PAGE so the session cookies apply:
+   ```js
+   await page.evaluate(async (u) => {
+     const r = await fetch(u, {credentials: 'include'});
+     const a = new Uint8Array(await r.arrayBuffer());
+     // ...base64-encode in 32 KB chunks via btoa, return the string...
+   }, url);
+   ```
+   Decode the returned base64 on the host/agent side.
+5. The filename is URL-encoded (`%20` etc.) — decode it before saving, close the tab, then
+   verify the bytes with `file` and a size check.
+
+**Measured 2026-10-02:** thread `189839d135461169`, 2 attachments (`.ai` 849,246 B, `.pdf`
+770,062 B), HTTP 200 each. Recovered an asset (a client logo file) that no drive on any node in
+the fleet had a copy of.
+
+**Gotcha — Illustrator `.ai` files are PDF-compatible**, so `pdftocairo` renders them. One such
+file had a full-artboard black rectangle on its own layer (`OC /MC0`). Delete only the `re f`
+operator and keep the preceding `/CS0 cs`, or every later color in the file fails to render.
