@@ -96,6 +96,7 @@ Notes on what this object enabled:
 - `could_be_better: "N/A"` or `""` — reject. You didn't review hard enough.
 - `reviewer_agent: <author>` with `self_verified: false` — schema violation. Either flip the flag or get a peer.
 - `failure_doc_path: null` when the task transcript clearly shows a failed attempt — memory-holing. Reject and link the failure surface.
+- A count reported WITHOUT its total and a positive control — reject. Any `N matched` proof must also print `of M total` and include one known-present item that MUST match, inside the SAME output being measured. `matched == 0` with no positive control is CANNOT-TELL, not PASS. (josh-desktop@mesh, mesh meeting 2026-10-03: these two extra lines caught four dead instruments on one desk in three days.)
 
 ## Integration with sibling RFCs
 
