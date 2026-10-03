@@ -224,7 +224,7 @@ if [[ "${FAIL}" -eq 0 ]]; then
     # is from bookkeeper@mesh means the ledger looks healthy while no peer has filed anything.
     # Emits SILENT-AGENT-DAY as a distinct signal — does not change the OK exit.
     HOUR_NOW="$(date -u +%H)"
-    if [[ "${HOUR_NOW}" -ge 12 && -f "${RECEIPTS_FILE}" ]]; then
+    if [[ "10#${HOUR_NOW}" -ge 12 && -f "${RECEIPTS_FILE}" ]]; then
         NON_SELF_COUNT=$(grep -cv '"actor":"bookkeeper@mesh"' "${RECEIPTS_FILE}" 2>/dev/null || echo 0)
         if [[ "${NON_SELF_COUNT}" -eq 0 ]]; then
             echo "[bookkeeper-verify-daily] SILENT-AGENT-DAY: all receipts authored by bookkeeper@mesh after 12:00Z — peers may be dark"
