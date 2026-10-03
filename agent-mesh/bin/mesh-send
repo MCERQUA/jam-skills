@@ -823,6 +823,12 @@ def main() -> None:
     # ---- assemble frontmatter ----
     readers = [recipient_uri] + [f"{cc}@mesh" for cc in ccs]
     end_of_turn = args.end_of_turn or f"{recipient_uri} — reply expected"
+    if args.end_of_turn is None:
+        # 2026-10-03 (josh-desktop@mesh 09-28-037): the default was silent, so a body saying
+        # "no reply needed" still went out as "reply expected" and the recipient obeyed the header.
+        # Say it out loud. stderr only: callers that read the delivered path from stdout are unaffected.
+        sys.stderr.write(f"mesh-send: no --end-of-turn given, so the header says "
+                         f"'{end_of_turn}'. If no reply is wanted, pass --end-of-turn 'none — <why>'.\n")
     fm_lines = [
         "---",
         f"KIND: {args.kind}",
