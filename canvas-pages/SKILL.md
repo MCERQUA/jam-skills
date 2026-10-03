@@ -195,6 +195,21 @@ Four rules, all load-bearing:
 4. **Name it so the owner can find it again.** `/uploads/<uuid>.png` is what `/api/upload` returns;
    for a deliverable, copy it to a readable name (`first-drop-songs.zip`) before you send the link.
 
+## Offline ZIP export of a canvas draft (page + assets, 5 lines)
+
+Proven 2026-10-01 (Riptide draft): hand the owner one ZIP that opens offline — page HTML plus its assets, image paths rewritten relative. Needs only `zip` + `sed`.
+
+```bash
+T=$(mktemp -d) && mkdir -p "$T/assets"
+cp /app/runtime/canvas-pages/my-page.html "$T/my-page.html"
+for p in $(grep -oE '(src|href)="/(uploads|pages)/[^"]+"' "$T/my-page.html" | sed -E 's@^.*="@@; s@"$@@' | sort -u); do case "$p" in /uploads/*) s="/app/runtime$p";; /pages/*) s="/app/runtime/canvas-pages${p#/pages}";; esac; cp "$s" "$T/assets/$(basename "$p")"; done
+sed -i -E 's@((src|href)=")/(uploads|pages)/@\1assets/@g' "$T/my-page.html"
+(cd "$T" && zip -qr /app/runtime/uploads/my-page-offline.zip my-page.html assets)   # leave $T: /tmp is ephemeral, and the fleet never deletes
+```
+
+- If the page uses CSS `url(/uploads/…)` backgrounds, add one matching `sed` for `url(` before zipping.
+- Deliver via the `/uploads/` public-URL fallback above — read its four rules first; name the ZIP something the owner can find again.
+
 ## Path Mapping (CRITICAL)
 
 | Container Path | Browser URL |
