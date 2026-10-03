@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="page-icon" content="zap">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{BUSINESS_NAME}} — Lead Boost</title>
+<!--
+  LEAD BOOST PAGE — FLEET TEMPLATE (v1, 2026-09-29)
+  Clone this file, replace every {{PLACEHOLDER}} (search for "{{"), publish as a
+  canvas page, then text each stakeholder the link. Structure:
+    1. Masthead: N warm leads in hand + zero-spend week one
+    2. KPI tiles: leads in hand / week-one cost / pages or assets this week / horizon
+    3. One panel PER HELD LEAD: contact line + full reply draft + Copy button
+    4. 7-day free action plan (each card: owner + time/cost)
+    5. "What I need from you" — the 2–3 one-word answers that unblock everything
+  Rules baked in from the origin page (ICA, 2026-09-28 "no leads" panic text):
+    - Drafts only. Owner sends from their own email/phone. Never send to leads yourself.
+    - Drafts follow the tenant's lead-reply-playbook if one exists; ask only for the
+      details needed to quote; promise nothing; sign with real license/ROC numbers.
+    - Week one is $0 — free levers first, paid options mentioned last.
+-->
+<style>
+:root {
+  --bg:#eef1f5; --surface:#fff; --border:#dbe2e9;
+  --text:#3c4756; --heading:#16202c; --muted:#8d99a9;
+  --brand:{{BRAND_COLOR|#0bd9a2}}; --danger:#dc4433; --warning:#d9870b;
+  --radius:18px; --shadow:0 1px 2px rgba(22,32,44,.04), 0 12px 32px rgba(22,32,44,.08);
+  --font: 'Inter Tight', system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.page{max-width:880px;margin:0 auto;padding:28px 18px 60px}
+.masthead h1{font-size:1.7rem;color:var(--heading);letter-spacing:-.02em}
+.masthead .sub{color:var(--muted);margin-top:4px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 12px;font-size:.75rem;margin-top:10px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:22px 0}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.kpi b{display:block;font-size:2rem;color:var(--heading);line-height:1.1}
+.kpi .cap{color:var(--muted);font-size:.78rem}
+h2{font-size:1.15rem;color:var(--heading);margin:30px 0 6px}
+.hint{color:var(--muted);font-size:.8rem;display:block;margin-bottom:12px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:14px}
+.panel h3{font-size:1rem;color:var(--heading)}
+.badge{float:right;font-size:.7rem;border:1px solid var(--border);border-radius:999px;padding:2px 10px;color:var(--muted)}
+.badge.warm{border-color:var(--brand);color:var(--heading)}
+pre.draft{background:#f6f8fa;border:1px solid var(--border);border-radius:12px;padding:14px;white-space:pre-wrap;font:inherit;margin:10px 0}
+button.copy{background:var(--heading);color:#fff;border:0;border-radius:10px;padding:8px 16px;font:inherit;font-size:.8rem;cursor:pointer}
+.plan{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.card h4{color:var(--heading);font-size:.95rem;margin:6px 0}
+.card .meta{display:flex;justify-content:space-between;color:var(--muted);font-size:.75rem;margin-top:10px}
+.footnote{color:var(--muted);font-size:.75rem;margin-top:36px;text-align:center}
+ol.plain{padding-left:20px} ol.plain li{margin:6px 0}
+</style>
+</head>
+<body>
+<div class="page" id="top">
+
+  <header class="masthead">
+    <h1>⚡ Lead Boost — {{BUSINESS_NAME}}</h1>
+    <p class="sub">{{LEAD_COUNT}} warm leads ready to answer today · a free 7-day plan to restart the pipeline · no ad spend needed for week one.</p>
+    <span class="chip">Drafts ready — waiting on your OK</span>
+  </header>
+
+  <section class="kpi-grid" aria-label="Snapshot">
+    <div class="kpi"><span class="cap">Warm leads in hand</span><b>{{LEAD_COUNT}}</b><span class="cap">replies drafted below, copy-paste-send</span></div>
+    <div class="kpi"><span class="cap">Cost of week one</span><b>$0</b><span class="cap">all free levers — your labor + mine</span></div>
+    <div class="kpi"><span class="cap">Pages/assets this week</span><b>{{ASSET_COUNT}}</b><span class="cap">{{ASSET_SUMMARY}}</span></div>
+    <div class="kpi"><span class="cap">Plan horizon</span><b>7<small> days</small></b><span class="cap">starts today, each step has an owner</span></div>
+  </section>
+
+  <h2>1 · The leads already in hand</h2>
+  <span class="hint">Copy each reply into your own email/SMS and send from {{OWNER_FROM_ADDRESS}} — or text me edits and I'll reword.</span>
+
+  <!-- ONE PANEL PER HELD LEAD — clone this block -->
+  <div class="panel">
+    <h3>{{LEAD_NAME}} — {{LEAD_JOB_SHORT}} <span class="badge warm">{{LEAD_STATUS}}</span></h3>
+    <p class="hint">{{LEAD_EMAIL}} · {{LEAD_PHONE}} · {{LEAD_CONTEXT}}</p>
+    <pre class="draft" id="d1">{{REPLY_DRAFT — follow tenant lead-reply-playbook; ask only for details needed to quote; promise nothing; sign with name/company/license/phone}}</pre>
+    <button class="copy" type="button" data-copy="d1">Copy reply</button>
+  </div>
+  <!-- end lead panel -->
+
+  <h2>2 · The 7-day free lead plan</h2>
+  <span class="hint">Everything here costs $0 — your time and mine.</span>
+  <div class="plan">
+    <!-- ONE CARD PER ACTION — clone; keep owner + time on every card -->
+    <div class="card"><span class="badge">Today</span><h4>{{ACTION_TITLE}}</h4><p>{{ACTION_WHY}}</p><div class="meta"><span>Owner: {{WHO}}</span><span>{{TIME}}</span></div></div>
+    <div class="card"><span class="badge">Mon–Tue</span><h4>{{ACTION_TITLE}}</h4><p>{{ACTION_WHY}}</p><div class="meta"><span>Owner: {{WHO}}</span><span>{{TIME}}</span></div></div>
+    <div class="card"><span class="badge">Wed–Fri</span><h4>{{ACTION_TITLE}}</h4><p>{{ACTION_WHY}}</p><div class="meta"><span>Owner: {{WHO}}</span><span>{{TIME}}</span></div></div>
+    <div class="card"><span class="badge">Weekend</span><h4>{{ACTION_TITLE}}</h4><p>{{ACTION_WHY}}</p><div class="meta"><span>Owner: {{WHO}}</span><span>{{TIME}}</span></div></div>
+  </div>
+
+  <h2>3 · What I need from you</h2>
+  <span class="hint">{{QUESTION_COUNT}} one-word answers get all of it moving.</span>
+  <div class="panel">
+    <ol class="plain">
+      <li><strong>Sends:</strong> are the reply drafts good to go as-is? Text me "send them" or tell me what to change.</li>
+      <li><strong>{{ASK_2_TOPIC}}:</strong> {{ASK_2_QUESTION}}</li>
+      <li><strong>{{ASK_3_TOPIC}}:</strong> {{ASK_3_QUESTION}}</li>
+    </ol>
+    <p class="hint">Paid options exist if you want them — but everything on this page works without spending a dollar, and I'd rather show you free results first.</p>
+  </div>
+
+  <p class="footnote">{{BUSINESS_NAME}} · Lead Boost · Private page — lead details stay behind your login · <a href="#top">back to top</a></p>
+</div>
+
+<script>
+document.querySelectorAll('button.copy').forEach(function(b){
+  b.addEventListener('click',function(){
+    var txt=document.getElementById(b.dataset.copy).innerText;
+    function done(){b.textContent='Copied ✓';setTimeout(function(){b.textContent='Copy reply';},2000);}
+    function fb(){var t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy');done();}catch(e){b.textContent='Press and hold to copy';}document.body.removeChild(t);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,fb);}else{fb();}
+  });
+});
+</script>
+</body>
+</html>
