@@ -130,6 +130,10 @@ def discover_roots() -> tuple[Path, Path, Path]:
     die("cannot discover mesh root — set MESH_ROOT")
 
 
+ARCHIVE_DIRNAME = ".claims-swept-archive"
+SWEEP_FAILED = 0
+
+
 def sweep_stale_claims(root: Path) -> int:
     """TTL-aware sweep (bun-desktop@mesh, staged 2026-10-03 item #4; applied by host): MOVE expired
     .claim dirs into a dated archive beside the claims root. Never deletes.
@@ -141,13 +145,22 @@ def sweep_stale_claims(root: Path) -> int:
     renders "swept 0", the exact false green this replaces (host addition).
     Returns the number of claims moved.
     """
+    global SWEEP_FAILED
     if not root.is_dir():
         return 0
     now = _t.time()
     day = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
-    archive = root.parent / f"{root.name}.swept-archive" / day
+    # ARCHIVE LOCATION (bun-desktop 10-03-170): the first version used root.parent, but the callers
+    # pass /agent-desk and /mesh as root, so the archive landed under "/" (unwritable on every desk;
+    # host-side it sat OUTSIDE the /mesh mount where no desk could ever read it). It must be inside a
+    # WRITABLE, mounted place, and EXCLUDED from the walk below or archived claims get re-walked and
+    # re-moved deeper every run. /mesh/QUEUE is a writable submount even where /mesh is ro.
+    _arch_root = (root / "QUEUE") if (root / "QUEUE").is_dir() else root
+    archive = _arch_root / ARCHIVE_DIRNAME / day
     moved, failed, first_err = 0, 0, ""
     for entry in root.rglob("*.claim"):
+        if ARCHIVE_DIRNAME in entry.parts:
+            continue  # never re-walk what we already archived
         try:
             if not entry.is_dir():
                 # legacy pre-metadata claims are FILES: same TTL rule, mtime as born, default ttl
@@ -173,6 +186,7 @@ def sweep_stale_claims(root: Path) -> int:
             first_err = first_err or f"{entry.name}: {e}"
     if failed:
         print(f"mesh-on: sweep could NOT move {failed} expired claim(s) (first: {first_err})", file=sys.stderr)
+    SWEEP_FAILED += failed
     return moved
 
 
@@ -266,7 +280,10 @@ def main() -> None:
     # ---- 1. Sweep stale claims ----
     swept = sweep_stale_claims(my_dir)
     swept += sweep_stale_claims(mesh_dir)
-    print(f"mesh-on: swept {swept} stale claim(s)")
+    # stdout carries the failures too (bun-desktop 10-03-170): 4 of 6 scripted callers read stdout
+    # only, so a stderr-only failure still rendered as a healthy "swept 0" for them.
+    _f = f", {SWEEP_FAILED} FAILED to move" if SWEEP_FAILED else ""
+    print(f"mesh-on: swept {swept} stale claim(s){_f}")
 
     if args.sweep_only:
         return
