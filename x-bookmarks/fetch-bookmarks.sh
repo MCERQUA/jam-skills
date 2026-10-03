@@ -39,7 +39,7 @@ user_id = r.json()["data"]["id"]
 # reached or the token runs out; count <= 100 is exactly one request, as before.
 params = {
     "max_results": min(max(count, 1), 100),
-    "tweet.fields": "created_at,public_metrics,entities,attachments",
+    "tweet.fields": "created_at,public_metrics,entities,attachments,note_tweet,article",
     "expansions": "author_id,attachments.media_keys",
     "user.fields": "username,name,public_metrics",
     "media.fields": "url,preview_image_url,type",
