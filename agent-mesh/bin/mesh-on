@@ -27,9 +27,11 @@ import datetime as _dt
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
+import time as _t
 from pathlib import Path
 
 CAPABILITIES_DIR = Path("/mesh/REGISTRY/capabilities")
@@ -129,20 +131,49 @@ def discover_roots() -> tuple[Path, Path, Path]:
 
 
 def sweep_stale_claims(root: Path) -> int:
-    """Recursively sweep stale .claim dirs older than 60s. Returns count."""
+    """TTL-aware sweep (bun-desktop@mesh, staged 2026-10-03 item #4; applied by host): MOVE expired
+    .claim dirs into a dated archive beside the claims root. Never deletes.
+
+    A claim is expired iff now > born + ttl (files inside the claim dir; ttl defaults to the protocol's
+    1800s when absent/unparseable, born falls back to dir mtime). Replaces the 60s-mtime rmdir() sweep
+    that could never fire (non-empty dirs) and, had it fired, would have removed live claims 60s after
+    they were taken. Failed moves are COUNTED and reported on stderr — a sweep that silently fails
+    renders "swept 0", the exact false green this replaces (host addition).
+    Returns the number of claims moved.
+    """
     if not root.is_dir():
         return 0
-    count = 0
-    cutoff = time.time() - 60
+    now = _t.time()
+    day = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
+    archive = root.parent / f"{root.name}.swept-archive" / day
+    moved, failed, first_err = 0, 0, ""
     for entry in root.rglob("*.claim"):
-        if entry.is_dir():
-            try:
-                if entry.stat().st_mtime < cutoff:
-                    entry.rmdir()
-                    count += 1
-            except OSError:
-                pass
-    return count
+        try:
+            if not entry.is_dir():
+                # legacy pre-metadata claims are FILES: same TTL rule, mtime as born, default ttl
+                if now < entry.stat().st_mtime + 1800.0:
+                    continue
+            else:
+                try:
+                    born = float((entry / "born").read_text().strip())
+                except (OSError, ValueError):
+                    born = entry.stat().st_mtime
+                try:
+                    ttl = float((entry / "ttl").read_text().strip())
+                except (OSError, ValueError):
+                    ttl = 1800.0
+                if now < born + ttl:
+                    continue  # live: TTL honoured over mtime by construction
+            dest = archive / entry.relative_to(root)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(entry), str(dest))
+            moved += 1
+        except OSError as e:
+            failed += 1
+            first_err = first_err or f"{entry.name}: {e}"
+    if failed:
+        print(f"mesh-on: sweep could NOT move {failed} expired claim(s) (first: {first_err})", file=sys.stderr)
+    return moved
 
 
 def read_protocol_version(mesh_dir: Path) -> tuple[str, float]:

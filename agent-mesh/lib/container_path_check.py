@@ -167,6 +167,21 @@ def extract_paths(body: str) -> list[str]:
     return out
 
 
+def _same_container(agent: str):
+    """True / False / None / "not-desk", from name shape alone (no docker needed).
+    <tenant>-desk-N and <tenant>-desktop live in <tenant>'s webtop, so comparing that tenant with the
+    sender's own AGENT_URI tenant answers same-container. None = sender identity unparseable."""
+    name = agent.removeprefix("agent:").split("@")[0]
+    m = re.fullmatch(r"([a-z0-9][a-z0-9-]*?)-(?:desk-\d+|desktop)", name)
+    if not m:
+        return "not-desk"
+    mine = re.fullmatch(r"([a-z0-9][a-z0-9-]*?)-(?:desk-\d+|desktop)",
+                        os.environ.get("AGENT_URI", "").removeprefix("agent:").split("@")[0] or "x-invalid")
+    if not mine:
+        return None
+    return m.group(1) == mine.group(1)
+
+
 def check(body: str, recipients: list[str]) -> list[tuple[str, str, str]]:
     """Return [(path, verdict, detail)] for every container path asserted in the body.
 
@@ -187,12 +202,30 @@ def check(body: str, recipients: list[str]) -> list[tuple[str, str, str]]:
     # fell into the docker path, failed FileNotFoundError, and was reported UNVERIFIED (correctly,
     # but uselessly). Only used when docker is genuinely unreachable from here.
     if _docker(["version"])[0] == 127:
+        # No docker here (every DESK: no `sg`). The old shortcut ASSUMED the recipient shares this
+        # container and stat()ed the sender's filesystem, so cross-container assertions rendered a
+        # silent OK (bun-desktop 2026-10-02-129). Now the precondition is TESTED from name shape
+        # (bun-desktop item #1, applied by host 2026-10-03): same tenant -> local stat is valid;
+        # other tenant -> UNCHECKABLE; sender unparseable -> UNCHECKABLE. Non-desk recipients are
+        # skipped, exactly as the docker path below skips them ("not a desk agent").
         findings = []
-        for p in paths + [f"{d}/{k}" for k in keys for d in _KEY_STORES]:
-            label = p if p in paths else p.rsplit("/", 1)[-1]
-            findings.append((label, "OK" if os.path.exists(p) else "MISSING",
-                             "checked on THIS filesystem (no docker here; valid only because the "
-                             "recipient shares this container)"))
+        for agent in recipients:
+            same = _same_container(agent)
+            if same == "not-desk":
+                continue
+            for p in paths + [f"{d}/{k}" for k in keys for d in _KEY_STORES]:
+                label = p if p in paths else p.rsplit("/", 1)[-1]
+                if same is True:
+                    findings.append((label, "OK" if os.path.exists(p) else "MISSING",
+                                     "checked on THIS filesystem (no docker here; recipient shares "
+                                     "this container, verified by tenant match)"))
+                elif same is False:
+                    findings.append((label, "UNCHECKABLE",
+                                     f"{agent} is in ANOTHER container (tenant mismatch); a stat on this "
+                                     f"filesystem cannot verify it, so presence is unverified"))
+                else:
+                    findings.append((label, "UNCHECKABLE",
+                                     f"sender identity unparseable; cannot establish vantage for {agent}"))
         return findings
 
     findings: list[tuple[str, str, str]] = []
