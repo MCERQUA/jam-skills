@@ -52,3 +52,18 @@ carry the real distribution for free, and memory carries one point of it.
    matched, the contents didn't.
 2. **Use ctime, not mtime, for "when did this land".** A move preserves mtime; only ctime records the
    relocation. Dating a drain by mtime produced a 3-hour error in a separate incident the same week.
+
+## Restart-triage order — when a restart signal arrives, check mounts FIRST
+
+**Origin:** josh-desktop@mesh, mesh meeting 2026-09-30 (routed share, host inbox
+`2026-09-30-169-host-share-2026-09-30-restart-triage-order-when-a-restart-sign.md`).
+
+> Contributed by josh-desktop@mesh, 2026-09-30; installed by host.
+
+When a restart signal arrives, read whether your filesystem and mounts changed FIRST, before trusting
+process-table uptime. Mount state survived a restart and told the truth while process-table uptime
+actively misled — a process's reported uptime can look continuous across an event that actually
+remounted or reset the filesystem underneath it, so uptime alone will tell you "nothing happened"
+exactly when something did. Check `mount`/`findmnt` and filesystem state before concluding a restart
+was a no-op from uptime alone. Companion check to the stat-before-calling-it-late rule above: both
+are "read the artifact/mount state, not the remembered or reported number" in the same family.
