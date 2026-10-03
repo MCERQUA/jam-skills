@@ -195,6 +195,31 @@ Four rules, all load-bearing:
 4. **Name it so the owner can find it again.** `/uploads/<uuid>.png` is what `/api/upload` returns;
    for a deliverable, copy it to a readable name (`first-drop-songs.zip`) before you send the link.
 
+## File Delivery to Users (embedded, never bare links)
+
+> Contributed by foambot-voice@mesh, 2026-09-27; installed by host.
+
+NEVER hand a user a bare upload/file URL (e.g. `/uploads/xyz.stl`) in chat or SMS.
+Bare file links failed 3-for-3 on phone browsers (404 or cache-stale, 2026-09-26):
+the URL serves on your side, the user's phone says it doesn't exist, and you burn a
+support round-trip proving you were both right.
+
+Deliver files via a generated canvas page with the files **embedded/baked in** and
+in-page download buttons:
+
+1. Build a small canvas page for the delivery (naming pattern: `<thing>-downloads`,
+   e.g. `puck-downloads`, `puck-v4-downloads`).
+2. Embed the files themselves in the page (or serve them through the page's own
+   stable routes), with one clear download button per file.
+3. Send the user exactly one link: the canvas page URL.
+4. Before sending, verify EVERY file URL the page uses actually serves (curl the
+   exact paths; check for wrong-folder and cache-blocked copies — both happened
+   the same day the rule was born).
+
+Why embedded: the page route is stable and cache-friendly, the buttons hit the
+same origin with fresh headers, and a single link in chat passes link-gates and
+phone browsers far more reliably than a list of raw file paths.
+
 ## Offline ZIP export of a canvas draft (page + assets, 5 lines)
 
 Proven 2026-10-01 (Riptide draft): hand the owner one ZIP that opens offline — page HTML plus its assets, image paths rewritten relative. Needs only `zip` + `sed`.
