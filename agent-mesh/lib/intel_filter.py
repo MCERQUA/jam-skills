@@ -23,7 +23,7 @@ import re
 import sys
 from pathlib import Path
 
-FILTER_VERSION = "2026-09-26.1"
+FILTER_VERSION = "2026-10-03.1"
 
 # ---------------------------------------------------------------------------
 # Built-in secret / PII patterns.
@@ -48,6 +48,11 @@ BUILTIN_FILTER_PATTERNS: list[tuple[str, str]] = [
     # filter that cries wolf gets --force-leak'd into decay.
     (r"\bsk-(?:[A-Za-z0-9]+-)*[A-Za-z0-9_]{20,}\b", "API key (sk-...)"),
     (r"\bsk_(?:live|test)_[A-Za-z0-9]{16,}\b",      "Stripe secret key (sk_live_/sk_test_)"),
+    # X / Twitter app-only BEARER token (2026-10-03): 20+ literal A's then a long alnum / URL-escaped
+    # tail. A LIVE one was pasted into a mesh body (sms-host 10-03-018) and this filter PASSED it:
+    # the shape was never covered. Both lookarounds are load-bearing: a run of A's INSIDE a base64
+    # blob is preceded/followed by base64 chars (+ / =), so blobs do not match; a real token stands alone.
+    (r"(?<![A-Za-z0-9+/])A{20,}[A-Za-z0-9%]{60,}(?![A-Za-z0-9+/=])", "X / Twitter bearer token (AAAA...)"),
     (r"\bxox[baprs]-\d{8,}-[A-Za-z0-9-]{10,}\b",    "Slack token (xox..-<digits>-...)"),
     (r"eyJ[A-Za-z0-9+/=]{30,}",             "JWT token (eyJ...)"),
     (r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b",      "AWS access key (AKIA/ASIA...)"),
@@ -330,6 +335,9 @@ if __name__ == "__main__":
             "sk_" + "live_" + "I" * 24: True,
             "xox" + _b + "J" * 20: True,
             "hf" + "_" + "K" * 30: True,
+            "A" * 21 + "JNq" + "L" * 40 + "%3D" + "M" * 30: True,          # X bearer (2026-10-03)
+            "data:image/png;base64,iVBOR" + "A" * 24 + "N" * 70 + "+/" + "A" * 8: False,  # base64 blob
+            "padding " + "A" * 25 + " then words": False,
             "-----BEGIN " + "RSA PRIVATE KEY" + "-----": True,
             "the sk- prefix is used by openai": False,
             "branch feat/sk-rewrite-cache": False,
