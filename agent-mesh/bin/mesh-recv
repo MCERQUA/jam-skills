@@ -214,9 +214,19 @@ def main() -> None:
         die(f"inbox not found: {inbox}")
 
     if args.show:
+        # --show takes a BARE filename from the caller's own inbox. Security critic 2026-10-03:
+        # `inbox / args.show` with an ABSOLUTE path discards `inbox` (pathlib), and `../` walks out,
+        # so `--show /home/mike/.ssh/id_ed25519_mac` read the host->Mac private key through the
+        # mesh-only forced command (danielle-laptop's key, open since 2026-09-24).
+        if args.show != Path(args.show).name or args.show in (".", ".."):
+            die("--show takes a bare filename from your own inbox (no paths)", code=2)
         # try both unread and read locations
         for candidate in (inbox / args.show, inbox / ".read" / args.show):
-            if candidate.is_file():
+            try:
+                inside = candidate.resolve().is_relative_to(inbox.resolve())
+            except (OSError, ValueError):
+                inside = False
+            if inside and candidate.is_file():
                 sys.stdout.write(candidate.read_text(encoding="utf-8"))
                 return
         die(f"file not found: {args.show}", code=2)
