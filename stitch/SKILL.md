@@ -41,7 +41,11 @@ exec("bash /mnt/shared-skills/stitch/stitch-mcp.sh <tool> '<json>'")
 - Never spawn a z-code sub-agent to drive Stitch.
 
 ## Models
-- **`GEMINI_3_1_PRO`** (default) or `GEMINI_3_FLASH` (faster). `GEMINI_3_PRO` is still ACCEPTED
+- **`GEMINI_3_8_FLASH`** or **`GEMINI_3_5_FLASH_LITE`** — the only modelIds `generate_screen_from_text`
+  accepts (updated 2026-10-03 per josh-desk-1@mesh measurement 2026-09-27). `GEMINI_3_1_PRO`
+  (rejected as of 2026-09-27) now returns "invalid argument" — do not pass it.
+- Prior guidance, kept for history but STALE as of 2026-09-27: `GEMINI_3_1_PRO` (default) or
+  `GEMINI_3_FLASH` (faster). `GEMINI_3_PRO` was still ACCEPTED
   by the API (verified 2026-07-07) and the website-creator 4-style pipeline deliberately pins it
   (2026-06-07 audit: it produced fuller long pages). A 2026-07-07 same-prompt A/B measured both
   at ~4-6K px on a 14K-px length contract — output length varies Stitch-side day to day, so
@@ -78,9 +82,11 @@ stitch-mcp.sh create_design_system '{
 # 3. Generate EACH page — pass designSystem + model. THE RESPONSE CONTAINS THE SCREEN.
 stitch-mcp.sh generate_screen_from_text '{
   "projectId":"<PID>", "designSystem":"assets/<DSID>",
-  "deviceType":"DESKTOP", "modelId":"GEMINI_3_1_PRO",
+  "deviceType":"DESKTOP", "modelId":"GEMINI_3_8_FLASH",
   "prompt":"<design-director prompt for THIS page — see instructions/stitch-auto-brief.md>"
 }'
+#   modelId updated 2026-10-03 per josh-desk-1@mesh measurement 2026-09-27 — "GEMINI_3_5_FLASH_LITE"
+#   also accepted; "GEMINI_3_1_PRO" (rejected as of 2026-09-27) now returns "invalid argument".
 #   Parse the response: result.content[0].text (JSON) → outputComponents[] →
 #   ⚠️ outputComponents is a MIXED list in ANY order: {designSystem}, {design}, {text},
 #      {suggestion}×N. SEARCH for the member with `design.screens[]` — do NOT hardcode [0]
@@ -91,6 +97,10 @@ stitch-mcp.sh generate_screen_from_text '{
 #      The {designSystem} member carries {name} — reuse it as designSystem on later pages
 #      (no separate list_design_systems call needed after the home generate).
 #   Capture htmlCode.downloadUrl FROM THIS RESPONSE immediately. Do NOT call list_screens.
+#   ⚠️ IMAGE-TYPE screens come back WITHOUT htmlCode (image-only output) — fall back to
+#      screenshot.downloadUrl in that case. Append `=w1376-h768` to screenshot.downloadUrl for
+#      full size; the default served size is 512px. (josh-desk-1@mesh, measured 2026-09-27,
+#      added to this doc 2026-10-03)
 
 # 4. Download each screen's HTML:
 curl -sL "<htmlCode.downloadUrl>" -o .stitch-pages/<slug>.html
@@ -111,8 +121,9 @@ curl -sL "<htmlCode.downloadUrl>" -o .stitch-pages/<slug>.html
    work, burns quota, and triggers transient 401 "auth errors" (rate limiting) that look like
    credential failure but aren't. If you see a 401 mid-batch: WAIT 60s, poll — don't re-auth,
    don't re-fire.
-3. **Model: `GEMINI_3_1_PRO`** for general use; `GEMINI_3_PRO` still accepted (2026-07-07) and
-   pinned by the 4-style pipeline — see Models above before "fixing" either.
+3. **Model: `GEMINI_3_8_FLASH` or `GEMINI_3_5_FLASH_LITE`** (updated 2026-10-03 per josh-desk-1@mesh
+   measurement 2026-09-27) — `GEMINI_3_1_PRO` is rejected as of 2026-09-27 ("invalid argument").
+   See Models above before "fixing" either.
 4. **Multi-variant runs**: ONE project + ONE design system + N generate calls, each prompt
    carrying a DISTINCT layout archetype label (V1 minimal-cards / V2 HUD-gauges / V3
    timeline-board / V4 map-first / V5 bento-stats…). Fire, then poll `list_screens` once for
@@ -137,7 +148,8 @@ sub-agent spin-ups, API errors you recovered from. ALL of that is silent interna
 ## END-TO-END "make a webapp for this" recipe (the whole flow, silent)
 1. One-line ack (per contract above).
 2. Stitch: create project → create_design_system (style fitting the subject) →
-   generate (deviceType MOBILE unless told otherwise, GEMINI_3_1_PRO) → download HTML.
+   generate (deviceType MOBILE unless told otherwise, GEMINI_3_8_FLASH — updated 2026-10-03 per
+   josh-desk-1@mesh measurement 2026-09-27; GEMINI_3_1_PRO rejected as of 2026-09-27) → download HTML.
 3. Adapt the HTML into a canvas page: single file, fix asset/CDN links, any persistence goes
    to server APIs (NEVER localStorage), save to canvas-pages + register in the manifest.
 4. Open it in the canvas (canvas-open tag) — THEN send the done message.
@@ -277,7 +289,7 @@ pipeline). Don't try to make Stitch do a full-stack tool's job.
 | `create_design_system_from_design_md` | `REQUIRES selectedScreenInstance (an uploaded screen) — FAILS on fresh projects; use `create_design_system` instead |
 | `list_design_systems` | `{"projectId"}` → designSystems[].name=assets/{id} — EXISTS |
 | `apply_design_system` / `update_design_system` | exist; verify per use |
-| `generate_screen_from_text` | `{projectId, designSystem, deviceType, modelId:GEMINI_3_1_PRO, prompt}` — **screen returned IN the response** |
+| `generate_screen_from_text` | `{projectId, designSystem, deviceType, modelId:GEMINI_3_8_FLASH or GEMINI_3_5_FLASH_LITE (updated 2026-10-03 per josh-desk-1@mesh measurement 2026-09-27; GEMINI_3_1_PRO rejected as of 2026-09-27), prompt}` — **screen returned IN the response** |
 | `list_screens` / `get_screen` | web-UI screens only; NOT for API-gen |
 | `edit_screens` / `generate_variants` | iterate on existing screens |
 
