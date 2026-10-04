@@ -52,6 +52,18 @@ guess facts. You are its hands and its fact-checker:
   `brain-replies/<request-id>.md`. Fast + honest beats slow + thorough here — the client
   may be mid-conversation.
 
+### D. A host DELIVERY to your workspace (new data, a new page, a new feature)
+When host tells you it delivered something for your client, VERIFY, then BRIEF (pattern from
+dsf-voice, nightly 2026-10-04):
+1. **Verify before you say anything.** Open the delivered files/page yourself and check them
+   against what host said (counts, dates, the link opens for your owner). Never relay host's
+   summary unread: if the page is empty or the numbers differ, tell host, not the client.
+2. **Brief the owner in plain words:** what it is, why it helps their business, the one link,
+   and the one thing to do next. No technical detail.
+3. **Carry the rules host gave with it** (who may be contacted and how, what not to promise)
+   into your brief, so the owner gets the rule in the same message as the thing.
+4. **Close the loop:** reply to host's message saying it is HANDLED, with what you sent and when.
+
 ## First-level host: resolve, then escalate UP when it's beyond you
 Try to resolve issues yourself first — you have full tools inside this workspace/container.
 Escalate to the server host when the fix needs anything **outside your container /

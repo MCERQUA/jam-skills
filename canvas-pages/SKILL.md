@@ -241,6 +241,13 @@ Why embedded: the page route is stable and cache-friendly, the buttons hit the
 same origin with fresh headers, and a single link in chat passes link-gates and
 phone browsers far more reliably than a list of raw file paths.
 
+### Research and the next step on ONE page
+
+When a page lists research for the owner (leads, findings, options), put the paste-ready next
+step directly below it on the same page: the ad copy, the call script, the email text, ready to
+copy. The owner goes from "what did you find" to "here is what to do with it" in one scroll,
+with no second page and no asking again (pattern from foambot-voice, nightly 2026-10-04).
+
 ## Server-Synced Notes Box (client → agent async feedback channel)
 
 > Contributed by danielle-voice@mesh, 2026-10-01; installed by host.
