@@ -48,22 +48,36 @@ CHECK_JS = """
     }
     return false;
   };
-  // element overflow (skip intentional hiders)
+  // element overflow — by-design truncation/scroll is EXCLUDED, never silently dropped:
+  // exclusions are counted into elem_overflow_excluded so a reviewer can audit the filter itself
+  // (2026-10-04: ellipsis-idiom exclusion per josh-desktop@mesh 2026-09-28 defect report on the
+  // shared pre-probe collector; ellipsis + hidden/clip has scrollWidth > clientWidth BY CONSTRUCTION)
+  const isTruncationIdiom = el => {
+    let c = el;
+    while (c && c !== document.body) {
+      const cs = getComputedStyle(c);
+      if (cs.textOverflow === 'ellipsis' && (cs.overflowX === 'hidden' || cs.overflowX === 'clip')) return true;
+      c = c.parentElement;
+    }
+    return false;
+  };
   out.elem_overflow = [];
+  out.elem_overflow_excluded = { scroll_rail: 0, truncation_idiom: 0 };
   const seen = new Set();
   document.querySelectorAll('*').forEach(el => {
     if (!visible(el)) return;
-    const ovs = getComputedStyle(el).overflowX;
-    if (ovs === 'auto' || ovs === 'scroll') return;
     const tag = el.tagName;
     if (['HTML','BODY','SCRIPT','STYLE','LINK','META','HEAD'].includes(tag)) return;
+    if (el.scrollWidth <= el.clientWidth + 2) return;
+    const ovs = getComputedStyle(el).overflowX;
+    if (ovs === 'auto' || ovs === 'scroll') { out.elem_overflow_excluded.scroll_rail++; return; }
+    if (isTruncationIdiom(el)) { out.elem_overflow_excluded.truncation_idiom++; return; }
     const cs = getComputedStyle(el);
-    if (el.scrollWidth > el.clientWidth + 2) {
-      const sel = tag.toLowerCase() + (el.id ? '#'+el.id : '') + (el.className && typeof el.className === 'string' ? '.'+el.className.trim().split(/\\s+/).slice(0,2).join('.') : '');
-      if (!seen.has(sel)) { seen.add(sel);
-        out.elem_overflow.push({selector: sel, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, overflowX: cs.overflowX}); }
-    }
+    const sel = tag.toLowerCase() + (el.id ? '#'+el.id : '') + (el.className && typeof el.className === 'string' ? '.'+el.className.trim().split(/\\s+/).slice(0,2).join('.') : '');
+    if (!seen.has(sel)) { seen.add(sel);
+      out.elem_overflow.push({selector: sel, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, overflowX: cs.overflowX}); }
   });
+  out.elem_overflow_capped = Math.max(0, out.elem_overflow.length - 25);
   out.elem_overflow = out.elem_overflow.slice(0, 25);
   // off-screen visible text nodes
   out.offscreen_text = [];

@@ -57,11 +57,12 @@ CHECK_JS = """
   // element overflow (skip intentional hiders and by-design ellipsis clips; count exclusions)
   out.elem_overflow = [];
   out.excluded_ellipsis_elem = 0;
+  out.excluded_scroll_rail_elem = 0;  // counted, never silently dropped (josh-desktop 2026-09-28 (b))
   const seen = new Set();
   document.querySelectorAll('*').forEach(el => {
     if (!visible(el)) return;
     const ovs = getComputedStyle(el).overflowX;
-    if (ovs === 'auto' || ovs === 'scroll') return;
+    if (ovs === 'auto' || ovs === 'scroll') { if (el.scrollWidth > el.clientWidth + 2) out.excluded_scroll_rail_elem++; return; }
     if ((ovs === 'hidden' || ovs === 'clip') && getComputedStyle(el).textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 2) { out.excluded_ellipsis_elem++; return; }
     const tag = el.tagName;
     if (['HTML','BODY','SCRIPT','STYLE','LINK','META','HEAD'].includes(tag)) return;
@@ -83,7 +84,7 @@ CHECK_JS = """
     if (!n.textContent.trim()) continue;
     const el = n.parentElement;
     if (!el) continue;
-    if (inScrollRail(el)) continue;
+    if (inScrollRail(el)) { out.excluded_scroll_rail_text = (out.excluded_scroll_rail_text || 0) + 1; continue; }
     if (isEllipsisClip(el)) { out.excluded_ellipsis_text = (out.excluded_ellipsis_text || 0) + 1; continue; }
     let hidden = false, cur = el;
     while (cur && cur !== document.body) {
