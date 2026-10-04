@@ -86,6 +86,12 @@ A failed send is a ROUTING event, not a retry-the-same-way event. Measured cost 
 
 **Rule 3 — record the dead lane.** After a deterministic failure, write the channel + identity + reason into the lane's notes so the next send doesn't rediscover it. A channel documented dead is never the first attempt again.
 
+### $[PRICE] Blank + Ask-by-SMS (mandatory, adopted 2026-10-03)
+
+When a draft needs a dollar amount that is NOT on file — no rate card, no quote engine output, no owner-stated figure — **never invent, estimate, or "ballpark" the number.** Write the placeholder `$[PRICE]` literally in the draft, leave the send held, and ask the owner for the figure by SMS/voice ("What do you charge for X? I have a customer draft ready").
+
+A plausible-looking price the agent made up can reach a real customer and bind the business to a number the owner never approved. An honest blank cannot. Same invariant as the quoting system: a dollar figure comes from the engine, the rate card, or the owner — or it does not exist. Once the owner supplies the figure, fill the placeholder, confirm the final number back to the owner in the draft hand-off, and only then release the send.
+
 ---
 
 ## 2. Appointment Lifecycle Messages
@@ -1200,6 +1206,54 @@ Most field service software (ServiceTitan, Housecall Pro, Jobber, FieldEdge) sup
 - Time-based → seasonal campaigns
 
 If using manual systems, create a checklist card for each job with communication checkboxes.
+
+---
+
+## 13. Channel-Failure Routing Guards
+
+Two failure classes have burned live client traffic: (1) agents re-trying deterministically dead
+channels (carrier opt-out, known-dead lane identity) multiple times before giving up, and (2) a
+failed send inside an active client conversation that was never resent, so the client saw silence.
+These guards are mandatory for any send path built on this skill.
+
+### Guard 1 — Deterministic rejection re-routes on FIRST failure
+
+A deterministic rejection is a failure whose cause is on a list you can check before the next
+attempt: carrier-level opt-out / error 21610-class responses, a lane identity documented as dead
+in a routing note or registry, an unprovisioned number, or an auth/permission error (401/403) on
+the send credential itself. These will not succeed on retry — the channel's answer is the answer.
+
+- On the FIRST deterministic failure, re-route the message to the documented fallback channel
+  (email fallback, secondary lane identity, or the client's other contact route) in the same
+  action. Do not schedule a retry of the dead channel.
+- Never re-attempt a channel flagged dead in a routing note older than 0 days without re-verifying
+  the flag first — a "known dead" note 18 days old still binds until re-verified.
+- Probabilistic failures (timeout, 5xx, rate limit) are NOT deterministic — those may retry with
+  backoff, max 3 attempts, then re-route.
+
+### Guard 2 — Same-exchange resend in active conversations
+
+A failed send inside an ACTIVE client conversation (client has messaged within the conversation
+window and is expecting a reply) must be resent on the fallback channel within the same exchange —
+before the turn ends. A failed reply is not "queued for later"; the client experienced silence.
+
+- Mark the resend clearly (e.g. lead with the missing content, note the delivery retry) so the
+  client does not receive a confusing duplicate if the original later lands.
+- Log both the failure and the fallback send to the same message thread record — one entry, one
+  outcome, no orphaned half-sent exchanges.
+
+### Guard 3 — Spell dollar amounts in words in SMS body text
+
+Rendered dollar figures can be mangled or truncated by downstream SMS processing — a "$250"
+reached an owner as "50". In SMS body text, spell amounts in words alongside the numeral:
+"your quote is two hundred fifty dollars ($250)". Email bodies may use numerals alone.
+
+### Guard 4 — Queue-drain verification after sends on shared identities
+
+If the send went out on a shared or lane-ambiguous identity (a line or mailbox more than one agent
+writes to), include a queue-drain verification line in the FIRST heartbeat after the send: confirm
+the sent message left the queue and the inbound side is still draining. This catches the
+dual-processor race where the persistent session and the cron drain both act on the same inbox.
 
 ---
 
