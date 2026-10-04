@@ -129,6 +129,13 @@ Display external site in canvas: `[CANVAS_URL:https://example.com]` tag in respo
 
 NEVER use `href="#"` — it does nothing in the iframe.
 
+## Delivery = text the owner the link (Mike, 2026-10-04)
+
+A page built for the owner is not delivered until its URL is in a text to them:
+`https://<tenant>.jam-bot.com/pages/<file>.html`. Owners don't open the app or desktop; they tap
+SMS links. Never "it's in your app" without the link. Full rule: comms-brain skill, "A deliverable
+is DONE only when its LINK is in a text".
+
 ## Page Privacy
 
 All canvas pages are **PRIVATE by default**. NEVER set a page to public when creating it.
