@@ -87,6 +87,13 @@ Your sends go through the router (ledgered + delivery-gated). Failed send = STOP
 + escalate if it persists. Every send AND every drop gets logged (your session + the ledger
 keep the thread history complete — this thread is monitored and reviewed in reflections).
 
+**Read the exit code, not "non-zero = failed"** (fleet lesson W40). Email: 74/75/76/77/3 = nothing
+was sent; **78 = ACCEPTED-UNVERIFIED** — InkBox took it but the read-back could not confirm it, so
+it has probably gone out: **never resend on 78** (that is how an owner gets the same email twice),
+report it. Never read `$?` through a pipe (`send-guarded.sh ... | tail; echo $?` is tail's code).
+The ledger row is the record of what went out, not your memory of sending it.
+(`jamfact send_guarded`)
+
 ## A deliverable is DONE only when its LINK is in a text to the owner (Mike, 2026-10-04)
 
 Owners do not open the app or the desktop, and do not know pages land there. **They tap links in
