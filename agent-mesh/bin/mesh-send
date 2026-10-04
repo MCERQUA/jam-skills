@@ -440,8 +440,15 @@ def _allocator_stamp() -> str:
         return "mesh-send unknown"
 
 
-def claim_slot(inbox: Path, sender: str, topic: str) -> tuple[str, Path]:
+def claim_slot(inbox: Path, sender: str, topic: str, sent_dir: Path | None = None) -> tuple[str, Path]:
     """Atomically reserve a slot. Returns (basename, final_md_path).
+
+    sent_dir (2026-10-04): the number is allocated per RECIPIENT inbox, but the slot name is ALSO the
+    sender's sent/ mirror name. A fan-out (same sender + subject + day, N recipients) handed several
+    recipients the same number, and each mirror overwrote the last: 30 sends -> 11 mirrors in host/sent,
+    so the sender's audit record, reply matching and the urgent rate limit (it counts sent/) were all
+    lossy. A number whose slot name already exists in sent/ or sent/archive/ is skipped; the recipient
+    inbox just gets a gap. Fixture: tests/mesh-send-sent-mirror-fixture.sh.
 
     Caller is responsible for writing the .md file and then calling
     release_claim() to remove the .claim sentinel.
@@ -461,6 +468,10 @@ def claim_slot(inbox: Path, sender: str, topic: str) -> tuple[str, Path]:
                 release_claim(claim)
                 continue
             slot = f"{date}-{n:03d}-{sender}-{topic}"
+            if sent_dir is not None and any((d / f"{slot}.md").exists()
+                                            for d in (sent_dir, sent_dir / "archive")):
+                release_claim(claim)
+                continue
             return slot, inbox / f"{slot}.md", claim
         return None
 
@@ -818,7 +829,7 @@ def main() -> None:
             break
 
     # ---- claim slot ----
-    slot, md_path, claim = claim_slot(inbox, sender, topic)
+    slot, md_path, claim = claim_slot(inbox, sender, topic, sent_dir)
 
     # ---- assemble frontmatter ----
     readers = [recipient_uri] + [f"{cc}@mesh" for cc in ccs]
