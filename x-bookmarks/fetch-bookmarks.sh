@@ -80,7 +80,7 @@ for tweet in tweets:
         m_list.append({"type": m.get("type"), "url": m.get("url") or m.get("preview_image_url", "")})
 
     metrics = tweet.get("public_metrics", {})
-    bookmarks.append({
+    rec = {
         "id": tweet["id"],
         "author": author.get("username", ""),
         "author_name": author.get("name", ""),
@@ -93,7 +93,15 @@ for tweet in tweets:
         "views": metrics.get("impression_count", 0),
         "links": links,
         "media": m_list,
-    })
+    }
+    # Additive (mac-claude rfc 2026-10-04-089 Q1, host GO): tweet.fields has requested
+    # note_tweet,article since 5c2f5ce but the record kept only `text`, so 0 of 99 long posts were
+    # captured while the API returned note_tweet on 44 of 99. `text` stays exactly as before.
+    if (tweet.get("note_tweet") or {}).get("text"):
+        rec["note_text"] = tweet["note_tweet"]["text"]
+    if tweet.get("article"):
+        rec["article"] = tweet["article"]
+    bookmarks.append(rec)
 
 print(json.dumps(bookmarks, indent=2))
 PYEOF
