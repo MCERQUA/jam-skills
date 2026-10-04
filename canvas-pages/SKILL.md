@@ -144,6 +144,27 @@ Public URL: `https://DOMAIN/pages/pagename.html`
 
 **Locked pages:** Admin can lock pages (🔐). You CANNOT change visibility on locked pages (API returns 403). You CAN still edit the content.
 
+### Anything a STRANGER must open: test it from OUTSIDE before calling it done
+
+A QR code, a link on a flyer or in an email to customers, a page the owner asked to share
+publicly: the person opening it is not signed in and is not inside your container. A check
+from inside the sandbox (localhost, a container path, a file you just wrote) proves nothing
+about what they will get. foambot printed QR codes that pointed at a private page and the
+client found the 404 himself.
+
+Before you report it done, fetch the exact URL that went into the QR/link, as a stranger:
+```bash
+curl -s -o /dev/null -w '%{http_code} %{url_effective}\n' -L 'https://DOMAIN/pages/pagename.html'
+```
+- `200` and the page's own content -> done. Say what you checked.
+- `401`/`403` on something meant for STRANGERS -> NOT done. The page is private. Ask the
+  owner if he wants it public (above); never flip it on your own.
+- `404` / wrong host / a `localhost` or container path inside the link -> NOT done. Fix the link.
+
+Do NOT run this on the owner's own pages. A `401` to a signed-out probe is the CORRECT state
+of every private page: the owner signs in and sees it. This check is only for links a third
+party will open.
+
 ## Desktop Category Assignment
 
 After creating a page, assign it to a category:
