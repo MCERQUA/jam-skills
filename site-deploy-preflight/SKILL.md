@@ -39,6 +39,23 @@ Export encountered an error on /_error: /404, exiting the build.
 
 If you ever see that `<Html>` / `/_error: /404` message, your first question is "what is NODE_ENV?", not "what did I break?"
 
+## Before you hand anyone a deploy request: check BOTH diff directions
+
+A build that passes can still ship a regression if your branch is BEHIND the deploy branch.
+Pushing it, or asking host to fast-forward it, would roll back whatever landed on `main` since you
+branched. So check both directions, not just "what am I adding":
+
+```bash
+git fetch -q origin
+git rev-list --count origin/main..HEAD    # what you would ADD   (want: your commits)
+git rev-list --count HEAD..origin/main    # what you would DROP  (want: 0)
+```
+
+If the second number is not 0, rebase or merge `origin/main` first, re-run the preflight, then ask.
+Put both numbers in the deploy request: that is what lets host fast-forward in two minutes instead
+of re-deriving it. (Pattern from foamology-voice, W40 weekly review; it found its `web-dev` BEHIND
+`main` before a deploy.)
+
 ## Reading a failure
 
 The script prints only the lines that matter (compile errors, TS errors, missing modules) and drops the full log at `/tmp/preflight-<site>-FAILED.log`.
