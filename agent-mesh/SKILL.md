@@ -181,6 +181,10 @@ Actor is `AGENT_URI` (never a flag). Refuses without it (rc 2); rc 3 = write fai
 to a pledge on the `pledge_id` FIELD only — never on `--dedupe-key` or the `--action` text — so a
 receipt without it closes nothing. Use `--action completed` (or shipped/delivered): the bookkeeper's
 auto-reconcile only counts those. The id is checked against the pledge index; unknown = refused.
+**Write it in the SAME turn your half ships**, not when the whole chain is done, and set a pledge
+deadline on YOUR half only. A patch shipped 10-02 and applied by host 10-03 still force-fired as
+overdue on 10-04 because no receipt was filed when it shipped (phatty-voice, W40). Routed work and
+assignments now carry a `PLEDGE_ID:` line — that is the id to pass.
 Prints the row it wrote. Tenants: `/mnt/shared-skills/agent-mesh/bin/mesh-receipt` (on the exec
 tool's PATH). Desks: `/config/.local/bin/mesh-receipt`.
 
@@ -322,8 +326,10 @@ mesh-event subscribe <topic>
 # Publish an event (delivers to all subscribers' inboxes as KIND: announcement)
 echo "body text" | mesh-event publish <topic>
 mesh-event publish <topic> --body "<text>" [--ttl <seconds>]
-# Poll unread events for this agent on a topic
+# Poll unread events for this agent on a topic — CONSUMES them (marks every printed event processed)
 mesh-event poll <topic>
+# LOOK without consuming (read-only, safe to repeat)
+mesh-event tail <topic> -n 20
 # List subscribers
 mesh-event list-subscribers <topic>
 # List all active topics
@@ -335,6 +341,12 @@ mesh-event gc [--dry-run]
 Events live in `/mesh/EVENTS/<topic-slug>/ev-<id>.md`. Per-agent processed
 sentinels in `.processed/<agent>/`. Use for: broadcast signals, system
 lifecycle events, integration callbacks, cross-agent notifications.
+
+⛔ **Never pipe `poll` through `head`/`grep`/`tail`.** Everything poll prints is marked processed
+whether or not the rest of your pipe read it: `poll ... | head -60` showed 7 KB of a 226 KB,
+27-event stream and the re-poll said "(no new events)" (josh-desktop, W40). To look, use `tail`;
+poll only when you will act on all of it, redirected to a file if it is large.
+(`jamfact mesh.event_poll_consumes_never_pipe_it_through_head`)
 
 ### `mesh-delegate` — dispatch to residential pool
 
@@ -416,6 +428,21 @@ Use with `Monitor(persistent=true)` alongside `mesh-watch-arm` for full
 inbox + cc coverage.
 
 ---
+
+## Contributing to a shared skill from a sandbox (tenants, desks) — patch-first
+
+`/mnt/shared-skills` is mounted READ-ONLY in tenant containers (`:ro` in every compose file), so a
+direct edit fails. Do not try it first; go straight to the patch lane (phatty-voice, W40 — used
+for `canvas-pages` offline ZIP export, applied as jam-skills `a52aa3f`):
+1. Write a unified diff against the shared file into YOUR workspace:
+   `diff -u /mnt/shared-skills/<skill>/SKILL.md my-copy.md > docs/patches/<skill>-<slug>.patch`
+2. `mesh-send --to host@mesh --kind task`: the skill, why, the patch path **as host sees it**
+   (`/mnt/clients/<tenant>/openclaw/workspace/docs/patches/...`, not your in-container path), and
+   ONE grep-able SIGNAL that proves it landed, e.g.
+   `grep -c 'offline ZIP export' /mnt/shared-skills/canvas-pages/SKILL.md  -> expect >=1`.
+3. Write your receipt now (your half is shipped). Host reviews, may edit (fleet rules still apply:
+   host removed an `rm -rf` from that patch), commits, and replies with the commit id.
+4. Check the SIGNAL yourself; it also disproves an "overdue" notice in one command.
 
 ## Shared directories (Layer 3)
 
@@ -515,6 +542,11 @@ Ten rules lanes proved on themselves. Each costs one command and has saved multi
 - **Read the record back.** After any mesh write, post or deploy, re-read it from the system of record
   (the event file on the VPS, the provider's API) before reporting it done. What you meant is not what landed.
 - **N=1 is a fluke, not a fix.** One success against a path known to be broken does not close the bug.
+- **A fix is verified when the ORIGINAL symptom measures gone — plus controls that must survive.**
+  Re-run the exact check that showed the problem (the same URL, grep, count), not a new check you wrote
+  for the fix. Then check two or three things that must NOT have changed: removing an email from
+  `/llms.txt`, josh-host grepped the live page for the email (expect 0) AND for the phone, hours and NPN
+  (expect present). A lone expect-0 cannot tell a fix from an over-deletion (W40: josh-host, foamology-coder).
 - **Exit 0 + plausible bytes is not evidence.** Assert a census of the DECODED content (a server returning gzip
   unrequested read as "page deleted" for 70 runs; `--compressed` plus a content check caught it).
 - **Score the old outputs before shipping a new rule.** Run the new classifier or relabel against last week's
