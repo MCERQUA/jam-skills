@@ -160,7 +160,7 @@ a finding, not a blocker, and never a reason to suggest making it public. Mike's
 only when the CLIENT asks, so that someone ELSE can see it. Never propose it.
 
 This section is ONLY for a link a third party (a customer, a stranger) will open, because the owner
-asked for exactly that: a QR code, a link on a flyer or in an email to customers, a link on a flyer or in an email to customers, a page the owner asked to share
+asked for exactly that: a QR code, a link on a flyer or in an email to customers, a page the owner asked to share
 publicly: the person opening it is not signed in and is not inside your container. A check
 from inside the sandbox (localhost, a container path, a file you just wrote) proves nothing
 about what they will get. foambot printed QR codes that pointed at a private page and the
