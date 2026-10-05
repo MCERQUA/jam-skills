@@ -153,7 +153,14 @@ Public URL: `https://DOMAIN/pages/pagename.html`
 
 ### Anything a STRANGER must open: test it from OUTSIDE before calling it done
 
-A QR code, a link on a flyer or in an email to customers, a page the owner asked to share
+**FIRST: is this page for the OWNER? Then skip this whole section.** A page you built for the owner
+(a plan, report, list, commercials, estimate) is delivered by texting him the link; he opens it signed
+in on his phone. A `401` to your signed-out probe is the CORRECT state of every private page: it is not
+a finding, not a blocker, and never a reason to suggest making it public. Mike's rule: a page goes public
+only when the CLIENT asks, so that someone ELSE can see it. Never propose it.
+
+This section is ONLY for a link a third party (a customer, a stranger) will open, because the owner
+asked for exactly that: a QR code, a link on a flyer or in an email to customers, a link on a flyer or in an email to customers, a page the owner asked to share
 publicly: the person opening it is not signed in and is not inside your container. A check
 from inside the sandbox (localhost, a container path, a file you just wrote) proves nothing
 about what they will get. foambot printed QR codes that pointed at a private page and the
@@ -164,13 +171,13 @@ Before you report it done, fetch the exact URL that went into the QR/link, as a 
 curl -s -o /dev/null -w '%{http_code} %{url_effective}\n' -L 'https://DOMAIN/pages/pagename.html'
 ```
 - `200` and the page's own content -> done. Say what you checked.
-- `401`/`403` on something meant for STRANGERS -> NOT done. The page is private. Ask the
-  owner if he wants it public (above); never flip it on your own.
+- `401`/`403` on something the owner asked to share with strangers -> NOT done. His request
+  to put it in front of customers IS the ask, so make that page public (with the warning above) and
+  re-test. If you are not sure he asked for strangers to see it, it is an owner page: text him the link.
 - `404` / wrong host / a `localhost` or container path inside the link -> NOT done. Fix the link.
 
-Do NOT run this on the owner's own pages. A `401` to a signed-out probe is the CORRECT state
-of every private page: the owner signs in and sees it. This check is only for links a third
-party will open.
+(Repeat of the rule at the top: never run this on the owner's own pages. mrglass-sms did on
+2026-10-05 and asked the owner to "opt in" to public instead of texting him the link.)
 
 ## Desktop Category Assignment
 
