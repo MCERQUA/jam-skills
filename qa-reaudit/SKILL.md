@@ -24,6 +24,9 @@ Needs: `playwright` (sync API) + chromium. No keys, no network — runs on `file
 - Purple detection (hue 255-305, project rule: NO purple in UI artifacts)
 - Emoji detection in UI text (project rule: NO emojis)
 - Render health: runtime `innerText` AND no-JS static text char count — both must read zero before "blank page" is reported (kills harness false-CRITICALs)
+- Lead-form AUTOFILL probe (2026-10-05): fills visible fields with the NATIVE value setter, dispatches NO input/change events, asserts a gated submit/next control enables. Stays disabled → HIGH `form-autofill-deadlock` (React state only moves on input events, so autofill/pre-hydration users cannot submit; found on 16 of ~670 sites where every typing test passed). Conservative: ungated forms skipped, needs >=2 visible fields.
+- Structural review-section detector (2026-10-05, josh-desk-1 routed share): JSON-LD Review/AggregateRating, schema.org microdata, card clusters where >=half the cards carry a rating signal — catches review blocks headed anything (word-presence checks miss 11-of-12 style). OBSERVATION-grade: lands in `review_sections` in audit-report.json, never a severity.
+- Self-test: `sh self-test.sh` — runs the engine on three in-dir fixtures (autofill deadlock = must NO-SHIP, autofill-friendly interval validator = must SHIP with the probe proven exercised, review sections = must detect "What Our Clients Say" and NOT the services negative control). Fixtures travel with the engine; do not separate them.
 
 Severity: CRITICAL = doc overflow / blank page / tab invariant broken; HIGH = element
 overflow (non-clipped), offscreen text, contrast, touch, canvas, purple, emoji;

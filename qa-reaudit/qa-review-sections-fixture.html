@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QA fixture — review-section detector</title>
+<style>
+  body { font-family: sans-serif; margin: 24px; background: #fff; color: #111; }
+  .quote-card, .svc-card { border: 1px solid #ccc; border-radius: 8px; padding: 16px; margin: 12px 0; max-width: 420px; }
+  .stars { letter-spacing: 2px; }
+</style>
+</head>
+<body>
+  <!-- Review section headed NOTHING like "reviews"/"testimonials": the word-check
+       class misses this; structural tokens (star text, JSON-LD Review) must catch it. -->
+  <section id="feedback">
+    <h2>What Our Clients Say</h2>
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"Review","itemReviewed":{"@type":"LocalBusiness","name":"Example Co"},"reviewRating":{"@type":"Rating","ratingValue":"5"}}
+    </script>
+    <figure class="quote-card">
+      <div class="stars">★★★★★</div>
+      <blockquote>Best crew we have ever hired.</blockquote>
+      <figcaption>A homeowner</figcaption>
+    </figure>
+    <figure class="quote-card">
+      <div class="stars">★★★★★</div>
+      <blockquote>Fast, clean, fair price.</blockquote>
+      <figcaption>A shop owner</figcaption>
+    </figure>
+    <figure class="quote-card">
+      <div class="stars">★★★★☆</div>
+      <blockquote>Showed up on time, great work.</blockquote>
+      <figcaption>A property manager</figcaption>
+    </figure>
+  </section>
+  <!-- NEGATIVE CONTROL: card grid with NO rating signals — must NOT be detected. -->
+  <section id="services">
+    <h2>Our Services</h2>
+    <article class="svc-card"><h3>Pressure washing</h3><p>Driveways and siding.</p></article>
+    <article class="svc-card"><h3>Gutter cleaning</h3><p>Full downspout flush.</p></article>
+    <article class="svc-card"><h3>Window washing</h3><p>Inside and out.</p></article>
+  </section>
+</body>
+</html>

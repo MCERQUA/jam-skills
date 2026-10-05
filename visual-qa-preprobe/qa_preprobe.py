@@ -192,6 +192,108 @@ CHECK_JS = """
 }
 """
 
+# Lead-form AUTOFILL probe (host task 2026-10-04, from josh-desk-1's ~670-site audit):
+# fill visible fields with the NATIVE value setter, dispatch NO input/change events,
+# then assert the gated submit/next control enables. React state only moves on input
+# events, so autofill / pre-hydration values leave Continue disabled while every
+# human-style typing test passes. Conservative: ungated forms (button enabled at
+# load) are skipped — nothing to test; needs >=2 visible fields.
+# PARITY: identical predicate as qa-reaudit/qa-reaudit.py — land changes in BOTH.
+FORM_PROBE_JS = """
+async () => {
+  const out = {forms_total: 0, gated_forms: 0, autofill_deadlocked: []};
+  const visible = el => {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const gated = btn => btn.disabled || btn.getAttribute('aria-disabled') === 'true' || getComputedStyle(btn).pointerEvents === 'none';
+  const fill = el => {
+    if (el.tagName === 'SELECT') {
+      if (el.options.length > 1) el.value = el.options[1].value;
+      return;
+    }
+    const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+    const desc = Object.getOwnPropertyDescriptor(proto, 'value');
+    if (!desc || !desc.set) return;
+    const v = el.type === 'email' ? 'qa.probe@example.com' : el.type === 'tel' ? '5551234567'
+            : el.tagName === 'TEXTAREA' ? 'QA probe message text.' : 'QA Probe';
+    desc.set.call(el, v);
+  };
+  const forms = [...document.querySelectorAll('form')];
+  const touched = [];
+  for (const form of forms) {
+    out.forms_total++;
+    const fields = [...form.querySelectorAll('input, textarea, select')].filter(el =>
+      !['hidden','submit','button','file','checkbox','radio'].includes(el.type) && !el.disabled && !el.readOnly && visible(el));
+    if (fields.length < 2) continue;
+    let btn = form.querySelector('button[type="submit"], input[type="submit"], button:not([type]), [class*="submit" i], [class*="continue" i], [class*="next" i]');
+    if ((!btn || !visible(btn)) && form.nextElementSibling) {
+      const sib = form.nextElementSibling;
+      btn = sib.matches('button, [class*="continue" i], [class*="next" i]') ? sib : sib.querySelector('button, [class*="continue" i], [class*="next" i]');
+    }
+    if (!btn || !visible(btn)) continue;
+    if (!gated(btn)) continue;
+    out.gated_forms++;
+    fields.forEach(fill);
+    touched.push({form, btn, n: fields.length});
+  }
+  // settle beat: event-less validators that poll values (the by-design case) get a
+  // chance to enable the button; React-state gating never will.
+  await new Promise(r => setTimeout(r, 250));
+  for (const t of touched) {
+    if (!gated(t.btn)) continue;
+    const fs = t.form;
+    out.autofill_deadlocked.push({
+      selector: 'form' + (fs.id ? '#'+fs.id : '') + (typeof fs.className === 'string' && fs.className ? '.'+fs.className.trim().split(/\\s+/).slice(0,2).join('.') : ''),
+      button: (t.btn.textContent || t.btn.value || '').trim().slice(0, 40),
+      fields_filled: t.n
+    });
+  }
+  return out;
+}
+"""
+
+# Structural review-section detector (routed share, josh-desk-1@mesh 2026-10-04):
+# word-presence checks ("review", "testimonial") miss review blocks headed anything.
+# Structural tokens: JSON-LD Review/AggregateRating, schema.org microdata, and card
+# clusters where >=half the cards carry a rating signal (star class/aria/text, data-rating).
+# Observation-grade: reported in the JSON, NEVER a severity — presence of a review
+# section is data, not a defect.
+# PARITY: identical predicate as qa-reaudit/qa-reaudit.py — land changes in BOTH.
+REVIEW_SECTION_JS = """
+() => {
+  const sections = [];
+  const seen = new Set();
+  const sel = el => el.tagName.toLowerCase() + (el.id ? '#'+el.id : '') + (typeof el.className === 'string' && el.className ? '.'+el.className.trim().split(/\\s+/).slice(0,2).join('.') : '');
+  const push = (el, signals) => {
+    if (!el || seen.has(el) || sections.length >= 10) return;
+    seen.add(el);
+    const h = el.querySelector('h1,h2,h3,h4,h5,header');
+    sections.push({selector: sel(el), heading: h ? h.textContent.trim().slice(0, 60) : '', signals});
+  };
+  document.querySelectorAll('script[type="application/ld+json"]').forEach(s => {
+    try {
+      const flat = JSON.stringify(JSON.parse(s.textContent));
+      if (/"@type"\\s*:\\s*"(Review|AggregateRating)"/.test(flat)) push(s.closest('section, article, div'), ['json-ld:Review/AggregateRating']);
+    } catch (e) {}
+  });
+  document.querySelectorAll('[itemtype]').forEach(el => {
+    if (/schema\\.org\\/(Review|AggregateRating)/.test(el.getAttribute('itemtype') || '')) push(el, ['microdata:Review']);
+  });
+  const ratingSignal = c => c.querySelector('[class*="star" i], [class*="rating" i], [data-rating], [aria-label*="star" i], [aria-label*="rating" i], [class*="stars" i]') || /(^|[\\s\\p{P}])[\\u2605\\u2606\\u2729\\u272A\\u272E\\u272F\\u2730]{2,}|\\b\\d([.,]\\d)?\\s*\\/\\s*5\\b|\\b[1-5]\\s+stars?\\b/iu.test(c.textContent);
+  document.querySelectorAll('section, [class*="review" i], [class*="testimonial" i]').forEach(sec => {
+    if (seen.has(sec)) return;
+    const cards = [...sec.querySelectorAll('article, li, blockquote, figure, [class*="card" i]')].filter(visible_ => visible_.getBoundingClientRect().height > 0);
+    if (cards.length < 2) return;
+    const rated = cards.filter(ratingSignal);
+    if (rated.length >= Math.max(2, Math.ceil(cards.length / 2))) push(sec, ['cards-with-rating-signals:' + rated.length + '/' + cards.length]);
+  });
+  return sections;
+}
+"""
+
 THEME_TOGGLE_JS = """
 () => {
   const cands = document.querySelectorAll('#themeToggle, [class*="theme-toggle"], [class*="themeToggle"], [aria-label*="theme" i], [data-action*="theme"], .toggle-theme, #theme-toggle');
@@ -246,6 +348,11 @@ def classify(res, viewport_name, is_mobile, static_chars):
         add("HIGH", "purple-rule", f"purple color detected fg={p['fg']} bg={p['bg']}", p["selector"])
     for e in res.get("emoji", []):
         add("HIGH", "emoji-rule", f"emoji character in UI text: '{e['text']}'", e["selector"])
+    fp = res.get("form_probe", {})
+    for f in fp.get("autofill_deadlocked", []):
+        add("HIGH", "form-autofill-deadlock",
+            f"submit control '{f['button']}' stays disabled after native-setter autofill of {f['fields_filled']} fields (no input/change events) — autofill/pre-hydration users cannot submit; enable validation from input events AND value reads, or validate on submit",
+            f["selector"])
     return bugs, observations
 
 def main():
@@ -285,6 +392,8 @@ def main():
                     click_theme(page)
                 page.wait_for_timeout(300)
                 res = page.evaluate(CHECK_JS)
+                res["form_probe"] = page.evaluate(FORM_PROBE_JS)
+                res["review_sections"] = page.evaluate(REVIEW_SECTION_JS)
                 shot = f"{vname}_{tname}.png"
                 page.screenshot(path=os.path.join(outdir, "screenshots", shot), full_page=True)
                 is_mobile = vname == "mobile"
@@ -320,6 +429,8 @@ def main():
         "bugs": bugs,
         "render_health": {"static_text_chars": s_chars,
                           "observations": all_observations},
+        "review_sections": list({s["selector"]: s for c in combos
+                                 for s in c["checks"].get("review_sections", [])}.values()),
         **({"theme_skip_reason": theme_skip} if theme_skip else {}),
     }
     with open(os.path.join(outdir, "audit-report.json"), "w") as f:

@@ -21,6 +21,12 @@ toggle exists) it captures a full-page screenshot and checks:
 - tab invariant (exactly one active panel)
 - purple rule (hue 255-305 with real saturation — hard project rule)
 - emoji rule (astral emoji + FE0F sequences in visible UI text — hard project rule)
+- lead-form AUTOFILL probe (2026-10-05): gated submit/next must ENABLE after fields are
+  filled with the native value setter and NO input/change events — stays disabled → HIGH
+  `form-autofill-deadlock` (ungated forms are skipped). PARITY: identical predicate as
+  `qa-reaudit/qa-reaudit.py` — land predicate changes in BOTH collectors.
+- structural review-section detector (2026-10-05): JSON-LD/microdata/rating-signal card
+  clusters → reported in `review_sections` (observation, never a severity).
 
 Two-instrument render health: a blank runtime read is only CRITICAL if static text is also
 zero; otherwise it is CANNOT-TELL (harness failure), never reported as a page bug.

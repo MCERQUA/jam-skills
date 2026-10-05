@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QA fixture — autofill deadlock (must FAIL)</title>
+<style>
+  body { font-family: sans-serif; margin: 24px; background: #fff; color: #111; }
+  form { max-width: 420px; display: grid; gap: 12px; }
+  input { padding: 10px; font-size: 16px; }
+  button { padding: 14px 28px; font-size: 16px; background: #0b5; color: #fff; border: 0; border-radius: 6px; }
+  button:disabled { background: #999; }
+</style>
+</head>
+<body>
+  <h1>Request a quote</h1>
+  <!-- POSITIVE CONTROL: button enables ONLY from input events (React-style gated
+       state). Native-setter autofill must leave it disabled -> probe must flag
+       form-autofill-deadlock. -->
+  <form id="lead">
+    <input type="text" name="name" placeholder="Your name">
+    <input type="email" name="email" placeholder="Your email">
+    <input type="tel" name="phone" placeholder="Your phone">
+    <button id="continue" type="submit" disabled>Continue</button>
+  </form>
+  <script>
+    const form = document.getElementById('lead');
+    const btn = document.getElementById('continue');
+    const validate = () => {
+      const ok = [...form.querySelectorAll('input')].every(i => i.value.trim().length > 1);
+      btn.disabled = !ok;
+    };
+    form.querySelectorAll('input').forEach(i => i.addEventListener('input', validate));
+  </script>
+</body>
+</html>
