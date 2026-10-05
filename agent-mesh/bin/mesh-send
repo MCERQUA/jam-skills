@@ -325,6 +325,13 @@ def agent_name() -> str:
             f"  clean; check the live process env: tr '\\0' '\\n' < /proc/$$/environ | grep AGENT_URI")
     if not re.fullmatch(r"[a-z0-9][a-z0-9\-]*", name):
         die(f"AGENT_URI agent name must be kebab-case, got: {name}")
+    # SSH IDENTITY PIN (2026-10-05, Mike: "he is 'mac' host not 'host'"). A trusted remote node's key runs
+    # scripts/agent-mesh/mesh-ssh-identity-pin.sh, which exports the identities that key may use. Outside
+    # that set the send is refused, so a remote node can never speak as host@mesh, by accident or otherwise.
+    _allowed = os.environ.get("MESH_SSH_ALLOWED_URIS", "").strip()
+    if _allowed and uri not in {u.strip() for u in _allowed.split(",") if u.strip()}:
+        die(f"AGENT_URI {uri} is not allowed over this node's ssh key (node "
+            f"{os.environ.get('MESH_SSH_NODE', '?')} may send as: {_allowed})")
     return name
 
 
@@ -435,6 +442,8 @@ def _allocator_stamp() -> str:
             stamp = f"mesh-send {hashlib.sha256(fh.read()).hexdigest()[:8]} {here}"
         if _UNCHECKED_DIRS:
             stamp += " unchecked=" + ",".join(sorted(_UNCHECKED_DIRS))
+        if os.environ.get("MESH_SSH_NODE"):          # provenance: sent over a pinned remote-node key
+            stamp += " via=ssh:" + re.sub(r"[^a-z0-9-]", "", os.environ["MESH_SSH_NODE"])[:40]
         return stamp
     except OSError:
         return "mesh-send unknown"
